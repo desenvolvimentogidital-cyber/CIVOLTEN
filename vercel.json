@@ -23,5 +23,22 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/teste",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/orcamento",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/orcamentos",
+      "destination": "/",
+      "permanent": false
+    }
   ]
 }
