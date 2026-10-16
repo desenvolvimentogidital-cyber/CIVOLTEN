@@ -42,3 +42,21 @@ alter table public.commercial_quote_history enable row level security;
 alter table public.civolten_branding enable row level security;
 revoke all on public.commercial_quotes,public.commercial_quote_history,public.civolten_branding from public,anon,authenticated;
 grant select,insert,update,delete on public.commercial_quotes,public.commercial_quote_history,public.civolten_branding to service_role;
+
+-- Rate limits públicos específicos da página de proposta; separados dos pedidos.
+create or replace function public.civolten_consume_limit(p_ip text,p_action text,p_limit integer)
+returns boolean language plpgsql security invoker set search_path = ''
+as $$
+declare current_attempts integer;
+begin
+ if p_action not in ('start','sign','submit','client_view','client_decision')
+   or p_limit<1 or p_limit>100 or length(p_ip)<>64 then return false; end if;
+ insert into public.ip_limits(ip_hash,action,window_start,attempts)
+ values(p_ip,p_action,date_trunc('hour',now()),1)
+ on conflict(ip_hash,action,window_start) do update set attempts=public.ip_limits.attempts+1
+ returning attempts into current_attempts;
+ return current_attempts<=p_limit;
+end;
+$$;
+revoke all on function public.civolten_consume_limit(text,text,integer) from public,anon,authenticated;
+grant execute on function public.civolten_consume_limit(text,text,integer) to service_role;
