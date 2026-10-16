@@ -5,6 +5,7 @@ const BASE=Deno.env.get('SUPABASE_URL')||'';
 const SECRET=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
 const db=createClient(BASE,SECRET,{auth:{persistSession:false,autoRefreshToken:false}});
 const ALL=['novo','analisando','aguardando_cliente','orcamento_enviado','visita_necessaria','concluido','recusado'];
+const BRAZIL_DDDS=new Set('11 12 13 14 15 16 17 18 19 21 22 24 27 28 31 32 33 34 35 37 38 41 42 43 44 45 46 47 48 49 51 53 54 55 61 62 63 64 65 66 67 68 69 71 73 74 75 77 79 81 82 83 84 85 86 87 88 89 91 92 93 94 95 96 97 98 99'.split(' '));
 const MIME=new Set(['image/jpeg','image/png','image/webp','image/heic','image/heif','video/mp4','video/quicktime','video/webm','audio/webm','audio/mp4','audio/mpeg','audio/ogg','audio/wav','audio/x-m4a']);
 const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'content-type,authorization,apikey,x-client-info','Access-Control-Allow-Methods':'GET,POST,OPTIONS'};
 function out(data,status=200){return Response.json(data,{status,headers:{...CORS,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}})}
@@ -147,7 +148,7 @@ Deno.serve(async req=>{
    const name=sample(b.name).trim(),desc=sample(b.description).trim();
    const digits=sample(b.phone).replace(/\D/g,'');
    const phone=digits.length===11?'+55'+digits:digits.length===13?'+'.concat(digits):'';
-   if(name.length<2||name.length>100||!/^\+55[1-9]\d9\d{8}$/.test(phone)||desc.length<12||desc.length>4000)
+   if(name.length<2||name.length>100||(!/^\+55[1-9]\d9\d{8}$/.test(phone)||!BRAZIL_DDDS.has(phone.slice(3,5)))||desc.length<12||desc.length>4000)
     throw new Error('Preencha nome, WhatsApp válido (+55, DDD e celular de 9 dígitos) e descrição (12 caracteres ou mais)');
    if(!['eletrica','manutencao','iluminacao','reforma','construcao','pintura','hidraulica','outros'].includes(b.category))throw new Error('Serviço inválido');
    if(!['normal','breve','urgente'].includes(b.urgency))throw new Error('Urgência inválida');
