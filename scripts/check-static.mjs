@@ -1,0 +1,13 @@
+import fs from "node:fs";
+import vm from "node:vm";
+import assert from "node:assert/strict";
+const html=fs.readFileSync("index.html","utf8");
+assert.match(html,/CIVOLTEN/i);
+assert.match(html,/id="form"/);
+const scripts=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(x=>x[1]);
+assert.ok(scripts.length>0,"Página sem scripts");
+for(const script of scripts)new vm.Script(script,{filename:"index.html"});
+const matrix=JSON.parse(fs.readFileSync("app-nextjs/data/matriz-precos.json","utf8"));
+const text=JSON.stringify(matrix);
+for(const name of ["demolicao_alvenaria","pintura_alvenaria","quadro_distribuicao","instalacao_chuveiro"])assert.ok(text.includes(name),"Serviço ausente: "+name);
+console.log("CIVOLTEN: HTML/JS e matriz validados.");
