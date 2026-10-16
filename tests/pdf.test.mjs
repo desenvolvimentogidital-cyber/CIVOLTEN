@@ -108,3 +108,28 @@ test('não se pode emitir PDF final com simulação ausente',async()=>{
   assert.equal(r.status,409);
  }finally{globalThis.fetch=original}
 });
+
+
+test('valores arredondados preservam o total em centavos',()=>{
+ const m=pedido();
+ m.pedido.request_details.itens=[
+  {servico_id:'ponto_tomada_interruptor',quantidade:1},
+  {servico_id:'ponto_tomada_interruptor',quantidade:1},
+  {servico_id:'ponto_tomada_interruptor',quantidade:1}
+ ];
+ m.simulacao.itens=m.pedido.request_details.itens.map(()=>({
+  servico_id:'ponto_tomada_interruptor',quantidade:1,total:1,descricao:'Ponto de tomada',unidade:'un.'
+ }));
+ const rows=commercialBreakdown(m.pedido,m.simulacao,m.servicos,10);
+ assert.deepEqual(rows.map(r=>Math.round(r.lineTotal*100)),[334,333,333]);
+ assert.equal(rows.reduce((sum,row)=>sum+Math.round(row.lineTotal*100),0),1000);
+});
+test('snapshot diferente do pedido impede detalhamento com preço inventado',()=>{
+ const m=pedido();
+ m.simulacao.itens[0].quantidade=41;
+ assert.throws(()=>commercialBreakdown(m.pedido,m.simulacao,m.servicos,120000),e=>e.status===409);
+});
+test('faixas legadas não aparecem como preço mínimo/máximo',()=>{
+ const m=pedido(5000,10000);
+ assert.equal(approvedQuoteTotal(m.pedido,m.simulacao),m.simulacao.total_bruto);
+});
