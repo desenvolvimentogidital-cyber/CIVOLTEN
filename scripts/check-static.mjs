@@ -8,7 +8,7 @@ assert.match(html, /CIVOLTEN/i);
 assert.equal(occurrences(html, /<\/html>/gi), 1, "Documento HTML duplicado ou truncado");
 assert.equal(occurrences(html, /<script\b[^>]*>/gi), 1, "Deve existir exatamente uma referência ao script");
 assert.equal(occurrences(html, /<\/script>/gi), 1, "Script duplicado ou interrompido");
-assert.match(html, /<script src="\/assets\/civolten\.js" defer><\/script>/i);
+assert.match(html, /<script src="\/assets\/civolten\.js(?:\?v=[0-9]+)?" defer><\/script>/i);
 assert.match(html, /<link rel="stylesheet" href="\/assets\/civolten\.css"/i);
 assert.doesNotMatch(html, /<script>([\s\S]*?)<\/script>|<style>|\sonclick=/i, "HTML não pode conter JS/CSS inline");
 for (const id of ["client", "lines", "add", "simulate", "catalogstatus", "retryCatalog", "pricingArea"]) {
