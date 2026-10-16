@@ -138,7 +138,7 @@ async function loadPrices(){
 }
 // Arquivos do orçamento são sempre privados; somente o admin pode gerar.
 function quotePdfUrl(id,mode){
- return '/api/quote-pdf?id='+encodeURIComponent(id)+'&mode='+encodeURIComponent(mode)+'&layout=aprovado-v2';
+ return '/api/quote-pdf?id='+encodeURIComponent(id)+'&mode='+encodeURIComponent(mode)+'&layout=detalhado-v3';
 }
 async function prepareQuotePdf(id){
  const response=await fetch(quotePdfUrl(id,'final'),{credentials:'same-origin',cache:'no-store'});
@@ -176,29 +176,35 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
  if(!rr.ok)throw Error(j.error||'Acesso negado');
  const mediaURL=new URL(j.url);
  if(mediaURL.protocol!=='https:'||mediaURL.hostname!=='rvhnuowqfdugcecgmxnv.supabase.co'||!mediaURL.pathname.startsWith('/storage/v1/object/sign/civolten-media/'))throw Error('URL de anexo inválida');
- window.open(mediaURL.href,'_blank','noopener,noreferrer')}catch(e){message('adminmsg',e.message)}};box.appendChild(b)});const status=document.createElement('select');['novo','analisando','aguardando_cliente','orcamento_enviado','visita_necessaria','concluido','recusado'].forEach(s=>{let o=document.createElement('option');o.value=s;o.textContent=s;status.appendChild(o)});status.value=x.status;const min=document.createElement('input');min.type='number';min.step='.01';min.placeholder='Mínimo R$';min.value=x.estimate_min??'';const max=document.createElement('input');max.type='number';max.step='.01';max.placeholder='Máximo R$';max.value=x.estimate_max??'';const notes=document.createElement('textarea');notes.placeholder='Observações internas';notes.value=x.admin_notes||'';notes.maxLength=4000;const save=document.createElement('button');save.textContent='Salvar orçamento/status';save.onclick=async()=>{try{
- const low=min.value===''?null:Number(min.value),high=max.value===''?null:Number(max.value);
- if((low===null)!==(high===null)||[low,high].some(v=>v!==null&&(!Number.isFinite(v)||v<0||v>100000000||Math.round(v*100)/100!==v))||(low!==null&&low>high))throw Error('Mínimo deve ser ≤ máximo; preencha ambos ou deixe ambos vazios.');
- await api('POST','admin-status',{id:x.id,status:status.value,min:low,max:high,notes:notes.value},true);message('adminmsg','Salvo com sucesso.',true)}catch(e){message('adminmsg',e.message)}};const wa=document.createElement('a');wa.href=normalPhone(x.phone)?'https://wa.me/'+normalPhone(x.phone).slice(1):'#';wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Abrir WhatsApp ↗';if(!normalPhone(x.phone)){wa.textContent='WhatsApp inválido';wa.removeAttribute('href');}box.append(status,min,max,notes,save,wa);
+ window.open(mediaURL.href,'_blank','noopener,noreferrer')}catch(e){message('adminmsg',e.message)}};box.appendChild(b)});const status=document.createElement('select');['novo','analisando','aguardando_cliente','orcamento_enviado','visita_necessaria','concluido','recusado'].forEach(s=>{let o=document.createElement('option');o.value=s;o.textContent=s;status.appendChild(o)});status.value=x.status;const amount=document.createElement('input');amount.type='number';amount.step='.01';amount.min='0.01';amount.placeholder='Valor total do orçamento (R$)';amount.inputMode='decimal';
+ const same=(x.estimate_min!==null&&x.estimate_min!==undefined&&x.estimate_max!==null&&Number(x.estimate_min)===Number(x.estimate_max));
+ let savedAmount=same?Number(x.estimate_min):(x.simulacao?.total_bruto??null);
+ amount.value=savedAmount??'';
+ const amountLabel=document.createElement('label');amountLabel.className='field';amountLabel.textContent='Valor total para o cliente (R$)';amountLabel.appendChild(amount);
+ const checkSaved=()=>{if((amount.value.trim()===''?null:Number(amount.value))!==savedAmount)throw Error('Salve o valor total antes de baixar ou compartilhar o orçamento.');};const notes=document.createElement('textarea');notes.placeholder='Observações internas';notes.value=x.admin_notes||'';notes.maxLength=4000;const save=document.createElement('button');save.textContent='Salvar orçamento/status';save.onclick=async()=>{try{
+ const total=amount.value.trim()===''?null:Number(amount.value);
+ if(total!==null&&(!Number.isFinite(total)||total<=0||total>100000000||Math.round(total*100)/100!==total))throw Error('Informe um valor total positivo com até 2 casas decimais.');
+ await api('POST','admin-status',{id:x.id,status:status.value,min:total,max:total,notes:notes.value},true);
+ savedAmount=total;message('adminmsg','Valor total e situação salvos.',true)}catch(e){message('adminmsg',e.message)}};const wa=document.createElement('a');wa.href=normalPhone(x.phone)?'https://wa.me/'+normalPhone(x.phone).slice(1):'#';wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Abrir WhatsApp ↗';if(!normalPhone(x.phone)){wa.textContent='WhatsApp inválido';wa.removeAttribute('href');}box.append(status,amountLabel,notes,save,wa);
  const pdfActions=document.createElement('div');pdfActions.className='row';
- const previewBtn=document.createElement('button');previewBtn.type='button';previewBtn.textContent='Ver prévia PDF (novo design)';
+ const previewBtn=document.createElement('button');previewBtn.type='button';previewBtn.textContent='Ver prévia interna PDF';
  previewBtn.title='Documento interno com a simulação enviada pelo cliente';
  previewBtn.onclick=()=>window.open(quotePdfUrl(x.id,'preview'),'_blank','noopener,noreferrer');
- const downloadBtn=document.createElement('button');downloadBtn.type='button';downloadBtn.textContent='Baixar PDF para cliente';
+ const downloadBtn=document.createElement('button');downloadBtn.type='button';downloadBtn.textContent='Baixar orçamento detalhado';
  downloadBtn.onclick=async()=>{
-  try{downloadBtn.disabled=true;const {blob,filename}=await prepareQuotePdf(x.id);downloadQuote(blob,filename);message('adminmsg','PDF do orçamento baixado. Você pode enviar ao cliente.',true)}
+  try{downloadBtn.disabled=true;checkSaved();const {blob,filename}=await prepareQuotePdf(x.id);downloadQuote(blob,filename);message('adminmsg','PDF do orçamento baixado. Você pode enviar ao cliente.',true)}
   catch(e){message('adminmsg',e.message)}
   finally{downloadBtn.disabled=false}
  };
  const shareBtn=document.createElement('button');shareBtn.type='button';shareBtn.className='goldbtn';shareBtn.textContent='Compartilhar PDF';
  shareBtn.onclick=async()=>{
-  try{shareBtn.disabled=true;await shareQuote(x.id,x.phone)}
+  try{shareBtn.disabled=true;checkSaved();await shareQuote(x.id,x.phone)}
   catch(e){message('adminmsg',e.message)}
   finally{shareBtn.disabled=false}
  };
  pdfActions.append(previewBtn,downloadBtn,shareBtn);
  const pdfHint=document.createElement('p');pdfHint.className='hint';
- pdfHint.textContent='Prévia: simulação para conferência interna. Para enviar ao cliente, salve primeiro os valores mínimo e máximo. O PDF não mostra notas internas nem custos da empresa.';
+ pdfHint.textContent='Prévia interna: valor de referência. PDF do cliente: serviços selecionados, quantidades, preço de cada serviço e total. Se alterar o valor, salve antes de compartilhar. Custos internos permanecem privados.';
  box.append(pdfActions,pdfHint);frag.appendChild(box)});$('orders').replaceChildren(frag)}catch(e){message('adminmsg',e.message);$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden')}}
 async function loadCatalog(){
  const status=$('catalogstatus'),retry=$('retryCatalog');
