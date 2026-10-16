@@ -33,7 +33,9 @@ const proxyServer=fs.readFileSync("api/admin.mjs","utf8");
 assert.match(cookieServer,/HttpOnly|sessionCookie/);
 assert.match(proxyServer,/cookieToken/);
 assert.match(backend,/['"]owner['"],['"]admin['"]|['"]admin['"],['"]owner['"]/);
-assert.match(backend,/createSignedUrl\(path,300\)/);
+assert.match(backend,/b\.consent!==true/);
+assert.match(script,/privacy_version:'2026-10'/);
+assert.match(backend,/createSignedUrl\(path,300,\{download:true\}\)/);
 for(const f of ["api/session.mjs","api/admin.mjs","lib/civolten-security.mjs"])assert.match(fs.readFileSync(f,"utf8"),/export/);
 assert.doesNotMatch(backend, /baixo:Number\(x\.baixo\)/, "Preços na API pública");
 
