@@ -148,8 +148,14 @@ Deno.serve(async req=>{
    const name=sample(b.name).trim(),desc=sample(b.description).trim();
    const digits=sample(b.phone).replace(/\D/g,'');
    const phone=digits.length===11?'+55'+digits:digits.length===13?'+'.concat(digits):'';
-   if(name.length<2||name.length>100||(!/^\+55[1-9]\d9\d{8}$/.test(phone)||!BRAZIL_DDDS.has(phone.slice(3,5)))||desc.length<12||desc.length>4000)
-    throw new Error('Preencha nome, WhatsApp válido (+55, DDD e celular de 9 dígitos) e descrição (12 caracteres ou mais)');
+   if(!name)throw new Error('Falta preencher o nome.');
+   if(name.length<2||name.length>100)throw new Error('O nome deve ter entre 2 e 100 caracteres.');
+   if(!sample(b.phone).trim())throw new Error('Falta preencher o WhatsApp.');
+   if(!/^\+55[1-9]\d9\d{8}$/.test(phone)||!BRAZIL_DDDS.has(phone.slice(3,5)))
+    throw new Error('WhatsApp inválido: informe DDD e celular de 9 dígitos.');
+   if(!desc)throw new Error('Falta preencher a descrição do serviço.');
+   if(desc.length<12||desc.length>4000)
+    throw new Error('A descrição do serviço precisa ter entre 12 e 4000 caracteres.');
    if(!['eletrica','manutencao','iluminacao','reforma','construcao','pintura','hidraulica','outros'].includes(b.category))throw new Error('Serviço inválido');
    if(!['normal','breve','urgente'].includes(b.urgency))throw new Error('Urgência inválida');
    const {data:media,error:me}=await db.from('quote_media').select('path').eq('request_id',b.id);if(me)throw me;
