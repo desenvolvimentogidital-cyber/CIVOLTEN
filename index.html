@@ -70,14 +70,40 @@ $('activate').onclick=async()=>{const b=$('activate');try{clean('adminmsg');b.di
 $('login').onclick=async()=>{try{clean('adminmsg');const r=await fetch(ROOT+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});const j=await r.json();if(!r.ok||!j.access_token)throw Error('Login inválido. Confira e-mail e senha.');token=j.access_token;writeToken(token);await refresh();}catch(e){message('adminmsg',e.message)}};
 $('logout').onclick=()=>{token='';writeToken('');$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden');$('pricingArea').classList.add('hidden')};$('refresh').onclick=refresh;
 $('pricingToggle').onclick=async()=>{const area=$('pricingArea');const opening=area.classList.contains('hidden');area.classList.toggle('hidden',!opening);if(opening)await loadPrices()};
-async function loadPrices(){try{
- const data=await api('GET','admin-pricing',null,true);$('pricingList').replaceChildren();
- data.catalogo.forEach(s=>{
-  const box=document.createElement('div');box.className='order';
-  const h=document.createElement('h3');h.textContent=s.description+' ('+s.unit+')';box.appendChild(h);
-  const grid=document.createElement('div');grid.className='grid';
-  const fields={};
-  for(const p of ['baixo','medio','alto']){const lbl=document.createElement('label');lbl.className='field';lbl.textContent=p.toUpperCase()+' — R
+async function loadPrices(){
+ try{
+  const data=await api('GET','admin-pricing',null,true);
+  $('pricingList').replaceChildren();
+  data.catalogo.forEach(s=>{
+   const box=document.createElement('div');box.className='order';
+   const h=document.createElement('h3');h.textContent=s.description+' ('+s.unit+')';box.appendChild(h);
+   const grid=document.createElement('div');grid.className='grid';const fields={};
+   for(const p of ['baixo','medio','alto']){
+    const lbl=document.createElement('label');lbl.className='field';lbl.textContent=p.toUpperCase()+' — R$';
+    const inp=document.createElement('input');inp.type='number';inp.min='0';inp.step='.01';inp.value=s[p];
+    lbl.appendChild(inp);grid.appendChild(lbl);fields[p]=inp;
+   }
+   const actions=document.createElement('div');actions.className='row';
+   const save=document.createElement('button');save.type='button';save.textContent='Salvar preços';
+   const feedback=document.createElement('span');feedback.className='hint';
+   save.onclick=async()=>{
+    try{
+     save.disabled=true;
+     const values={id:s.service_id};
+     for(const p of ['baixo','medio','alto']){
+      if(fields[p].value.trim()==='')throw Error('Preencha os três padrões; use zero para preço pendente.');
+      values[p]=Number(fields[p].value);
+     }
+     await api('POST','admin-pricing',values,true);
+     feedback.textContent='Valores salvos.';feedback.style.color='#8cffc4';
+    }catch(e){
+     feedback.textContent=e.message;feedback.style.color='#ff9cae';
+    }finally{save.disabled=false;}
+   };
+   actions.append(save,feedback);box.append(grid,actions);$('pricingList').appendChild(box);
+  });
+ }catch(e){message('adminmsg','Falha ao carregar preços internos: '+e.message)}
+}
 async function refresh(){try{const d=await api('GET','admin-list',null,true);$('loginbox').classList.add('hidden');$('dashboard').classList.remove('hidden');$('orders').replaceChildren();const h=document.createElement('h2');h.textContent='Pedidos recebidos: '+d.pedidos.length;$('orders').appendChild(h);d.pedidos.forEach(x=>{const box=document.createElement('div');box.className='order';const title=document.createElement('h3');title.textContent=x.customer_name+' • '+x.category+' • '+x.id.slice(0,8).toUpperCase();const p=document.createElement('p');p.textContent=x.description;const info=document.createElement('small');info.textContent=(x.phone||'')+' • '+(x.neighborhood||x.city||'')+' • '+new Date(x.submitted_at).toLocaleString('pt-BR');box.append(title,info,p);if(x.request_details?.itens?.length){const t=document.createElement('p');const names=new Map(catalog.map(z=>[z.id,z.descricao]));t.textContent='Serviços solicitados: '+x.request_details.itens.map(z=>(names.get(z.servico_id)||z.servico_id)+' × '+z.quantidade).join('; ')+' | Padrão: '+(x.request_details.padrao||'não informado');box.appendChild(t)}if(x.simulacao){const sim=document.createElement('p');sim.textContent='Simulação: '+BRL(x.simulacao.total_bruto);box.appendChild(sim)}(x.media||[]).forEach(m=>{const b=document.createElement('button');b.textContent='📎 '+m.original_name;b.onclick=async()=>{try{const u=API+'?api=admin-media&id='+encodeURIComponent(x.id)+'&path='+encodeURIComponent(m.path);const rr=await fetch(u,{headers:{Authorization:'Bearer '+token}}),j=await rr.json();if(!rr.ok)throw Error(j.error);window.open(j.url,'_blank','noopener')}catch(e){message('adminmsg',e.message)}};box.appendChild(b)});const status=document.createElement('select');['novo','analisando','aguardando_cliente','orcamento_enviado','visita_necessaria','concluido','recusado'].forEach(s=>{let o=document.createElement('option');o.value=s;o.textContent=s;status.appendChild(o)});status.value=x.status;const min=document.createElement('input');min.type='number';min.step='.01';min.placeholder='Mínimo R$';min.value=x.estimate_min??'';const max=document.createElement('input');max.type='number';max.step='.01';max.placeholder='Máximo R$';max.value=x.estimate_max??'';const notes=document.createElement('textarea');notes.placeholder='Observações internas';notes.value=x.admin_notes||'';notes.maxLength=4000;const save=document.createElement('button');save.textContent='Salvar orçamento/status';save.onclick=async()=>{try{await api('POST','admin-status',{id:x.id,status:status.value,min:min.value===''?null:Number(min.value),max:max.value===''?null:Number(max.value),notes:notes.value},true);message('adminmsg','Salvo com sucesso.',true)}catch(e){message('adminmsg',e.message)}};const wa=document.createElement('a');wa.href='https://wa.me/55'+(x.phone||'').replace(/\D/g,'');wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Abrir WhatsApp ↗';box.append(status,min,max,notes,save,wa);$('orders').appendChild(box)})}catch(e){message('adminmsg',e.message);$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden')}}
 async function loadCatalog(){
  const status=$('catalogstatus'),retry=$('retryCatalog');
@@ -101,15 +127,5 @@ async function loadCatalog(){
 $('retryCatalog').onclick=loadCatalog;
 add(); // Sempre mostra o primeiro formulário, mesmo com a API temporariamente indisponível.
 loadCatalog();
-})();
-</script></body></html>;const inp=document.createElement('input');inp.type='number';inp.min='0';inp.step='.01';inp.value=s[p];lbl.appendChild(inp);grid.appendChild(lbl);fields[p]=inp;}
-  const actions=document.createElement('div');actions.className='row';const save=document.createElement('button');save.type='button';save.textContent='Salvar preços';const feedback=document.createElement('span');feedback.className='hint';
-  save.onclick=async()=>{try{save.disabled=true;const v={id:s.service_id};for(const p of ['baixo','medio','alto']){if(fields[p].value.trim()==='')throw Error('Preencha os três padrões; use zero para preço pendente.');v[p]=Number(fields[p].value);}await api('POST','admin-pricing',v,true);feedback.textContent='Valores salvos.';feedback.style.color='#8cffc4';}catch(e){feedback.textContent=e.message;feedback.style.color='#ff9cae'}finally{save.disabled=false}};
-  actions.append(save,feedback);box.append(grid,actions);$('pricingList').appendChild(box);
- });
- }catch(e){message('adminmsg','Falha ao carregar preços internos: '+e.message)}}
-
-async function refresh(){try{const d=await api('GET','admin-list',null,true);$('loginbox').classList.add('hidden');$('dashboard').classList.remove('hidden');$('orders').replaceChildren();const h=document.createElement('h2');h.textContent='Pedidos recebidos: '+d.pedidos.length;$('orders').appendChild(h);d.pedidos.forEach(x=>{const box=document.createElement('div');box.className='order';const title=document.createElement('h3');title.textContent=x.customer_name+' • '+x.category+' • '+x.id.slice(0,8).toUpperCase();const p=document.createElement('p');p.textContent=x.description;const info=document.createElement('small');info.textContent=(x.phone||'')+' • '+(x.neighborhood||x.city||'')+' • '+new Date(x.submitted_at).toLocaleString('pt-BR');box.append(title,info,p);if(x.simulacao){const sim=document.createElement('p');sim.textContent='Simulação: '+BRL(x.simulacao.total_bruto);box.appendChild(sim)}(x.media||[]).forEach(m=>{const b=document.createElement('button');b.textContent='📎 '+m.original_name;b.onclick=async()=>{try{const u=API+'?api=admin-media&id='+encodeURIComponent(x.id)+'&path='+encodeURIComponent(m.path);const rr=await fetch(u,{headers:{Authorization:'Bearer '+token}}),j=await rr.json();if(!rr.ok)throw Error(j.error);window.open(j.url,'_blank','noopener')}catch(e){message('adminmsg',e.message)}};box.appendChild(b)});const status=document.createElement('select');['novo','analisando','aguardando_cliente','orcamento_enviado','visita_necessaria','concluido','recusado'].forEach(s=>{let o=document.createElement('option');o.value=s;o.textContent=s;status.appendChild(o)});status.value=x.status;const min=document.createElement('input');min.type='number';min.step='.01';min.placeholder='Mínimo R$';min.value=x.estimate_min??'';const max=document.createElement('input');max.type='number';max.step='.01';max.placeholder='Máximo R$';max.value=x.estimate_max??'';const notes=document.createElement('textarea');notes.placeholder='Observações internas';notes.value=x.admin_notes||'';notes.maxLength=4000;const save=document.createElement('button');save.textContent='Salvar orçamento/status';save.onclick=async()=>{try{await api('POST','admin-status',{id:x.id,status:status.value,min:min.value===''?null:Number(min.value),max:max.value===''?null:Number(max.value),notes:notes.value},true);message('adminmsg','Salvo com sucesso.',true)}catch(e){message('adminmsg',e.message)}};const wa=document.createElement('a');wa.href='https://wa.me/55'+(x.phone||'').replace(/\D/g,'');wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Abrir WhatsApp ↗';box.append(status,min,max,notes,save,wa);$('orders').appendChild(box)})}catch(e){message('adminmsg',e.message);$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden')}}
-api('GET','catalog').then(r=>{catalog=r.catalogo;$('add').disabled=false}).catch(e=>{message('clientmsg','Falha ao carregar a matriz: '+e.message);$('add').disabled=true});
 })();
 </script></body></html>
