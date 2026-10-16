@@ -138,7 +138,7 @@ async function loadPrices(){
 }
 // Arquivos do orçamento são sempre privados; somente o admin pode gerar.
 function quotePdfUrl(id,mode){
- return '/api/quote-pdf?id='+encodeURIComponent(id)+'&mode='+encodeURIComponent(mode);
+ return '/api/quote-pdf?id='+encodeURIComponent(id)+'&mode='+encodeURIComponent(mode)+'&layout=aprovado-v2';
 }
 async function prepareQuotePdf(id){
  const response=await fetch(quotePdfUrl(id,'final'),{credentials:'same-origin',cache:'no-store'});
@@ -181,7 +181,7 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
  if((low===null)!==(high===null)||[low,high].some(v=>v!==null&&(!Number.isFinite(v)||v<0||v>100000000||Math.round(v*100)/100!==v))||(low!==null&&low>high))throw Error('Mínimo deve ser ≤ máximo; preencha ambos ou deixe ambos vazios.');
  await api('POST','admin-status',{id:x.id,status:status.value,min:low,max:high,notes:notes.value},true);message('adminmsg','Salvo com sucesso.',true)}catch(e){message('adminmsg',e.message)}};const wa=document.createElement('a');wa.href=normalPhone(x.phone)?'https://wa.me/'+normalPhone(x.phone).slice(1):'#';wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Abrir WhatsApp ↗';if(!normalPhone(x.phone)){wa.textContent='WhatsApp inválido';wa.removeAttribute('href');}box.append(status,min,max,notes,save,wa);
  const pdfActions=document.createElement('div');pdfActions.className='row';
- const previewBtn=document.createElement('button');previewBtn.type='button';previewBtn.textContent='Ver prévia PDF';
+ const previewBtn=document.createElement('button');previewBtn.type='button';previewBtn.textContent='Ver prévia PDF (novo design)';
  previewBtn.title='Documento interno com a simulação enviada pelo cliente';
  previewBtn.onclick=()=>window.open(quotePdfUrl(x.id,'preview'),'_blank','noopener,noreferrer');
  const downloadBtn=document.createElement('button');downloadBtn.type='button';downloadBtn.textContent='Baixar PDF para cliente';

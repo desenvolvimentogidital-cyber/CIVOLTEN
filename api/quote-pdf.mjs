@@ -46,7 +46,7 @@ export default {async fetch(req){
   const filename='CIVOLTEN-'+id.slice(0,8).toUpperCase()+(mode==='preview'?'-PREVIA':'-ORCAMENTO')+'.pdf';
   return new Response(bytes,{
    status:200,headers:{
-    ...common,'Content-Type':'application/pdf',
+    ...common,'Content-Type':'application/pdf','X-CIVOLTEN-PDF-Layout':'aprovado-v2',
     'Content-Disposition':(mode==='preview'?'inline':'attachment')+'; filename="'+filename+'"',
     'Content-Length':String(bytes.length)
    }
