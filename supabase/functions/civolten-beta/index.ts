@@ -141,6 +141,8 @@ Deno.serve(async req=>{
   }
   if(req.method==='POST'&&api==='submit'){
    const b=await body(req);await rate(req,'submit',8);
+   if(b.consent!==true||b.privacy_version!=='2026-10')
+    throw new Error('Confirme a autorização de tratamento de dados para solicitar orçamento');
    if(!await draft(b))return err('Pedido já enviado ou inválido',403);
    const name=sample(b.name).trim(),desc=sample(b.description).trim();
    const digits=sample(b.phone).replace(/\D/g,'');
@@ -180,7 +182,9 @@ Deno.serve(async req=>{
     request_details:{
      itens:Array.isArray(b.itens)?b.itens.slice(0,60):[],
      padrao:sample(b.padrao).slice(0,10),dias:b.dias,distancia_km:b.km
-    },status:'novo',submitted_at:new Date().toISOString(),updated_at:new Date().toISOString()
+    },lgpd_consent_at:new Date().toISOString(),privacy_notice_version:'2026-10',
+    retention_until:new Date(Date.now()+90*24*3600*1000).toISOString(),
+    status:'novo',submitted_at:new Date().toISOString(),updated_at:new Date().toISOString()
    }).eq('id',b.id).is('submitted_at',null).select('id').maybeSingle();
    if(qe)throw qe;if(!saved)return err('Pedido já enviado',409);
    return out({ok:true,protocolo:saved.id.slice(0,8).toUpperCase(),simulacao:preview?.total_bruto??null});
@@ -243,7 +247,7 @@ Deno.serve(async req=>{
     if(!uuidValid(id)||!sample(path).startsWith(id+'/'))throw new Error('Anexo inválido');
     const {data:found}=await db.from('quote_media').select('id').eq('request_id',id).eq('path',path).maybeSingle();
     if(!found)return err('Anexo não encontrado',404);
-    const {data:signed,error:se}=await db.storage.from('civolten-media').createSignedUrl(path,300);
+    const {data:signed,error:se}=await db.storage.from('civolten-media').createSignedUrl(path,300,{download:true});
     if(se)throw se;return out({url:signed.signedUrl});
    }
   }
