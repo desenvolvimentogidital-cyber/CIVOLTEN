@@ -110,11 +110,18 @@ async function loadPrices(){
   data.catalogo.forEach(s=>{
    const box=document.createElement('div');box.className='order';
    const h=document.createElement('h3');h.textContent=s.description+' ('+s.unit+')';box.appendChild(h);
-   const grid=document.createElement('div');grid.className='grid';const fields={};
+   const grid=document.createElement('div');grid.className='grid';const fields={},pending={};
    for(const p of ['baixo','medio','alto']){
+    const wrapper=document.createElement('div');
     const lbl=document.createElement('label');lbl.className='field';lbl.textContent=p.toUpperCase()+' — R$';
-    const inp=document.createElement('input');inp.type='number';inp.min='0';inp.step='.01';inp.value=s[p];
-    lbl.appendChild(inp);grid.appendChild(lbl);fields[p]=inp;
+    const inp=document.createElement('input');inp.type='number';inp.min='1';inp.max='100000';inp.step='.01';inp.value=s[p]>0?s[p]:'';
+    const checkLabel=document.createElement('label');checkLabel.className='field';checkLabel.style.fontWeight='400';
+    const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=Number(s[p])===0;
+    checkLabel.append(checkbox,document.createTextNode(' Preço pendente (não simular)'));
+    inp.disabled=checkbox.checked;
+    checkbox.onchange=()=>{inp.disabled=checkbox.checked;if(checkbox.checked)inp.value=''};
+    lbl.appendChild(inp);wrapper.append(lbl,checkLabel);grid.appendChild(wrapper);
+    fields[p]=inp;pending[p]=checkbox;
    }
    const actions=document.createElement('div');actions.className='row';
    const save=document.createElement('button');save.type='button';save.textContent='Salvar preços';
@@ -122,11 +129,17 @@ async function loadPrices(){
    save.onclick=async()=>{
     try{
      save.disabled=true;
-     const values={id:s.service_id};
+     const values={id:s.service_id,pendentes:[]};
      for(const p of ['baixo','medio','alto']){
-      if(fields[p].value.trim()==='')throw Error('Preencha os três padrões; use zero para preço pendente.');
-      values[p]=Number(fields[p].value);
+      if(pending[p].checked){values[p]=0;values.pendentes.push(p);continue}
+      if(fields[p].value.trim()==='')throw Error('Informe um preço ou marque como pendente.');
+      const value=Number(fields[p].value);
+      if(!Number.isFinite(value)||value<1||value>100000||Math.round(value*100)/100!==value)throw Error('Preço deve ficar entre R$ 1 e R$ 100.000 com até 2 decimais.');
+      values[p]=value;
      }
+     if((values.baixo>0&&values.medio>0&&values.baixo>values.medio)||
+        (values.medio>0&&values.alto>0&&values.medio>values.alto)||
+        (values.baixo>0&&values.alto>0&&values.baixo>values.alto))throw Error('Preços crescentes: baixo ≤ médio ≤ alto.');
      await api('POST','admin-pricing',values,true);
      feedback.textContent='Valores salvos.';feedback.style.color='#8cffc4';
     }catch(e){
