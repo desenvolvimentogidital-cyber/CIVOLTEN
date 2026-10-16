@@ -7,13 +7,15 @@
 - A tela de teste **`index.html`** é uma aplicação estática responsiva para celular, sem build. Ela chama a API que já foi implantada no Supabase próprio da CIVOLTEN.
 - Backend ativo: `https://rvhnuowqfdugcecgmxnv.supabase.co/functions/v1/civolten-beta` (Edge Function).
 - PostgreSQL exclusivo da CIVOLTEN no Supabase, região São Paulo. Catálogo com 15 serviços e três padrões.
-- A versão Next.js mais completa fica em `app-nextjs/`. **Ainda requer configuração de chaves privadas no provedor antes de ser implantada**; está incluída como base para evolução. Não colocar as chaves do OrçaPro.
+- A versão Next.js completa continua disponível no pacote de origem, mas **nem todos os seus arquivos foram sincronizados aqui**. No GitHub foram enviados o site estático, API Supabase, matriz, motor de cálculo, migrações e configurações. Não tente implantar `app-nextjs/` antes de completar a sincronização e os testes. Não colocar as chaves do OrçaPro.
 - Ambiente **BETA** para testes. Não divulgar publicamente até concluir testes de upload, login, permissões, antispam, LGPD e retenção dos arquivos.
 
 ## Publicação rápida em Vercel (ambiente de teste, não comercial)
 
-1. Crie um repositório privado chamado `civolten-orcamentos` no GitHub e faça upload deste conteúdo **na raiz**.
-2. Na Vercel, use `Add New > Project` e selecione **somente** `civolten-orcamentos`.
+> A conexão Vercel via ChatGPT retornou 403 ao criar o projeto; não há implantação confirmada. Importar manualmente este repositório na Vercel pode contornar a limitação da integração se sua conta tiver permissão.
+
+1. O repositório `desenvolvimentogidital-cyber/CIVOLTEN` já existe e contém a tela e a API de testes. Está **público**; para torná-lo privado, acesse Settings → General → Danger Zone → Change repository visibility.
+2. Na Vercel, use `Add New > Project` e selecione **somente** `desenvolvimentogidital-cyber/CIVOLTEN`.
 3. Framework: `Other` (site HTML estático); Root Directory: `/` (raiz); build command: nenhum.
 4. Abra o endereço temporário e valide pelo celular os fluxos básicos, gravação de áudio, upload e login.
 5. Para operação comercial da CIVOLTEN, use hospedagem/plano que permita uso comercial. Plano Vercel Hobby é para uso pessoal não comercial.
