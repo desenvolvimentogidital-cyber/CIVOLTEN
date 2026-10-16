@@ -81,7 +81,7 @@ function fixture(online){
     setItem(){throw Error("Storage bloqueado pelo navegador")},
     removeItem(){throw Error("Storage bloqueado pelo navegador")}
   };
-  const ctx=vm.createContext({document,fetch,sessionStorage,window:{},console});
+  const ctx=vm.createContext({document,fetch,sessionStorage,window:{},console,Event:class Event{constructor(type){this.type=type}}});
   vm.runInContext(script,ctx);
   return elements;
 }
