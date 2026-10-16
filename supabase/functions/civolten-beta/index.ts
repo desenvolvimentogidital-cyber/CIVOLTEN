@@ -68,9 +68,11 @@ async function admin(req){
  const s=sample(req.headers.get('authorization')).match(/^Bearer ([A-Za-z0-9._~-]+)$/)?.[1];
  if(!s)return false;
  const {data,error}=await db.auth.getUser(s);
- if(error||!data?.user?.id)return false;
- const {data:a,error:e}=await db.from('admin_users').select('user_id').eq('user_id',data.user.id).maybeSingle();
- return !e&&!!a;
+ if(error||!data?.user?.id||data.user.is_anonymous)return false;
+ const {data:a,error:e}=await db.from('admin_users').select('user_id,role,enabled')
+  .eq('user_id',data.user.id).eq('enabled',true).maybeSingle();
+ // Não confia em role vinda do cliente nem em user_metadata.
+ return !e&&!!a&&['owner','admin'].includes(a.role);
 }
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
@@ -125,7 +127,7 @@ Deno.serve(async req=>{
    const b=await body(req);await rate(req,'sign',35);
    if(!await draft(b))return err('Pedido não autorizado',403);
    const size=num(b.size,1,45*1024*1024),mime=sample(b.mime),name=sample(b.name).trim();
-   if(!MIME.has(mime)||name.length<1||name.length>150)throw new Error('Arquivo inválido ou não suportado');
+   if(!MIME.has(mime)||name.length<1||name.length>150||/[\u0000-\u001f\u007f<>]/.test(name))throw new Error('Arquivo inválido ou não suportado');
    const {data:existing,error:e}=await db.from('quote_media').select('size').eq('request_id',b.id);
    if(e)throw e;
    if(existing.length>=6||existing.reduce((s,x)=>s+Number(x.size),0)+size>120*1024*1024)throw new Error('Limite: 6 arquivos e 120 MB por pedido');
@@ -140,8 +142,11 @@ Deno.serve(async req=>{
   if(req.method==='POST'&&api==='submit'){
    const b=await body(req);await rate(req,'submit',8);
    if(!await draft(b))return err('Pedido já enviado ou inválido',403);
-   const name=sample(b.name).trim(),phone=sample(b.phone).replace(/\D/g,''),desc=sample(b.description).trim();
-   if(name.length<2||name.length>100||phone.length<10||phone.length>11||desc.length<12||desc.length>4000)throw new Error('Preencha nome, telefone com DDD e descrição (12 caracteres ou mais)');
+   const name=sample(b.name).trim(),desc=sample(b.description).trim();
+   const digits=sample(b.phone).replace(/\D/g,'');
+   const phone=digits.length===11?'+55'+digits:digits.length===13?'+'.concat(digits):'';
+   if(name.length<2||name.length>100||!/^\+55[1-9]\d9\d{8}$/.test(phone)||desc.length<12||desc.length>4000)
+    throw new Error('Preencha nome, WhatsApp válido (+55, DDD e celular de 9 dígitos) e descrição (12 caracteres ou mais)');
    if(!['eletrica','manutencao','iluminacao','reforma','construcao','pintura','hidraulica','outros'].includes(b.category))throw new Error('Serviço inválido');
    if(!['normal','breve','urgente'].includes(b.urgency))throw new Error('Urgência inválida');
    const {data:media,error:me}=await db.from('quote_media').select('path').eq('request_id',b.id);if(me)throw me;
@@ -182,6 +187,7 @@ Deno.serve(async req=>{
   }
   if(api?.startsWith('admin-')){
    if(!await admin(req))return err('Acesso restrito ao administrador',401);
+   if(req.method==='GET'&&api==='admin-me')return out({authenticated:true,role:'admin'});
    if(req.method==='GET'&&api==='admin-pricing'){
     const {data,error}=await db.from('pricing_catalog').select('service_id,description,category,unit,baixo,medio,alto,enabled').order('category').order('description');
     if(error)throw error;
@@ -190,9 +196,21 @@ Deno.serve(async req=>{
    if(req.method==='POST'&&api==='admin-pricing'){
     const b=await body(req);
     if(typeof b.id!=='string'||!/^[a-z_]{3,80}$/.test(b.id))throw new Error('Serviço inválido');
-    const prices={baixo:num(b.baixo,0,1000000),medio:num(b.medio,0,1000000),alto:num(b.alto,0,1000000)};
-    for(const val of Object.values(prices))if(Math.round(val*100)/100!==val)throw new Error('Preço deve ter no máximo 2 casas decimais');
-    if(prices.baixo>0&&prices.medio>0&&prices.alto>0&&!(prices.baixo<=prices.medio&&prices.medio<=prices.alto))throw new Error('Os preços precisam seguir baixo ≤ médio ≤ alto');
+    const pending=b.pendentes;
+    if(!Array.isArray(pending)||pending.some(k=>!['baixo','medio','alto'].includes(k))||new Set(pending).size!==pending.length)
+     throw new Error('Informe os padrões pendentes explicitamente');
+    const prices={};
+    for(const k of ['baixo','medio','alto']){
+     const n=b[k];
+     if(typeof n!=='number'||!Number.isFinite(n))throw new Error('Preço inválido ou não informado');
+     if(pending.includes(k)){if(n!==0)throw new Error('Preço pendente deve ser zero');prices[k]=0;continue}
+     if(n<1||n>100000||Math.round(n*100)/100!==n)throw new Error('Preço deve ficar entre R$ 1 e R$ 100.000 com 2 decimais');
+     prices[k]=n;
+    }
+    if((prices.baixo>0&&prices.medio>0&&prices.baixo>prices.medio)||
+       (prices.medio>0&&prices.alto>0&&prices.medio>prices.alto)||
+       (prices.baixo>0&&prices.alto>0&&prices.baixo>prices.alto))
+      throw new Error('Os padrões devem ter preço crescente: baixo ≤ médio ≤ alto');
     const {data,error}=await db.from('pricing_catalog').update({...prices,updated_at:new Date().toISOString()}).eq('service_id',b.id).select('service_id').maybeSingle();
     if(error)throw error;if(!data)return err('Serviço não encontrado',404);
     return out({ok:true});
@@ -211,9 +229,13 @@ Deno.serve(async req=>{
     const b=await body(req);
     if(!uuidValid(b.id)||!ALL.includes(b.status))throw new Error('Pedido ou status inválido');
     const val=x=>x===null||(typeof x==='number'&&Number.isFinite(x)&&x>=0&&x<=1e8);
-    if(!val(b.min)||!val(b.max)||(b.min!==null&&b.max!==null&&b.min>b.max))throw new Error('Faixa de preços inválida');
+    if(!val(b.min)||!val(b.max)||((b.min===null)!==(b.max===null))||
+       (b.min!==null&&(b.min>b.max||b.max>100000000||Math.round(b.min*100)/100!==b.min||Math.round(b.max*100)/100!==b.max)))
+      throw new Error('Informe mínimo e máximo juntos, com 2 decimais e mínimo ≤ máximo');
     if(sample(b.notes).length>4000)throw new Error('Anotação longa demais');
-    const {error}=await db.from('quote_requests').update({status:b.status,estimate_min:b.min,estimate_max:b.max,admin_notes:sample(b.notes),updated_at:new Date().toISOString()}).eq('id',b.id).not('submitted_at','is',null);if(error)throw error;
+    const {data:changed,error}=await db.from('quote_requests').update({status:b.status,estimate_min:b.min,estimate_max:b.max,admin_notes:sample(b.notes),updated_at:new Date().toISOString()}).eq('id',b.id).not('submitted_at','is',null).select('id').maybeSingle();
+    if(error)throw error;
+    if(!changed)return err('Pedido não encontrado',404);
     return out({ok:true});
    }
    if(req.method==='GET'&&api==='admin-media'){
@@ -221,7 +243,7 @@ Deno.serve(async req=>{
     if(!uuidValid(id)||!sample(path).startsWith(id+'/'))throw new Error('Anexo inválido');
     const {data:found}=await db.from('quote_media').select('id').eq('request_id',id).eq('path',path).maybeSingle();
     if(!found)return err('Anexo não encontrado',404);
-    const {data:signed,error:se}=await db.storage.from('civolten-media').createSignedUrl(path,120);
+    const {data:signed,error:se}=await db.storage.from('civolten-media').createSignedUrl(path,300);
     if(se)throw se;return out({url:signed.signedUrl});
    }
   }
