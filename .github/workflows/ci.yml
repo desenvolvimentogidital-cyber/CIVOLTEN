@@ -21,3 +21,11 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Static, security and PDF checks
         run: npm test
+      - name: Generate sample PDFs for visual QA
+        run: node scripts/generate-pdf-preview.mjs
+      - name: Upload visual PDF samples
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: civolten-pdf-v2-samples
+          path: preview-artifacts/*.pdf
+          retention-days: 3
