@@ -220,6 +220,22 @@ Deno.serve(async req=>{
     if(error)throw error;if(!data)return err('Serviço não encontrado',404);
     return out({ok:true});
    }
+   if(req.method==='GET'&&api==='admin-quote'){
+    const id=url.searchParams.get('id');
+    if(!uuidValid(id))return err('Pedido inválido',400);
+    const {data:pedido,error:pe}=await db.from('quote_requests')
+      .select('id,customer_name,phone,city,neighborhood,category,description,urgency,status,estimate_min,estimate_max,request_details,created_at,submitted_at,updated_at')
+      .eq('id',id).not('submitted_at','is',null).maybeSingle();
+    if(pe)throw pe;
+    if(!pedido)return err('Pedido não encontrado',404);
+    const {data:simulacao,error:se}=await db.from('quote_pricing_snapshots')
+      .select('padrao,total_bruto,itens').eq('request_id',id).maybeSingle();
+    if(se)throw se;
+    const {data:catalogo,error:ce}=await db.from('pricing_catalog')
+      .select('service_id,description,unit');
+    if(ce)throw ce;
+    return out({pedido,simulacao:simulacao??null,servicos:catalogo});
+   }
    if(req.method==='GET'&&api==='admin-list'){
     const {data:requests,error:re}=await db.from('quote_requests').select('*').not('submitted_at','is',null).order('submitted_at',{ascending:false}).limit(100);
     if(re)throw re;const ids=requests.map(r=>r.id);
