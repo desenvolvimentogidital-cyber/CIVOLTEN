@@ -6,15 +6,21 @@ const html = fs.readFileSync("index.html", "utf8");
 const occurrences = (text, pattern) => [...text.matchAll(pattern)].length;
 assert.match(html, /CIVOLTEN/i);
 assert.equal(occurrences(html, /<\/html>/gi), 1, "Documento HTML duplicado ou truncado");
-assert.equal(occurrences(html, /<script(?:\s[^>]*)?>/gi), 1, "Deve existir exatamente um script de inicialização");
+assert.equal(occurrences(html, /<script\b[^>]*>/gi), 1, "Deve existir exatamente uma referência ao script");
 assert.equal(occurrences(html, /<\/script>/gi), 1, "Script duplicado ou interrompido");
+assert.match(html, /<script src="\/assets\/civolten\.js" defer><\/script>/i);
+assert.match(html, /<link rel="stylesheet" href="\/assets\/civolten\.css"/i);
+assert.doesNotMatch(html, /<script>([\s\S]*?)<\/script>|<style>|\sonclick=/i, "HTML não pode conter JS/CSS inline");
 for (const id of ["client", "lines", "add", "simulate", "catalogstatus", "retryCatalog", "pricingArea"]) {
   assert.match(html, new RegExp('id="' + id + '"'), "Campo ausente: " + id);
 }
 assert.doesNotMatch(html, /BRL\(s\[padrao\]\)/, "Preço unitário exibido junto com o serviço");
 assert.doesNotMatch(html, /s\.subtotal_servicos|s\.taxa_logistica|s\.sobretaxa_distancia|s\.imposto/, "Custos internos exibidos ao cliente");
 
-const script = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)][0][1];
+const script = fs.readFileSync("assets/civolten.js","utf8");
+const css=fs.readFileSync("assets/civolten.css","utf8");
+assert.ok(css.length>200);
+assert.doesNotMatch(script, /sessionStorage\.(?:setItem|getItem)|localStorage\.(?:setItem|getItem)|\.access_token/,"JWT nunca no JS");
 new vm.Script(script, {filename:"index.html"});
 
 const matrix=JSON.parse(fs.readFileSync("app-nextjs/data/matriz-precos.json","utf8"));
@@ -22,6 +28,13 @@ assert.equal(Object.keys(matrix.servicos).length, 17);
 assert.equal(matrix.servicos.reforma_apartamento_completa.medio, 2500);
 assert.equal(matrix.servicos.instalacao_eletrica_completa.unidade, "m²");
 const backend=fs.readFileSync("supabase/functions/civolten-beta/index.ts","utf8");
+const cookieServer=fs.readFileSync("api/session.mjs","utf8");
+const proxyServer=fs.readFileSync("api/admin.mjs","utf8");
+assert.match(cookieServer,/HttpOnly|sessionCookie/);
+assert.match(proxyServer,/cookieToken/);
+assert.match(backend,/['"]owner['"],['"]admin['"]|['"]admin['"],['"]owner['"]/);
+assert.match(backend,/createSignedUrl\(path,300\)/);
+for(const f of ["api/session.mjs","api/admin.mjs","lib/civolten-security.mjs"])assert.match(fs.readFileSync(f,"utf8"),/export/);
 assert.doesNotMatch(backend, /baixo:Number\(x\.baixo\)/, "Preços na API pública");
 
 class Node {
