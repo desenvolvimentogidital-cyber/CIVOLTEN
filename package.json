@@ -1,0 +1,13 @@
+{
+  "name": "civolten-web",
+  "version": "0.6.0",
+  "private": true,
+  "type": "module",
+  "description": "CIVOLTEN - formulário e painel seguro de orçamentos",
+  "scripts": {
+    "test": "node scripts/check-static.mjs && node --test tests/bff-security.test.mjs tests/pdf.test.mjs"
+  },
+  "dependencies": {
+    "pdf-lib": "1.17.1"
+  }
+}
