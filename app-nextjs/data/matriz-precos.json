@@ -1,0 +1,138 @@
+{
+  "versao": "2026-10-16",
+  "moeda": "BRL",
+  "origem": "Matriz inicial fornecida pelo responsável da CIVOLTEN. Não é pesquisa de preços comprovada.",
+  "parametros": {
+    "pro_labore_mensal": 10000.0,
+    "despesas_operacionais_mensais": 3000.0,
+    "dias_produtivos_mes": 22,
+    "imposto_sobre_valor_final": 0.1,
+    "logistica_diaria_obra_pequena": 150.0,
+    "limiar_soma_medidas": 30.0,
+    "limite_distancia_km": 15.0,
+    "sobretaxa_distancia_sobre_servicos": 0.15,
+    "margem_minima_alvo": 0.2
+  },
+  "servicos": {
+    "demolicao_alvenaria": {
+      "categoria": "construcao_civil",
+      "descricao": "Demolição de alvenaria",
+      "unidade": "m²",
+      "baixo": 80.0,
+      "medio": 110.0,
+      "alto": 150.0
+    },
+    "regularizacao_contrapiso": {
+      "categoria": "construcao_civil",
+      "descricao": "Regularização de contrapiso",
+      "unidade": "m²",
+      "baixo": 90.0,
+      "medio": 120.0,
+      "alto": 180.0
+    },
+    "levantamento_bloco": {
+      "categoria": "construcao_civil",
+      "descricao": "Levantamento de blocos",
+      "unidade": "m²",
+      "baixo": 110.0,
+      "medio": 150.0,
+      "alto": 210.0
+    },
+    "reboco_interno": {
+      "categoria": "construcao_civil",
+      "descricao": "Reboco interno",
+      "unidade": "m²",
+      "baixo": 85.0,
+      "medio": 110.0,
+      "alto": 160.0
+    },
+    "drywall_pintura_premium": {
+      "categoria": "construcao_civil",
+      "descricao": "Drywall com pintura premium",
+      "unidade": "m²",
+      "baixo": 280.0,
+      "medio": 390.0,
+      "alto": 450.0
+    },
+    "assentamento_porcelanato": {
+      "categoria": "construcao_civil",
+      "descricao": "Assentamento de porcelanato",
+      "unidade": "m²",
+      "baixo": 150.0,
+      "medio": 220.0,
+      "alto": 350.0
+    },
+    "assentamento_azulejo_pastilha": {
+      "categoria": "construcao_civil",
+      "descricao": "Assentamento de azulejo/pastilha",
+      "unidade": "m²",
+      "baixo": 120.0,
+      "medio": 170.0,
+      "alto": 260.0
+    },
+    "pintura_alvenaria": {
+      "categoria": "construcao_civil",
+      "descricao": "Pintura em alvenaria",
+      "unidade": "m²",
+      "baixo": 60.0,
+      "medio": 85.0,
+      "alto": 130.0
+    },
+    "rasgo_parede_conduite": {
+      "categoria": "instalacoes_eletricas",
+      "descricao": "Rasgo em parede para conduíte",
+      "unidade": "metro",
+      "baixo": 45.0,
+      "medio": 65.0,
+      "alto": 95.0
+    },
+    "passagem_fiacao": {
+      "categoria": "instalacoes_eletricas",
+      "descricao": "Passagem de fiação",
+      "unidade": "metro",
+      "baixo": 20.0,
+      "medio": 30.0,
+      "alto": 50.0
+    },
+    "quadro_distribuicao": {
+      "categoria": "instalacoes_eletricas",
+      "descricao": "Quadro de distribuição",
+      "unidade": "unidade",
+      "baixo": 800.0,
+      "medio": 1100.0,
+      "alto": 1800.0
+    },
+    "ponto_tomada_interruptor": {
+      "categoria": "instalacoes_eletricas",
+      "descricao": "Ponto de tomada/interruptor",
+      "unidade": "unidade",
+      "baixo": 30.0,
+      "medio": 45.0,
+      "alto": 75.0
+    },
+    "luminaria_spot_led": {
+      "categoria": "instalacoes_eletricas",
+      "descricao": "Luminária ou spot LED",
+      "unidade": "unidade",
+      "baixo": 40.0,
+      "medio": 60.0,
+      "alto": 110.0
+    },
+    "fita_led_sanca": {
+      "categoria": "instalacoes_eletricas",
+      "descricao": "Fita LED em sanca",
+      "unidade": "metro",
+      "baixo": 65.0,
+      "medio": 90.0,
+      "alto": 160.0
+    },
+    "instalacao_chuveiro": {
+      "categoria": "instalacoes_eletricas",
+      "descricao": "Instalação de chuveiro",
+      "unidade": "unidade",
+      "baixo": 100.0,
+      "medio": 150.0,
+      "alto": 250.0
+    }
+  }
+}
