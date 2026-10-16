@@ -3,7 +3,7 @@ import vm from "node:vm";
 import assert from "node:assert/strict";
 const html=fs.readFileSync("index.html","utf8");
 assert.match(html,/CIVOLTEN/i);
-assert.match(html,/id="form"/);
+assert.match(html,/id="client"/);
 const scripts=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(x=>x[1]);
 assert.ok(scripts.length>0,"Página sem scripts");
 for(const script of scripts)new vm.Script(script,{filename:"index.html"});
