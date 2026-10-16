@@ -78,6 +78,8 @@ class Node {
 const ids=[...html.matchAll(/id="([^"]+)"/g)].map(x=>x[1]);
 function fixture(online){
   const elements=new Map(ids.map(id=>[id,new Node()]));
+  // O DOM simulado não interpreta valores iniciais do HTML.
+  elements.get('days').value='1';elements.get('km').value='0';
   const patterns=["baixo","medio","alto"].map(p=>{const n=new Node("button");n.dataset.p=p;return n;});
   const document={
     getElementById:id=>elements.get(id)||null,
