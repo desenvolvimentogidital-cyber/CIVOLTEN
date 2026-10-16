@@ -1,6 +1,7 @@
 
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {PAGE} from './site.ts';
+import {handleAdminExtra,handleClientExtra} from './quote-extra.ts';
 const BASE=Deno.env.get('SUPABASE_URL')||'';
 const SECRET=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
 const db=createClient(BASE,SECRET,{auth:{persistSession:false,autoRefreshToken:false}});
@@ -196,8 +197,12 @@ Deno.serve(async req=>{
    if(qe)throw qe;if(!saved)return err('Pedido já enviado',409);
    return out({ok:true,protocolo:saved.id.slice(0,8).toUpperCase(),simulacao:preview?.total_bruto??null});
   }
+  if(api==='client-view'||api==='client-decision')
+   return await handleClientExtra({req,api,db,out,err,body,hash,rate});
   if(api?.startsWith('admin-')){
    if(!await admin(req))return err('Acesso restrito ao administrador',401);
+   if(['admin-commercial','admin-save-commercial','admin-share-commercial','admin-commercial-history','admin-branding'].includes(api))
+    return await handleAdminExtra({req,api,db,out,err,body,hash});
    if(req.method==='GET'&&api==='admin-me')return out({authenticated:true,role:'admin'});
    if(req.method==='GET'&&api==='admin-pricing'){
     const {data,error}=await db.from('pricing_catalog').select('service_id,description,category,unit,baixo,medio,alto,enabled').order('category').order('description');
@@ -240,7 +245,11 @@ Deno.serve(async req=>{
     const {data:catalogo,error:ce}=await db.from('pricing_catalog')
       .select('service_id,description,unit');
     if(ce)throw ce;
-    return out({pedido,simulacao:simulacao??null,servicos:catalogo});
+    const {data:commercial,error:co}=await db.from('commercial_quotes').select('items,terms,total,revision,decision,decision_at').eq('request_id',id).maybeSingle();
+    if(co)throw co;
+    const {data:branding,error:be}=await db.from('civolten_branding').select('company_name,logo_data_url,color_primary,color_accent').eq('id',1).maybeSingle();
+    if(be)throw be;
+    return out({pedido,simulacao:simulacao??null,servicos:catalogo,commercial:commercial??null,branding:branding??null});
    }
    if(req.method==='GET'&&api==='admin-list'){
     const {data:requests,error:re}=await db.from('quote_requests').select('*').not('submitted_at','is',null).order('submitted_at',{ascending:false}).limit(100);
@@ -250,7 +259,11 @@ Deno.serve(async req=>{
      ids.length?db.from('quote_pricing_snapshots').select('request_id,padrao,calculo,total_bruto').in('request_id',ids):Promise.resolve({data:[],error:null})
     ]);
     if(a.error||b.error)throw new Error('Falha ao listar anexos');
-    return out({pedidos:requests.map(r=>({...r,media:a.data.filter(x=>x.request_id===r.id),simulacao:b.data.find(x=>x.request_id===r.id)||null}))});
+    const {data:commercial,error:ce}=ids.length?
+      await db.from('commercial_quotes').select('request_id,total,revision,decision,updated_at').in('request_id',ids):
+      {data:[],error:null};
+    if(ce)throw ce;
+    return out({pedidos:requests.map(r=>({...r,media:a.data.filter(x=>x.request_id===r.id),simulacao:b.data.find(x=>x.request_id===r.id)||null,commercial:commercial.find(x=>x.request_id===r.id)||null}))});
    }
    if(req.method==='POST'&&api==='admin-status'){
     const b=await body(req);
