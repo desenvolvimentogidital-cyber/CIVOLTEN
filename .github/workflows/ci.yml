@@ -18,4 +18,6 @@ jobs:
         with:
           node-version: '22'
       - name: Static checks
-        run: node scripts/check-static.mjs
+        run: |
+          node scripts/check-static.mjs
+          node --test tests/bff-security.test.mjs
