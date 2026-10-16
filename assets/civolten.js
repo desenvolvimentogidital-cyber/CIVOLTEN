@@ -22,9 +22,84 @@ function maskedPhone(input){
 }
 const $=id=>document.getElementById(id), BRL=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
 let catalog=FALLBACK_CATALOG,padrao='medio',files=[],recorder=null,stream=null,chunks=[];
-$('phone').oninput=()=>{$('phone').value=maskedPhone($('phone').value)};
+$('phone').oninput=()=>{$('phone').value=maskedPhone($('phone').value);clearFieldError($('phone'))};
 function message(where,t,ok=false){$(where).className='msg '+(ok?'ok':'error');$(where).textContent=t;}
 function clean(where){$(where).className='';$(where).textContent='';}
+// Mensagens por campo: exibe o que falta antes de chamar o servidor.
+function clearFieldError(el){
+ if(!el)return;
+ el.removeAttribute?.('aria-invalid');
+ const container=el.closest?.('label')||el.parentElement||el.parent;
+ container?.querySelector?.('.field-error')?.remove?.();
+}
+function showRequiredErrors(errors,where='clientmsg'){
+ if(!errors.length)return false;
+ for(const {field,message:detail} of errors){
+  if(!field)continue;
+  field.setAttribute('aria-invalid','true');
+  const parent=field.closest?.('label')||field.parentElement||field.parent;
+  if(parent&&!parent.querySelector?.('.field-error')){
+   const label=document.createElement('small');
+   label.className='field-error';
+   label.textContent=detail;
+   parent.appendChild(label);
+  }
+ }
+ message(where,'Corrija os campos indicados:\n'+errors.map(x=>'• '+x.message).join('\n'));
+ const first=errors.find(x=>x.field)?.field;
+ first?.scrollIntoView?.({behavior:'smooth',block:'center'});
+ first?.focus?.({preventScroll:true});
+ return true;
+}
+function resetFieldErrors(){
+ document.querySelectorAll('.field-error').forEach(el=>el.remove());
+ for(const id of ['name','phone','desc','consent','days','km']){
+  $(id).removeAttribute?.('aria-invalid');
+ }
+ document.querySelectorAll('#lines .line').forEach(row=>{
+  row.querySelector('select')?.removeAttribute?.('aria-invalid');
+  row.querySelector('input')?.removeAttribute?.('aria-invalid');
+ });
+}
+function clientRequiredErrors(){
+ const issues=[];
+ const name=$('name').value.trim(),phone=$('phone').value.trim(),description=$('desc').value.trim();
+ if(!name)issues.push({field:$('name'),message:'Falta preencher o nome.'});
+ else if(name.length<2)issues.push({field:$('name'),message:'Informe um nome com pelo menos 2 caracteres.'});
+ if(!phone)issues.push({field:$('phone'),message:'Falta preencher o WhatsApp.'});
+ else if(!normalPhone(phone))issues.push({field:$('phone'),message:'WhatsApp inválido: informe DDD e celular com 9 dígitos.'});
+ if(!description)issues.push({field:$('desc'),message:'Falta preencher a descrição do serviço.'});
+ else if(description.length<12)issues.push({field:$('desc'),message:'A descrição do serviço precisa de pelo menos 12 caracteres.'});
+ if(!$('consent').checked)issues.push({field:$('consent'),message:'Falta autorizar o tratamento dos dados.'});
+ return issues;
+}
+function simulationRequiredErrors(){
+ const issues=[],rows=Array.from($('lines').querySelectorAll('.line'));
+ if(!rows.length||!rows.some(row=>row.querySelector('select').value))
+  issues.push({field:rows[0]?.querySelector('select')||$('add'),message:'Selecione pelo menos um serviço para simular.'});
+ for(const row of rows){
+  const select=row.querySelector('select'),input=row.querySelector('input');
+  if(!select.value)continue;
+  const amount=Number(input.value);
+  const unit=catalog.find(s=>s.id===select.value)?.unidade;
+  if(input.value.trim()===''||!Number.isFinite(amount)||amount<=0||amount>100000||
+     Math.abs(amount*1000-Math.round(amount*1000))>1e-7||
+     (unit==='unidade'&&!Number.isInteger(amount))){
+   issues.push({field:input,message:'Informe uma quantidade válida para '+(catalog.find(s=>s.id===select.value)?.descricao||'o serviço')+'.'});
+  }
+ }
+ const days=Number($('days').value),km=Number($('km').value);
+ if($('days').value.trim()===''||!Number.isInteger(days)||days<1||days>365)
+  issues.push({field:$('days'),message:'Informe os dias estimados (entre 1 e 365).'});
+ if($('km').value.trim()===''||!Number.isFinite(km)||km<0||km>1000)
+  issues.push({field:$('km'),message:'Informe a distância em km (de 0 a 1000).'});
+ return issues;
+}
+for(const id of ['name','desc','days','km']){
+ $(id).addEventListener?.('input',()=>clearFieldError($(id)));
+}
+$('consent').addEventListener?.('change',()=>clearFieldError($('consent')));
+
 async function api(method,action,data,auth=false){
  const headers={'Content-Type':'application/json'};
  const target=auth?'/api/admin?action='+encodeURIComponent(action):API+'?api='+encodeURIComponent(action);
@@ -68,12 +143,26 @@ function add(){
  updateUnit();
 }
 $('add').onclick=add;document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{padrao=b.dataset.p;document.querySelectorAll('[data-p]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));const old=currentItems();$('lines').replaceChildren();old.forEach(o=>{add();const row=$('lines').lastElementChild;row.querySelector('select').value=o.servico_id;row.querySelector('input').value=o.quantidade});clearEstimate()});
-$('simulate').onclick=async()=>{try{clean('clientmsg');const items=currentItems();if(!items.length)throw Error('Adicione ao menos um serviço para simular.');$('simulate').disabled=true;const r=await api('POST','simulate',{itens:items,padrao,dias:Number($('days').value),km:Number($('km').value)});$('estimate').replaceChildren();const a=document.createElement('small');a.textContent='SIMULAÇÃO PRELIMINAR';const b=document.createElement('strong');const d=document.createElement('small');if(r.avaliacao_necessaria){b.textContent='Avaliação personalizada';d.textContent=r.mensagem||'Envie seu pedido para receber orçamento.';}else{b.textContent=BRL(r.simulacao.total_bruto);d.textContent='';}$('estimate').append(a,b,d);$('estimate').classList.remove('hidden');}catch(e){message('clientmsg',e.message)}finally{$('simulate').disabled=false}};
+$('simulate').onclick=async()=>{try{clean('clientmsg');resetFieldErrors();if(showRequiredErrors(simulationRequiredErrors()))return;const items=currentItems();$('simulate').disabled=true;const r=await api('POST','simulate',{itens:items,padrao,dias:Number($('days').value),km:Number($('km').value)});$('estimate').replaceChildren();const a=document.createElement('small');a.textContent='SIMULAÇÃO PRELIMINAR';const b=document.createElement('strong');const d=document.createElement('small');if(r.avaliacao_necessaria){b.textContent='Avaliação personalizada';d.textContent=r.mensagem||'Envie seu pedido para receber orçamento.';}else{b.textContent=BRL(r.simulacao.total_bruto);d.textContent='';}$('estimate').append(a,b,d);$('estimate').classList.remove('hidden');}catch(e){message('clientmsg',e.message)}finally{$('simulate').disabled=false}};
 $('files').onchange=e=>{files.push(...Array.from(e.target.files||[]));if(files.length>6){files=files.slice(0,6);message('clientmsg','Máximo de seis arquivos.')}showFiles();$('files').value=''};
 function showFiles(){$('filelist').replaceChildren();files.forEach((f,i)=>{const li=document.createElement('li');li.textContent=f.name+' ('+(f.size/1048576).toFixed(1)+' MB) ';const b=document.createElement('button');b.textContent='Remover';b.type='button';b.onclick=()=>{files.splice(i,1);showFiles()};li.appendChild(b);$('filelist').appendChild(li)})}
 $('record').onclick=async()=>{try{if(recorder&&recorder.state==='recording'){recorder.stop();$('record').textContent='🎙️ Gravar áudio';return}if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)throw Error('Este navegador não permite gravação aqui. Grave fora e selecione o arquivo.');stream=await navigator.mediaDevices.getUserMedia({audio:true});let type=MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'';recorder=new MediaRecorder(stream,type?{mimeType:type}:undefined);chunks=[];recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onstop=()=>{let mime=(recorder.mimeType||'audio/webm').split(';')[0];let f=new File([new Blob(chunks,{type:mime})],'audio-'+Date.now()+(mime.includes('mp4')?'.m4a':'.webm'),{type:mime});files.push(f);if(files.length>6)files=files.slice(0,6);showFiles();stream?.getTracks().forEach(x=>x.stop())};recorder.start();$('record').textContent='■ Parar gravação';}catch(e){message('clientmsg',e.message)}};
-$('send').onclick=async()=>{const btn=$('send');try{clean('clientmsg');if(!$('consent').checked)throw Error('É necessário autorizar o uso dos dados.');const normalized=normalPhone($('phone').value);if(!normalized)throw Error('WhatsApp inválido: informe +55, DDD e celular de 9 dígitos.');
-const q={name:$('name').value.trim(),phone:normalized,city:$('city').value,neighborhood:$('neigh').value,description:$('desc').value,category:$('category').value,urgency:$('urgency').value,itens:currentItems(),padrao,dias:Number($('days').value),km:Number($('km').value),website:$('website').value,consent:true,privacy_version:'2026-10'};if(q.name.length<2||q.description.length<12||!normalPhone(q.phone))throw Error('Confira seu nome, WhatsApp e a descrição.');if(files.length>6||files.some(f=>f.size>45*1048576)||files.reduce((n,f)=>n+f.size,0)>120*1048576)throw Error('O tamanho dos arquivos excede o permitido.');btn.disabled=true;btn.textContent='Preparando pedido…';const start=await api('POST','start',q);q.id=start.id;q.secret=start.secret;for(let i=0;i<files.length;i++){let f=files[i];btn.textContent='Enviando arquivo '+(i+1)+'/'+files.length;let s=await api('POST','sign',{id:q.id,secret:q.secret,size:f.size,mime:f.type.split(';')[0],name:f.name});let path=s.path.split('/').map(encodeURIComponent).join('/');let url=ROOT+'/storage/v1/object/upload/sign/civolten-media/'+path+'?token='+encodeURIComponent(s.token);let upload=await fetch(url,{method:'PUT',headers:{'Content-Type':f.type.split(';')[0],apikey:KEY},body:f});if(!upload.ok)throw Error('Falha ao enviar '+f.name+' (HTTP '+upload.status+').')}btn.textContent='Finalizando…';const r=await api('POST','submit',q);message('clientmsg','✅ Pedido registrado com sucesso! Protocolo CIVOLTEN: '+r.protocolo+'.',true);$('send').disabled=true;$('send').textContent='Pedido enviado';}catch(e){message('clientmsg',e.message);btn.disabled=false;btn.textContent='Enviar pedido de orçamento →'}};
+$('send').onclick=async()=>{const btn=$('send');try{
+ clean('clientmsg');resetFieldErrors();
+ const problems=clientRequiredErrors();
+ // A simulação é opcional; caso algum serviço tenha sido escolhido, sua quantidade precisa ser válida.
+ const chosen=Array.from($('lines').querySelectorAll('.line')).some(row=>row.querySelector('select').value);
+ if(chosen)problems.push(...simulationRequiredErrors().filter(x=>!x.message.startsWith('Selecione')));
+ if(showRequiredErrors(problems))return;
+ const normalized=normalPhone($('phone').value);
+ const q={
+  name:$('name').value.trim(),phone:normalized,city:$('city').value,
+  neighborhood:$('neigh').value,description:$('desc').value.trim(),
+  category:$('category').value,urgency:$('urgency').value,
+  itens:currentItems(),padrao,dias:Number($('days').value),km:Number($('km').value),
+  website:$('website').value,consent:true,privacy_version:'2026-10'
+ };
+ if(files.length>6||files.some(f=>f.size>45*1048576)||files.reduce((n,f)=>n+f.size,0)>120*1048576)throw Error('O tamanho dos arquivos excede o permitido.');btn.disabled=true;btn.textContent='Preparando pedido…';const start=await api('POST','start',q);q.id=start.id;q.secret=start.secret;for(let i=0;i<files.length;i++){let f=files[i];btn.textContent='Enviando arquivo '+(i+1)+'/'+files.length;let s=await api('POST','sign',{id:q.id,secret:q.secret,size:f.size,mime:f.type.split(';')[0],name:f.name});let path=s.path.split('/').map(encodeURIComponent).join('/');let url=ROOT+'/storage/v1/object/upload/sign/civolten-media/'+path+'?token='+encodeURIComponent(s.token);let upload=await fetch(url,{method:'PUT',headers:{'Content-Type':f.type.split(';')[0],apikey:KEY},body:f});if(!upload.ok)throw Error('Falha ao enviar '+f.name+' (HTTP '+upload.status+').')}btn.textContent='Finalizando…';const r=await api('POST','submit',q);message('clientmsg','✅ Pedido registrado com sucesso! Protocolo CIVOLTEN: '+r.protocolo+'.',true);$('send').disabled=true;$('send').textContent='Pedido enviado';}catch(e){message('clientmsg',e.message);btn.disabled=false;btn.textContent='Enviar pedido de orçamento →'}};
 $('activate').onclick=async()=>{const b=$('activate');try{clean('adminmsg');b.disabled=true;await api('POST','bootstrap',{token:$('setupToken').value.trim(),email:$('email').value.trim(),password:$('password').value});$('setupToken').value='';message('adminmsg','Conta criada! Agora clique em Entrar usando o e-mail e senha escolhidos.',true)}catch(e){message('adminmsg',e.message)}finally{b.disabled=false}};
 $('login').onclick=async()=>{
  try{
@@ -181,9 +270,23 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
  let savedAmount=same?Number(x.estimate_min):(x.simulacao?.total_bruto??null);
  amount.value=savedAmount??'';
  const amountLabel=document.createElement('label');amountLabel.className='field';amountLabel.textContent='Valor total para o cliente (R$)';amountLabel.appendChild(amount);
- const checkSaved=()=>{if((amount.value.trim()===''?null:Number(amount.value))!==savedAmount)throw Error('Salve o valor total antes de baixar ou compartilhar o orçamento.');};const notes=document.createElement('textarea');notes.placeholder='Observações internas';notes.value=x.admin_notes||'';notes.maxLength=4000;const save=document.createElement('button');save.textContent='Salvar orçamento/status';save.onclick=async()=>{try{
+ const checkSaved=()=>{
+  const typed=amount.value.trim()===''?null:Number(amount.value);
+  clearFieldError(amount);
+  if(typed===null&&savedAmount===null){showRequiredErrors([{field:amount,message:'Falta informar o valor total do orçamento.'}],'adminmsg');throw Error('Falta informar o valor total do orçamento.');}
+  if(typed!==null&&(!Number.isFinite(typed)||typed<=0||typed>100000000)){showRequiredErrors([{field:amount,message:'Informe um valor total válido.'}],'adminmsg');throw Error('Informe um valor total válido.');}
+  if(typed!==savedAmount){showRequiredErrors([{field:amount,message:'Salve o valor total antes de gerar o PDF.'}],'adminmsg');throw Error('Salve o valor total antes de gerar o PDF.');}
+ };const notes=document.createElement('textarea');notes.placeholder='Observações internas';notes.value=x.admin_notes||'';notes.maxLength=4000;const save=document.createElement('button');save.textContent='Salvar orçamento/status';save.onclick=async()=>{try{
  const total=amount.value.trim()===''?null:Number(amount.value);
- if(total!==null&&(!Number.isFinite(total)||total<=0||total>100000000||Math.round(total*100)/100!==total))throw Error('Informe um valor total positivo com até 2 casas decimais.');
+ clearFieldError(amount);
+ if(total===null&&x.simulacao?.total_bruto==null){
+  showRequiredErrors([{field:amount,message:'Falta preencher o valor total do orçamento.'}],'adminmsg');
+  return;
+ }
+ if(total!==null&&(!Number.isFinite(total)||total<=0||total>100000000||Math.round(total*100)/100!==total)){
+  showRequiredErrors([{field:amount,message:'Informe um valor total válido, com até 2 casas decimais.'}],'adminmsg');
+  return;
+ }
  await api('POST','admin-status',{id:x.id,status:status.value,min:total,max:total,notes:notes.value},true);
  savedAmount=total;message('adminmsg','Valor total e situação salvos.',true)}catch(e){message('adminmsg',e.message)}};const wa=document.createElement('a');wa.href=normalPhone(x.phone)?'https://wa.me/'+normalPhone(x.phone).slice(1):'#';wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Abrir WhatsApp ↗';if(!normalPhone(x.phone)){wa.textContent='WhatsApp inválido';wa.removeAttribute('href');}box.append(status,amountLabel,notes,save,wa);
  const pdfActions=document.createElement('div');pdfActions.className='row';

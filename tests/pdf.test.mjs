@@ -133,3 +133,12 @@ test('faixas legadas não aparecem como preço mínimo/máximo',()=>{
  const m=pedido(5000,10000);
  assert.equal(approvedQuoteTotal(m.pedido,m.simulacao),m.simulacao.total_bruto);
 });
+
+test('PDF final informa qual campo obrigatório está faltando',async()=>{
+ const m=pedido();
+ m.pedido.description='';
+ await assert.rejects(()=>generateQuotePdf(m,'final'),e=>e.status===409&&/Falta preencher a descrição/.test(e.message));
+ m.pedido.description='Preciso de reforma elétrica completa';
+ m.pedido.customer_name=' ';
+ await assert.rejects(()=>generateQuotePdf(m,'final'),e=>e.status===409&&/Falta preencher o nome/.test(e.message));
+});

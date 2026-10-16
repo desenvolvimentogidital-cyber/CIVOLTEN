@@ -78,6 +78,8 @@ class Node {
 const ids=[...html.matchAll(/id="([^"]+)"/g)].map(x=>x[1]);
 function fixture(online){
   const elements=new Map(ids.map(id=>[id,new Node()]));
+  // O DOM simulado não interpreta valores iniciais do HTML.
+  elements.get('days').value='1';elements.get('km').value='0';
   const patterns=["baixo","medio","alto"].map(p=>{const n=new Node("button");n.dataset.p=p;return n;});
   const document={
     getElementById:id=>elements.get(id)||null,
@@ -123,3 +125,20 @@ for(const online of [true,false]){
   }
 }
 console.log("CIVOLTEN: script válido; formulário aparece; catálogo remoto e offline; adicionar serviço; simular total; storage bloqueado; 17 serviços.");
+
+const missingFields=fixture(false);
+await missingFields.get('send').onclick();
+assert.match(missingFields.get('clientmsg').textContent,/Falta preencher o nome/);
+assert.match(missingFields.get('clientmsg').textContent,/Falta preencher o WhatsApp/);
+assert.match(missingFields.get('clientmsg').textContent,/Falta preencher a descrição do serviço/);
+assert.equal(missingFields.get('desc').attrs['aria-invalid'],'true','Campo descrição destacado');
+missingFields.get('name').value='João Cliente';
+missingFields.get('phone').value='+5511999990000';
+missingFields.get('consent').checked=true;
+missingFields.get('desc').value='Curto';
+await missingFields.get('send').onclick();
+assert.match(missingFields.get('clientmsg').textContent,/pelo menos 12 caracteres/);
+missingFields.get('simulate').onclick();
+for(let i=0;i<10;i++)await Promise.resolve();
+assert.match(missingFields.get('clientmsg').textContent,/Selecione pelo menos um serviço para simular/);
+console.log('CIVOLTEN: mensagens individuais para campos obrigatórios e simulação incompleta.');
