@@ -1,0 +1,4 @@
+CIVOLTEN online static root
+Release: 2026-10-16
+Backend: Supabase CIVOLTEN exclusive
+Esta rota confirma que o site estatico foi publicado na raiz.
