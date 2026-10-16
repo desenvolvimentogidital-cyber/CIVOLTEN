@@ -28,12 +28,13 @@ function message(where,t,ok=false){$(where).className='msg '+(ok?'ok':'error');$
 function clean(where){$(where).className='';$(where).textContent='';}
 async function api(method,action,data,auth=false){const headers={'Content-Type':'application/json'};if(auth)headers.Authorization='Bearer '+token;const r=await fetch(API+'?api='+encodeURIComponent(action),{method,headers,body:method==='GET'?undefined:JSON.stringify(data||{})});const body=await r.json().catch(()=>({error:'Resposta não reconhecida'}));if(!r.ok)throw Error(body.error||'Falha de conexão');return body;}
 $('toggle').onclick=()=>{const a=$('admin').classList.contains('hidden');$('admin').classList.toggle('hidden',!a);$('client').classList.toggle('hidden',a);$('toggle').textContent=a?'← Voltar ao orçamento':'Área da empresa ↗';if(a&&token)refresh()};
-function currentItems(){return Array.from($('lines').querySelectorAll('.line')).map(row=>({servico_id:row.querySelector('select').value,quantidade:Number(row.querySelector('input').value)}));}
+function currentItems(){return Array.from($('lines').querySelectorAll('.line')).map(row=>({servico_id:row.querySelector('select').value,quantidade:Number(row.querySelector('input').value)})).filter(x=>x.servico_id);}
 function clearEstimate(){$('estimate').classList.add('hidden');}
 function choices(select,current){
  select.replaceChildren();
+ const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Selecione o serviço...';select.appendChild(placeholder);
  catalog.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.descricao+' ('+s.unidade+')';select.appendChild(o)});
- if(current&&catalog.some(s=>s.id===current))select.value=current;
+ select.value=current&&catalog.some(s=>s.id===current)?current:'';
 }
 function add(){
  if(!catalog.length||$('lines').children.length>=60)return;
