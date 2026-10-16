@@ -31,7 +31,9 @@ function calc(items,standard,days,km,catalog,conf){
   const q=num(x.quantidade,0.001,100000);
   if(Math.abs(q*1000-Math.round(q*1000))>1e-7)throw new Error('Use até três casas decimais');
   if(svc.unit==='unidade'&&!Number.isInteger(q))throw new Error('Unidades exigem quantidade inteira');
-  const unit=cents(Number(svc[standard])),line=Math.round(unit*q);
+  const unit=cents(Number(svc[standard]));
+  if(unit===0)throw new Error('PRECIFICACAO_PENDENTE: Para esse serviço e padrão, solicite avaliação personalizada.');
+  const line=Math.round(unit*q);
   subtotal+=line;if(svc.unit==='m²'||svc.unit==='metro'){hasMeasurement=true;measure+=q}
   lines.push({servico_id:svc.service_id,descricao:svc.description,unidade:svc.unit,quantidade:q,preco_unitario:money(unit),total:money(line)});
  }
@@ -44,6 +46,7 @@ function calc(items,standard,days,km,catalog,conf){
  const total=Math.ceil(base/(1-tax));
  return {padrao:standard,itens:lines,dias_estimados_obra:days,distancia_km:km,subtotal_servicos:money(subtotal),taxa_logistica:money(fee),sobretaxa_distancia:money(travel),imposto:money(total-base),total_bruto:money(total),aviso:'Simulação preliminar. Não é orçamento aprovado nem garantia de margem; depende de análise técnica e custos reais.'};
 }
+function publicQuote(q){return {total_bruto:q.total_bruto,aviso:q.aviso,padrao:q.padrao};}
 function sample(x){return typeof x==='string'?x:''}
 async function body(req){const s=await req.text();if(s.length>80000)throw new Error('Dados muito grandes');try{return JSON.parse(s)}catch{throw new Error('Dados inválidos')}}
 async function hash(v){const b=new TextEncoder().encode(v);const d=await crypto.subtle.digest('SHA-256',b);return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join('')}
@@ -79,11 +82,18 @@ Deno.serve(async req=>{
   }
   if(req.method==='GET'&&api==='catalog'){
    const {catalog}=await getPricing();
-   return out({catalogo:catalog.map(x=>({id:x.service_id,descricao:x.description,categoria:x.category,unidade:x.unit,baixo:Number(x.baixo),medio:Number(x.medio),alto:Number(x.alto)}))});
+   return out({catalogo:catalog.map(x=>({id:x.service_id,descricao:x.description,categoria:x.category,unidade:x.unit}))});
   }
   if(req.method==='POST'&&api==='simulate'){
    const b=await body(req),{catalog,conf}=await getPricing();
-   return out({simulacao:calc(b.itens,b.padrao,b.dias,b.km,catalog,conf)});
+   try {
+    const quote=calc(b.itens,b.padrao,b.dias,b.km,catalog,conf);
+    return out({simulacao:publicQuote(quote)});
+   } catch(e) {
+    if(String(e?.message).startsWith('PRECIFICACAO_PENDENTE:'))
+      return out({avaliacao_necessaria:true,mensagem:'Este serviço precisa de avaliação personalizada. Você pode enviar seu pedido normalmente.'});
+    throw e;
+   }
   }
 
   if(req.method==='POST'&&api==='bootstrap'){
@@ -143,22 +153,50 @@ Deno.serve(async req=>{
    let preview=null,conf=null;
    if(Array.isArray(b.itens)&&b.itens.length){
     const p=await getPricing();conf=p.conf;
-    preview=calc(b.itens,b.padrao,b.dias,b.km,p.catalog,conf);
-    const {error:pe}=await db.from('quote_pricing_snapshots').upsert({
-     request_id:b.id,padrao:preview.padrao,dias_estimados_obra:preview.dias_estimados_obra,distancia_km:preview.distancia_km,
-     itens:preview.itens,parametros:conf,calculo:preview,total_bruto:preview.total_bruto
-    },{onConflict:'request_id'});if(pe)throw pe;
+    try {
+     preview=calc(b.itens,b.padrao,b.dias,b.km,p.catalog,conf);
+     const {error:pe}=await db.from('quote_pricing_snapshots').upsert({
+      request_id:b.id,padrao:preview.padrao,dias_estimados_obra:preview.dias_estimados_obra,distancia_km:preview.distancia_km,
+      itens:preview.itens,parametros:conf,calculo:preview,total_bruto:preview.total_bruto
+     },{onConflict:'request_id'});if(pe)throw pe;
+    } catch(e) {
+     if(!String(e?.message).startsWith('PRECIFICACAO_PENDENTE:'))throw e;
+     const ids=new Map(p.catalog.map(x=>[x.service_id,x]));
+     for(const item of b.itens){
+      const svc=ids.get(item.servico_id);if(!svc)throw new Error('Serviço inválido');
+      const q=num(item.quantidade,0.001,100000);
+      if(svc.unit==='unidade'&&!Number.isInteger(q))throw new Error('Quantidade inválida');
+     }
+    }
    }
    const {data:saved,error:qe}=await db.from('quote_requests').update({
     customer_name:name,phone,description:desc,category:b.category,urgency:b.urgency,
     neighborhood:sample(b.neighborhood).slice(0,100),city:sample(b.city).slice(0,100)||'São Paulo',
-    status:'novo',submitted_at:new Date().toISOString(),updated_at:new Date().toISOString()
+    request_details:{
+     itens:Array.isArray(b.itens)?b.itens.slice(0,60):[],
+     padrao:sample(b.padrao).slice(0,10),dias:b.dias,distancia_km:b.km
+    },status:'novo',submitted_at:new Date().toISOString(),updated_at:new Date().toISOString()
    }).eq('id',b.id).is('submitted_at',null).select('id').maybeSingle();
    if(qe)throw qe;if(!saved)return err('Pedido já enviado',409);
    return out({ok:true,protocolo:saved.id.slice(0,8).toUpperCase(),simulacao:preview?.total_bruto??null});
   }
   if(api?.startsWith('admin-')){
    if(!await admin(req))return err('Acesso restrito ao administrador',401);
+   if(req.method==='GET'&&api==='admin-pricing'){
+    const {data,error}=await db.from('pricing_catalog').select('service_id,description,category,unit,baixo,medio,alto,enabled').order('category').order('description');
+    if(error)throw error;
+    return out({catalogo:data});
+   }
+   if(req.method==='POST'&&api==='admin-pricing'){
+    const b=await body(req);
+    if(typeof b.id!=='string'||!/^[a-z_]{3,80}$/.test(b.id))throw new Error('Serviço inválido');
+    const prices={baixo:num(b.baixo,0,1000000),medio:num(b.medio,0,1000000),alto:num(b.alto,0,1000000)};
+    for(const val of Object.values(prices))if(Math.round(val*100)/100!==val)throw new Error('Preço deve ter no máximo 2 casas decimais');
+    if(prices.baixo>0&&prices.medio>0&&prices.alto>0&&!(prices.baixo<=prices.medio&&prices.medio<=prices.alto))throw new Error('Os preços precisam seguir baixo ≤ médio ≤ alto');
+    const {data,error}=await db.from('pricing_catalog').update({...prices,updated_at:new Date().toISOString()}).eq('service_id',b.id).select('service_id').maybeSingle();
+    if(error)throw error;if(!data)return err('Serviço não encontrado',404);
+    return out({ok:true});
+   }
    if(req.method==='GET'&&api==='admin-list'){
     const {data:requests,error:re}=await db.from('quote_requests').select('*').not('submitted_at','is',null).order('submitted_at',{ascending:false}).limit(100);
     if(re)throw re;const ids=requests.map(r=>r.id);
@@ -188,5 +226,5 @@ Deno.serve(async req=>{
    }
   }
   return err('Rota não encontrada',404);
- }catch(e){console.error('CIVOLTEN edge error:',String(e?.message||e).slice(0,200));return err((e?.message&&['Número inválido','Dados inválidos','Dados muito grandes'].includes(e.message))?e.message:(e?.message?.includes('inválid')||e?.message?.includes('Limite')||e?.message?.includes('Informe')||e?.message?.includes('Um anexo')||e?.message?.includes('Preencha')||e?.message?.includes('arquivos')||e?.message?.includes('padrão')||e?.message?.includes('Dias')?e.message:'Não foi possível concluir. Tente novamente.'),400)}
+ }catch(e){console.error('CIVOLTEN edge error:',String(e?.message||e).slice(0,200));return err((e?.message&&['Número inválido','Dados inválidos','Dados muito grandes'].includes(e.message))?e.message:(e?.message?.includes('inválid')||e?.message?.includes('Limite')||e?.message?.includes('Informe')||e?.message?.includes('Um anexo')||e?.message?.includes('Preencha')||e?.message?.includes('arquivos')||e?.message?.includes('padrão')||e?.message?.includes('Dias')||e?.message?.includes('preços')||e?.message?.includes('Preço')||e?.message?.includes('serviço')?e.message:'Não foi possível concluir. Tente novamente.'),400)}
 });
