@@ -1,7 +1,7 @@
 
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {PAGE} from './site.ts';
-import {publicReferenceSearch,referencePricingServices} from './public-siurb.ts';
+import {publicReferenceSearch,publicReferencePage,referencePricingServices} from './public-siurb.ts';
 import {handleReference} from './siurb-reference.ts';
 import {handleAdminExtra,handleClientExtra} from './quote-extra.ts';
 const BASE=Deno.env.get('SUPABASE_URL')||'';
@@ -89,6 +89,12 @@ Deno.serve(async req=>{
   if(req.method==='GET'&&api==='catalog'){
    const {catalog}=await getPricing();
    return out({catalogo:catalog.map(x=>({id:x.service_id,descricao:x.description,categoria:x.category,unidade:x.unit}))});
+  }
+  if(req.method==='GET'&&api==='siurb-list'){
+   const parsedOffset=url.searchParams.get('offset')||'0';
+   if(!/^\d{1,5}$/.test(parsedOffset))return err('Paginação inválida.',400);
+   const page=await publicReferencePage({db,offset:Number(parsedOffset),size:400});
+   return out(page);
   }
   if(req.method==='GET'&&api==='siurb-search'){
    const q=url.searchParams.get('q')||'';

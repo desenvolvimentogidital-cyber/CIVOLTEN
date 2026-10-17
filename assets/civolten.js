@@ -113,8 +113,28 @@ function currentItems(){return Array.from($('lines').querySelectorAll('.line')).
 function clearEstimate(){$('estimate').classList.add('hidden');}
 function choices(select,current){
  select.replaceChildren();
- const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Selecione o serviço...';select.appendChild(placeholder);
- catalog.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.descricao+' ('+s.unidade+')';select.appendChild(o)});
+ const placeholder=document.createElement('option');
+ placeholder.value='';placeholder.textContent='Selecione o serviço...';
+ select.appendChild(placeholder);
+ // Primeiro os serviços já existentes; depois todas as composições, por base.
+ const groups={EDIF:[],INFRA:[]};
+ for(const service of catalog){
+  const match=/^siurb:(EDIF|INFRA):[0-9]{5,12}$/.exec(service.id);
+  if(match){groups[match[1]].push(service);continue;}
+  const opt=document.createElement('option');opt.value=service.id;
+  opt.textContent=service.descricao+' ('+service.unidade+')';
+  select.appendChild(opt);
+ }
+ for(const [source,label] of [['EDIF','EDIF — Edificações'],['INFRA','INFRA — Infraestrutura']]){
+  if(!groups[source].length)continue;
+  const group=document.createElement('optgroup');group.label=label+' — '+groups[source].length+' serviços';
+  for(const service of groups[source]){
+   const opt=document.createElement('option');opt.value=service.id;
+   opt.textContent=service.descricao+' ('+service.unidade+')';
+   group.appendChild(opt);
+  }
+  select.appendChild(group);
+ }
  select.value=current&&catalog.some(s=>s.id===current)?current:'';
 }
 function add(){
@@ -310,6 +330,51 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
  const pdfHint=document.createElement('p');pdfHint.className='hint';
  pdfHint.textContent='Use Editar orçamento completo para definir cada preço, prazo e pagamento. O PDF final terá o detalhamento salvo. Custos internos permanecem privados.';
  box.append(pdfActions,pdfHint);window.CIVOLTEN_PRO?.attach?.(box,x,total=>{amount.value=String(total);savedAmount=total;amount.disabled=true;});frag.appendChild(box)});$('orders').replaceChildren(frag);window.CIVOLTEN_PRO?.dashboard?.($('orders'),d.pedidos);window.CIVOLTEN_PRO?.branding?.($('dashboard'));}catch(e){message('adminmsg',e.message);$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden')}}
+
+// Carrega todo o catálogo SIURB no mesmo seletor do formulário, em páginas
+// de 400 nomes. Sem baixar custos, insumos ou preços de referência.
+let siurbLoaded=false,siurbLoading=null;
+async function getSiurbPage(offset){
+ const res=await fetch(API+'?api=siurb-list&offset='+offset,{method:'GET',credentials:'omit',cache:'no-store'});
+ const data=await res.json().catch(()=>({error:'Resposta inválida da base SIURB.'}));
+ if(!res.ok||!Array.isArray(data.items))throw Error(data.error||'Falha ao carregar serviços SIURB.');
+ return data;
+}
+async function loadSiurbCatalog(){
+ const status=$('catalogstatus');
+ if(siurbLoaded){status.textContent=catalog.length+' serviços disponíveis no campo Serviço. Toque e role a lista para selecionar.';return;}
+ if(siurbLoading)return siurbLoading;
+ siurbLoading=(async()=>{
+  const first=await getSiurbPage(0);
+  const total=Number(first.total);
+  if(!Number.isInteger(total)||total<1||total>10000)throw Error('A base SIURB está vazia ou incompleta.');
+  const all=[...first.items];
+  for(let start=400;start<total;start+=1200){
+   const offsets=[start,start+400,start+800].filter(x=>x<total);
+   const pages=await Promise.all(offsets.map(getSiurbPage));
+   for(const page of pages)all.push(...page.items);
+   status.textContent='Preparando seletor de serviços: '+all.length+' de '+total+' composições...';
+  }
+  if(all.length!==total)throw Error('A base SIURB não carregou por completo. Atualize para tentar novamente.');
+  const valid=all.filter(s=>/^siurb:(EDIF|INFRA):[0-9]{5,12}$/.test(s.id)&&typeof s.descricao==='string'&&s.unidade);
+  if(valid.length!==total)throw Error('Foram encontrados serviços inválidos no catálogo.');
+  // Preserva seleções feitas enquanto as páginas estavam carregando.
+  const base=catalog.filter(s=>!String(s.id).startsWith('siurb:'));
+  const byId=new Map(valid.map(s=>[s.id,s]));
+  for(const selected of catalog.filter(s=>String(s.id).startsWith('siurb:')))if(!byId.has(selected.id))byId.set(selected.id,selected);
+  catalog=[...base,...byId.values()];
+  for(const row of document.querySelectorAll('#lines .line')){
+   const select=row.querySelector('select'),current=select.value;
+   choices(select,current);
+   select.dispatchEvent(new Event('change'));
+  }
+  siurbLoaded=true;
+  status.classList.remove('warn');
+  $('retryCatalog').classList.add('hidden');
+  status.textContent=catalog.length+' serviços disponíveis no campo Serviço ('+base.length+' existentes + '+total+' SIURB). Toque em Serviço e role a lista para escolher.';
+ })().finally(()=>{siurbLoading=null;});
+ return siurbLoading;
+}
 async function loadCatalog(){
  const status=$('catalogstatus'),retry=$('retryCatalog');
  status.textContent='Atualizando catálogo de serviços...';status.classList.remove('warn');retry.classList.add('hidden');
@@ -323,7 +388,12 @@ async function loadCatalog(){
    choices(select,old);
    select.dispatchEvent(new Event('change'));
   });
-  status.textContent=catalog.length+' serviços disponíveis. Escolha um serviço e informe a quantidade.';
+  status.textContent='Os '+response.catalogo.length+' serviços originais já estão disponíveis. Carregando EDIF e INFRA para o mesmo campo Serviço...';
+  try{await loadSiurbCatalog();}
+  catch(e){
+   status.textContent='Os serviços originais continuam disponíveis, mas não foi possível carregar toda a base SIURB: '+e.message+'. Toque em Atualizar serviços ou use a pesquisa abaixo.';
+   status.classList.add('warn');retry.classList.remove('hidden');
+  }
  }catch(e){
   status.textContent='Não foi possível atualizar os serviços ('+e.message+'). A lista básica continua disponível; tente atualizar antes de enviar.';
   status.classList.add('warn');retry.classList.remove('hidden');
