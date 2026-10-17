@@ -1,7 +1,7 @@
 
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {PAGE} from './site.ts';
-import {publicReferenceSearch,publicReferencePage,referencePricingServices} from './public-siurb.ts';
+import {publicReferenceSearch,publicReferencePage,referencePricingServices,selectedMode,isPublicReferenceId} from './public-siurb.ts';
 import {handleReference} from './siurb-reference.ts';
 import {handleAdminExtra,handleClientExtra} from './quote-extra.ts';
 const BASE=Deno.env.get('SUPABASE_URL')||'';
@@ -32,14 +32,23 @@ function calc(items,standard,days,km,catalog,conf){
  for(const x of items){
   const svc=m.get(x.servico_id);
   if(!svc)throw new Error('Serviço inválido ou desativado');
+  const modalidade=selectedMode(x);
+  const siurb=isPublicReferenceId(x.servico_id);
+  if(modalidade==='mao_obra'&&!siurb)
+   throw new Error('PRECIFICACAO_PENDENTE: Para serviços antigos, a mão de obra precisa de avaliação individual.');
+  if(modalidade==='mao_obra'&&!svc.labor_prices)
+   throw new Error('PRECIFICACAO_PENDENTE: A composição SIURB não informa mão de obra separada. Solicite avaliação personalizada.');
   const q=num(x.quantidade,0.001,100000);
   if(Math.abs(q*1000-Math.round(q*1000))>1e-7)throw new Error('Use até três casas decimais');
   if(svc.unit==='unidade'&&!Number.isInteger(q))throw new Error('Unidades exigem quantidade inteira');
-  const unit=cents(Number(svc[standard]));
+  const pricing=modalidade==='mao_obra'?svc.labor_prices:svc;
+  const unit=cents(Number(pricing[standard]));
   if(unit===0)throw new Error('PRECIFICACAO_PENDENTE: Para esse serviço e padrão, solicite avaliação personalizada.');
   const line=Math.round(unit*q);
   subtotal+=line;if(svc.unit==='m²'||svc.unit==='metro'){hasMeasurement=true;measure+=q}
-  lines.push({servico_id:svc.service_id,descricao:svc.description,unidade:svc.unit,quantidade:q,preco_unitario:money(unit),total:money(line)});
+  lines.push({servico_id:svc.service_id,
+   descricao:siurb?svc.description+' — '+(modalidade==='mao_obra'?'Somente mão de obra':'Serviço completo (mão de obra + materiais)'):svc.description,
+   modalidade,unidade:svc.unit,quantidade:q,preco_unitario:money(unit),total:money(line)});
  }
  if(subtotal>9e12)throw new Error('Valor elevado demais');
  const fee=(hasMeasurement&&measure<Number(conf.limiar_soma_medidas))?cents(Number(conf.logistica_diaria_obra_pequena))*days:0;
@@ -183,8 +192,8 @@ Deno.serve(async req=>{
    let preview=null,conf=null;
    if(Array.isArray(b.itens)&&b.itens.length){
     const p=await getPricing();conf=p.conf;
+    const references=await referencePricingServices(db,b.itens,conf);
     try {
-     const references=await referencePricingServices(db,b.itens,conf);
      preview=calc(b.itens,b.padrao,b.dias,b.km,[...p.catalog,...references],conf);
      const {error:pe}=await db.from('quote_pricing_snapshots').upsert({
       request_id:b.id,padrao:preview.padrao,dias_estimados_obra:preview.dias_estimados_obra,distancia_km:preview.distancia_km,
@@ -192,9 +201,11 @@ Deno.serve(async req=>{
      },{onConflict:'request_id'});if(pe)throw pe;
     } catch(e) {
      if(!String(e?.message).startsWith('PRECIFICACAO_PENDENTE:'))throw e;
-     const ids=new Map(p.catalog.map(x=>[x.service_id,x]));
+     const ids=new Map([...p.catalog,...references].map(x=>[x.service_id,x]));
      for(const item of b.itens){
       const svc=ids.get(item.servico_id);if(!svc)throw new Error('Serviço inválido');
+      const modalidade=selectedMode(item);
+      if(modalidade==='mao_obra'&&!isPublicReferenceId(item.servico_id))throw new Error('Modalidade não disponível.');
       const q=num(item.quantidade,0.001,100000);
       if(svc.unit==='unidade'&&!Number.isInteger(q))throw new Error('Quantidade inválida');
      }
