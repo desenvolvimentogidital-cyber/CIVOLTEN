@@ -135,12 +135,14 @@ function attach(box,order){
    }
    try{
     save.disabled=true;
+    const new_revision=commercial?.decision==='approved';
+    if(new_revision&&!confirm('Esta proposta já foi aprovada. Deseja criar uma nova revisão e invalidar o link anterior?'))return;
     const result=await call('admin-save-commercial','POST',{
-     id:order.id,expected_revision:revision,items:commercialItems,
+     id:order.id,expected_revision:revision,new_revision,items:commercialItems,
      terms:{validity_days:Number(validity.value),deadline:deadline.value,payment:payment.value,
       included:included.value,excluded:excluded.value}
     });
-    revision=result.revision;state.textContent='Rascunho • v'+revision;
+    revision=result.revision;if(commercial)commercial.decision='draft';state.textContent='Rascunho • v'+revision;
     order.commercial={revision,decision:'draft',total:result.total};
     show('Versão '+revision+' salva. Total '+brl(result.total)+'.',true);
    }catch(e){show(e.message);}finally{save.disabled=false;}
