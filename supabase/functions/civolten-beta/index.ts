@@ -300,7 +300,7 @@ Deno.serve(async req=>{
     if(ce)throw ce;
     const {data:commercial,error:co}=await db.from('commercial_quotes').select('items,terms,total,revision,decision,decision_at').eq('request_id',id).maybeSingle();
     if(co)throw co;
-    const {data:branding,error:be}=await db.from('civolten_branding').select('company_name,logo_data_url,color_primary,color_accent').eq('id',1).maybeSingle();
+    const {data:branding,error:be}=await db.from('civolten_branding').select('company_name,logo_data_url,logo_width_px,color_primary,color_accent').eq('id',1).maybeSingle();
     if(be)throw be;
     return out({pedido,simulacao:simulacao??null,servicos:catalogo,commercial:commercial??null,branding:branding??null});
    }
