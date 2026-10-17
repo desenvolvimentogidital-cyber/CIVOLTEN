@@ -1,6 +1,6 @@
 import {EDGE,json,sameOrigin,browserAllowed,readBody,cookieToken} from '../lib/civolten-security.mjs';
 // O endpoint Supabase revalida o usuário e role a cada operação.
-const endpoints={'admin-me':['GET'],'admin-list':['GET'],'admin-quote':['GET'],'admin-pricing':['GET','POST'],'admin-status':['POST'],'admin-media':['GET'],'admin-commercial':['GET'],'admin-save-commercial':['POST'],'admin-share-commercial':['POST'],'admin-commercial-history':['GET'],'admin-branding':['GET','POST']};
+const endpoints={'admin-me':['GET'],'admin-list':['GET'],'admin-quote':['GET'],'admin-pricing':['GET','POST'],'admin-status':['POST'],'admin-media':['GET'],'admin-commercial':['GET'],'admin-save-commercial':['POST'],'admin-share-commercial':['POST'],'admin-commercial-history':['GET'],'admin-branding':['GET','POST'],'admin-export':['GET']};
 export default {async fetch(req){
  const url=new URL(req.url),action=url.searchParams.get('action');
  if(!endpoints[action]?.includes(req.method))return json({error:'Rota não permitida'},404);
