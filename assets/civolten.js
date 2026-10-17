@@ -222,6 +222,14 @@ $('logout').onclick=async()=>{
  try{await fetch('/api/session',{method:'DELETE',credentials:'same-origin'})}catch{}
  $('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden');$('pricingArea').classList.add('hidden');
 };$('refresh').onclick=refresh;
+$('siteSettingsToggle').onclick=()=>{
+ const section=$('siteSettings'),button=$('siteSettingsToggle');
+ const opening=section.classList.contains('hidden');
+ section.classList.toggle('hidden',!opening);
+ button.setAttribute('aria-expanded',String(opening));
+ button.textContent=opening?'Fechar personalização':'Personalizar site e logo';
+ if(opening)section.scrollIntoView?.({behavior:'smooth',block:'start'});
+};
 $('pricingToggle').onclick=async()=>{const area=$('pricingArea');const opening=area.classList.contains('hidden');area.classList.toggle('hidden',!opening);if(opening)await loadPrices()};
 async function loadPrices(){
  try{
@@ -354,7 +362,7 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
  pdfActions.append(previewBtn,downloadBtn,shareBtn);
  const pdfHint=document.createElement('p');pdfHint.className='hint';
  pdfHint.textContent='Use Editar orçamento completo para definir cada preço, prazo e pagamento. O PDF final terá o detalhamento salvo. Custos internos permanecem privados.';
- box.append(pdfActions,pdfHint);window.CIVOLTEN_PRO?.attach?.(box,x,total=>{amount.value=String(total);savedAmount=total;amount.disabled=true;});frag.appendChild(box)});$('orders').replaceChildren(frag);window.CIVOLTEN_PRO?.dashboard?.($('orders'),d.pedidos);window.CIVOLTEN_PRO?.branding?.($('dashboard'));}catch(e){message('adminmsg',e.message);$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden')}}
+ box.append(pdfActions,pdfHint);window.CIVOLTEN_PRO?.attach?.(box,x,total=>{amount.value=String(total);savedAmount=total;amount.disabled=true;});frag.appendChild(box)});$('orders').replaceChildren(frag);window.CIVOLTEN_PRO?.dashboard?.($('orders'),d.pedidos);window.CIVOLTEN_PRO?.branding?.($('siteSettings'));window.CIVOLTEN_SIURB?.importHub?.($('dashboard'));}catch(e){message('adminmsg',e.message);$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden')}}
 
 // Carrega todo o catálogo SIURB no mesmo seletor do formulário, em páginas
 // de 400 nomes. Sem baixar custos, insumos ou preços de referência.
