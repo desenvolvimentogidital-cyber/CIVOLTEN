@@ -1,6 +1,7 @@
 
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {PAGE} from './site.ts';
+import {handleReference} from './siurb-reference.ts';
 import {handleAdminExtra,handleClientExtra} from './quote-extra.ts';
 const BASE=Deno.env.get('SUPABASE_URL')||'';
 const SECRET=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
@@ -201,6 +202,8 @@ Deno.serve(async req=>{
    return await handleClientExtra({req,api,db,out,err,body,hash,rate});
   if(api?.startsWith('admin-')){
    if(!await admin(req))return err('Acesso restrito ao administrador',401);
+   if(['admin-reference-search','admin-reference-detail','admin-reference-stats','admin-reference-import'].includes(api))
+    return await handleReference({api,req,url,db,out,err,body});
    if(['admin-commercial','admin-save-commercial','admin-share-commercial','admin-commercial-history','admin-branding'].includes(api))
     return await handleAdminExtra({req,api,db,out,err,body,hash});
    if(req.method==='GET'&&api==='admin-export'){
