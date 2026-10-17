@@ -10,7 +10,9 @@ assert.equal(occurrences(html, /<script\b[^>]*>/gi), 3, "O site deve carregar bu
 assert.equal(occurrences(html, /<\/script>/gi), 3, "Scripts não podem ser truncados");
 assert.match(html, /<script src="\/assets\/civolten\.js(?:\?v=[0-9]+)?" defer><\/script>/i);
 assert.match(html, /<script src="\/assets\/civolten-pro\.js(?:\?v=[0-9]+)?" defer><\/script>/i);
-assert.match(html, /<link rel="stylesheet" href="\/assets\/civolten\.css"/i);
+assert.match(html, /<link rel="stylesheet" href="\/assets\/civolten\.css(?:\?v=[0-9]+)?"/i);
+for(const id of ['siurbPublicQuery','siurbPublicSource','siurbPublicSearch','siurbPublicResults'])assert.match(html,new RegExp('id="'+id+'"'));
+assert.match(html,/3\.463 serviços/);
 assert.doesNotMatch(html, /<script>([\s\S]*?)<\/script>|<style>|\sonclick=/i, "HTML não pode conter JS/CSS inline");
 for (const id of ["client", "lines", "add", "simulate", "catalogstatus", "retryCatalog", "pricingArea"]) {
   assert.match(html, new RegExp('id="' + id + '"'), "Campo ausente: " + id);
