@@ -31,7 +31,7 @@ export function normalizeReferenceBatch(data){
 }
 export async function handleReference({api,req,url,db,out,err,body}){
  if(api==='admin-reference-search'&&req.method==='GET'){
-  const q=clean(url.searchParams.get('q'),120).replace(/[%_\\]/g,'').trim();
+  const q=clean(url.searchParams.get('q'),120).replace(/[^\p{L}\p{N}\s.\/-]/gu,'').trim();
   const source=clean(url.searchParams.get('source'),5);
   if(q.length<2)return out({results:[],help:'Digite pelo menos 2 caracteres.'});
   if(source&&!SOURCES.has(source))return err('Base inválida.',400);
