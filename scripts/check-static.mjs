@@ -91,6 +91,16 @@ class Node {
     return null;
   }
   querySelectorAll(selector){return selector===".line"?this.children.filter(x=>x.className==="line"):[]}
+  cloneNode(deep=false){
+    const copy=new Node(this.tagName);
+    copy.className=this.className;
+    copy.attrs={...this.attrs};
+    copy.label=this.label;
+    copy.value=this.value;
+    copy.textContent=this.textContent;
+    if(deep)for(const c of this.children)copy.appendChild(c.cloneNode(true));
+    return copy;
+  }
   dispatchEvent(event){if(event.type==="change")this.onchange?.(event)}
   get value(){return this._value} set value(v){this._value=String(v)}
   get textContent(){return this._text} set textContent(v){
