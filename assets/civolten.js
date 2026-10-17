@@ -109,7 +109,10 @@ async function api(method,action,data,auth=false){
  return response;
 }
 $('toggle').onclick=()=>{const a=$('admin').classList.contains('hidden');$('admin').classList.toggle('hidden',!a);$('client').classList.toggle('hidden',a);$('toggle').textContent=a?'← Voltar ao orçamento':'Área da empresa ↗';if(a){fetch('/api/session',{credentials:'same-origin'}).then(r=>r.json()).then(s=>{if(s.authenticated)refresh();else $('loginbox').classList.remove('hidden')}).catch(()=>{})}};
-function currentItems(){return Array.from($('lines').querySelectorAll('.line')).map(row=>({servico_id:row.querySelector('select').value,quantidade:Number(row.querySelector('input').value)})).filter(x=>x.servico_id);}
+function currentItems(){return Array.from($('lines').querySelectorAll('.line')).map(row=>({
+ servico_id:row.querySelector('select').value,quantidade:Number(row.querySelector('input').value),
+ modalidade:row._modeSelect?.value||'completo'
+})).filter(x=>x.servico_id);}
 function clearEstimate(){$('estimate').classList.add('hidden');}
 function choices(select,current){
  select.replaceChildren();
@@ -143,12 +146,31 @@ function add(){
  const serviceLabel=document.createElement('label');serviceLabel.className='field';serviceLabel.textContent='Serviço';
  const select=document.createElement('select');select.setAttribute('aria-label','Escolha um serviço');choices(select);
  serviceLabel.appendChild(select);
+ const modeField=document.createElement('div');modeField.className='mode-field hidden';
+ const modeText=document.createElement('span');modeText.textContent='Como deseja contratar?';
+ const modeSelect=document.createElement('select');modeSelect.className='mode-service';
+ modeSelect.setAttribute('aria-label','Escolha somente mão de obra ou serviço completo');
+ for(const [id,label] of [
+  ['completo','Serviço completo (mão de obra + materiais)'],
+  ['mao_obra','Somente mão de obra']
+ ]){
+  const op=document.createElement('option');op.value=id;op.textContent=label;modeSelect.appendChild(op);
+ }
+ modeSelect.value='completo';
+ modeSelect.onchange=clearEstimate;
+ modeField.append(modeText,modeSelect);
+ serviceLabel.appendChild(modeField);
+ row._modeSelect=modeSelect;
  const qtyLabel=document.createElement('label');qtyLabel.className='field';qtyLabel.textContent='Quantidade';
  const quantity=document.createElement('input');quantity.type='number';quantity.min='0.001';quantity.max='100000';quantity.step='0.001';quantity.value='1';quantity.setAttribute('aria-label','Quantidade do serviço');
  qtyLabel.appendChild(quantity);
  const remove=document.createElement('button');remove.type='button';remove.className='remove-service';remove.textContent='×';remove.title='Remover este serviço';remove.setAttribute('aria-label','Remover este serviço');
  function updateUnit(){
   const service=catalog.find(s=>s.id===select.value);
+  const hasComposition=/^siurb:(EDIF|INFRA):[0-9]{5,12}$/.test(select.value);
+  modeField.classList.toggle('hidden',!hasComposition);
+  modeSelect.disabled=!hasComposition;
+  if(!hasComposition)modeSelect.value='completo';
   qtyLabel.firstChild.textContent='Quantidade'+(service?' ('+service.unidade+')':'');
   quantity.step=service?.unidade==='unidade'?'1':'0.001';
   quantity.min=service?.unidade==='unidade'?'1':'0.001';
@@ -162,7 +184,10 @@ function add(){
  $('lines').appendChild(row);
  updateUnit();
 }
-$('add').onclick=add;document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{padrao=b.dataset.p;document.querySelectorAll('[data-p]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));const old=currentItems();$('lines').replaceChildren();old.forEach(o=>{add();const row=$('lines').lastElementChild;row.querySelector('select').value=o.servico_id;row.querySelector('input').value=o.quantidade});clearEstimate()});
+$('add').onclick=add;document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{padrao=b.dataset.p;document.querySelectorAll('[data-p]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));const old=currentItems();$('lines').replaceChildren();old.forEach(o=>{add();const row=$('lines').lastElementChild;row.querySelector('select').value=o.servico_id;
+ row.querySelector('select').dispatchEvent(new Event('change'));
+ if(row._modeSelect)row._modeSelect.value=o.modalidade||'completo';
+ row.querySelector('input').value=o.quantidade});clearEstimate()});
 $('simulate').onclick=async()=>{try{clean('clientmsg');resetFieldErrors();if(showRequiredErrors(simulationRequiredErrors()))return;const items=currentItems();$('simulate').disabled=true;const r=await api('POST','simulate',{itens:items,padrao,dias:Number($('days').value),km:Number($('km').value)});$('estimate').replaceChildren();const a=document.createElement('small');a.textContent='SIMULAÇÃO PRELIMINAR';const b=document.createElement('strong');const d=document.createElement('small');if(r.avaliacao_necessaria){b.textContent='Avaliação personalizada';d.textContent=r.mensagem||'Envie seu pedido para receber orçamento.';}else{b.textContent=BRL(r.simulacao.total_bruto);d.textContent='';}$('estimate').append(a,b,d);$('estimate').classList.remove('hidden');}catch(e){message('clientmsg',e.message)}finally{$('simulate').disabled=false}};
 $('files').onchange=e=>{files.push(...Array.from(e.target.files||[]));if(files.length>6){files=files.slice(0,6);message('clientmsg','Máximo de seis arquivos.')}showFiles();$('files').value=''};
 function showFiles(){$('filelist').replaceChildren();files.forEach((f,i)=>{const li=document.createElement('li');li.textContent=f.name+' ('+(f.size/1048576).toFixed(1)+' MB) ';const b=document.createElement('button');b.textContent='Remover';b.type='button';b.onclick=()=>{files.splice(i,1);showFiles()};li.appendChild(b);$('filelist').appendChild(li)})}

@@ -5,9 +5,15 @@ import vm from 'node:vm';
 const src=readFileSync(new URL('../supabase/functions/civolten-beta/public-siurb.ts',import.meta.url),'utf8');
 const context=vm.createContext({});
 vm.runInContext(src.replace(/^export /gm,'')+
- '\nglobalThis.utils={isPublicReferenceId,publicReferenceItem,publicReferenceSearch,publicReferencePage,referencePricingServices,isWholeUnit};',context);
-const {isPublicReferenceId,publicReferenceItem,publicReferenceSearch,referencePricingServices,isWholeUnit}=context.utils;
-const sample={source:'EDIF',code:'9003070',description:'Cabo flexível isolado 750 V',unit:'M',unit_cost:7.04};
+ '\nglobalThis.utils={isPublicReferenceId,publicReferenceItem,publicReferenceSearch,publicReferencePage,referencePricingServices,isWholeUnit,laborCostFromInputs,selectedMode};',context);
+const {isPublicReferenceId,publicReferenceItem,publicReferenceSearch,referencePricingServices,isWholeUnit,laborCostFromInputs,selectedMode}=context.utils;
+const sample={source:'EDIF',code:'9003070',description:'Cabo flexível isolado 750 V',unit:'M',unit_cost:7.04,
+ inputs:[
+  {code:'2041',description:'Eletricista (SGSP)',unit:'H',partial_cost:1.1145},
+  {code:'2099',description:'Servente (SGSP)',unit:'H',partial_cost:.7703},
+  {code:'52910',description:'Cabo isolado',unit:'M',partial_cost:5.151},
+  {code:'94010',description:'Máquina de corte',unit:'H',partial_cost:1.95}
+ ]};
 test('código composto de referência identifica serviços sem colidir com o catálogo original',()=>{
  assert.ok(isPublicReferenceId('siurb:EDIF:9003070'));
  assert.ok(isPublicReferenceId('siurb:INFRA:10001001'));
@@ -79,4 +85,76 @@ test('formulário público carrega composições em lotes e agrupa EDIF e INFRA 
  assert.match(src,/EDIF — Edificações/);
  assert.match(src,/INFRA — Infraestrutura/);
  assert.match(src,/async function loadSiurbCatalog/);
+});
+
+
+test('modalidade aceita apenas mão de obra e serviço completo, sendo completo o padrão legado',()=>{
+ assert.equal(selectedMode({servico_id:'siurb:EDIF:9003070'}),'completo');
+ assert.equal(selectedMode({modalidade:'mao_obra'}),'mao_obra');
+ assert.equal(selectedMode({modalidade:'completo'}),'completo');
+ assert.throws(()=>selectedMode({modalidade:'materiais'}));
+ assert.throws(()=>selectedMode({modalidade:'gratuito'}));
+});
+
+test('mão de obra identifica profissionais pelo código e unidade H, sem materiais e máquinas',()=>{
+ const cost=laborCostFromInputs(sample.inputs);
+ assert.equal(cost,1.88);
+ assert.equal(laborCostFromInputs([{code:'94010',unit:'H',partial_cost:4},{code:'52910',unit:'M',partial_cost:5}]),0);
+ assert.equal(laborCostFromInputs([
+  {code:'2020',unit:'H',partial_cost:18.5102},
+  {code:'2099',unit:'H',partial_cost:14.8929},
+  {code:'10562',unit:'Kg',partial_cost:8.82}
+ ]),33.40);
+});
+test('modalidades conservam valor completo e dão preço de mão de obra separado',async()=>{
+ const db={from:()=>({select:()=>({eq:()=>({eq:()=>({in:async()=>({data:[sample],error:null})})})})})};
+ const [svc]=await referencePricingServices(db,[{servico_id:'siurb:EDIF:9003070',modalidade:'mao_obra'}],{margem_minima_alvo:.2});
+ assert.equal(svc.medio,8.8,'Custo completo tem de permanecer igual ao preço anterior');
+ assert.equal(svc.labor_prices.medio,2.35,'Somente mão de obra sem equipamento e cabo');
+ assert.ok(svc.labor_prices.medio<svc.medio);
+});
+test('serviço sem profissional identificado não inventa custo de mão de obra',async()=>{
+ const noWorker={...sample,inputs:[{code:'52910',unit:'M',partial_cost:7.04}]};
+ const db={from:()=>({select:()=>({eq:()=>({eq:()=>({in:async()=>({data:[noWorker],error:null})})})})})};
+ const [svc]=await referencePricingServices(db,[{servico_id:'siurb:EDIF:9003070'}],{margem_minima_alvo:.2});
+ assert.equal(svc.labor_prices,null);
+ assert.equal(svc.medio,8.8);
+});
+test('interface permite somente duas modalidades e as envia na simulação',()=>{
+ const script=readFileSync(new URL('../assets/civolten.js',import.meta.url),'utf8');
+ assert.match(script,/Somente mão de obra/);
+ assert.match(script,/Serviço completo \(mão de obra \+ materiais\)/);
+ assert.match(script,/modalidade:row\._modeSelect/);
+ assert.match(script,/if\(!hasComposition\)modeSelect\.value='completo'/);
+ assert.doesNotMatch(script,/Somente materiais|Somente material/);
+});
+
+
+test('motor real da simulação aplica modalidade correta e guarda descrição do serviço',async()=>{
+ const edge=readFileSync(new URL('../supabase/functions/civolten-beta/index.ts',import.meta.url),'utf8');
+ const from=edge.indexOf('function calc('),to=edge.indexOf('function publicQuote(');
+ assert.ok(from>0&&to>from);
+ const calcCtx=vm.createContext({
+  num:(v,min=0,max=1e8)=>{if(!Number.isFinite(v)||v<min||v>max)throw Error('Número inválido');return v;},
+  cents:n=>Math.round(n*100),money:n=>Number((n/100).toFixed(2)),
+  selectedMode,isPublicReferenceId
+ });
+ vm.runInContext(edge.slice(from,to)+'\nglobalThis.calc=calc;',calcCtx);
+ const db={from:()=>({select:()=>({eq:()=>({eq:()=>({in:async()=>({data:[sample],error:null})})})})})};
+ const [service]=await referencePricingServices(db,[{servico_id:'siurb:EDIF:9003070'}],{margem_minima_alvo:.2});
+ const conf={
+  limiar_soma_medidas:0,logistica_diaria_obra_pequena:0,limite_distancia_km:15,
+  sobretaxa_distancia_sobre_servicos:0,pro_labore_mensal:0,
+  despesas_operacionais_mensais:0,dias_produtivos_mes:22,imposto_sobre_valor_final:0
+ };
+ const complete=calcCtx.calc([{servico_id:service.service_id,quantidade:1,modalidade:'completo'}],'medio',1,0,[service],conf);
+ const labor=calcCtx.calc([{servico_id:service.service_id,quantidade:1,modalidade:'mao_obra'}],'medio',1,0,[service],conf);
+ assert.equal(complete.total_bruto,8.8);
+ assert.equal(labor.total_bruto,2.35);
+ assert.match(complete.itens[0].descricao,/Serviço completo/);
+ assert.match(labor.itens[0].descricao,/Somente mão de obra/);
+ assert.equal(labor.itens[0].modalidade,'mao_obra');
+ const noWorker={...service,labor_prices:null};
+ assert.throws(()=>calcCtx.calc([{servico_id:service.service_id,quantidade:1,modalidade:'mao_obra'}],'medio',1,0,[noWorker],conf),/PRECIFICACAO_PENDENTE/);
+ assert.throws(()=>calcCtx.calc([{servico_id:'legado',quantidade:1,modalidade:'mao_obra'}],'medio',1,0,[{service_id:'legado',medio:10,unit:'unidade',description:'Legado'}],conf),/PRECIFICACAO_PENDENTE/);
 });
