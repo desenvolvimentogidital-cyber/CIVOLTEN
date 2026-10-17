@@ -209,7 +209,21 @@ function dashboard(container,pedidos){
  };
  const count=E('span',{class:'hint',text:total+' pedido(s) encontrados'});
  search.oninput=update;filter.onchange=update;
- toolbar.append(summary,filters,count);
+ const backup=button('Exportar backup de orçamentos',async()=>{
+  if(!confirm('O arquivo contém dados pessoais dos clientes. Armazene em local privado e seguro. Deseja exportar?'))return;
+  try{
+   backup.disabled=true;
+   const data=await call('admin-export');
+   if(data.partial)alert('O backup foi limitado a 1.000 registros por categoria. Solicite exportação completa do banco antes de depender deste arquivo.');
+   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+   const url=URL.createObjectURL(blob);
+   const a=E('a',{href:url,download:'CIVOLTEN-backup-'+new Date().toISOString().slice(0,10)+'.json'});
+   a.click();
+   URL.revokeObjectURL(url);
+  }catch(e){alert('Falha na exportação: '+e.message);}
+  finally{backup.disabled=false;}
+ });
+ toolbar.append(summary,filters,count,backup);
  container.prepend(toolbar);
 }
 
