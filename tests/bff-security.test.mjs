@@ -61,3 +61,14 @@ test('proxy encaminha autorização somente ao backend e bloqueia métodos desco
   assert.equal(invalid.status,404);
  }finally{globalThis.fetch=originalFetch}
 });
+
+test('novas rotas comerciais rejeitam usuário não autenticado',async()=>{
+ for(const method of ['GET','POST']){
+  const action=method==='GET'?'admin-commercial':'admin-save-commercial';
+  const r=await admin.fetch(request('/api/admin?action='+action,method,method==='POST'?{id:'a0912d32-4444-4444-8444-444444444444',items:[]}:undefined));
+  assert.equal(r.status,401);
+  assert.match(r.headers.get('Cache-Control'),/no-store/);
+ }
+ const exportResult=await admin.fetch(request('/api/admin?action=admin-export'));
+ assert.equal(exportResult.status,401);
+});
