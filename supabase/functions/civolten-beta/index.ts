@@ -288,5 +288,5 @@ Deno.serve(async req=>{
    }
   }
   return err('Rota não encontrada',404);
- }catch(e){console.error('CIVOLTEN edge error:',String(e?.message||e).slice(0,200));return err((e?.message&&['Número inválido','Dados inválidos','Dados muito grandes'].includes(e.message))?e.message:(e?.message?.includes('inválid')||e?.message?.includes('Limite')||e?.message?.includes('Informe')||e?.message?.includes('Um anexo')||e?.message?.includes('Preencha')||e?.message?.includes('arquivos')||e?.message?.includes('padrão')||e?.message?.includes('Dias')||e?.message?.includes('preços')||e?.message?.includes('Preço')||e?.message?.includes('serviço')?e.message:'Não foi possível concluir. Tente novamente.'),400)}
+ }catch(e){console.error('CIVOLTEN edge error:',String(e?.message||e).slice(0,200));return err((e?.message&&['Número inválido','Dados inválidos','Dados muito grandes'].includes(e.message))?e.message:(e?.message?.includes('inválid')||e?.message?.includes('Limite')||e?.message?.includes('Informe')||e?.message?.includes('Um anexo')||e?.message?.includes('Preencha')||e?.message?.includes('arquivos')||e?.message?.includes('padrão')||e?.message?.includes('Dias')||e?.message?.includes('preços')||e?.message?.includes('Preço')||e?.message?.includes('serviço')||[400,409].includes(e?.status)?e.message:'Não foi possível concluir. Tente novamente.'),400)}
 });
