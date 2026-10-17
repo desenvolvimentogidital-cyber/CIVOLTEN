@@ -47,3 +47,9 @@ test('composição aceita unidade de insumo ausente no XLS original sem inventá
  const values=normalizeReferenceBatch(p);
  assert.equal(values[0].inputs[0].unit,'');
 });
+
+test('importador permite arquivo único com EDIF e INFRA',()=>{
+ const source=readFileSync(new URL('../assets/civolten-reference.js',import.meta.url),'utf8');
+ assert.match(source,/civolten\.siurb\.bundle\.v1/);
+ assert.match(source,/datasets\.length/);
+});

@@ -5,9 +5,9 @@ Arquivos fornecidos pelo usuário, com desoneração:
 - Total: 3.463 serviços, 13.793 insumos.
 
 ## Como importar pelo celular
-1. Baixar do ChatGPT os dois arquivos JSON de importação.
+1. Baixar do ChatGPT o arquivo único CIVOLTEN_SIURB_EDIF_INFRA_JUL2026_IMPORTAR.json (ou dois arquivos separados).
 2. Abrir civolten.vercel.app, acessar Área da empresa e entrar.
-3. Em Bases técnicas SIURB — julho/2026 selecionar os dois arquivos JSON.
+3. Em Bases técnicas SIURB — julho/2026 selecionar o arquivo único JSON.
 4. Clicar em Importar / atualizar bases. A importação usa lotes de 25 e pode ser repetida sem duplicar registros.
 5. Validar a contagem: EDIF 2617 e INFRA 846.
 
