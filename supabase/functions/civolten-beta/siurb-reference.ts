@@ -20,7 +20,7 @@ export function normalizeReferenceBatch(data){
   if(!Array.isArray(r.inputs)||r.inputs.length>150)bad('Composição analítica inválida no serviço '+code+'.');
   const inputs=r.inputs.map((v,j)=>{
    const inputCode=String(v?.code||'').trim(),name=clean(v?.description),iu=clean(v?.unit,24);
-   if(!/^[0-9]{1,15}$/.test(inputCode)||name.length<2||!iu)bad('Insumo inválido no serviço '+code+', linha '+(j+1)+'.');
+   if(!/^[0-9]{1,15}$/.test(inputCode)||name.length<2||iu.length>24)bad('Insumo inválido no serviço '+code+', linha '+(j+1)+'.');
    return {code:inputCode,description:name,unit:iu,
     unit_cost:dec(v.unit_cost),coefficient:dec(v.coefficient,10000000),partial_cost:dec(v.partial_cost)};
   });
