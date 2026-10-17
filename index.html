@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><title>CIVOLTEN | Elétrica e Construção Civil — Orçamentos</title><meta name="theme-color" content="#08182B"/><meta name="description" content="Solicite seu orçamento de serviços elétricos, reformas e construção civil na CIVOLTEN."/>
-<link rel="stylesheet" href="/assets/civolten.css?v=5"/></head><body><header><div><div class="site-brand"><img id="siteLogo" class="site-brand-logo" alt="Logo CIVOLTEN" hidden></div><button id="toggle">Área da empresa ↗</button></div></header>
+<link rel="stylesheet" href="/assets/civolten.css?v=6"/></head><body><header><div><div class="site-brand"><img id="siteLogo" class="site-brand-logo" alt="Logo CIVOLTEN" hidden></div><button id="toggle">Área da empresa ↗</button></div></header>
 <main><section id="client"><div class="hero"><span class="tag">SÃO PAULO • ELÉTRICA E CONSTRUÇÃO CIVIL</span><h1 id="siteHeadline">Peça seu orçamento sem sair de casa.</h1><p id="siteDescription">Descreva o serviço, envie fotos, áudio ou vídeo e, se quiser, faça uma simulação imediata.</p></div>
 <div class="card"><h2>1. Seus dados</h2><div class="grid"><label class="field">Nome<input id="name" required minlength="2" maxlength="100" placeholder="Seu nome"/></label><label class="field">WhatsApp com DDD<input id="phone" required inputmode="tel" autocomplete="tel" maxlength="22" placeholder="+55 (11) 99999-9999"/></label><label class="field">Bairro<input id="neigh" placeholder="Ex.: Mooca"/></label><label class="field">Cidade<input id="city" value="São Paulo"/></label></div>
 <label class="field">Tipo de serviço<select id="category"><option value="eletrica">Instalações elétricas</option><option value="manutencao">Manutenção elétrica</option><option value="iluminacao">Iluminação / LED</option><option value="reforma">Reformas</option><option value="construcao">Construção civil</option><option value="pintura">Pintura e acabamento</option><option value="hidraulica">Hidráulica</option><option value="outros">Outros</option></select></label>
@@ -10,6 +10,61 @@
 <hr/><h2>3. Simulação opcional</h2><p class="hint">Escolha o padrão e os serviços. Os preços unitários são internos; você verá apenas o valor total da simulação. Para serviços sem preço configurado, envie seu pedido para avaliação.</p><div class="patterns"><button data-p="baixo" aria-pressed="false">Baixo</button><button data-p="medio" aria-pressed="true">Médio</button><button data-p="alto" aria-pressed="false">Alto</button></div><p class="service-help">Selecione o serviço abaixo e informe a quantidade. Para serviços por m², informe a área do imóvel ou do serviço.</p><div id="catalogstatus" class="status-catalog" role="status" aria-live="polite">Preparando os serviços...</div>
 <div id="lines" aria-label="Serviços para orçamento"></div><div class="row"><button id="add" type="button" class="goldbtn">+ Adicionar outro serviço</button><button id="retryCatalog" type="button" class="hidden">↻ Atualizar serviços</button></div><div class="grid"><label class="field">Dias estimados<input id="days" type="number" min="1" max="365" step="1" value="1"/></label><label class="field">Distância (km)<input id="km" type="number" min="0" max="1000" step="0.1" value="0"/></label></div><button type="button" id="simulate">⚡ Calcular simulação</button><div id="estimate" class="result hidden"></div>
 <hr/><label class="field"><input type="checkbox" id="consent" required/> Li o <a href="/privacidade.html" target="_blank" rel="noopener noreferrer">aviso de privacidade</a> e autorizo o uso dos meus dados para o orçamento.</label><input id="website" class="hidden" tabindex="-1" autocomplete="off"/><div id="clientmsg" role="alert" aria-live="assertive"></div><button type="button" class="goldbtn" id="send">Enviar pedido de orçamento →</button><p class="hint">Os valores da simulação são estimativas sujeitas à avaliação técnica e confirmação da proposta pela CIVOLTEN.</p></div></section>
-<section id="admin" class="hidden"><div class="hero"><span class="tag">ACESSO RESTRITO</span><h1>Painel <span class="gold">CIVOLTEN</span></h1></div><div class="card" id="loginbox"><h2>Entrar ou ativar acesso</h2><div class="grid"><label class="field">Seu e-mail<input id="email" type="email"/></label><label class="field">Senha<input id="password" type="password" autocomplete="current-password"/></label></div><div class="row"><button class="goldbtn" id="login">Entrar</button></div><hr/><h3>Primeiro acesso</h3><p class="hint">Use o código de ativação particular da CIVOLTEN uma única vez. Escolha uma senha com pelo menos 12 caracteres, letras maiúsculas/minúsculas e número.</p><label class="field">Código de ativação<input id="setupToken" type="password" autocomplete="off"/></label><button id="activate">Criar meu usuário administrador</button></div><div class="card hidden" id="dashboard"><div class="row"><button id="refresh">Atualizar pedidos</button><button id="siteSettingsToggle" type="button" aria-expanded="false" aria-controls="siteSettings">Personalizar site e logo</button><button id="logout">Sair</button></div><section id="siteSettings" class="hidden" aria-label="Configurações administrativas do site"></section><div id="orders"></div><hr/><div class="row"><h3 class="push-right">Tabela de preços da empresa</h3><button type="button" id="pricingToggle">Editar valores internos</button></div><div id="pricingArea" class="hidden"><p class="hint">Valores em R$/unidade, privados. Preço R$ 0 significa: padrão ainda sem preço; o cliente poderá solicitar avaliação, mas não simular esse serviço.</p><div id="pricingList"></div></div></div><div id="adminmsg" role="alert" aria-live="assertive"></div></section></main>
+<section id="admin" class="hidden"><div class="hero"><span class="tag">ACESSO RESTRITO</span><h1>Painel <span class="gold">CIVOLTEN</span></h1></div><div class="card" id="loginbox"><h2>Entrar ou ativar acesso</h2><div class="grid"><label class="field">Seu e-mail<input id="email" type="email"/></label><label class="field">Senha<input id="password" type="password" autocomplete="current-password"/></label></div><div class="row"><button class="goldbtn" id="login">Entrar</button></div><hr/><h3>Primeiro acesso</h3><p class="hint">Use o código de ativação particular da CIVOLTEN uma única vez. Escolha uma senha com pelo menos 12 caracteres, letras maiúsculas/minúsculas e número.</p><label class="field">Código de ativação<input id="setupToken" type="password" autocomplete="off"/></label><button id="activate">Criar meu usuário administrador</button></div><div class="card hidden admin-dashboard" id="dashboard">
+ <div class="admin-topbar">
+  <h2>Área da empresa</h2>
+  <div class="row"><button id="refresh" type="button">Atualizar pedidos</button><button id="logout" type="button">Sair</button></div>
+ </div>
+ <nav id="adminMenu" class="admin-menu" aria-label="Menu administrativo e submenus">
+  <details class="admin-menu-group" open>
+   <summary>Atendimento</summary>
+   <div class="admin-submenu">
+    <button type="button" data-admin-view="pedidos" aria-controls="adminOrdersPanel">Pedidos recebidos</button>
+    <button type="button" data-admin-view="orcamentos" aria-controls="adminOrdersPanel">Orçamentos e propostas</button>
+   </div>
+  </details>
+  <details class="admin-menu-group">
+   <summary>Serviços e valores</summary>
+   <div class="admin-submenu">
+    <button type="button" data-admin-view="precos" aria-controls="adminPricingPanel">Tabela de preços</button>
+    <button type="button" data-admin-view="siurb" aria-controls="adminSiurbPanel">Base SIURB · EDIF e INFRA</button>
+   </div>
+  </details>
+  <details class="admin-menu-group" open>
+   <summary>Site e identidade visual</summary>
+   <div class="admin-submenu">
+    <button type="button" data-admin-view="logo" aria-controls="adminBrandingPanel">Logo e cores</button>
+    <button type="button" data-admin-view="textos" aria-controls="adminBrandingPanel">Textos e WhatsApp</button>
+   </div>
+  </details>
+  <details class="admin-menu-group">
+   <summary>Dados e segurança</summary>
+   <div class="admin-submenu">
+    <button type="button" data-admin-view="backup" aria-controls="adminBackupPanel">Exportar dados</button>
+   </div>
+  </details>
+ </nav>
+ <p id="adminCurrentView" class="admin-current" role="status" aria-live="polite"></p>
+ <section id="adminOrdersPanel" class="admin-panel hidden" aria-label="Pedidos e orçamentos">
+  <div id="orders"></div>
+ </section>
+ <section id="adminPricingPanel" class="admin-panel hidden" aria-label="Valores internos">
+  <h3>Tabela de preços da empresa</h3>
+  <p class="hint">Os preços e custos comerciais ficam restritos à empresa.</p>
+  <button type="button" id="pricingToggle">Editar valores internos</button>
+  <div id="pricingArea" class="hidden"><p class="hint">Valores em R$/unidade, privados. Preço R$ 0 significa: avaliação necessária para esse padrão.</p><div id="pricingList"></div></div>
+ </section>
+ <section id="adminSiurbPanel" class="admin-panel hidden" aria-label="Catálogo técnico SIURB">
+  <h3>Base técnica de serviços</h3><p class="hint">Consulte e atualize as bases EDIF e INFRA sem substituir os orçamentos existentes.</p>
+ </section>
+ <section id="adminBrandingPanel" class="admin-panel hidden" aria-label="Personalização do site">
+  <div id="siteSettings"></div>
+ </section>
+ <section id="adminBackupPanel" class="admin-panel hidden" aria-label="Exportação e cópia dos dados">
+  <h3>Dados e exportação</h3>
+  <p class="hint">O arquivo contém dados pessoais e deve ficar armazenado em local privado. A exportação manual não substitui um backup automático do banco.</p>
+  <button id="exportOrders" type="button">Exportar pedidos e propostas (JSON)</button>
+ </section>
+ </div><div id="adminmsg" role="alert" aria-live="assertive"></div></section></main>
 <footer><div class="site-footer"><img id="footerLogo" class="site-footer-logo" alt="Logo CIVOLTEN" hidden><p id="siteFooterNote">Elétrica, reformas e construção civil. Atendimento e orçamentos digitais.</p><a id="siteContactWhatsApp" class="site-contact" href="#" target="_blank" rel="noopener noreferrer" hidden>Falar no WhatsApp</a><a href="/privacidade.html">Privacidade</a></div></footer>
-<script src="/assets/site-branding.js?v=1" defer></script><script src="/assets/civolten-reference.js?v=1" defer></script><script src="/assets/civolten-pro.js?v=2" defer></script><script src="/assets/civolten.js?v=10" defer></script></body></html>
+<script src="/assets/site-branding.js?v=1" defer></script><script src="/assets/civolten-reference.js?v=1" defer></script><script src="/assets/civolten-pro.js?v=3" defer></script><script src="/assets/civolten.js?v=11" defer></script></body></html>
