@@ -12,7 +12,9 @@ test('visual público não mostra nome escrito nem ícone substituto',()=>{
   assert.doesNotMatch(html,/<div class="brand">|⚡ CIVOL<b>TEN<\/b>/);
   assert.match(html,/Logo CIVOLTEN/);
  }
- assert.match(home,/siteSettingsToggle/);
+ assert.match(home,/data-admin-view="logo"/);
+ assert.match(home,/id="adminBrandingPanel"/);
+ assert.match(home,/id="siteSettings"/);
  assert.match(proposal,/assets\/proposta.css/);
  assert.doesNotMatch(proposal,/<style>|style="/);
 });

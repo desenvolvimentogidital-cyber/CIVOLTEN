@@ -184,6 +184,22 @@ function attach(box,order,onSaved){
  }
 }
 
+async function exportOrders(){
+ const button=document.getElementById('exportOrders');
+ if(!confirm('O arquivo contém dados pessoais dos clientes. Armazene em local privado e seguro. Deseja exportar?'))return;
+ try{
+  if(button)button.disabled=true;
+  const data=await call('admin-export');
+  if(data.partial)alert('A exportação foi limitada a 1.000 registros por categoria. Para backup completo, use as ferramentas do banco.');
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=E('a',{href:url,download:'CIVOLTEN-exportacao-'+new Date().toISOString().slice(0,10)+'.json'});
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),10000);
+ }catch(e){alert('Falha na exportação: '+e.message);}
+ finally{if(button)button.disabled=false;}
+}
+
 function dashboard(container,pedidos){
  const toolbar=E('div',{class:'pro-dashboard'});
  const total=pedidos.length;
@@ -205,7 +221,10 @@ function dashboard(container,pedidos){
   const needle=search.value.trim().toLocaleLowerCase('pt-BR');
   let shown=0;
   pedidos.forEach((p,i)=>{
-   const hit=([p.customer_name,p.phone,p.description,p.category,p.id].join(' ').toLocaleLowerCase('pt-BR').includes(needle))
+   const showingQuotes=container.dataset.adminMode==='orcamentos';
+   const hasQuote=!!p.commercial||!!p.simulacao||(p.estimate_min!==null&&p.estimate_min!==undefined);
+   const hit=(!showingQuotes||hasQuote)
+     &&([p.customer_name,p.phone,p.description,p.category,p.id].join(' ').toLocaleLowerCase('pt-BR').includes(needle))
      &&(!filter.value||p.status===filter.value||p.commercial?.decision===filter.value);
    elements[i].classList.toggle('hidden',!hit);
    if(hit)shown++;
@@ -214,21 +233,9 @@ function dashboard(container,pedidos){
  };
  const count=E('span',{class:'hint',text:total+' pedido(s) encontrados'});
  search.oninput=update;filter.onchange=update;
- const backup=button('Exportar backup de orçamentos',async()=>{
-  if(!confirm('O arquivo contém dados pessoais dos clientes. Armazene em local privado e seguro. Deseja exportar?'))return;
-  try{
-   backup.disabled=true;
-   const data=await call('admin-export');
-   if(data.partial)alert('O backup foi limitado a 1.000 registros por categoria. Solicite exportação completa do banco antes de depender deste arquivo.');
-   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-   const url=URL.createObjectURL(blob);
-   const a=E('a',{href:url,download:'CIVOLTEN-backup-'+new Date().toISOString().slice(0,10)+'.json'});
-   document.body.appendChild(a);a.click();a.remove();
-   setTimeout(()=>URL.revokeObjectURL(url),10000);
-  }catch(e){alert('Falha na exportação: '+e.message);}
-  finally{backup.disabled=false;}
- });
- toolbar.append(summary,filters,count,backup);
+ container._applyAdminFilter=update;update();
+ toolbar.append(summary,filters,count);
+
  container.prepend(toolbar);
 }
 
@@ -236,7 +243,7 @@ function branding(container){
  if(container.querySelector('.pro-branding'))return;
  const block=E('section',{class:'order pro-branding','aria-label':'Personalização visual do site'});
  block.append(E('h3',{text:'Personalizar site e PDFs'}));
- block.append(E('p',{class:'hint',text:'A marca exibida no cabeçalho, rodapé, propostas e PDF será SOMENTE a imagem enviada aqui. Não aparecerá texto nem símbolo de raio no lugar da logo.'}));
+ block.append(E('p',{class:'hint branding-intro',text:'A marca exibida no cabeçalho, rodapé, propostas e PDF será SOMENTE a imagem enviada aqui. Não aparecerá texto nem símbolo de raio no lugar da logo.'}));
  const internalName=input('CIVOLTEN'),primary=input('#08182B',{type:'color'}),
   accent=input('#DCA629',{type:'color'}),width=input('160',{type:'number',min:'60',max:'320',step:'10'});
  const headline=input('Peça seu orçamento sem sair de casa.');
@@ -249,11 +256,11 @@ function branding(container){
  whatsapp.maxLength=13;whatsapp.inputMode='numeric';
  const upload=input('',{type:'file'});
  upload.type='file';upload.accept='image/png,image/jpeg';
- const previewWrap=E('div',{class:'site-admin-preview'});
+ const previewWrap=E('div',{class:'site-admin-preview branding-preview'});
  const preview=E('img',{class:'pro-logo-preview',alt:'Prévia da logo da empresa'});preview.hidden=true;
  const noLogo=E('p',{class:'hint',text:'Aguardando logo oficial. Nenhuma marca substituta será exibida no site.'});
  previewWrap.append(preview,noLogo);
- const appearance=E('div',{class:'pro-grid'});
+ const appearance=E('div',{class:'pro-grid branding-appearance'});
  appearance.append(
   field('Nome cadastral (não aparece como logo)',internalName),
   field('Cor principal / fundo do cabeçalho',primary),
@@ -261,12 +268,12 @@ function branding(container){
   field('Largura da logo no site (60–320 px)',width),
   field('Logo PNG/JPEG (otimização automática, até 200 KB)',upload)
  );
- const content=E('div',{class:'pro-grid'});
+ const content=E('div',{class:'pro-grid branding-content'});
  content.append(field('Título principal do site',headline),
   field('Descrição principal',description),
   field('Mensagem do rodapé',footerNote),
   field('WhatsApp de contato (país + DDD + número)',whatsapp));
- block.append(appearance,previewWrap,E('h4',{text:'Textos e contato do site'}),content);
+ block.append(appearance,previewWrap,E('h4',{class:'branding-content-title',text:'Textos e contato do site'}),content);
  const status=E('div',{'aria-live':'polite',class:'hint'});block.append(status);
  let logo=null;
  const updatePreview=()=>{
@@ -349,5 +356,5 @@ function branding(container){
  container.append(block);
  load().catch(e=>{status.textContent='Não foi possível abrir a personalização: '+e.message;});
 }
-window.CIVOLTEN_PRO={attach,dashboard,branding,voiceFor};
+window.CIVOLTEN_PRO={attach,dashboard,branding,voiceFor,exportOrders};
 })();

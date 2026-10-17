@@ -109,6 +109,66 @@ async function api(method,action,data,auth=false){
  return response;
 }
 $('toggle').onclick=()=>{const a=$('admin').classList.contains('hidden');$('admin').classList.toggle('hidden',!a);$('client').classList.toggle('hidden',a);$('toggle').textContent=a?'← Voltar ao orçamento':'Área da empresa ↗';if(a){fetch('/api/session',{credentials:'same-origin'}).then(r=>r.json()).then(s=>{if(s.authenticated)refresh();else $('loginbox').classList.remove('hidden')}).catch(()=>{})}};
+// Navegação administrativa independente do carregamento dos pedidos.
+let adminMenuInitialized=false,adminView='logo';
+function openAdminView(view){
+ const labels={
+  pedidos:'Atendimento › Pedidos recebidos',
+  orcamentos:'Atendimento › Orçamentos e propostas',
+  precos:'Serviços e valores › Tabela de preços',
+  siurb:'Serviços e valores › Base SIURB',
+  logo:'Site e identidade visual › Logo e cores',
+  textos:'Site e identidade visual › Textos e WhatsApp',
+  backup:'Dados e segurança › Exportar dados'
+ };
+ if(!Object.hasOwn(labels,view))return;
+ adminView=view;
+ const panelId={
+  pedidos:'adminOrdersPanel',orcamentos:'adminOrdersPanel',
+  precos:'adminPricingPanel',siurb:'adminSiurbPanel',
+  logo:'adminBrandingPanel',textos:'adminBrandingPanel',backup:'adminBackupPanel'
+ }[view];
+ for(const panel of document.querySelectorAll('#dashboard .admin-panel')){
+  panel.classList.toggle('hidden',panel.id!==panelId);
+ }
+ for(const button of document.querySelectorAll('#adminMenu [data-admin-view]')){
+  const active=button.dataset.adminView===view;
+  button.classList.toggle('active',active);
+  if(active)button.setAttribute('aria-current','page');
+  else button.removeAttribute('aria-current');
+ }
+ $('adminCurrentView').textContent=labels[view];
+ if(view==='orcamentos'||view==='pedidos'){
+  $('orders').dataset.adminMode=view;
+  $('orders')._applyAdminFilter?.();
+ }
+ if(view==='precos'&&$('pricingArea').classList.contains('hidden')){
+  $('pricingToggle').click();
+ }
+ if(view==='siurb'){
+  if(window.CIVOLTEN_SIURB?.importHub)window.CIVOLTEN_SIURB.importHub($('adminSiurbPanel'));
+  else $('adminSiurbPanel').appendChild(Object.assign(document.createElement('p'),{textContent:'Catálogo administrativo indisponível. Atualize o site.'}));
+ }
+ if(view==='logo'||view==='textos'){
+  $('adminBrandingPanel').dataset.brandingTab=view;
+  // Monta o formulário imediatamente ao tocar no menu, sem depender de pedidos carregarem.
+  if(window.CIVOLTEN_PRO?.branding)window.CIVOLTEN_PRO.branding($('siteSettings'));
+  else $('siteSettings').textContent='Editor de identidade visual indisponível. Atualize a página.';
+ }
+ if(view==='backup'&&!window.CIVOLTEN_PRO?.exportOrders)
+  $('exportOrders').disabled=true;
+ $('adminCurrentView').scrollIntoView?.({behavior:'smooth',block:'start'});
+}
+function initAdminNavigation(){
+ if(adminMenuInitialized){openAdminView(adminView);return;}
+ adminMenuInitialized=true;
+ for(const button of document.querySelectorAll('#adminMenu [data-admin-view]')){
+  button.addEventListener('click',()=>openAdminView(button.dataset.adminView));
+ }
+ $('exportOrders').addEventListener('click',()=>window.CIVOLTEN_PRO?.exportOrders?.());
+ // Primeira entrada abre a tela da logo, sem que o usuário precise procurar no rodapé.
+ openAdminView('logo');
+}
 function currentItems(){return Array.from($('lines').querySelectorAll('.line')).map(row=>({
  servico_id:row.querySelector('select').value,quantidade:Number(row.querySelector('input').value),
  modalidade:row._modeSelect?.value||'completo'
@@ -232,15 +292,8 @@ $('login').onclick=async()=>{
 $('logout').onclick=async()=>{
  try{await fetch('/api/session',{method:'DELETE',credentials:'same-origin'})}catch{}
  $('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden');$('pricingArea').classList.add('hidden');
+ for(const section of document.querySelectorAll('#dashboard .admin-panel'))section.classList.add('hidden');
 };$('refresh').onclick=refresh;
-$('siteSettingsToggle').onclick=()=>{
- const section=$('siteSettings'),button=$('siteSettingsToggle');
- const opening=section.classList.contains('hidden');
- section.classList.toggle('hidden',!opening);
- button.setAttribute('aria-expanded',String(opening));
- button.textContent=opening?'Fechar personalização':'Personalizar site e logo';
- if(opening)section.scrollIntoView?.({behavior:'smooth',block:'start'});
-};
 $('pricingToggle').onclick=async()=>{const area=$('pricingArea');const opening=area.classList.contains('hidden');area.classList.toggle('hidden',!opening);if(opening)await loadPrices()};
 async function loadPrices(){
  try{
@@ -324,7 +377,13 @@ async function shareQuote(id,phone){
  message('adminmsg','PDF baixado. Anexe o arquivo no WhatsApp para enviar ao cliente.',true);
  if(whatsapp)window.open('https://wa.me/'+whatsapp.slice(1)+'?text='+encodeURIComponent('Olá! Segue o orçamento da CIVOLTEN. Vou anexar o PDF nesta conversa.'),'_blank','noopener,noreferrer');
 }
-async function refresh(){try{const d=await api('GET','admin-list',null,true);$('loginbox').classList.add('hidden');$('dashboard').classList.remove('hidden');const frag=document.createDocumentFragment();const h=document.createElement('h2');h.textContent='Pedidos recebidos: '+d.pedidos.length;frag.appendChild(h);d.pedidos.forEach(x=>{const box=document.createElement('div');box.className='order';const title=document.createElement('h3');title.textContent=x.customer_name+' • '+x.category+' • '+x.id.slice(0,8).toUpperCase();const p=document.createElement('p');p.textContent=x.description;const info=document.createElement('small');info.textContent=(x.phone||'')+' • '+(x.neighborhood||x.city||'')+' • '+new Date(x.submitted_at).toLocaleString('pt-BR');box.append(title,info,p);if(x.request_details?.itens?.length){const t=document.createElement('p');const names=new Map(catalog.map(z=>[z.id,z.descricao]));t.textContent='Serviços solicitados: '+x.request_details.itens.map(z=>(names.get(z.servico_id)||z.servico_id)+' × '+z.quantidade).join('; ')+' | Padrão: '+(x.request_details.padrao||'não informado');box.appendChild(t)}if(x.simulacao){const sim=document.createElement('p');sim.textContent='Simulação: '+BRL(x.simulacao.total_bruto);box.appendChild(sim)}(x.media||[]).forEach(m=>{const b=document.createElement('button');b.textContent='📎 '+m.original_name;b.onclick=async()=>{try{const u='/api/admin?action=admin-media&id='+encodeURIComponent(x.id)+'&path='+encodeURIComponent(m.path);
+async function refresh(){
+ $('loginbox').classList.add('hidden');
+ $('dashboard').classList.remove('hidden');
+ initAdminNavigation();
+ try{
+  const d=await api('GET','admin-list',null,true);
+  const frag=document.createDocumentFragment();const h=document.createElement('h2');h.textContent='Pedidos recebidos: '+d.pedidos.length;frag.appendChild(h);d.pedidos.forEach(x=>{const box=document.createElement('div');box.className='order';const title=document.createElement('h3');title.textContent=x.customer_name+' • '+x.category+' • '+x.id.slice(0,8).toUpperCase();const p=document.createElement('p');p.textContent=x.description;const info=document.createElement('small');info.textContent=(x.phone||'')+' • '+(x.neighborhood||x.city||'')+' • '+new Date(x.submitted_at).toLocaleString('pt-BR');box.append(title,info,p);if(x.request_details?.itens?.length){const t=document.createElement('p');const names=new Map(catalog.map(z=>[z.id,z.descricao]));t.textContent='Serviços solicitados: '+x.request_details.itens.map(z=>(names.get(z.servico_id)||z.servico_id)+' × '+z.quantidade).join('; ')+' | Padrão: '+(x.request_details.padrao||'não informado');box.appendChild(t)}if(x.simulacao){const sim=document.createElement('p');sim.textContent='Simulação: '+BRL(x.simulacao.total_bruto);box.appendChild(sim)}(x.media||[]).forEach(m=>{const b=document.createElement('button');b.textContent='📎 '+m.original_name;b.onclick=async()=>{try{const u='/api/admin?action=admin-media&id='+encodeURIComponent(x.id)+'&path='+encodeURIComponent(m.path);
  const rr=await fetch(u,{credentials:'same-origin'}),j=await rr.json();
  if(!rr.ok)throw Error(j.error||'Acesso negado');
  const mediaURL=new URL(j.url);
@@ -373,7 +432,17 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
  pdfActions.append(previewBtn,downloadBtn,shareBtn);
  const pdfHint=document.createElement('p');pdfHint.className='hint';
  pdfHint.textContent='Use Editar orçamento completo para definir cada preço, prazo e pagamento. O PDF final terá o detalhamento salvo. Custos internos permanecem privados.';
- box.append(pdfActions,pdfHint);window.CIVOLTEN_PRO?.attach?.(box,x,total=>{amount.value=String(total);savedAmount=total;amount.disabled=true;});frag.appendChild(box)});$('orders').replaceChildren(frag);window.CIVOLTEN_PRO?.dashboard?.($('orders'),d.pedidos);window.CIVOLTEN_PRO?.branding?.($('siteSettings'));window.CIVOLTEN_SIURB?.importHub?.($('dashboard'));}catch(e){message('adminmsg',e.message);$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden')}}
+ box.append(pdfActions,pdfHint);window.CIVOLTEN_PRO?.attach?.(box,x,total=>{amount.value=String(total);savedAmount=total;amount.disabled=true;});frag.appendChild(box)});$('orders').replaceChildren(frag);
+  window.CIVOLTEN_PRO?.dashboard?.($('orders'),d.pedidos);
+  $('orders').dataset.adminMode=adminView;
+  $('orders')._applyAdminFilter?.();
+ }catch(e){
+  message('adminmsg','Não foi possível atualizar os pedidos: '+e.message);
+  if(/Sessão expirada|Acesso restrito|acesso negado|autorização/i.test(e.message)){
+   $('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden');
+  }
+ }
+}
 
 // Carrega todo o catálogo SIURB no mesmo seletor do formulário, em páginas
 // de 400 nomes. Sem baixar custos, insumos ou preços de referência.
