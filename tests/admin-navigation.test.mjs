@@ -46,6 +46,7 @@ test('logo aparece assim que o menu inicia sem carregar pedidos; alternância pr
  elements.orders._applyAdminFilter=()=>filtered++;
  elements.pricingToggle.click=()=>{pricesClicked++;elements.pricingArea.classList.remove('hidden')};
  const ctx=vm.createContext({
+  $:id=>elements[id],
   document:{
    getElementById:id=>elements[id],
    querySelectorAll:q=>q==='#dashboard .admin-panel'?ids.filter(x=>x.startsWith('admin')&&x.endsWith('Panel')).map(x=>elements[x]):
