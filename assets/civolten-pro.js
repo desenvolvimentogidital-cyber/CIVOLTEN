@@ -235,39 +235,120 @@ function dashboard(container,pedidos){
 function branding(container){
  window.CIVOLTEN_SIURB?.importHub?.(container);
  if(container.querySelector('.pro-branding'))return;
- const block=E('section',{class:'order pro-branding'});
- block.append(E('h3',{text:'Identidade visual dos PDFs'}));
- const details=E('div',{class:'pro-grid'});
- const name=input('CIVOLTEN'),primary=input('#08182B',{type:'color'}),accent=input('#DCA629',{type:'color'}),upload=input('',{type:'file'});
+ const block=E('section',{class:'order pro-branding','aria-label':'Personalização visual do site'});
+ block.append(E('h3',{text:'Personalizar site e PDFs'}));
+ block.append(E('p',{class:'hint',text:'A marca exibida no cabeçalho, rodapé, propostas e PDF será SOMENTE a imagem enviada aqui. Não aparecerá texto nem símbolo de raio no lugar da logo.'}));
+ const internalName=input('CIVOLTEN'),primary=input('#08182B',{type:'color'}),
+  accent=input('#DCA629',{type:'color'}),width=input('160',{type:'number',min:'60',max:'320',step:'10'});
+ const headline=input('Peça seu orçamento sem sair de casa.');
+ headline.maxLength=125;
+ const description=textarea('Descreva o serviço, envie fotos, áudio ou vídeo e, se quiser, faça uma simulação imediata.');
+ description.maxLength=260;
+ const footerNote=textarea('Elétrica, reformas e construção civil. Atendimento e orçamentos digitais.');
+ footerNote.maxLength=220;
+ const whatsapp=input('',{placeholder:'Ex.: 5511999999999 (opcional)'});
+ whatsapp.maxLength=13;whatsapp.inputMode='numeric';
+ const upload=input('',{type:'file'});
  upload.type='file';upload.accept='image/png,image/jpeg';
- const preview=E('img',{class:'pro-logo-preview',alt:'Prévia da logo CIVOLTEN'});preview.hidden=true;
- details.append(field('Nome comercial',name),field('Cor do cabeçalho',primary),field('Cor de destaque',accent),field('Logo PNG/JPEG (até 200 KB)',upload),preview);
- block.append(details);
- const status=E('div',{'aria-live':'polite'});block.append(status);
+ const previewWrap=E('div',{class:'site-admin-preview'});
+ const preview=E('img',{class:'pro-logo-preview',alt:'Prévia da logo da empresa'});preview.hidden=true;
+ const noLogo=E('p',{class:'hint',text:'Aguardando logo oficial. Nenhuma marca substituta será exibida no site.'});
+ previewWrap.append(preview,noLogo);
+ const appearance=E('div',{class:'pro-grid'});
+ appearance.append(
+  field('Nome cadastral (não aparece como logo)',internalName),
+  field('Cor principal / fundo do cabeçalho',primary),
+  field('Cor de destaque',accent),
+  field('Largura da logo no site (60–320 px)',width),
+  field('Logo PNG/JPEG (otimização automática, até 200 KB)',upload)
+ );
+ const content=E('div',{class:'pro-grid'});
+ content.append(field('Título principal do site',headline),
+  field('Descrição principal',description),
+  field('Mensagem do rodapé',footerNote),
+  field('WhatsApp de contato (país + DDD + número)',whatsapp));
+ block.append(appearance,previewWrap,E('h4',{text:'Textos e contato do site'}),content);
+ const status=E('div',{'aria-live':'polite',class:'hint'});block.append(status);
  let logo=null;
+ const updatePreview=()=>{
+  if(logo){preview.src=logo;preview.hidden=false;noLogo.hidden=true;}
+  else {preview.hidden=true;preview.removeAttribute('src');noLogo.hidden=false;}
+  const w=Math.min(320,Math.max(60,Number(width.value)||160));
+  preview.style.width=w+'px';
+ };
+ width.addEventListener('input',updatePreview);
  async function load(){
-  const d=await call('admin-branding');
-  name.value=d.branding?.company_name||'CIVOLTEN';
-  primary.value=d.branding?.color_primary||'#08182B';
-  accent.value=d.branding?.color_accent||'#DCA629';
-  logo=d.branding?.logo_data_url||null;
-  if(logo){preview.src=logo;preview.hidden=false;}
+  const data=await call('admin-branding');
+  const b=data.branding||{};
+  internalName.value=b.company_name||'CIVOLTEN';
+  primary.value=b.color_primary||'#08182B';
+  accent.value=b.color_accent||'#DCA629';
+  width.value=b.logo_width_px||160;
+  headline.value=b.site_headline||'Peça seu orçamento sem sair de casa.';
+  description.value=b.site_description||'Descreva o serviço, envie fotos, áudio ou vídeo e, se quiser, faça uma simulação imediata.';
+  footerNote.value=b.footer_note||'Elétrica, reformas e construção civil. Atendimento e orçamentos digitais.';
+  whatsapp.value=b.contact_whatsapp||'';
+  logo=b.logo_data_url||null;
+  updatePreview();
  }
+ const readLogo=file=>new Promise((resolve,reject)=>{
+  const image=new Image(),reader=new FileReader();
+  reader.onerror=()=>reject(Error('Não foi possível ler a imagem.'));
+  reader.onload=()=>{
+   image.onerror=()=>reject(Error('A imagem está inválida.'));
+   image.onload=()=>{
+    let scale=Math.min(1,850/Math.max(image.naturalWidth,image.naturalHeight));
+    let result='';
+    for(let attempt=0;attempt<5;attempt++){
+     const canvas=document.createElement('canvas');
+     canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));
+     canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
+     canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+     result=canvas.toDataURL(file.type==='image/png'?'image/png':'image/jpeg',.83);
+     if(result.length<=260000){resolve(result);return;}
+     scale*=.74;
+    }
+    reject(Error('Não foi possível reduzir esta imagem até 200 KB. Use uma logo PNG ou JPG mais leve.'));
+   };
+   image.src=reader.result;
+  };
+  reader.readAsDataURL(file);
+ });
  upload.onchange=async()=>{
   const file=upload.files?.[0];if(!file)return;
-  if(!['image/png','image/jpeg'].includes(file.type)||file.size>200000){status.textContent='Use PNG ou JPG até 200 KB.';return;}
-  logo=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});
-  preview.src=logo;preview.hidden=false;
- };
- block.append(button('Salvar identidade visual',async()=>{
+  if(!['image/png','image/jpeg'].includes(file.type)||file.size>8000000){
+   status.textContent='Envie uma logo PNG ou JPG de até 8 MB para otimização.';return;
+  }
   try{
-   const d=await call('admin-branding','POST',{company_name:name.value,color_primary:primary.value,color_accent:accent.value,logo_data_url:logo});
-   status.textContent='Logo e cores salvas para os próximos PDFs.';
+   status.textContent='Preparando imagem para o site e PDF...';
+   logo=await readLogo(file);
+   updatePreview();
+   status.textContent='Logo pronta. Ajuste o tamanho e toque em Salvar personalização.';
   }catch(e){status.textContent=e.message;}
- },'goldbtn'));
- block.append(button('Remover logo',()=>{logo=null;preview.hidden=true;status.textContent='Clique em salvar para confirmar a remoção.';}));
+ };
+ const save=button('Salvar personalização do site e PDFs',async()=>{
+  const payload={
+   company_name:internalName.value.trim(),color_primary:primary.value,color_accent:accent.value,
+   logo_width_px:Number(width.value),logo_data_url:logo,
+   site_headline:headline.value.trim(),site_description:description.value.trim(),
+   footer_note:footerNote.value.trim(),contact_whatsapp:whatsapp.value.replace(/\D/g,'')
+  };
+  if(!payload.company_name||payload.company_name.length<2){status.textContent='Informe o nome cadastral.';return;}
+  if(!logo&&!confirm('Ainda não há uma imagem de logo. Deseja salvar sem exibir qualquer marca no cabeçalho?'))return;
+  try{
+   save.disabled=true;status.textContent='Salvando alterações...';
+   const d=await call('admin-branding','POST',payload);
+   window.CIVOLTEN_SITE_BRANDING?.apply?.(d.branding);
+   status.textContent='Personalização salva! A logo, seu tamanho, cores e textos aparecerão no site público e nos próximos PDFs.';
+  }catch(e){status.textContent='Não foi possível salvar: '+e.message;}
+  finally{save.disabled=false;}
+ },'goldbtn');
+ block.append(save,button('Remover logo',()=>{
+  if(!confirm('Remover a logo do site e dos PDFs quando salvar?'))return;
+  logo=null;upload.value='';updatePreview();status.textContent='Logo retirada da prévia. Clique em salvar para confirmar.';
+ }));
  container.append(block);
- load().catch(e=>{status.textContent='Não foi possível carregar a identidade visual: '+e.message;});
+ load().catch(e=>{status.textContent='Não foi possível abrir a personalização: '+e.message;});
 }
 window.CIVOLTEN_PRO={attach,dashboard,branding,voiceFor};
 })();
