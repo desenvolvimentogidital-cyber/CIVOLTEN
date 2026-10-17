@@ -128,3 +128,33 @@ test('interface permite somente duas modalidades e as envia na simulação',()=>
  assert.match(script,/if\(!hasComposition\)modeSelect\.value='completo'/);
  assert.doesNotMatch(script,/Somente materiais|Somente material/);
 });
+
+
+test('motor real da simulação aplica modalidade correta e guarda descrição do serviço',async()=>{
+ const edge=readFileSync(new URL('../supabase/functions/civolten-beta/index.ts',import.meta.url),'utf8');
+ const from=edge.indexOf('function calc('),to=edge.indexOf('function publicQuote(');
+ assert.ok(from>0&&to>from);
+ const calcCtx=vm.createContext({
+  num:(v,min=0,max=1e8)=>{if(!Number.isFinite(v)||v<min||v>max)throw Error('Número inválido');return v;},
+  cents:n=>Math.round(n*100),money:n=>Number((n/100).toFixed(2)),
+  selectedMode,isPublicReferenceId
+ });
+ vm.runInContext(edge.slice(from,to)+'\nglobalThis.calc=calc;',calcCtx);
+ const db={from:()=>({select:()=>({eq:()=>({eq:()=>({in:async()=>({data:[sample],error:null})})})})})};
+ const [service]=await referencePricingServices(db,[{servico_id:'siurb:EDIF:9003070'}],{margem_minima_alvo:.2});
+ const conf={
+  limiar_soma_medidas:0,logistica_diaria_obra_pequena:0,limite_distancia_km:15,
+  sobretaxa_distancia_sobre_servicos:0,pro_labore_mensal:0,
+  despesas_operacionais_mensais:0,dias_produtivos_mes:22,imposto_sobre_valor_final:0
+ };
+ const complete=calcCtx.calc([{servico_id:service.service_id,quantidade:1,modalidade:'completo'}],'medio',1,0,[service],conf);
+ const labor=calcCtx.calc([{servico_id:service.service_id,quantidade:1,modalidade:'mao_obra'}],'medio',1,0,[service],conf);
+ assert.equal(complete.total_bruto,8.8);
+ assert.equal(labor.total_bruto,2.35);
+ assert.match(complete.itens[0].descricao,/Serviço completo/);
+ assert.match(labor.itens[0].descricao,/Somente mão de obra/);
+ assert.equal(labor.itens[0].modalidade,'mao_obra');
+ const noWorker={...service,labor_prices:null};
+ assert.throws(()=>calcCtx.calc([{servico_id:service.service_id,quantidade:1,modalidade:'mao_obra'}],'medio',1,0,[noWorker],conf),/PRECIFICACAO_PENDENTE/);
+ assert.throws(()=>calcCtx.calc([{servico_id:'legado',quantidade:1,modalidade:'mao_obra'}],'medio',1,0,[{service_id:'legado',medio:10,unit:'unidade',description:'Legado'}],conf),/PRECIFICACAO_PENDENTE/);
+});
