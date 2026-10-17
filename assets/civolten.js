@@ -276,7 +276,7 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
   if(typed===null&&savedAmount===null){showRequiredErrors([{field:amount,message:'Falta informar o valor total do orçamento.'}],'adminmsg');throw Error('Falta informar o valor total do orçamento.');}
   if(typed!==null&&(!Number.isFinite(typed)||typed<=0||typed>100000000)){showRequiredErrors([{field:amount,message:'Informe um valor total válido.'}],'adminmsg');throw Error('Informe um valor total válido.');}
   if(typed!==savedAmount){showRequiredErrors([{field:amount,message:'Salve o valor total antes de gerar o PDF.'}],'adminmsg');throw Error('Salve o valor total antes de gerar o PDF.');}
- };const notes=document.createElement('textarea');notes.placeholder='Observações internas';notes.value=x.admin_notes||'';notes.maxLength=4000;notes.parentElement?.append?.(window.CIVOLTEN_PRO?.voiceFor?.(notes));const save=document.createElement('button');save.textContent='Salvar orçamento/status';save.onclick=async()=>{try{
+ };const notes=document.createElement('textarea');notes.placeholder='Observações internas';notes.value=x.admin_notes||'';notes.maxLength=4000;const save=document.createElement('button');save.textContent='Salvar orçamento/status';save.onclick=async()=>{try{
  const total=amount.value.trim()===''?null:Number(amount.value);
  clearFieldError(amount);
  if(total===null&&x.simulacao?.total_bruto==null){
@@ -288,7 +288,7 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
   return;
  }
  await api('POST','admin-status',{id:x.id,status:status.value,min:total,max:total,notes:notes.value},true);
- savedAmount=total;message('adminmsg','Valor total e situação salvos.',true)}catch(e){message('adminmsg',e.message)}};const wa=document.createElement('a');wa.href=normalPhone(x.phone)?'https://wa.me/'+normalPhone(x.phone).slice(1):'#';wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Abrir WhatsApp ↗';if(!normalPhone(x.phone)){wa.textContent='WhatsApp inválido';wa.removeAttribute('href');}box.append(status,amountLabel,notes,save,wa);
+ savedAmount=total;message('adminmsg','Valor total e situação salvos.',true)}catch(e){message('adminmsg',e.message)}};const wa=document.createElement('a');wa.href=normalPhone(x.phone)?'https://wa.me/'+normalPhone(x.phone).slice(1):'#';wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Abrir WhatsApp ↗';if(!normalPhone(x.phone)){wa.textContent='WhatsApp inválido';wa.removeAttribute('href');}box.append(status,amountLabel,notes);if(window.CIVOLTEN_PRO?.voiceFor)box.append(window.CIVOLTEN_PRO.voiceFor(notes));box.append(save,wa);
  const pdfActions=document.createElement('div');pdfActions.className='row';
  const previewBtn=document.createElement('button');previewBtn.type='button';previewBtn.textContent='Ver prévia interna PDF';
  previewBtn.title='Documento interno com a simulação enviada pelo cliente';
@@ -331,4 +331,5 @@ async function loadCatalog(){
 $('retryCatalog').onclick=loadCatalog;
 add(); // Sempre mostra o primeiro formulário, mesmo com a API temporariamente indisponível.
 loadCatalog();
+if(window.CIVOLTEN_PRO?.voiceFor){$('desc').parentElement.appendChild(window.CIVOLTEN_PRO.voiceFor($('desc')));}
 })();
