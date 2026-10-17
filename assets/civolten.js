@@ -276,7 +276,7 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
   if(typed===null&&savedAmount===null){showRequiredErrors([{field:amount,message:'Falta informar o valor total do orçamento.'}],'adminmsg');throw Error('Falta informar o valor total do orçamento.');}
   if(typed!==null&&(!Number.isFinite(typed)||typed<=0||typed>100000000)){showRequiredErrors([{field:amount,message:'Informe um valor total válido.'}],'adminmsg');throw Error('Informe um valor total válido.');}
   if(typed!==savedAmount){showRequiredErrors([{field:amount,message:'Salve o valor total antes de gerar o PDF.'}],'adminmsg');throw Error('Salve o valor total antes de gerar o PDF.');}
- };const notes=document.createElement('textarea');notes.placeholder='Observações internas';notes.value=x.admin_notes||'';notes.maxLength=4000;const save=document.createElement('button');save.textContent='Salvar orçamento/status';save.onclick=async()=>{try{
+ };const notes=document.createElement('textarea');notes.placeholder='Observações internas';notes.value=x.admin_notes||'';notes.maxLength=4000;notes.parentElement?.append?.(window.CIVOLTEN_PRO?.voiceFor?.(notes));const save=document.createElement('button');save.textContent='Salvar orçamento/status';save.onclick=async()=>{try{
  const total=amount.value.trim()===''?null:Number(amount.value);
  clearFieldError(amount);
  if(total===null&&x.simulacao?.total_bruto==null){
@@ -307,8 +307,8 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
  };
  pdfActions.append(previewBtn,downloadBtn,shareBtn);
  const pdfHint=document.createElement('p');pdfHint.className='hint';
- pdfHint.textContent='Prévia interna: valor de referência. PDF do cliente: serviços selecionados, quantidades, preço de cada serviço e total. Se alterar o valor, salve antes de compartilhar. Custos internos permanecem privados.';
- box.append(pdfActions,pdfHint);frag.appendChild(box)});$('orders').replaceChildren(frag)}catch(e){message('adminmsg',e.message);$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden')}}
+ pdfHint.textContent='Use Editar orçamento completo para definir cada preço, prazo e pagamento. O PDF final terá o detalhamento salvo. Custos internos permanecem privados.';
+ box.append(pdfActions,pdfHint);window.CIVOLTEN_PRO?.attach?.(box,x);frag.appendChild(box)});$('orders').replaceChildren(frag);window.CIVOLTEN_PRO?.dashboard?.($('orders'),d.pedidos);window.CIVOLTEN_PRO?.branding?.($('dashboard'));}catch(e){message('adminmsg',e.message);$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden')}}
 async function loadCatalog(){
  const status=$('catalogstatus'),retry=$('retryCatalog');
  status.textContent='Atualizando catálogo de serviços...';status.classList.remove('warn');retry.classList.add('hidden');
