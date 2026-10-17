@@ -50,7 +50,7 @@ function calc(items,standard,days,km,catalog,conf){
 }
 function publicQuote(q){return {total_bruto:q.total_bruto,aviso:q.aviso,padrao:q.padrao};}
 function sample(x){return typeof x==='string'?x:''}
-async function body(req){const s=await req.text();if(s.length>380000)throw new Error('Dados muito grandes');try{return JSON.parse(s)}catch{throw new Error('Dados inválidos')}}
+async function body(req,max=80000){const s=await req.text();if(s.length>max)throw new Error('Dados muito grandes');try{return JSON.parse(s)}catch{throw new Error('Dados inválidos')}}
 async function hash(v){const b=new TextEncoder().encode(v);const d=await crypto.subtle.digest('SHA-256',b);return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join('')}
 function uuidValid(x){return typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(x)}
 async function rate(req,action,max){
