@@ -270,6 +270,7 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
  let savedAmount=same?Number(x.estimate_min):(x.simulacao?.total_bruto??null);
  amount.value=savedAmount??'';
  const amountLabel=document.createElement('label');amountLabel.className='field';amountLabel.textContent='Valor total para o cliente (R$)';amountLabel.appendChild(amount);
+ if(x.commercial){amount.disabled=true;amountLabel.append(document.createTextNode(' (definido no editor detalhado)'));}
  const checkSaved=()=>{
   const typed=amount.value.trim()===''?null:Number(amount.value);
   clearFieldError(amount);
@@ -288,7 +289,7 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
   return;
  }
  await api('POST','admin-status',{id:x.id,status:status.value,min:total,max:total,notes:notes.value},true);
- savedAmount=total;message('adminmsg','Valor total e situação salvos.',true)}catch(e){message('adminmsg',e.message)}};const wa=document.createElement('a');wa.href=normalPhone(x.phone)?'https://wa.me/'+normalPhone(x.phone).slice(1):'#';wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Abrir WhatsApp ↗';if(!normalPhone(x.phone)){wa.textContent='WhatsApp inválido';wa.removeAttribute('href');}box.append(status,amountLabel,notes,save,wa);
+ savedAmount=total;message('adminmsg','Valor total e situação salvos.',true)}catch(e){message('adminmsg',e.message)}};const wa=document.createElement('a');wa.href=normalPhone(x.phone)?'https://wa.me/'+normalPhone(x.phone).slice(1):'#';wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Abrir WhatsApp ↗';if(!normalPhone(x.phone)){wa.textContent='WhatsApp inválido';wa.removeAttribute('href');}box.append(status,amountLabel,notes);if(window.CIVOLTEN_PRO?.voiceFor)box.append(window.CIVOLTEN_PRO.voiceFor(notes));box.append(save,wa);
  const pdfActions=document.createElement('div');pdfActions.className='row';
  const previewBtn=document.createElement('button');previewBtn.type='button';previewBtn.textContent='Ver prévia interna PDF';
  previewBtn.title='Documento interno com a simulação enviada pelo cliente';
@@ -307,8 +308,8 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
  };
  pdfActions.append(previewBtn,downloadBtn,shareBtn);
  const pdfHint=document.createElement('p');pdfHint.className='hint';
- pdfHint.textContent='Prévia interna: valor de referência. PDF do cliente: serviços selecionados, quantidades, preço de cada serviço e total. Se alterar o valor, salve antes de compartilhar. Custos internos permanecem privados.';
- box.append(pdfActions,pdfHint);frag.appendChild(box)});$('orders').replaceChildren(frag)}catch(e){message('adminmsg',e.message);$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden')}}
+ pdfHint.textContent='Use Editar orçamento completo para definir cada preço, prazo e pagamento. O PDF final terá o detalhamento salvo. Custos internos permanecem privados.';
+ box.append(pdfActions,pdfHint);window.CIVOLTEN_PRO?.attach?.(box,x,total=>{amount.value=String(total);savedAmount=total;amount.disabled=true;});frag.appendChild(box)});$('orders').replaceChildren(frag);window.CIVOLTEN_PRO?.dashboard?.($('orders'),d.pedidos);window.CIVOLTEN_PRO?.branding?.($('dashboard'));}catch(e){message('adminmsg',e.message);$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden')}}
 async function loadCatalog(){
  const status=$('catalogstatus'),retry=$('retryCatalog');
  status.textContent='Atualizando catálogo de serviços...';status.classList.remove('warn');retry.classList.add('hidden');
@@ -331,4 +332,5 @@ async function loadCatalog(){
 $('retryCatalog').onclick=loadCatalog;
 add(); // Sempre mostra o primeiro formulário, mesmo com a API temporariamente indisponível.
 loadCatalog();
+if(window.CIVOLTEN_PRO?.voiceFor){$('desc').parentElement.appendChild(window.CIVOLTEN_PRO.voiceFor($('desc')));}
 })();

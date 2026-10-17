@@ -2,23 +2,26 @@
 
 **Este repositório pertence exclusivamente à CIVOLTEN; não contém código, dados ou dependências do OrçaPro.**
 
-## Estado atual
+## Estado atual e publicação
 
-- A tela de teste **`index.html`** é uma aplicação estática responsiva para celular, sem build. Ela chama a API que já foi implantada no Supabase próprio da CIVOLTEN.
-- Backend ativo: `https://rvhnuowqfdugcecgmxnv.supabase.co/functions/v1/civolten-beta` (Edge Function).
-- PostgreSQL exclusivo da CIVOLTEN no Supabase, região São Paulo. Catálogo com 15 serviços e três padrões.
-- A versão Next.js completa continua disponível no pacote de origem, mas **nem todos os seus arquivos foram sincronizados aqui**. No GitHub foram enviados o site estático, API Supabase, matriz, motor de cálculo, migrações e configurações. Não tente implantar `app-nextjs/` antes de completar a sincronização e os testes. Não colocar as chaves do OrçaPro.
-- Ambiente **BETA** para testes. Não divulgar publicamente até concluir testes de upload, login, permissões, antispam, LGPD e retenção dos arquivos.
+- Site responsivo e painel: \`https://civolten.vercel.app\` (Vercel, projeto \`civolten\`).
+- API administrativa: sessão segura em cookie HttpOnly, com autorização validada no Supabase.
+- Backend: Supabase próprio \`rvhnuowqfdugcecgmxnv\`, Edge Function \`civolten-beta\`.
+- Gerador PDF: \`api/quote-pdf.mjs\`, A4 com dados dinâmicos e identidade configurável.
+- Melhorias comerciais: editor de serviços e preços, condições, aceitação via link temporário, histórico, painel e exportação de dados.
+- O diretório \`app-nextjs/\` é um protótipo independente; não o publique sem sincronizar e testar.
+- **Cuidado com dados reais:** revise disponibilidade, regras LGPD, rotina de backups e permissões de produção antes da divulgação pública.
+- **Uso comercial na Vercel:** confirme que o plano da conta permite sua operação comercial; o plano Hobby possui limitações para uso comercial.
 
-## Publicação rápida em Vercel (ambiente de teste, não comercial)
+### Passos de publicação
 
-> A conexão Vercel via ChatGPT retornou 403 ao criar o projeto; não há implantação confirmada. Importar manualmente este repositório na Vercel pode contornar a limitação da integração se sua conta tiver permissão.
+1. Executar migração aditiva \`supabase/migrations/20261016_professional_quote_suite.sql\` no Supabase da CIVOLTEN (uma vez).
+2. Publicar \`index.ts\`, \`site.ts\` e \`quote-extra.ts\` da Edge Function \`civolten-beta\`, mantendo \`verify_jwt=false\` porque a função faz sua própria checagem de acesso.
+3. Executar \`npm test\` no GitHub Actions, revisar amostra de PDF e mesclar a atualização aprovada para a branch \`main\`.
+4. Conferir deploy READY na Vercel com o SHA correto e validar pelo celular um pedido sem dados reais.
+5. Testar token inválido, aceite/rejeição, alteração após aprovação, exportação de backup e upload de logo.
 
-1. O repositório `desenvolvimentogidital-cyber/CIVOLTEN` já existe e contém a tela e a API de testes. Está **público**; para torná-lo privado, acesse Settings → General → Danger Zone → Change repository visibility.
-2. Na Vercel, use `Add New > Project` e selecione **somente** `desenvolvimentogidital-cyber/CIVOLTEN`.
-3. Framework: `Other` (site HTML estático); Root Directory: `/` (raiz); build command: nenhum.
-4. Abra o endereço temporário e valide pelo celular os fluxos básicos, gravação de áudio, upload e login.
-5. Para operação comercial da CIVOLTEN, use hospedagem/plano que permita uso comercial. Plano Vercel Hobby é para uso pessoal não comercial.
+Detalhes e limitações: [Plano profissional](docs/PLANO-PROFISSIONAL.md).
 
 ### Banco de dados
 

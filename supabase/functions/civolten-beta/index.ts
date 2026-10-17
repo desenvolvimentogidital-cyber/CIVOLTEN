@@ -1,6 +1,7 @@
 
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {PAGE} from './site.ts';
+import {handleAdminExtra,handleClientExtra} from './quote-extra.ts';
 const BASE=Deno.env.get('SUPABASE_URL')||'';
 const SECRET=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
 const db=createClient(BASE,SECRET,{auth:{persistSession:false,autoRefreshToken:false}});
@@ -49,7 +50,7 @@ function calc(items,standard,days,km,catalog,conf){
 }
 function publicQuote(q){return {total_bruto:q.total_bruto,aviso:q.aviso,padrao:q.padrao};}
 function sample(x){return typeof x==='string'?x:''}
-async function body(req){const s=await req.text();if(s.length>80000)throw new Error('Dados muito grandes');try{return JSON.parse(s)}catch{throw new Error('Dados inválidos')}}
+async function body(req,max=80000){const s=await req.text();if(s.length>max)throw new Error('Dados muito grandes');try{return JSON.parse(s)}catch{throw new Error('Dados inválidos')}}
 async function hash(v){const b=new TextEncoder().encode(v);const d=await crypto.subtle.digest('SHA-256',b);return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join('')}
 function uuidValid(x){return typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(x)}
 async function rate(req,action,max){
@@ -196,8 +197,24 @@ Deno.serve(async req=>{
    if(qe)throw qe;if(!saved)return err('Pedido já enviado',409);
    return out({ok:true,protocolo:saved.id.slice(0,8).toUpperCase(),simulacao:preview?.total_bruto??null});
   }
+  if(api==='client-view'||api==='client-decision')
+   return await handleClientExtra({req,api,db,out,err,body,hash,rate});
   if(api?.startsWith('admin-')){
    if(!await admin(req))return err('Acesso restrito ao administrador',401);
+   if(['admin-commercial','admin-save-commercial','admin-share-commercial','admin-commercial-history','admin-branding'].includes(api))
+    return await handleAdminExtra({req,api,db,out,err,body,hash});
+   if(req.method==='GET'&&api==='admin-export'){
+    // Exportação explícita somente para admin autenticado; sem tokens de acesso nem custo interno.
+    const [q,c,h]=await Promise.all([
+     db.from('quote_requests').select('id,customer_name,phone,city,neighborhood,description,status,request_details,submitted_at,updated_at').not('submitted_at','is',null).order('created_at',{ascending:false}).limit(1000),
+     db.from('commercial_quotes').select('request_id,revision,items,terms,total,decision,decision_at,updated_at').limit(1000),
+     db.from('commercial_quote_history').select('request_id,revision,action,created_at').order('id',{ascending:false}).limit(1000)
+    ]);
+    if(q.error||c.error||h.error)throw new Error('Exportação temporariamente indisponível.');
+    return out({exported_at:new Date().toISOString(),notice:'Backup contém dados pessoais. Armazene em local seguro e não compartilhe publicamente.',
+     partial:q.data.length===1000||c.data.length===1000||h.data.length===1000,
+     pedidos:q.data,propostas:c.data,historico:h.data});
+   }
    if(req.method==='GET'&&api==='admin-me')return out({authenticated:true,role:'admin'});
    if(req.method==='GET'&&api==='admin-pricing'){
     const {data,error}=await db.from('pricing_catalog').select('service_id,description,category,unit,baixo,medio,alto,enabled').order('category').order('description');
@@ -240,7 +257,11 @@ Deno.serve(async req=>{
     const {data:catalogo,error:ce}=await db.from('pricing_catalog')
       .select('service_id,description,unit');
     if(ce)throw ce;
-    return out({pedido,simulacao:simulacao??null,servicos:catalogo});
+    const {data:commercial,error:co}=await db.from('commercial_quotes').select('items,terms,total,revision,decision,decision_at').eq('request_id',id).maybeSingle();
+    if(co)throw co;
+    const {data:branding,error:be}=await db.from('civolten_branding').select('company_name,logo_data_url,color_primary,color_accent').eq('id',1).maybeSingle();
+    if(be)throw be;
+    return out({pedido,simulacao:simulacao??null,servicos:catalogo,commercial:commercial??null,branding:branding??null});
    }
    if(req.method==='GET'&&api==='admin-list'){
     const {data:requests,error:re}=await db.from('quote_requests').select('*').not('submitted_at','is',null).order('submitted_at',{ascending:false}).limit(100);
@@ -250,7 +271,11 @@ Deno.serve(async req=>{
      ids.length?db.from('quote_pricing_snapshots').select('request_id,padrao,calculo,total_bruto').in('request_id',ids):Promise.resolve({data:[],error:null})
     ]);
     if(a.error||b.error)throw new Error('Falha ao listar anexos');
-    return out({pedidos:requests.map(r=>({...r,media:a.data.filter(x=>x.request_id===r.id),simulacao:b.data.find(x=>x.request_id===r.id)||null}))});
+    const {data:commercial,error:ce}=ids.length?
+      await db.from('commercial_quotes').select('request_id,total,revision,decision,updated_at').in('request_id',ids):
+      {data:[],error:null};
+    if(ce)throw ce;
+    return out({pedidos:requests.map(r=>({...r,media:a.data.filter(x=>x.request_id===r.id),simulacao:b.data.find(x=>x.request_id===r.id)||null,commercial:commercial.find(x=>x.request_id===r.id)||null}))});
    }
    if(req.method==='POST'&&api==='admin-status'){
     const b=await body(req);
@@ -275,5 +300,5 @@ Deno.serve(async req=>{
    }
   }
   return err('Rota não encontrada',404);
- }catch(e){console.error('CIVOLTEN edge error:',String(e?.message||e).slice(0,200));return err((e?.message&&['Número inválido','Dados inválidos','Dados muito grandes'].includes(e.message))?e.message:(e?.message?.includes('inválid')||e?.message?.includes('Limite')||e?.message?.includes('Informe')||e?.message?.includes('Um anexo')||e?.message?.includes('Preencha')||e?.message?.includes('arquivos')||e?.message?.includes('padrão')||e?.message?.includes('Dias')||e?.message?.includes('preços')||e?.message?.includes('Preço')||e?.message?.includes('serviço')?e.message:'Não foi possível concluir. Tente novamente.'),400)}
+ }catch(e){console.error('CIVOLTEN edge error:',String(e?.message||e).slice(0,200));return err((e?.message&&['Número inválido','Dados inválidos','Dados muito grandes'].includes(e.message))?e.message:(e?.message?.includes('inválid')||e?.message?.includes('Limite')||e?.message?.includes('Informe')||e?.message?.includes('Um anexo')||e?.message?.includes('Preencha')||e?.message?.includes('arquivos')||e?.message?.includes('padrão')||e?.message?.includes('Dias')||e?.message?.includes('preços')||e?.message?.includes('Preço')||e?.message?.includes('serviço')||[400,409].includes(e?.status)?e.message:'Não foi possível concluir. Tente novamente.'),400)}
 });

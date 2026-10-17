@@ -1,6 +1,6 @@
 import {EDGE,json,sameOrigin,browserAllowed,readBody,cookieToken} from '../lib/civolten-security.mjs';
 // O endpoint Supabase revalida o usuário e role a cada operação.
-const endpoints={'admin-me':['GET'],'admin-list':['GET'],'admin-quote':['GET'],'admin-pricing':['GET','POST'],'admin-status':['POST'],'admin-media':['GET']};
+const endpoints={'admin-me':['GET'],'admin-list':['GET'],'admin-quote':['GET'],'admin-pricing':['GET','POST'],'admin-status':['POST'],'admin-media':['GET'],'admin-commercial':['GET'],'admin-save-commercial':['POST'],'admin-share-commercial':['POST'],'admin-commercial-history':['GET'],'admin-branding':['GET','POST'],'admin-export':['GET']};
 export default {async fetch(req){
  const url=new URL(req.url),action=url.searchParams.get('action');
  if(!endpoints[action]?.includes(req.method))return json({error:'Rota não permitida'},404);
@@ -10,7 +10,7 @@ export default {async fetch(req){
  if(!jwt)return json({error:'Sessão expirada. Entre novamente.'},401);
  try{
   const dst=new URL(EDGE);dst.searchParams.set('api',action);
-  if(action==='admin-quote'){
+  if(['admin-quote','admin-commercial','admin-commercial-history'].includes(action)){
    const id=url.searchParams.get('id');
    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||''))
     return json({error:'Pedido inválido'},400);
@@ -25,7 +25,7 @@ export default {async fetch(req){
   const headers={Authorization:'Bearer '+jwt};
   let payload;
   if(req.method==='POST'){
-   const body=await readBody(req,12000);
+   const body=await readBody(req,action==='admin-branding'?360000:60000);
    headers['Content-Type']='application/json';
    payload=JSON.stringify(body);
   }
