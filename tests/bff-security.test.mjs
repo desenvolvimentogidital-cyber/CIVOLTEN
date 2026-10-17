@@ -72,3 +72,11 @@ test('novas rotas comerciais rejeitam usuário não autenticado',async()=>{
  const exportResult=await admin.fetch(request('/api/admin?action=admin-export'));
  assert.equal(exportResult.status,401);
 });
+
+test('o catálogo SIURB e sua importação ficam restritos ao administrador',async()=>{
+ const actions=[['admin-reference-search','GET'],['admin-reference-detail','GET'],['admin-reference-stats','GET'],['admin-reference-import','POST']];
+ for(const [action,method] of actions){
+  const r=await admin.fetch(request('/api/admin?action='+action,method,method==='POST'?{source:'EDIF',period:'2026-07',items:[]}:undefined));
+  assert.equal(r.status,401,action+' precisa exigir login');
+ }
+});

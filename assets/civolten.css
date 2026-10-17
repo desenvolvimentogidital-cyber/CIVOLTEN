@@ -33,3 +33,15 @@ input[aria-invalid="true"],textarea[aria-invalid="true"],select[aria-invalid="tr
  .pro-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
  .pro-editor{padding:11px}.pro-row button{flex:1 1 auto}
 }
+
+/* Busca de composições SIURB — visão administrativa responsiva */
+.pro-reference{background:#101f34;border:1px solid #647b92;border-radius:12px;padding:13px;margin:15px 0}
+.pro-reference h4{margin:0 0 9px}.pro-ref-bar{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;gap:9px;align-items:end}
+.pro-ref-results{max-height:530px;overflow-y:auto;margin-top:10px}
+.pro-ref-item{background:#0d192b;border:1px solid #465976;border-radius:10px;padding:11px;margin:10px 0}
+.pro-ref-item>strong,.pro-ref-item>small{display:block}
+.pro-ref-item>small{color:#b9c8db;margin-top:6px}
+.pro-ref-insumos{background:#1a2c43;border-radius:9px;padding:10px;max-height:290px;overflow:auto}
+.pro-ref-insumos p{font-size:12px;border-bottom:1px solid #425c76;padding:7px 0}
+.pro-siurb-import input[type=file]{width:100%;padding:10px;margin:8px 0;border:1px dashed #7c95aa;border-radius:9px}
+@media(max-width:630px){.pro-ref-bar{grid-template-columns:1fr}.pro-reference{padding:10px}.pro-ref-item .row button{flex:1}}

@@ -115,6 +115,7 @@ function attach(box,order,onSaved){
   const show=(msg,ok=false)=>{message.textContent=msg;message.className='msg '+(ok?'ok':'error');};
   items.forEach(appendLine);
   const add=button('+ Adicionar serviço',()=>appendLine({description:'',quantity:1,unit:'un.',unit_price:0}));
+  window.CIVOLTEN_SIURB?.searchInto?.(form,appendLine);
   form.append(add,totalEl);
   const terms=commercial?.terms||{};
   const validity=input(terms.validity_days||15,{type:'number',min:1,max:180,step:1});
@@ -232,6 +233,7 @@ function dashboard(container,pedidos){
 }
 
 function branding(container){
+ window.CIVOLTEN_SIURB?.importHub?.(container);
  if(container.querySelector('.pro-branding'))return;
  const block=E('section',{class:'order pro-branding'});
  block.append(E('h3',{text:'Identidade visual dos PDFs'}));
