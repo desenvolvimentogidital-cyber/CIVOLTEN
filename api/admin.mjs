@@ -1,6 +1,6 @@
 import {EDGE,json,sameOrigin,browserAllowed,readBody,cookieToken} from '../lib/civolten-security.mjs';
 // O endpoint Supabase revalida o usuário e role a cada operação.
-const endpoints={'admin-me':['GET'],'admin-list':['GET'],'admin-quote':['GET'],'admin-pricing':['GET','POST'],'admin-status':['POST'],'admin-media':['GET'],'admin-commercial':['GET'],'admin-save-commercial':['POST'],'admin-share-commercial':['POST'],'admin-commercial-history':['GET'],'admin-branding':['GET','POST'],'admin-export':['GET']};
+const endpoints={'admin-me':['GET'],'admin-list':['GET'],'admin-quote':['GET'],'admin-pricing':['GET','POST'],'admin-status':['POST'],'admin-media':['GET'],'admin-commercial':['GET'],'admin-save-commercial':['POST'],'admin-share-commercial':['POST'],'admin-commercial-history':['GET'],'admin-branding':['GET','POST'],'admin-export':['GET'],'admin-reference-search':['GET'],'admin-reference-detail':['GET'],'admin-reference-stats':['GET'],'admin-reference-import':['POST']};
 export default {async fetch(req){
  const url=new URL(req.url),action=url.searchParams.get('action');
  if(!endpoints[action]?.includes(req.method))return json({error:'Rota não permitida'},404);
@@ -16,6 +16,12 @@ export default {async fetch(req){
     return json({error:'Pedido inválido'},400);
    dst.searchParams.set('id',id);
   }
+  if(['admin-reference-search','admin-reference-detail'].includes(action)){
+   for(const name of ['q','source','code']){
+    const value=url.searchParams.get(name);
+    if(value)dst.searchParams.set(name,value.slice(0,name==='q'?120:20));
+   }
+  }
   if(action==='admin-media'){
    const id=url.searchParams.get('id'),path=url.searchParams.get('path');
    if(!/^[0-9a-f-]{36}$/i.test(id||'')||typeof path!=='string'||path.length>400)
@@ -25,7 +31,7 @@ export default {async fetch(req){
   const headers={Authorization:'Bearer '+jwt};
   let payload;
   if(req.method==='POST'){
-   const body=await readBody(req,action==='admin-branding'?360000:60000);
+   const body=await readBody(req,action==='admin-branding'?360000:action==='admin-reference-import'?180000:60000);
    headers['Content-Type']='application/json';
    payload=JSON.stringify(body);
   }
