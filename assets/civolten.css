@@ -72,3 +72,40 @@ button.goldbtn{background:linear-gradient(115deg,#fff7da,var(--brand-accent));co
 .site-admin-preview img{display:block;height:auto;max-height:160px;object-fit:contain;max-width:100%}
 .site-admin-preview img[hidden]{display:none}
 @media(max-width:620px){.site-brand-logo{max-width:58vw}.site-footer{flex-direction:column;align-items:flex-start}}
+
+
+/* Painel administrativo compacto: navegação com grupos e submenus no celular. */
+.admin-dashboard{padding:15px}
+.admin-topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px}
+.admin-topbar h2{margin:0}
+.admin-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0}
+.admin-menu-group{background:#0c192b;border:1px solid #586c83;border-radius:12px;overflow:hidden;min-width:0}
+.admin-menu-group summary{cursor:pointer;list-style-position:inside;font-weight:800;padding:13px;color:#ffe3a4;min-height:48px;display:list-item}
+.admin-menu-group[open] summary{border-bottom:1px solid #4b617a}
+.admin-submenu{display:grid;grid-template-columns:1fr;gap:6px;padding:9px}
+.admin-submenu button{text-align:left;font-size:13px;min-height:43px;border-color:#526981;white-space:normal;line-height:1.35}
+.admin-submenu button.active{background:var(--brand-accent,#DCA629);color:#0b1726;border-color:var(--brand-accent,#DCA629);font-weight:800}
+.admin-current{margin:10px 0;padding:10px 12px;color:#f7e3bb;background:#13273b;border-left:3px solid var(--brand-accent,#DCA629);border-radius:7px;font-weight:700;scroll-margin-top:94px}
+.admin-panel{padding:9px 1px;min-width:0}
+.admin-panel.hidden{display:none!important}
+.admin-panel h3{color:var(--brand-accent,#DCA629)}
+#adminBrandingPanel[data-branding-tab="logo"] .branding-content,
+#adminBrandingPanel[data-branding-tab="logo"] .branding-content-title{display:none!important}
+#adminBrandingPanel[data-branding-tab="textos"] .branding-appearance,
+#adminBrandingPanel[data-branding-tab="textos"] .branding-preview,
+#adminBrandingPanel[data-branding-tab="textos"] .branding-intro{display:none!important}
+#adminBrandingPanel .pro-branding{margin-top:3px}
+#adminBrandingPanel .site-admin-preview{min-height:120px}
+#adminBrandingPanel .pro-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+#adminOrdersPanel .pro-dashboard{margin-top:0}
+@media(max-width:720px){
+ .admin-menu{grid-template-columns:1fr}
+ .admin-menu-group summary{padding:12px}
+ .admin-topbar{align-items:flex-start}
+ .admin-topbar .row{width:100%}
+ .admin-topbar .row button{flex:1}
+ #adminBrandingPanel .pro-grid{grid-template-columns:1fr}
+ .admin-submenu{grid-template-columns:1fr 1fr}
+ .admin-submenu button{padding:11px 8px}
+}
+@media(max-width:350px){.admin-submenu{grid-template-columns:1fr}}
