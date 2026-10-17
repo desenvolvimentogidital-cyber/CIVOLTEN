@@ -6,8 +6,8 @@ const html = fs.readFileSync("index.html", "utf8");
 const occurrences = (text, pattern) => [...text.matchAll(pattern)].length;
 assert.match(html, /CIVOLTEN/i);
 assert.equal(occurrences(html, /<\/html>/gi), 1, "Documento HTML duplicado ou truncado");
-assert.equal(occurrences(html, /<script\b[^>]*>/gi), 2, "O site deve carregar o script pro e o script do formulário");
-assert.equal(occurrences(html, /<\/script>/gi), 2, "Scripts não podem ser truncados");
+assert.equal(occurrences(html, /<script\b[^>]*>/gi), 3, "O site deve carregar busca SIURB, painel e formulário");
+assert.equal(occurrences(html, /<\/script>/gi), 3, "Scripts não podem ser truncados");
 assert.match(html, /<script src="\/assets\/civolten\.js(?:\?v=[0-9]+)?" defer><\/script>/i);
 assert.match(html, /<script src="\/assets\/civolten-pro\.js(?:\?v=[0-9]+)?" defer><\/script>/i);
 assert.match(html, /<link rel="stylesheet" href="\/assets\/civolten\.css"/i);
@@ -25,6 +25,10 @@ assert.doesNotMatch(script, /sessionStorage\.(?:setItem|getItem)|localStorage\.(
 new vm.Script(script, {filename:"index.html"});
 const pro=fs.readFileSync("assets/civolten-pro.js","utf8");
 new vm.Script(pro,{filename:"civolten-pro.js"});
+const reference=fs.readFileSync('assets/civolten-reference.js','utf8');
+new vm.Script(reference,{filename:'civolten-reference.js'});
+assert.match(html,/civolten-reference\.js\?v=1/);
+assert.doesNotMatch(reference,/innerHTML|localStorage|sessionStorage|\.access_token/);
 new vm.Script(fs.readFileSync("assets/proposta.js","utf8"),{filename:"proposta.js"});
 assert.doesNotMatch(pro,/innerHTML|sessionStorage|localStorage|\.access_token/);
 
