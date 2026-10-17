@@ -46,7 +46,7 @@ const getBranding=async(db)=>{
  if(error)throw error;return data;
 };
 export async function handleAdminExtra({req,api,db,out,err,body,hash}){
- const b=req.method==='POST'?await body(req):null;
+ const b=req.method==='POST'?await body(req,api==='admin-branding'?380000:80000):null;
  const url=new URL(req.url),id=b?.id||url.searchParams.get('id');
  if(api==='admin-branding'&&req.method==='GET')return out({branding:await getBranding(db)});
  if(api==='admin-branding'&&req.method==='POST'){
@@ -69,6 +69,7 @@ export async function handleAdminExtra({req,api,db,out,err,body,hash}){
   const commercial=await quote(db,id);
   const {data:sim,error}=await db.from('quote_pricing_snapshots').select('itens,total_bruto').eq('request_id',id).maybeSingle();
   if(error)throw error;
+  if(commercial){delete commercial.token_hash;delete commercial.token_expires_at;}
   return out({pedido:request,commercial,simulacao:sim??null,branding:await getBranding(db)});
  }
  if(api==='admin-commercial-history'&&req.method==='GET'){
