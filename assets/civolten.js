@@ -341,9 +341,9 @@ async function getSiurbPage(offset){
  return data;
 }
 async function loadSiurbCatalog(){
- if(siurbLoaded)return;
- if(siurbLoading)return siurbLoading;
  const status=$('catalogstatus');
+ if(siurbLoaded){status.textContent=catalog.length+' serviços disponíveis no campo Serviço. Toque e role a lista para selecionar.';return;}
+ if(siurbLoading)return siurbLoading;
  siurbLoading=(async()=>{
   const first=await getSiurbPage(0);
   const total=Number(first.total);
