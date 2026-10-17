@@ -6,9 +6,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const occurrences = (text, pattern) => [...text.matchAll(pattern)].length;
 assert.match(html, /CIVOLTEN/i);
 assert.equal(occurrences(html, /<\/html>/gi), 1, "Documento HTML duplicado ou truncado");
-assert.equal(occurrences(html, /<script\b[^>]*>/gi), 1, "Deve existir exatamente uma referência ao script");
-assert.equal(occurrences(html, /<\/script>/gi), 1, "Script duplicado ou interrompido");
+assert.equal(occurrences(html, /<script\b[^>]*>/gi), 2, "O site deve carregar o script pro e o script do formulário");
+assert.equal(occurrences(html, /<\/script>/gi), 2, "Scripts não podem ser truncados");
 assert.match(html, /<script src="\/assets\/civolten\.js(?:\?v=[0-9]+)?" defer><\/script>/i);
+assert.match(html, /<script src="\/assets\/civolten-pro\.js(?:\?v=[0-9]+)?" defer><\/script>/i);
 assert.match(html, /<link rel="stylesheet" href="\/assets\/civolten\.css"/i);
 assert.doesNotMatch(html, /<script>([\s\S]*?)<\/script>|<style>|\sonclick=/i, "HTML não pode conter JS/CSS inline");
 for (const id of ["client", "lines", "add", "simulate", "catalogstatus", "retryCatalog", "pricingArea"]) {
@@ -22,6 +23,10 @@ const css=fs.readFileSync("assets/civolten.css","utf8");
 assert.ok(css.length>200);
 assert.doesNotMatch(script, /sessionStorage\.(?:setItem|getItem)|localStorage\.(?:setItem|getItem)|\.access_token/,"JWT nunca no JS");
 new vm.Script(script, {filename:"index.html"});
+const pro=fs.readFileSync("assets/civolten-pro.js","utf8");
+new vm.Script(pro,{filename:"civolten-pro.js"});
+new vm.Script(fs.readFileSync("assets/proposta.js","utf8"),{filename:"proposta.js"});
+assert.doesNotMatch(pro,/innerHTML|sessionStorage|localStorage|\.access_token/);
 
 const matrix=JSON.parse(fs.readFileSync("app-nextjs/data/matriz-precos.json","utf8"));
 assert.equal(Object.keys(matrix.servicos).length, 17);
