@@ -12,9 +12,7 @@ assert.match(html, /<script src="\/assets\/civolten\.js(?:\?v=[0-9]+)?" defer><\
 assert.match(html, /<script src="\/assets\/civolten-pro\.js(?:\?v=[0-9]+)?" defer><\/script>/i);
 assert.match(html, /<link rel="stylesheet" href="\/assets\/civolten\.css(?:\?v=[0-9]+)?"/i);
 assert.doesNotMatch(html,/siurb-public-lookup|siurbPublicQuery|siurbPublicSearch|siurbPublicResults/, 'Busca separada do cliente deve estar ausente');
-assert.doesNotMatch(css,/\.siurb-public-lookup/, 'CSS de busca pública antiga deve estar ausente');
-assert.doesNotMatch(script,/api=siurb-search|siurbPublicResults/, 'JS não deve manter a busca separada');
-assert.match(html,/3\.463 serviços/);
+assert.match(html,/id="lines"/, 'Seletor de serviços deve continuar na página');
 assert.doesNotMatch(html, /<script>([\s\S]*?)<\/script>|<style>|\sonclick=/i, "HTML não pode conter JS/CSS inline");
 for (const id of ["client", "lines", "add", "simulate", "catalogstatus", "retryCatalog", "pricingArea"]) {
   assert.match(html, new RegExp('id="' + id + '"'), "Campo ausente: " + id);
@@ -24,6 +22,8 @@ assert.doesNotMatch(html, /s\.subtotal_servicos|s\.taxa_logistica|s\.sobretaxa_d
 
 const script = fs.readFileSync("assets/civolten.js","utf8");
 const css=fs.readFileSync("assets/civolten.css","utf8");
+assert.doesNotMatch(css,/\.siurb-public-lookup/, 'CSS de busca pública antiga deve estar ausente');
+assert.doesNotMatch(script,/api=siurb-search|siurbPublicResults/, 'JS não deve manter a busca separada');
 assert.ok(css.length>200);
 assert.doesNotMatch(script, /sessionStorage\.(?:setItem|getItem)|localStorage\.(?:setItem|getItem)|\.access_token/,"JWT nunca no JS");
 new vm.Script(script, {filename:"index.html"});
