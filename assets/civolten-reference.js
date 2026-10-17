@@ -84,7 +84,7 @@ function importHub(dashboard){
  if(dashboard.querySelector('.pro-siurb-import'))return;
  const box=el('section',{class:'order pro-siurb-import'});
  box.append(el('h3',{text:'Bases técnicas SIURB — julho/2026'}));
- box.append(el('p',{class:'hint',text:'Importe EDIF e INFRA usando os arquivos JSON preparados. A importação é segura e pode ser retomada; não remove preços ou orçamentos da CIVOLTEN.'}));
+ box.append(el('p',{class:'hint',text:'Importe EDIF e INFRA usando um único arquivo JSON preparado (ou os dois arquivos separadamente). A importação é segura e pode ser retomada; não remove preços ou orçamentos da CIVOLTEN.'}));
  const stats=el('p',{class:'hint','aria-live':'polite',text:'Consultando bases...'});
  const file=el('input',{type:'file',accept:'.json,application/json',multiple:'multiple','aria-label':'Selecione os arquivos JSON EDIF e INFRA'});
  const btn=el('button',{type:'button',text:'Importar / atualizar bases',class:'goldbtn'});
@@ -105,16 +105,20 @@ function importHub(dashboard){
     if(stop)break;
     if(f.size>5000000)throw Error('Arquivo muito grande: '+f.name);
     const payload=JSON.parse(await f.text());
-    if(payload.schema!=='civolten.siurb.v1'||payload.period!=='2026-07'||payload.regime!=='com_desoneracao'||!['INFRA','EDIF'].includes(payload.source)||
-      !Array.isArray(payload.services)||payload.services.length>4000)
+    const datasets=payload.schema==='civolten.siurb.bundle.v1'&&Array.isArray(payload.datasets)?payload.datasets:[payload];
+    if(datasets.length<1||datasets.length>2)throw Error('O arquivo não contém as bases SIURB esperadas.');
+    for(const data of datasets){
+     if(data.schema!=='civolten.siurb.v1'||data.period!=='2026-07'||data.regime!=='com_desoneracao'||
+        !['INFRA','EDIF'].includes(data.source)||!Array.isArray(data.services)||data.services.length>4000)
       throw Error('Formato ou período inválido no arquivo '+f.name);
-    let loaded=0;
-    for(let i=0;i<payload.services.length;i+=25){
-     if(stop)break;
-     const services=payload.services.slice(i,i+25);
-     await api('admin-reference-import',null,{source:payload.source,period:payload.period,regime:payload.regime,items:services});
-     loaded+=services.length;
-     progress.textContent=payload.source+': '+loaded+' de '+payload.services.length+' serviços enviados.';
+     let loaded=0;
+     for(let i=0;i<data.services.length;i+=25){
+      if(stop)break;
+      const services=data.services.slice(i,i+25);
+      await api('admin-reference-import',null,{source:data.source,period:data.period,regime:data.regime,items:services});
+      loaded+=services.length;
+      progress.textContent=data.source+': '+loaded+' de '+data.services.length+' serviços enviados.';
+     }
     }
    }
    progress.textContent=stop?'Importação interrompida; selecione os arquivos novamente para continuar.':'Importação concluída! Faça uma pesquisa no editor.';
