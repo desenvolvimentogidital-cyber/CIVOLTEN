@@ -95,6 +95,18 @@ Deno.serve(async req=>{
   if(req.method==='GET'&&api==='health'){
    const {catalog}=await getPricing();return out({online:true,servicos:catalog.length,projeto:'CIVOLTEN'});
   }
+  if(req.method==='GET'&&api==='site-branding'){
+   const {data,error}=await db.from('civolten_branding')
+    .select('logo_data_url,logo_width_px,color_primary,color_accent,site_headline,site_description,footer_note,contact_whatsapp')
+    .eq('id',1).maybeSingle();
+   if(error)throw Error('Não foi possível carregar a identidade visual.');
+   return out({branding:data||{
+    logo_data_url:null,logo_width_px:160,color_primary:'#08182B',color_accent:'#DCA629',
+    site_headline:'Peça seu orçamento sem sair de casa.',
+    site_description:'Descreva o serviço, envie fotos, áudio ou vídeo e faça sua simulação.',
+    footer_note:'Atendimento e orçamentos digitais.',contact_whatsapp:''
+   }});
+  }
   if(req.method==='GET'&&api==='catalog'){
    const {catalog}=await getPricing();
    return out({catalogo:catalog.map(x=>({id:x.service_id,descricao:x.description,categoria:x.category,unidade:x.unit}))});
@@ -288,7 +300,7 @@ Deno.serve(async req=>{
     if(ce)throw ce;
     const {data:commercial,error:co}=await db.from('commercial_quotes').select('items,terms,total,revision,decision,decision_at').eq('request_id',id).maybeSingle();
     if(co)throw co;
-    const {data:branding,error:be}=await db.from('civolten_branding').select('company_name,logo_data_url,color_primary,color_accent').eq('id',1).maybeSingle();
+    const {data:branding,error:be}=await db.from('civolten_branding').select('company_name,logo_data_url,logo_width_px,color_primary,color_accent').eq('id',1).maybeSingle();
     if(be)throw be;
     return out({pedido,simulacao:simulacao??null,servicos:catalogo,commercial:commercial??null,branding:branding??null});
    }

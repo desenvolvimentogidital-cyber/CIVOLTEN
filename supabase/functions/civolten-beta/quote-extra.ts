@@ -54,9 +54,15 @@ export async function handleAdminExtra({req,api,db,out,err,body,hash}){
   const color=/^#[0-9A-Fa-f]{6}$/;
   required(color.test(b.color_primary)&&color.test(b.color_accent),'Escolha cores válidas.');
   const logo=b.logo_data_url??null;
+  const width=Number(b.logo_width_px??160);
+  required(Number.isInteger(width)&&width>=60&&width<=320,'Largura da logo deve ficar entre 60 e 320 pixels.');
+  const headline=text(b.site_headline,125),description=text(b.site_description,260),footer=text(b.footer_note,220);
+  const phone=text(b.contact_whatsapp,13).replace(/\D/g,'');
+  required(headline.length>=8&&description.length>=15&&footer.length>=5,'Preencha os textos do site corretamente.');
+  required(!phone||/^[1-9][0-9]{10,12}$/.test(phone),'WhatsApp comercial inválido. Use código do país, DDD e número.');
   required(logo===null||(typeof logo==='string'&&logo.length<=300000&&/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(logo)),'Logo deve ser uma imagem PNG/JPEG pequena.');
   const {data,error}=await db.from('civolten_branding').update({
-   company_name:b.company_name.trim(),color_primary:b.color_primary,color_accent:b.color_accent,logo_data_url:logo,updated_at:new Date().toISOString()
+   company_name:b.company_name.trim(),color_primary:b.color_primary,color_accent:b.color_accent,logo_data_url:logo,logo_width_px:width,site_headline:headline,site_description:description,footer_note:footer,contact_whatsapp:phone,updated_at:new Date().toISOString()
   }).eq('id',1).select().single();
   if(error)throw error;
   return out({branding:data});

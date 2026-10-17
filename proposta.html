@@ -5,26 +5,14 @@
 <meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#08182B"><title>Proposta CIVOLTEN | Revisão e aceite</title>
 <link rel="stylesheet" href="/assets/civolten.css">
-<style>
-.proposal-wrap{max-width:760px;margin:auto;padding:25px 16px}
-.proposal-head{padding:25px;background:#08182b;border-bottom:3px solid #DCA629;border-radius:14px}
-.proposal-head h1{margin:4px 0;font-size:25px}
-.proposal-table{width:100%;border-collapse:collapse;font-size:13px}
-.proposal-table th,.proposal-table td{border-bottom:1px solid #475875;text-align:left;padding:10px 6px;vertical-align:top}
-.proposal-table th{color:#ffda84}
-.proposal-table td:last-child{text-align:right;font-weight:700}
-.proposal-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
-.proposal-actions button{flex:1 1 140px}
-.proposal-total{font-size:25px;text-align:right;color:#ffda84}
-.proposal-terms p{white-space:pre-wrap}
-@media(max-width:520px){.proposal-table{font-size:11px}.proposal-table th,.proposal-table td{padding:7px 3px}}
-</style>
+<link rel="stylesheet" href="/assets/proposta.css?v=1">
+<script defer src="/assets/site-branding.js?v=1"></script>
 <script defer src="/assets/proposta.js?v=1"></script>
 </head>
 <body>
 <main class="proposal-wrap">
-<header class="proposal-head" style="position:static">
-<div style="padding:0;display:block"><div class="brand">CIVOL<b>TEN</b><small>ELÉTRICA &amp; CONSTRUÇÃO CIVIL</small></div>
+<header class="proposal-head">
+<div><img id="proposalLogo" class="proposal-logo" alt="Logo CIVOLTEN" hidden>
 <h1>Proposta comercial</h1><p>Confira os serviços e as condições antes de responder.</p></div>
 </header>
 <div class="card">
@@ -33,7 +21,7 @@
 <p><strong>Cliente:</strong> <span id="customer"></span></p>
 <p><strong>Descrição:</strong> <span id="description"></span></p>
 <p><strong>Versão:</strong> <span id="revision"></span></p>
-<div style="overflow-x:auto"><table class="proposal-table"><thead><tr><th>Serviço</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead><tbody id="items"></tbody></table></div>
+<div class="proposal-scroller"><table class="proposal-table"><thead><tr><th>Serviço</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead><tbody id="items"></tbody></table></div>
 <p id="grandTotal" class="proposal-total"></p>
 <section id="terms" class="proposal-terms"></section>
 <p class="hint">Sua resposta será registrada eletronicamente para acompanhamento da proposta. Este recurso não equivale, por si só, a uma assinatura digital certificada.</p>

@@ -114,31 +114,42 @@ function currentItems(){return Array.from($('lines').querySelectorAll('.line')).
  modalidade:row._modeSelect?.value||'completo'
 })).filter(x=>x.servico_id);}
 function clearEstimate(){$('estimate').classList.add('hidden');}
+let choiceCache=null,choiceRevision=-1,catalogRevision=0;
 function choices(select,current){
- select.replaceChildren();
- const placeholder=document.createElement('option');
- placeholder.value='';placeholder.textContent='Selecione o serviço...';
- select.appendChild(placeholder);
- // Primeiro os serviços já existentes; depois todas as composições, por base.
- const groups={EDIF:[],INFRA:[]};
- for(const service of catalog){
-  const match=/^siurb:(EDIF|INFRA):[0-9]{5,12}$/.exec(service.id);
-  if(match){groups[match[1]].push(service);continue;}
-  const opt=document.createElement('option');opt.value=service.id;
-  opt.textContent=service.descricao+' ('+service.unidade+')';
-  select.appendChild(opt);
- }
- for(const [source,label] of [['EDIF','EDIF — Edificações'],['INFRA','INFRA — Infraestrutura']]){
-  if(!groups[source].length)continue;
-  const group=document.createElement('optgroup');group.label=label+' — '+groups[source].length+' serviços';
-  for(const service of groups[source]){
-   const opt=document.createElement('option');opt.value=service.id;
-   opt.textContent=service.descricao+' ('+service.unidade+')';
-   group.appendChild(opt);
+ if(choiceRevision!==catalogRevision){
+  const template=document.createElement('select');
+  const placeholder=document.createElement('option');
+  placeholder.value='';placeholder.textContent='Selecione o serviço...';
+  template.appendChild(placeholder);
+  const groups={EDIF:[],INFRA:[]};
+  for(const service of catalog){
+   const match=/^siurb:(EDIF|INFRA):[0-9]{5,12}$/.exec(service.id);
+   if(match){groups[match[1]].push(service);continue;}
+   const option=document.createElement('option');
+   option.value=service.id;option.textContent=service.descricao+' ('+service.unidade+')';
+   template.appendChild(option);
   }
-  select.appendChild(group);
+  for(const [source,label] of [['EDIF','EDIF — Edificações'],['INFRA','INFRA — Infraestrutura']]){
+   if(!groups[source].length)continue;
+   groups[source].sort((x,y)=>x.descricao.localeCompare(y.descricao,'pt-BR'));
+   const group=document.createElement('optgroup');
+   group.label=label+' — '+groups[source].length+' serviços';
+   for(const service of groups[source]){
+    const option=document.createElement('option');
+    option.value=service.id;option.textContent=service.descricao+' ('+service.unidade+')';
+    group.appendChild(option);
+   }
+   template.appendChild(group);
+  }
+  choiceCache=Array.from(template.children);
+  choiceRevision=catalogRevision;
  }
- select.value=current&&catalog.some(s=>s.id===current)?current:'';
+ if(select._catalogRevision!==catalogRevision){
+  // Clonar a lista já montada em vez de reconstruir 3.463 elementos por linha.
+  select.replaceChildren(...choiceCache.map(option=>option.cloneNode(true)));
+  select._catalogRevision=catalogRevision;
+ }
+ select.value=current&&catalog.some(service=>service.id===current)?current:'';
 }
 function add(){
  if(!catalog.length||$('lines').children.length>=60)return;
@@ -222,6 +233,14 @@ $('logout').onclick=async()=>{
  try{await fetch('/api/session',{method:'DELETE',credentials:'same-origin'})}catch{}
  $('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden');$('pricingArea').classList.add('hidden');
 };$('refresh').onclick=refresh;
+$('siteSettingsToggle').onclick=()=>{
+ const section=$('siteSettings'),button=$('siteSettingsToggle');
+ const opening=section.classList.contains('hidden');
+ section.classList.toggle('hidden',!opening);
+ button.setAttribute('aria-expanded',String(opening));
+ button.textContent=opening?'Fechar personalização':'Personalizar site e logo';
+ if(opening)section.scrollIntoView?.({behavior:'smooth',block:'start'});
+};
 $('pricingToggle').onclick=async()=>{const area=$('pricingArea');const opening=area.classList.contains('hidden');area.classList.toggle('hidden',!opening);if(opening)await loadPrices()};
 async function loadPrices(){
  try{
@@ -354,7 +373,7 @@ async function refresh(){try{const d=await api('GET','admin-list',null,true);$('
  pdfActions.append(previewBtn,downloadBtn,shareBtn);
  const pdfHint=document.createElement('p');pdfHint.className='hint';
  pdfHint.textContent='Use Editar orçamento completo para definir cada preço, prazo e pagamento. O PDF final terá o detalhamento salvo. Custos internos permanecem privados.';
- box.append(pdfActions,pdfHint);window.CIVOLTEN_PRO?.attach?.(box,x,total=>{amount.value=String(total);savedAmount=total;amount.disabled=true;});frag.appendChild(box)});$('orders').replaceChildren(frag);window.CIVOLTEN_PRO?.dashboard?.($('orders'),d.pedidos);window.CIVOLTEN_PRO?.branding?.($('dashboard'));}catch(e){message('adminmsg',e.message);$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden')}}
+ box.append(pdfActions,pdfHint);window.CIVOLTEN_PRO?.attach?.(box,x,total=>{amount.value=String(total);savedAmount=total;amount.disabled=true;});frag.appendChild(box)});$('orders').replaceChildren(frag);window.CIVOLTEN_PRO?.dashboard?.($('orders'),d.pedidos);window.CIVOLTEN_PRO?.branding?.($('siteSettings'));window.CIVOLTEN_SIURB?.importHub?.($('dashboard'));}catch(e){message('adminmsg',e.message);$('dashboard').classList.add('hidden');$('loginbox').classList.remove('hidden')}}
 
 // Carrega todo o catálogo SIURB no mesmo seletor do formulário, em páginas
 // de 400 nomes. Sem baixar custos, insumos ou preços de referência.
@@ -388,6 +407,7 @@ async function loadSiurbCatalog(){
   const byId=new Map(valid.map(s=>[s.id,s]));
   for(const selected of catalog.filter(s=>String(s.id).startsWith('siurb:')))if(!byId.has(selected.id))byId.set(selected.id,selected);
   catalog=[...base,...byId.values()];
+  catalogRevision++;
   for(const row of document.querySelectorAll('#lines .line')){
    const select=row.querySelector('select'),current=select.value;
    choices(select,current);
@@ -408,6 +428,7 @@ async function loadCatalog(){
   if(!Array.isArray(response.catalogo)||!response.catalogo.length)throw Error('Catálogo vazio');
   if(response.catalogo.some(s=>!s.id||!s.descricao||!s.unidade))throw Error('Itens inválidos');
   catalog=[...response.catalogo,...catalog.filter(x=>String(x.id).startsWith('siurb:'))];
+  catalogRevision++;
   document.querySelectorAll('#lines .line').forEach(row=>{
    const select=row.querySelector('select'),old=select.value;
    choices(select,old);
