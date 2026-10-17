@@ -43,11 +43,11 @@ detailed.pedido.estimate_max=98000;
 writeFileSync('preview-artifacts/CIVOLTEN-ORCAMENTO-DETALHADO-v3.pdf',await generateQuotePdf(detailed,'final'));
 const tailored=structuredClone(detailed);
 tailored.commercial={
- revision:3,total:123450.75,decision:'draft',
+ revision:3,total:123443.60,decision:'draft',
  items:[
   {description:'Demolição e recomposição com preparação dos ambientes',quantity:35,unit:'m²',unit_price:2000,line_total:70000},
   {description:'Pontos de tomada e interruptor',quantity:9,unit:'unidade',unit_price:150,line_total:1350},
-  {description:'Pintura premium e acabamento interno',quantity:68,unit:'m²',unit_price:766.1875,line_total:52100.75}
+  {description:'Pintura premium e acabamento interno',quantity:68,unit:'m²',unit_price:766.2,line_total:52093.6}
  ],
  terms:{validity_days:15,deadline:'30 dias úteis após aprovação',
  payment:'30% na aprovação; 70% conforme etapas concluídas',
