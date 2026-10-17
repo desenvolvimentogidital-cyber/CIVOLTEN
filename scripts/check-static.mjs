@@ -6,8 +6,8 @@ const html = fs.readFileSync("index.html", "utf8");
 const occurrences = (text, pattern) => [...text.matchAll(pattern)].length;
 assert.match(html, /CIVOLTEN/i);
 assert.equal(occurrences(html, /<\/html>/gi), 1, "Documento HTML duplicado ou truncado");
-assert.equal(occurrences(html, /<script\b[^>]*>/gi), 3, "O site deve carregar busca SIURB, painel e formulário");
-assert.equal(occurrences(html, /<\/script>/gi), 3, "Scripts não podem ser truncados");
+assert.equal(occurrences(html, /<script\b[^>]*>/gi), 4, "O site deve carregar a marca configurável, base SIURB, painel e formulário");
+assert.equal(occurrences(html, /<\/script>/gi), 4, "Scripts não podem ser truncados");
 assert.match(html, /<script src="\/assets\/civolten\.js(?:\?v=[0-9]+)?" defer><\/script>/i);
 assert.match(html, /<script src="\/assets\/civolten-pro\.js(?:\?v=[0-9]+)?" defer><\/script>/i);
 assert.match(html, /<link rel="stylesheet" href="\/assets\/civolten\.css(?:\?v=[0-9]+)?"/i);
@@ -20,6 +20,16 @@ for (const id of ["client", "lines", "add", "simulate", "catalogstatus", "retryC
 assert.doesNotMatch(html, /BRL\(s\[padrao\]\)/, "Preço unitário exibido junto com o serviço");
 assert.doesNotMatch(html, /s\.subtotal_servicos|s\.taxa_logistica|s\.sobretaxa_distancia|s\.imposto/, "Custos internos exibidos ao cliente");
 
+assert.match(html,/id="siteLogo"/);
+assert.match(html,/id="footerLogo"/);
+assert.match(html,/id="siteSettings"/);
+assert.doesNotMatch(html,/<div class="brand">|⚡ CIVOL<b>TEN<\/b>/);
+assert.match(html,/href="\/privacidade\.html"/);
+assert.match(html,/site-branding\.js\?v=1/);
+assert.doesNotMatch(fs.readFileSync("proposta.html","utf8"),/<style>|style=|class="brand"/,"Proposta deve cumprir CSP sem nome ou ícone na marca");
+const brandScript=fs.readFileSync("assets/site-branding.js","utf8");
+new vm.Script(brandScript,{filename:"site-branding.js"});
+assert.doesNotMatch(brandScript,/innerHTML|sessionStorage|localStorage/);
 const script = fs.readFileSync("assets/civolten.js","utf8");
 const css=fs.readFileSync("assets/civolten.css","utf8");
 assert.doesNotMatch(css,/\.siurb-public-lookup/, 'CSS de busca pública antiga deve estar ausente');
