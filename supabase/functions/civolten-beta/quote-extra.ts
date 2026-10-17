@@ -11,8 +11,8 @@ function validateItems(raw){
   const qty=Number(r.quantity),unitPrice=Number(r.unit_price);
   required(description.length>=3,'Falta descrição no serviço '+(i+1)+'.');
   required(unit.length<=18,'Unidade inválida no serviço '+(i+1)+'.');
-  required(Number.isFinite(qty)&&qty>0&&qty<=100000&&Math.round(qty*1000)===qty*1000,'Quantidade inválida no serviço '+(i+1)+'.');
-  required(Number.isFinite(unitPrice)&&unitPrice>=0&&unitPrice<=100000000&&Math.round(unitPrice*100)===unitPrice*100,'Preço unitário inválido no serviço '+(i+1)+'.');
+  required(Number.isFinite(qty)&&qty>0&&qty<=100000&&Math.abs(Math.round(qty*1000)-qty*1000)<1e-7,'Quantidade inválida no serviço '+(i+1)+'.');
+  required(Number.isFinite(unitPrice)&&unitPrice>=0&&unitPrice<=100000000&&Math.abs(Math.round(unitPrice*100)-unitPrice*100)<1e-7,'Preço unitário inválido no serviço '+(i+1)+'.');
   const value=Math.round(qty*cents(unitPrice));
   required(Number.isSafeInteger(value),'Valor inválido no serviço '+(i+1)+'.');
   total+=value;
@@ -85,7 +85,7 @@ export async function handleAdminExtra({req,api,db,out,err,body,hash}){
   const expected=Number(b.expected_revision||0);
   required(Number.isInteger(expected)&&expected>=0,'Versão esperada inválida.');
   if(expected!==(current?.revision||0))return err('O orçamento foi alterado. Reabra o editor para não sobrescrever alterações.',409);
-  if(current?.decision==='approved')return err('Proposta aprovada. Crie um novo orçamento antes de alterar esta versão.',409);
+  if(current?.decision==='approved'&&b.new_revision!==true)return err('Esta proposta já foi aprovada. Confirme a criação de uma nova revisão para editar.',409);
   const revision=expected+1;
   const record={items,total,terms,revision,decision:'draft',decision_at:null,token_hash:null,token_expires_at:null,sent_at:null,updated_at:new Date().toISOString()};
   if(current){
@@ -149,7 +149,7 @@ export async function handleClientExtra({req,api,db,out,err,body,hash,rate}){
   if(error)throw error;if(!data)return err('Esta proposta já foi respondida.',409);
   if(action==='approved'){
    // Concluído fica reservado para execução concluída; aprovação mantém o atendimento rastreável.
-   const {error:qe}=await db.from('quote_requests').update({status:'aguardando_cliente',updated_at:new Date().toISOString()}).eq('id',id);
+   const {error:qe}=await db.from('quote_requests').update({status:'analisando',updated_at:new Date().toISOString()}).eq('id',id);
    if(qe)throw qe;
   }else if(action==='rejected'){
    const {error:qe}=await db.from('quote_requests').update({status:'recusado',updated_at:new Date().toISOString()}).eq('id',id);
