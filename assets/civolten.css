@@ -45,3 +45,15 @@ input[aria-invalid="true"],textarea[aria-invalid="true"],select[aria-invalid="tr
 .pro-ref-insumos p{font-size:12px;border-bottom:1px solid #425c76;padding:7px 0}
 .pro-siurb-import input[type=file]{width:100%;padding:10px;margin:8px 0;border:1px dashed #7c95aa;border-radius:9px}
 @media(max-width:630px){.pro-ref-bar{grid-template-columns:1fr}.pro-reference{padding:10px}.pro-ref-item .row button{flex:1}}
+
+/* Busca pública SIURB: resultados compactos para celular, sem preço unitário */
+.siurb-public-lookup{border:1px solid #556c84;background:#101f32;border-radius:13px;padding:14px;margin:15px 0}
+.siurb-public-lookup h3{font-size:16px;color:#ffdb88;margin:0 0 6px}
+.siurb-public-controls{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;gap:10px;align-items:end}
+.siurb-public-controls label.field{margin:0}.siurb-public-controls button{margin:0 0 1px;min-height:48px}
+.siurb-public-results{max-height:470px;overflow:auto}
+.siurb-public-item{background:#0d192a;border:1px solid #566a81;border-radius:10px;padding:11px;margin:9px 0;display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.siurb-public-item strong{font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+.siurb-public-item small{font-size:12px;color:#c1cdde}
+.siurb-public-item button{min-height:43px}
+@media(max-width:700px){.siurb-public-controls{grid-template-columns:1fr}.siurb-public-item button{width:100%}}

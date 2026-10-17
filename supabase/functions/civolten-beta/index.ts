@@ -1,6 +1,7 @@
 
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {PAGE} from './site.ts';
+import {publicReferenceSearch,referencePricingServices} from './public-siurb.ts';
 import {handleReference} from './siurb-reference.ts';
 import {handleAdminExtra,handleClientExtra} from './quote-extra.ts';
 const BASE=Deno.env.get('SUPABASE_URL')||'';
@@ -89,10 +90,17 @@ Deno.serve(async req=>{
    const {catalog}=await getPricing();
    return out({catalogo:catalog.map(x=>({id:x.service_id,descricao:x.description,categoria:x.category,unidade:x.unit}))});
   }
+  if(req.method==='GET'&&api==='siurb-search'){
+   const q=url.searchParams.get('q')||'';
+   const source=url.searchParams.get('source')||'';
+   const results=await publicReferenceSearch({db,query:q,source});
+   return out({results,source:'SIURB',base_month:'2026-07',regime:'com_desoneracao'});
+  }
   if(req.method==='POST'&&api==='simulate'){
    const b=await body(req),{catalog,conf}=await getPricing();
    try {
-    const quote=calc(b.itens,b.padrao,b.dias,b.km,catalog,conf);
+    const references=await referencePricingServices(db,b.itens,conf);
+    const quote=calc(b.itens,b.padrao,b.dias,b.km,[...catalog,...references],conf);
     return out({simulacao:publicQuote(quote)});
    } catch(e) {
     if(String(e?.message).startsWith('PRECIFICACAO_PENDENTE:'))
@@ -170,7 +178,8 @@ Deno.serve(async req=>{
    if(Array.isArray(b.itens)&&b.itens.length){
     const p=await getPricing();conf=p.conf;
     try {
-     preview=calc(b.itens,b.padrao,b.dias,b.km,p.catalog,conf);
+     const references=await referencePricingServices(db,b.itens,conf);
+     preview=calc(b.itens,b.padrao,b.dias,b.km,[...p.catalog,...references],conf);
      const {error:pe}=await db.from('quote_pricing_snapshots').upsert({
       request_id:b.id,padrao:preview.padrao,dias_estimados_obra:preview.dias_estimados_obra,distancia_km:preview.distancia_km,
       itens:preview.itens,parametros:conf,calculo:preview,total_bruto:preview.total_bruto
