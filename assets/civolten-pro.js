@@ -212,6 +212,7 @@ function dashboard(container,pedidos){
 }
 
 function branding(container){
+ if(container.querySelector('.pro-branding'))return;
  const block=E('section',{class:'order pro-branding'});
  block.append(E('h3',{text:'Identidade visual dos PDFs'}));
  const details=E('div',{class:'pro-grid'});
