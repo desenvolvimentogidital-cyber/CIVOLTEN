@@ -7,3 +7,29 @@
 input[aria-invalid="true"],textarea[aria-invalid="true"],select[aria-invalid="true"]{border:2px solid #ff8996!important;outline:2px solid #ff899655;outline-offset:1px}
 .field-error{display:block;font-size:12px;font-weight:700;color:#ffd4dc;margin-top:6px;line-height:1.35}
 .msg.error{white-space:pre-wrap;border-left:4px solid #ff8996}
+
+/* Painel CIVOLTEN PRO */
+.pro-editor{border:1px solid #536b87;border-radius:14px;background:#111e30;padding:14px;margin-top:13px}
+.pro-editor h4{font-size:16px;color:#ffda84;margin:18px 0 8px}
+.pro-line{padding:12px;border:1px solid #405a76;background:#0d192b;border-radius:11px;margin:11px 0}
+.pro-wide{display:block;margin-bottom:8px}
+.pro-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.pro-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:10px 0}
+.pro-terms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pro-terms label.field{margin:4px 0}
+.pro-total{display:block;text-align:right;color:#ffdc83;font-size:20px;margin-top:12px}
+.pro-remove{font-size:12px;padding:7px 11px}
+.pro-pill{border:1px solid #a7b4c6;border-radius:30px;padding:7px 12px;font-size:12px}
+.pro-dictate{font-size:12px;padding:8px;margin-top:7px}
+.pro-link,.pro-history{padding:13px;background:#162a40;border-radius:11px;margin:12px 0;overflow-wrap:anywhere}
+.pro-link a{display:block;margin:10px 0}
+.pro-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.pro-kpi{border:1px solid #54708f;background:#11243a;border-radius:12px;padding:13px;min-width:0}
+.pro-kpi small{display:block;font-size:11px}.pro-kpi strong{display:block;color:#ffdb8a;font-size:17px;overflow-wrap:anywhere;margin-top:4px}
+.pro-filters{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.pro-branding{margin-top:25px}.pro-logo-preview{max-width:130px;max-height:90px;object-fit:contain;border-radius:8px;margin:9px auto}
+@media(max-width:630px){
+ .pro-grid,.pro-terms,.pro-filters{grid-template-columns:1fr}
+ .pro-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .pro-editor{padding:11px}.pro-row button{flex:1 1 auto}
+}
