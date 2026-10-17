@@ -160,7 +160,7 @@ function openAdminView(view){
  $('adminCurrentView').scrollIntoView?.({behavior:'smooth',block:'start'});
 }
 function initAdminNavigation(){
- if(adminMenuInitialized)return;
+ if(adminMenuInitialized){openAdminView(adminView);return;}
  adminMenuInitialized=true;
  for(const button of document.querySelectorAll('#adminMenu [data-admin-view]')){
   button.addEventListener('click',()=>openAdminView(button.dataset.adminView));
