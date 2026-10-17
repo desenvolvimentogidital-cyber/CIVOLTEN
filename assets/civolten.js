@@ -391,70 +391,13 @@ async function loadCatalog(){
   status.textContent='Os '+response.catalogo.length+' serviços originais já estão disponíveis. Carregando EDIF e INFRA para o mesmo campo Serviço...';
   try{await loadSiurbCatalog();}
   catch(e){
-   status.textContent='Os serviços originais continuam disponíveis, mas não foi possível carregar toda a base SIURB: '+e.message+'. Toque em Atualizar serviços ou use a pesquisa abaixo.';
+   status.textContent='Os serviços originais continuam disponíveis, mas não foi possível carregar toda a base SIURB: '+e.message+'. Toque em Atualizar serviços para tentar novamente.';
    status.classList.add('warn');retry.classList.remove('hidden');
   }
  }catch(e){
   status.textContent='Não foi possível atualizar os serviços ('+e.message+'). A lista básica continua disponível; tente atualizar antes de enviar.';
   status.classList.add('warn');retry.classList.remove('hidden');
  }
-}
-
-// Pesquisa pública separada dos preços-base privados (SIURB EDIF + INFRA, julho/2026).
-if($('siurbPublicSearch')){
- const query=$('siurbPublicQuery'),source=$('siurbPublicSource'),button=$('siurbPublicSearch');
- const notice=$('siurbPublicMessage'),results=$('siurbPublicResults');
- async function publicLookup(){
-  const q=query.value.trim();
-  results.replaceChildren();
-  if(q.length<2){notice.textContent='Digite pelo menos dois caracteres para pesquisar.';return;}
-  button.disabled=true;notice.textContent='Pesquisando nos serviços de edificações e infraestrutura...';
-  try{
-   const endpoint=API+'?api=siurb-search&q='+encodeURIComponent(q)+'&source='+encodeURIComponent(source.value);
-   const response=await fetch(endpoint,{method:'GET',credentials:'omit',cache:'no-store'});
-   const data=await response.json().catch(()=>({error:'Resposta inválida.'}));
-   if(!response.ok)throw Error(data.error||'Falha na pesquisa.');
-   if(!Array.isArray(data.results))throw Error('Pesquisa indisponível.');
-   notice.textContent=data.results.length?
-    data.results.length+' resultado(s). Se necessário, refine a busca por nome ou código.':
-    'Nenhum serviço encontrado; tente outro termo.';
-   for(const svc of data.results){
-    if(!/^siurb:(?:EDIF|INFRA):[0-9]{5,12}$/.test(svc.id))continue;
-    const card=document.createElement('div');card.className='siurb-public-item';
-    const label=document.createElement('strong');label.textContent=svc.descricao;
-    const meta=document.createElement('small');
-    meta.textContent=svc.fonte+' · código '+svc.id.split(':').at(-1)+' · '+svc.unidade;
-    const addBtn=document.createElement('button');
-    addBtn.type='button';addBtn.className='goldbtn';addBtn.textContent='+ Selecionar serviço';
-    addBtn.onclick=()=>{
-     if(!catalog.some(x=>x.id===svc.id))catalog.push({
-      id:svc.id,descricao:svc.descricao,unidade:svc.unidade,categoria:svc.categoria
-     });
-     const rows=Array.from(document.querySelectorAll('#lines .line'));
-     let target=rows.find(row=>!row.querySelector('select').value);
-     if(!target){
-      if(rows.length>=60){notice.textContent='Limite de 60 serviços por orçamento.';return;}
-      add();target=$('lines').lastElementChild;
-     }
-     for(const row of document.querySelectorAll('#lines .line')){
-      const select=row.querySelector('select'),current=select.value;
-      choices(select,current);
-     }
-     const select=target.querySelector('select');
-     select.value=svc.id;select.dispatchEvent(new Event('change'));
-     target.querySelector('input').value='1';
-     notice.textContent='Serviço selecionado. Ajuste a quantidade abaixo e toque em Calcular simulação.';
-     target.scrollIntoView?.({behavior:'smooth',block:'nearest'});
-     clearEstimate();
-    };
-    card.append(label,meta,addBtn);results.appendChild(card);
-   }
-  }catch(e){notice.textContent='Não foi possível pesquisar: '+e.message;}
-  finally{button.disabled=false;}
- }
- button.onclick=publicLookup;
- query.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();publicLookup();}};
- source.onchange=()=>{if(query.value.trim().length>=2)publicLookup();};
 }
 
 $('retryCatalog').onclick=loadCatalog;

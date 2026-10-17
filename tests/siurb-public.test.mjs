@@ -47,8 +47,8 @@ test('unidades discretas mantêm quantidade inteira',()=>{
 });
 test('pesquisa pública não acrescenta custos ao JavaScript do visitante',()=>{
  const client=readFileSync(new URL('../assets/civolten.js',import.meta.url),'utf8');
- assert.match(client,/api=siurb-search/);
- assert.match(client,/siurbPublicResults/);
+ assert.match(client,/api=siurb-list/);
+ assert.doesNotMatch(client,/api=siurb-search|siurbPublicResults/);
  assert.doesNotMatch(client,/unit_cost|partial_cost|coefficient/);
 });
 
