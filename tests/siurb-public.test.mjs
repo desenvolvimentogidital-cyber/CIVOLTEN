@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const src=readFileSync(new URL('../supabase/functions/civolten-beta/public-siurb.ts',import.meta.url),'utf8');
 const context=vm.createContext({});
 vm.runInContext(src.replace(/^export /gm,'')+
- '\nglobalThis.utils={isPublicReferenceId,publicReferenceItem,publicReferenceSearch,referencePricingServices,isWholeUnit};',context);
+ '\nglobalThis.utils={isPublicReferenceId,publicReferenceItem,publicReferenceSearch,publicReferencePage,referencePricingServices,isWholeUnit};',context);
 const {isPublicReferenceId,publicReferenceItem,publicReferenceSearch,referencePricingServices,isWholeUnit}=context.utils;
 const sample={source:'EDIF',code:'9003070',description:'Cabo flexível isolado 750 V',unit:'M',unit_cost:7.04};
 test('código composto de referência identifica serviços sem colidir com o catálogo original',()=>{
@@ -50,4 +50,33 @@ test('pesquisa pública não acrescenta custos ao JavaScript do visitante',()=>{
  assert.match(client,/api=siurb-search/);
  assert.match(client,/siurbPublicResults/);
  assert.doesNotMatch(client,/unit_cost|partial_cost|coefficient/);
+});
+
+test('listagem paginada retorna todos os nomes sem expor custos',async()=>{
+ let requestedRange;
+ const builder={
+  select:()=>builder,eq:()=>builder,order:()=>builder,
+  range:async(a,b)=>{
+   requestedRange=[a,b];
+   return {data:[sample],error:null,count:3463};
+  }
+ };
+ const {publicReferencePage}=context.utils;
+ const result=await publicReferencePage({db:{from:()=>builder},offset:800,size:400});
+ assert.equal(result.total,3463);
+ assert.equal(result.items.length,1);
+ assert.equal(result.items[0].id,'siurb:EDIF:9003070');
+ assert.equal(Object.hasOwn(result.items[0],'unit_cost'),false);
+ assert.equal(Object.hasOwn(result.items[0],'inputs'),false);
+ assert.equal(requestedRange[0],800);
+ assert.equal(requestedRange[1],1199);
+ await assert.rejects(()=>publicReferencePage({db:{from:()=>builder},offset:-1}));
+});
+test('formulário público carrega composições em lotes e agrupa EDIF e INFRA no mesmo campo',()=>{
+ const src=readFileSync(new URL('../assets/civolten.js',import.meta.url),'utf8');
+ assert.match(src,/api=siurb-list/);
+ assert.match(src,/document\.createElement\('optgroup'\)/);
+ assert.match(src,/EDIF — Edificações/);
+ assert.match(src,/INFRA — Infraestrutura/);
+ assert.match(src,/async function loadSiurbCatalog/);
 });
