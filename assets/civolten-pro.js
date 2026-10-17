@@ -233,7 +233,6 @@ function dashboard(container,pedidos){
 }
 
 function branding(container){
- window.CIVOLTEN_SIURB?.importHub?.(container);
  if(container.querySelector('.pro-branding'))return;
  const block=E('section',{class:'order pro-branding','aria-label':'Personalização visual do site'});
  block.append(E('h3',{text:'Personalizar site e PDFs'}));
