@@ -203,6 +203,18 @@ Deno.serve(async req=>{
    if(!await admin(req))return err('Acesso restrito ao administrador',401);
    if(['admin-commercial','admin-save-commercial','admin-share-commercial','admin-commercial-history','admin-branding'].includes(api))
     return await handleAdminExtra({req,api,db,out,err,body,hash});
+   if(req.method==='GET'&&api==='admin-export'){
+    // Exportação explícita somente para admin autenticado; sem tokens de acesso nem custo interno.
+    const [q,c,h]=await Promise.all([
+     db.from('quote_requests').select('id,customer_name,phone,city,neighborhood,description,status,request_details,submitted_at,updated_at').not('submitted_at','is',null).order('created_at',{ascending:false}).limit(1000),
+     db.from('commercial_quotes').select('request_id,revision,items,terms,total,decision,decision_at,updated_at').limit(1000),
+     db.from('commercial_quote_history').select('request_id,revision,action,created_at').order('id',{ascending:false}).limit(1000)
+    ]);
+    if(q.error||c.error||h.error)throw new Error('Exportação temporariamente indisponível.');
+    return out({exported_at:new Date().toISOString(),notice:'Backup contém dados pessoais. Armazene em local seguro e não compartilhe publicamente.',
+     partial:q.data.length===1000||c.data.length===1000||h.data.length===1000,
+     pedidos:q.data,propostas:c.data,historico:h.data});
+   }
    if(req.method==='GET'&&api==='admin-me')return out({authenticated:true,role:'admin'});
    if(req.method==='GET'&&api==='admin-pricing'){
     const {data,error}=await db.from('pricing_catalog').select('service_id,description,category,unit,baixo,medio,alto,enabled').order('category').order('description');
