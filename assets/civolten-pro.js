@@ -55,7 +55,7 @@ const statusText=s=>({
  draft:'Rascunho',pending:'Aguardando cliente',approved:'Aprovado',
  rejected:'Recusado',changes_requested:'Ajustes solicitados'
 }[s]||'Não preparado');
-function attach(box,order){
+function attach(box,order,onSaved){
  const toolbar=row();
  const btn=button('✏️ Editar orçamento completo',async()=>{
   form.classList.toggle('hidden');
@@ -79,10 +79,13 @@ function attach(box,order){
   form.append(E('p',{class:'hint',text:'Revise preços comerciais. O total é calculado pelas quantidades e pelos preços unitários. Custos internos nunca aparecem no PDF.'}));
   let revision=commercial?.revision||0;
   const lines=E('div',{class:'pro-lines'});form.append(lines);
+  const snap=simulacao?.itens||[];
+  const subtotal=snap.reduce((acc,x)=>acc+(Number(x.total)||0),0);
+  const suggested=Number(simulacao?.total_bruto)||subtotal;
   const items=commercial?.items?.length?commercial.items.map(x=>({...x})):
-   simulacao?.itens?.length?simulacao.itens.map(x=>({
+   snap.length?snap.map(x=>({
     description:x.descricao,quantity:x.quantidade,unit:x.unidade,
-    unit_price:Number(x.preco_unitario)||0
+    unit_price:Math.round((suggested*(Number(x.total)||0)/Math.max(subtotal,0.01))/Math.max(Number(x.quantidade),0.001)*100)/100
    })):[{description:pedido.description||'',quantity:1,unit:'serv.',unit_price:Number(simulacao?.total_bruto||0)}];
   const getRows=()=>[...lines.children].map(el=>el._get());
   const totalEl=E('strong',{class:'pro-total',text:'Total R$ 0,00'});
@@ -143,6 +146,7 @@ function attach(box,order){
       included:included.value,excluded:excluded.value}
     });
     revision=result.revision;if(commercial)commercial.decision='draft';state.textContent='Rascunho • v'+revision;
+    onSaved?.(result.total);
     order.commercial={revision,decision:'draft',total:result.total};
     show('Versão '+revision+' salva. Total '+brl(result.total)+'.',true);
    }catch(e){show(e.message);}finally{save.disabled=false;}
