@@ -45,3 +45,9 @@ input[aria-invalid="true"],textarea[aria-invalid="true"],select[aria-invalid="tr
 .pro-ref-insumos p{font-size:12px;border-bottom:1px solid #425c76;padding:7px 0}
 .pro-siurb-import input[type=file]{width:100%;padding:10px;margin:8px 0;border:1px dashed #7c95aa;border-radius:9px}
 @media(max-width:630px){.pro-ref-bar{grid-template-columns:1fr}.pro-reference{padding:10px}.pro-ref-item .row button{flex:1}}
+
+/* Modalidades de execução SIURB: só mão de obra ou serviço completo. */
+.mode-field{margin:12px 0 0;padding:10px;border:1px solid #566c88;border-radius:10px;background:#172c42}
+.mode-field>span{display:block;font-size:12px;color:#ffe1a1;font-weight:700}
+.mode-field select{width:100%;font-size:14px}
+.mode-field.hidden{display:none}
