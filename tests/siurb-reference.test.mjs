@@ -40,3 +40,10 @@ test('arquivo de importação só é acessível a partir do painel seguro',()=>{
  assert.match(code,/admin-reference-import/);
  assert.match(code,/admin-reference-search/);
 });
+
+test('composição aceita unidade de insumo ausente no XLS original sem inventá-la',()=>{
+ const p=payload('INFRA');
+ p.items[0].inputs[0].unit='';
+ const values=normalizeReferenceBatch(p);
+ assert.equal(values[0].inputs[0].unit,'');
+});
