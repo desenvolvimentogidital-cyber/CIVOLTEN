@@ -222,8 +222,8 @@ function dashboard(container,pedidos){
    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
    const url=URL.createObjectURL(blob);
    const a=E('a',{href:url,download:'CIVOLTEN-backup-'+new Date().toISOString().slice(0,10)+'.json'});
-   a.click();
-   URL.revokeObjectURL(url);
+   document.body.appendChild(a);a.click();a.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),10000);
   }catch(e){alert('Falha na exportação: '+e.message);}
   finally{backup.disabled=false;}
  });
