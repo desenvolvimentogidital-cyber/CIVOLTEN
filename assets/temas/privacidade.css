@@ -1,0 +1,6 @@
+
+body.site-privacidade{background:var(--cv-mist);color:var(--cv-ink)}
+.site-privacidade .cv-page-header{background:#fff}
+.site-privacidade .privacy-page>.card{background:#fff;color:var(--cv-ink);border-color:var(--cv-border)}
+.site-privacidade .privacy-page .card :is(h1,h2){color:var(--cv-ink)}
+.site-privacidade .cv-page-footer{background:var(--cv-navy)}
