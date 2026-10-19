@@ -10,7 +10,7 @@ assert.equal(occurrences(html, /<script\b[^>]*>/gi), 7, "O site deve carregar ma
 assert.equal(occurrences(html, /<\/script>/gi), 7, "Scripts não podem ser truncados");
 assert.match(html, /<script src="\/assets\/civolten\.js(?:\?v=[0-9]+)?" defer><\/script>/i);
 assert.match(html, /<script src="\/assets\/civolten-pro\.js(?:\?v=[0-9]+)?" defer><\/script>/i);
-assert.match(html, /<link rel="stylesheet" href="\/assets\/civolten\.css(?:\?v=[0-9]+)?"/i);
+assert.match(html, /<link rel="stylesheet" href="\/assets\/civolten-app-unificado\.css\?v=[0-9]+"/i);
 assert.doesNotMatch(html,/siurb-public-lookup|siurbPublicQuery|siurbPublicSearch|siurbPublicResults/, 'Busca separada do cliente deve estar ausente');
 assert.match(html,/id="lines"/, 'Seletor de serviços deve continuar na página');
 assert.doesNotMatch(html, /<script>([\s\S]*?)<\/script>|<style>|\sonclick=/i, "HTML não pode conter JS/CSS inline");
