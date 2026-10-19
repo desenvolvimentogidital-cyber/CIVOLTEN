@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><title>Área da empresa | CIVOLTEN</title><meta name="theme-color" content="#08182B"/><meta name="description" content="Solicite seu orçamento de serviços elétricos, reformas e construção civil na CIVOLTEN."/>
-<link rel="stylesheet" href="/assets/civolten-app-unificado.css?v=4"/>
+<link rel="stylesheet" href="/assets/civolten-app-unificado.css?v=5"/>
 
 
 
@@ -101,7 +101,45 @@
 <label class="field">Urgência<select id="urgency"><option value="normal">Sem urgência</option><option value="breve">Nos próximos dias</option><option value="urgente">Urgente</option></select></label>
 <hr/><h2>2. Fotos, vídeos e áudio</h2><p class="hint">Até 6 arquivos, 45 MB cada, 120 MB por pedido. Não envie documentos pessoais.</p><div class="filebox"><input id="files" type="file" accept="image/*,video/mp4,video/webm,video/quicktime,audio/*" multiple/><div class="row"><button type="button" id="record">🎙️ Gravar áudio</button></div><ul id="filelist"></ul></div>
 <hr/><h2 id="simulacao">3. Simulação opcional</h2><p class="hint">Escolha o padrão e os serviços. Os preços unitários são internos; você verá apenas o valor total da simulação. Para serviços sem preço configurado, envie seu pedido para avaliação.</p><div class="patterns"><button data-p="baixo" aria-pressed="false">Baixo</button><button data-p="medio" aria-pressed="true">Médio</button><button data-p="alto" aria-pressed="false">Alto</button></div><p class="service-help">Selecione o serviço abaixo e informe a quantidade. Para serviços por m², informe a área do imóvel ou do serviço.</p><div id="catalogstatus" class="status-catalog" role="status" aria-live="polite">Preparando os serviços...</div>
-<div id="lines" aria-label="Serviços para orçamento"></div><div class="row"><button id="add" type="button" class="goldbtn">+ Adicionar outro serviço</button><button id="retryCatalog" type="button" class="hidden">↻ Atualizar serviços</button></div><div class="grid"><label class="field">Dias estimados<input id="days" type="number" min="1" max="365" step="1" value="1"/></label><label class="field">Distância (km)<input id="km" type="number" min="0" max="1000" step="0.1" value="0"/></label></div><button type="button" id="simulate">⚡ Calcular simulação</button><div id="estimate" class="result hidden"></div>
+<section id="catalogFinder" class="catalog-browser" aria-label="Pesquisar serviços e montar carrinho">
+ <div class="catalog-intro"><div><h3>Encontre os serviços e monte seu carrinho</h3><p>Pesquise pelo nome ou código SIURB, selecione a categoria e adicione quantos serviços precisar. Você poderá revisar tudo antes da simulação.</p></div><span class="catalog-cart-badge">Carrinho <strong id="cartBadge">0</strong></span></div>
+ <div class="catalog-layout">
+  <div class="catalog-search-panel">
+   <div class="catalog-filters">
+    <label class="field" for="catalogQuery">Pesquisar serviço<input type="search" id="catalogQuery" placeholder="Ex.: tomadas, pintura, porcelanato, eletroduto..." maxlength="100" autocomplete="off"></label>
+    <label class="field" for="catalogType">Categoria<select id="catalogType">
+     <option value="todos">Todos os serviços disponíveis</option>
+     <option value="eletrica">Instalações elétricas</option>
+     <option value="manutencao">Manutenção elétrica</option>
+     <option value="iluminacao">Iluminação LED</option>
+     <option value="solar">Energia solar</option>
+     <option value="construcao">Construção civil</option>
+     <option value="reforma">Reformas e drywall</option>
+     <option value="pisos">Pisos e revestimentos</option>
+     <option value="pintura">Pintura</option>
+     <option value="hidraulica">Serviços hidráulicos</option>
+     <option value="alvenaria">Alvenaria e acabamentos</option>
+     <option value="outros">Outros serviços técnicos</option>
+    </select></label>
+   </div>
+   <p id="finderStatus" class="catalog-count" role="status" aria-live="polite">Carregando serviços do catálogo...</p>
+   <div id="catalogResults" class="catalog-results" aria-label="Resultado da pesquisa"></div>
+   <button id="catalogMore" type="button" class="catalog-more" hidden>Mostrar mais serviços</button>
+  </div>
+  <aside class="catalog-cart" aria-label="Carrinho de serviços">
+   <div class="catalog-cart-head"><strong>Meu carrinho</strong><span id="cartSummary" aria-live="polite">0 serviços selecionados</span></div>
+   <div id="cartList" class="cart-list"></div>
+   <p id="cartFeedback" class="cart-feedback" role="status" aria-live="polite"></p>
+   <div class="catalog-cart-actions"><button type="button" id="cartGoSimulate" class="catalog-more">Ir à simulação ↓</button><button type="button" id="cartDirectEstimate" class="goldbtn">Simular meu carrinho</button></div>
+   <small class="catalog-pricing-note">Os valores não são exibidos por item. A simulação usa as regras oficiais do sistema e pode exigir avaliação personalizada.</small>
+  </aside>
+ </div>
+</section>
+<details id="cartTechnicalEditor" class="cart-technical-editor"><summary>Editar diretamente itens e modalidades técnicas</summary>
+ <p class="hint">Opção avançada: também é possível escolher composições, modalidade de mão de obra e quantidades manualmente.</p>
+ <div id="lines" aria-label="Serviços para orçamento"></div><div class="row"><button id="add" type="button" class="goldbtn">+ Adicionar outro serviço</button></div>
+</details>
+<div class="row"><button id="retryCatalog" type="button" class="hidden">↻ Atualizar serviços</button></div><div class="grid"><label class="field">Dias estimados<input id="days" type="number" min="1" max="365" step="1" value="1"/></label><label class="field">Distância (km)<input id="km" type="number" min="0" max="1000" step="0.1" value="0"/></label></div><button type="button" id="simulate">⚡ Calcular simulação</button><div id="estimate" class="result hidden"></div>
 <hr/><label class="field"><input type="checkbox" id="consent" required/> Li o <a href="/privacidade.html" target="_blank" rel="noopener noreferrer">aviso de privacidade</a> e autorizo o uso dos meus dados para o orçamento.</label><input id="website" class="hidden" tabindex="-1" autocomplete="off"/><div id="clientmsg" role="alert" aria-live="assertive"></div><button type="button" class="goldbtn" id="send">Enviar pedido de orçamento →</button><p class="hint">Os valores da simulação são estimativas sujeitas à avaliação técnica e confirmação da proposta pela CIVOLTEN.</p></div></div></section>
 <section id="admin"><div class="admin-entry"><span class="eyebrow">ÁREA RESTRITA</span><h1>Gestão de orçamentos</h1><p>Administre seus pedidos, serviços, propostas e o visual do site em um único lugar.</p></div><div class="card" id="loginbox"><h2>Entrar ou ativar acesso</h2><div class="grid"><label class="field">Seu e-mail<input id="email" type="email"/></label><label class="field">Senha<input id="password" type="password" autocomplete="current-password"/></label></div><div class="row"><button class="goldbtn" id="login">Entrar</button></div><hr/><h3>Primeiro acesso</h3><p class="hint">Use o código de ativação particular da CIVOLTEN uma única vez. Escolha uma senha com pelo menos 12 caracteres, letras maiúsculas/minúsculas e número.</p><label class="field">Código de ativação<input id="setupToken" type="password" autocomplete="off"/></label><button id="activate">Criar meu usuário administrador</button></div><div class="card hidden admin-dashboard" id="dashboard">
  <aside class="premium-admin-sidebar" aria-label="Navegação lateral">
@@ -186,4 +224,4 @@
  </section>
  </div></div><div id="adminmsg" role="alert" aria-live="assertive"></div></section></main>
 <footer><div class="site-footer"><img id="footerLogo" class="site-footer-logo" alt="Logo CIVOLTEN" hidden><p id="siteFooterNote">Elétrica, reformas e construção civil. Atendimento e orçamentos digitais.</p><a id="siteContactWhatsApp" class="site-contact" href="#" target="_blank" rel="noopener noreferrer" hidden>Falar no WhatsApp</a><a href="/privacidade.html">Privacidade</a></div></footer>
-<script src="/assets/site-branding.js?v=2" defer></script><script src="/assets/civolten-reference.js?v=1" defer></script><script src="/assets/civolten-pro.js?v=4" defer></script><script src="/assets/civolten.js?v=14" defer></script><script src="/assets/civolten-premium.js?v=2" defer></script><script src="/assets/civolten-servicos-rapidos.js?v=3" defer></script><script src="/assets/civolten-assets.js?v=1" defer></script><script src="/assets/civolten-routes.js?v=2" defer></script></body></html>
+<script src="/assets/site-branding.js?v=2" defer></script><script src="/assets/civolten-reference.js?v=1" defer></script><script src="/assets/civolten-pro.js?v=4" defer></script><script src="/assets/civolten.js?v=15" defer></script><script src="/assets/civolten-premium.js?v=2" defer></script><script src="/assets/civolten-servicos-rapidos.js?v=3" defer></script><script src="/assets/civolten-assets.js?v=1" defer></script><script src="/assets/civolten-routes.js?v=2" defer></script><script src="/assets/civolten-carrinho.js?v=1" defer></script></body></html>
