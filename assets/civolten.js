@@ -111,7 +111,7 @@ async function api(method,action,data,auth=false){
 $('toggle').onclick=()=>{const a=$('admin').classList.contains('hidden');$('admin').classList.toggle('hidden',!a);$('client').classList.toggle('hidden',a);$('toggle').textContent=a?'← Voltar ao orçamento':'Área da empresa ↗';if(a){fetch('/api/session',{credentials:'same-origin'}).then(r=>r.json()).then(s=>{if(s.authenticated)refresh();else $('loginbox').classList.remove('hidden')}).catch(()=>{})}};
 // Navegação administrativa independente do carregamento dos pedidos.
 let adminMenuInitialized=false,adminView='logo';
-function openAdminView(view){
+function openAdminView(view,pushHistory=false){
  const labels={
   visao:'Início › Visão geral',
   pedidos:'Atendimento › Pedidos recebidos',
@@ -124,6 +124,16 @@ function openAdminView(view){
  };
  if(!Object.hasOwn(labels,view))return;
  adminView=view;
+ // Cada área possui uma URL compartilhável, preservando o login existente.
+ if(window.location?.pathname==='/empresa'&&window.history){
+  const query=new URLSearchParams(window.location.search);
+  if(query.get('secao')!==view){
+   query.set('secao',view);
+   const next='/empresa?'+query.toString();
+   const method=pushHistory?'pushState':'replaceState';
+   window.history[method]?.({secao:view},'',next);
+  }
+ }
  const panelId={
   visao:'adminOverviewPanel',
   pedidos:'adminOrdersPanel',orcamentos:'adminOrdersPanel',
@@ -168,15 +178,23 @@ function initAdminNavigation(){
  if(adminMenuInitialized){openAdminView(adminView);return;}
  adminMenuInitialized=true;
  for(const button of document.querySelectorAll('#adminMenu [data-admin-view]')){
-  button.addEventListener('click',()=>openAdminView(button.dataset.adminView));
+  button.addEventListener('click',()=>openAdminView(button.dataset.adminView,true));
  }
- document.querySelector?.('.admin-overview-button')?.addEventListener('click',()=>openAdminView('visao'));
+ document.querySelector?.('.admin-overview-button')?.addEventListener('click',()=>openAdminView('visao',true));
  for(const button of document.querySelectorAll('[data-admin-shortcut]')){
-  button.addEventListener('click',()=>openAdminView(button.dataset.adminShortcut));
+  button.addEventListener('click',()=>openAdminView(button.dataset.adminShortcut,true));
  }
  $('exportOrders').addEventListener('click',()=>window.CIVOLTEN_PRO?.exportOrders?.());
- // Primeira entrada abre a tela da logo, sem que o usuário precise procurar no rodapé.
- openAdminView('logo');
+ // Abre a seção solicitada por URL; nos testes antigos, conserva a escolha inicial de logo.
+ if(window.location?.pathname==='/empresa'){
+  const desired=new URLSearchParams(window.location.search).get('secao');
+  const allowed=['visao','pedidos','orcamentos','precos','siurb','logo','textos','backup'];
+  openAdminView(allowed.includes(desired)?desired:'visao');
+  window.addEventListener?.('popstate',()=>{
+   const section=new URLSearchParams(window.location.search).get('secao');
+   openAdminView(allowed.includes(section)?section:'visao');
+  });
+ }else openAdminView('logo');
 }
 function currentItems(){return Array.from($('lines').querySelectorAll('.line')).map(row=>({
  servico_id:row.querySelector('select').value,quantidade:Number(row.querySelector('input').value),
