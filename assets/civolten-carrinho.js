@@ -80,7 +80,7 @@ function renderCatalog(){
   action.type='button';
   action.setAttribute('aria-label','Adicionar '+item.descricao+' ao carrinho');
   action.addEventListener('click',()=>{
-   const existing=api.getCart();
+   const hadItems=api.getCart().length>0;
    const result=api.addCartItem(item.id,1);
    if(result.ok){
     // Serviço principal é escolhido conforme a primeira categoria; quando
@@ -91,7 +91,7 @@ function renderCatalog(){
     if(main){
      const supported=Array.from(main.options).some(x=>x.value===candidate);
      const name=supported?candidate:'outros';
-     if(!existing.length)main.value=name;
+     if(!hadItems)main.value=name;
      else if(main.value!==name)main.value='outros';
     }
    }
