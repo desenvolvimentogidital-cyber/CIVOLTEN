@@ -1,0 +1,43 @@
+name: Importar artes aprovadas CIVOLTEN
+on:
+  push:
+    branches:
+      - feat/layout-premium-home-dashboard-out2026
+    paths:
+      - .github/civolten-art-manifest.json
+      - .github/workflows/importar-artes-civolten.yml
+permissions:
+  contents: write
+jobs:
+  upload-artes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Importar imagens geradas e validar arquivos
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,pathlib
+          path=pathlib.Path('.github/civolten-art-manifest.json')
+          if not path.exists():
+            print('Sem manifesto de artes a importar.')
+            raise SystemExit(0)
+          items=json.loads(path.read_text())['images']
+          output=pathlib.Path('assets/media');output.mkdir(parents=True,exist_ok=True)
+          for item in items:
+            dest=output/item['filename']
+            with urllib.request.urlopen(urllib.request.Request(item['url'],headers={'User-Agent':'CIVOLTEN-Art-Import/1.0'}),timeout=35) as resp:
+              data=resp.read(2000000)
+            if len(data)<500 or not data.startswith(b'\xff\xd8'):
+              raise SystemExit('Imagem inválida '+str(dest))
+            dest.write_bytes(data)
+            print(dest,len(data))
+          path.unlink()
+          PY
+      - name: Salvar fotos no repositório
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/media .github/civolten-art-manifest.json
+          git diff --cached --quiet || (git commit -m "assets: add approved generated project imagery" && git push)
