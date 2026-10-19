@@ -595,7 +595,15 @@ window.CIVOLTEN_FORM={
  }
 };
 $('retryCatalog').onclick=loadCatalog;
-add(); // Sempre mostra o primeiro formulário, mesmo com a API temporariamente indisponível.
-loadCatalog();
-if(window.CIVOLTEN_PRO?.voiceFor){$('desc').parentElement.appendChild(window.CIVOLTEN_PRO.voiceFor($('desc')));}
+// Apenas a rota de orçamento carrega o catálogo remoto (incluindo SIURB).
+// A home usa a seleção rápida estática; o painel não precisa baixar milhares de itens.
+const pathname=window.location?.pathname;
+const isQuotationPage=!pathname||pathname==='/orcamento'||pathname==='/orcamento.html';
+if(isQuotationPage){
+ add(); // Formulário disponível com serviços básicos se o backend falhar.
+ loadCatalog();
+ if(window.CIVOLTEN_PRO?.voiceFor){
+  $('desc').parentElement.appendChild(window.CIVOLTEN_PRO.voiceFor($('desc')));
+ }
+}
 })();
