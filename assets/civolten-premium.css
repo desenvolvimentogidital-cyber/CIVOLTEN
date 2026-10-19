@@ -8,7 +8,7 @@ main{max-width:none;width:100%;margin:0;padding:0}
 body>header.premium-header{position:sticky;top:0;background:rgba(255,255,255,.97);border-bottom:1px solid #e8edf1;backdrop-filter:blur(14px);z-index:30;box-shadow:0 3px 18px #08182b09}
 .premium-header>.premium-header-inner{max-width:1550px;min-height:76px;margin:auto;padding:10px clamp(18px,4vw,64px);display:flex;align-items:center;gap:30px;justify-content:space-between}
 .premium-logo-link{display:flex;align-items:center;justify-content:flex-start;min-width:92px;min-height:48px;flex:0 0 auto}
-.premium-header .site-brand-logo{width:var(--brand-logo-width,160px);max-width:min(29vw,230px);max-height:56px;height:auto;object-fit:contain;object-position:left}
+.premium-header .site-brand-logo{width:var(--brand-logo-width,160px);max-width:min(45vw,320px);max-height:60px;height:auto;object-fit:contain;object-position:left}
 .premium-site-nav{display:flex;align-items:center;gap:39px;margin:auto}
 .premium-site-nav a{color:#172339!important;text-decoration:none;font-size:13px;font-weight:800;position:relative;padding:12px 0}
 .premium-site-nav a:hover:after,.premium-site-nav a:first-child:after{content:"";height:3px;background:var(--brand-accent,#dca629);position:absolute;left:0;right:0;bottom:4px;border-radius:4px}
