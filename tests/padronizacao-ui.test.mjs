@@ -8,11 +8,18 @@ const home=read('index.html');
 const services=read('servicos.html');
 const proposal=read('proposta.html');
 const privacy=read('privacidade.html');
-const shared=read('assets/civolten-padrao.css');
+const shared=read('assets/civolten-app-unificado.css');
 
 test('as quatro páginas compartilham os mesmos tokens de identidade',()=>{
- for(const [name,markup] of [['home',home],['servicos',services],['proposta',proposal],['privacidade',privacy]]){
-  assert.match(markup, /href="\/assets\/civolten-padrao\.css\?v=1"/,name);
+ const pages=[
+  ['home',home,'civolten-app-unificado'],
+  ['servicos',services,'civolten-servicos-unificado'],
+  ['proposta',proposal,'civolten-proposta-unificado'],
+  ['privacidade',privacy,'civolten-privacidade-unificado']
+ ];
+ for(const [name,markup,asset] of pages){
+  assert.match(markup, new RegExp('href="/assets/'+asset+'\\.css\\?v=1"'),name);
+  assert.equal((markup.match(/<link\s+rel="stylesheet"/g)||[]).length,1,name);
   assert.doesNotMatch(markup,/<style(?:\s|>)|\sonclick=/i,name);
  }
  assert.match(shared,/--cv-navy:var\(--brand-primary/);

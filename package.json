@@ -5,7 +5,9 @@
   "type": "module",
   "description": "CIVOLTEN - formulário e painel seguro de orçamentos",
   "scripts": {
-    "test": "node scripts/check-static.mjs && node --test tests/bff-security.test.mjs tests/pdf.test.mjs tests/professional.test.mjs tests/siurb-reference.test.mjs tests/siurb-public.test.mjs tests/site-branding.test.mjs tests/admin-navigation.test.mjs tests/institucional.test.mjs tests/premium-layout.test.mjs tests/artes-aprovadas.test.mjs tests/telas-separadas.test.mjs tests/padronizacao-ui.test.mjs"
+    "test": "npm run check:css && node scripts/check-static.mjs && node --test tests/bff-security.test.mjs tests/pdf.test.mjs tests/professional.test.mjs tests/siurb-reference.test.mjs tests/siurb-public.test.mjs tests/site-branding.test.mjs tests/admin-navigation.test.mjs tests/institucional.test.mjs tests/premium-layout.test.mjs tests/artes-aprovadas.test.mjs tests/telas-separadas.test.mjs tests/padronizacao-ui.test.mjs tests/estilos-unificados.test.mjs",
+    "build:css": "node scripts/build-css.mjs",
+    "check:css": "node scripts/build-css.mjs --check"
   },
   "dependencies": {
     "pdf-lib": "1.17.1"
