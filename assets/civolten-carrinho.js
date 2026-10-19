@@ -80,7 +80,21 @@ function renderCatalog(){
   action.type='button';
   action.setAttribute('aria-label','Adicionar '+item.descricao+' ao carrinho');
   action.addEventListener('click',()=>{
+   const existing=api.getCart();
    const result=api.addCartItem(item.id,1);
+   if(result.ok){
+    // Serviço principal é escolhido conforme a primeira categoria; quando
+    // mistura áreas diferentes, a categoria principal passa a "Outros".
+    const main=$('category');
+    const mapped={solar:'outros',pisos:'construcao',alvenaria:'construcao'};
+    const candidate=mapped[item._group]||item._group;
+    if(main){
+     const supported=Array.from(main.options).some(x=>x.value===candidate);
+     const name=supported?candidate:'outros';
+     if(!existing.length)main.value=name;
+     else if(main.value!==name)main.value='outros';
+    }
+   }
    showMessage(result.ok?'Serviço adicionado ao carrinho.':result.message,!result.ok);
    if(result.ok)renderCart();
   });
