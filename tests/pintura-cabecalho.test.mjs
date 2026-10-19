@@ -57,7 +57,7 @@ test('pintura especial sem preço continua como avaliação, sem herdar reboco o
  assert.match(app,/const summary=\[group/);
 });
 
-test('barra azul-rosa e texto branco compartilham exatamente os mesmos tokens',()=>{
+test('barra inteiramente azul e texto branco compartilham exatamente os mesmos tokens',()=>{
  const bundles={
   app:read('assets/civolten-app-unificado.css'),
   servicos:read('assets/civolten-servicos-unificado.css'),
@@ -65,7 +65,7 @@ test('barra azul-rosa e texto branco compartilham exatamente os mesmos tokens',(
   privacidade:read('assets/civolten-privacidade-unificado.css')
  };
  for(const [page,css] of Object.entries(bundles)){
-  assert.match(css,/--cv-header-gradient:linear-gradient\(112deg,#12284e 0%,#2b507e 53%,#814b71 100%\)/,page);
+  assert.match(css,/--cv-header-gradient:linear-gradient\(112deg,#0b203c 0%,#173c67 53%,#2b6094 100%\)/,page);
   assert.match(css,/--cv-header-text:#fff/,page);
   assert.match(css,/--cv-logo-plate:rgba\(255,255,255,\.96\)/,page);
  }
@@ -80,9 +80,9 @@ test('barra azul-rosa e texto branco compartilham exatamente os mesmos tokens',(
 test('cache atualizado no site e em suas telas geradas',()=>{
  for(const p of ['index.html','empresa.html','orcamento.html']){
   const html=read(p);
-  assert.match(html,/civolten-app-unificado\.css\?v=2/);
+  assert.match(html,/civolten-app-unificado\.css\?v=3/);
   assert.match(html,/civolten-servicos-rapidos\.js\?v=2/);
  }
  for(const [p,name] of [['servicos.html','servicos'],['proposta.html','proposta'],['privacidade.html','privacidade']])
-  assert.match(read(p),new RegExp('civolten-'+name+'-unificado\\.css\\?v=2'));
+  assert.match(read(p),new RegExp('civolten-'+name+'-unificado\\.css\\?v=3'));
 });

@@ -361,8 +361,8 @@ body a:focus-visible,body button:focus-visible,body input:focus-visible,body tex
 [hidden],.hidden,#admin .hidden,#client .hidden,#dashboard .hidden{display:none!important}
 :where(button,.btn,.action-primary,.action-secondary){touch-action:manipulation}
 
-/* Degradê institucional único das barras superiores; fundo azul com rosa discreto. */
-:root{--cv-header-gradient:linear-gradient(112deg,#12284e 0%,#2b507e 53%,#814b71 100%);--cv-header-text:#fff;--cv-logo-plate:rgba(255,255,255,.96)}
+/* Degradê institucional azul: marinho, azul técnico e azul médio, sem rosa. */
+:root{--cv-header-gradient:linear-gradient(112deg,#0b203c 0%,#173c67 53%,#2b6094 100%);--cv-header-text:#fff;--cv-logo-plate:rgba(255,255,255,.96)}
 
 /* === Padrão final da tela === */
 
@@ -377,6 +377,6 @@ body.site-proposta{background:var(--cv-mist);color:var(--cv-ink)}
 .site-proposta .proposal-actions button.goldbtn{background:var(--cv-gold);color:#101f33}
 .site-proposta .proposal-actions button:not(.goldbtn){background:#fff;border-color:var(--cv-border);color:var(--cv-ink)}
 
-/* Cabeçalho da proposta no mesmo degradê azul e rosa institucional. */
+/* Cabeçalho da proposta no mesmo degradê azul institucional. */
 .site-proposta .proposal-head{background:var(--cv-header-gradient);color:#fff;border-bottom-color:var(--brand-accent,#dca629)}
 .site-proposta .proposal-head h1,.site-proposta .proposal-head p{color:#fff}
