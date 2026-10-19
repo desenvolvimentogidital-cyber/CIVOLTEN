@@ -28,3 +28,19 @@ Somente HTML e CSS de apresentação, navegação mobile, atualização de cache
 - Testar o formulário e o PDF em ambiente apropriado com dados fictícios.
 - Confirmar que logotipo/cor foram carregados de configuração oficial e nenhuma imagem institucional genérica substituiu a marca quando não configurada.
 - Verificar links de propostas já enviadas e contraste no celular.
+
+## Correção de sobreposição de CSS — 19/10/2026
+
+Antes, o navegador carregava até cinco folhas de estilos sequenciais na página inicial, misturando tokens de tema escuro e claro, regras antigas de cartões/painel e modificações de última camada. Isso provocava telas com fundos e cores diferentes.
+
+**Arquitetura atual:** cada HTML entrega **uma única folha CSS compilada**:
+- `index.html` → `assets/civolten-app-unificado.css`
+- `servicos.html` → `assets/civolten-servicos-unificado.css`
+- `proposta.html` → `assets/civolten-proposta-unificado.css`
+- `privacidade.html` → `assets/civolten-privacidade-unificado.css`
+
+O compilador `scripts/build-css.mjs` usa módulos estruturais existentes e consolida o resultado com **tokens compartilhados em `assets/temas/comum.css`** e **ajustes específicos em `assets/temas/{app,servicos,proposta,privacidade}.css`**. Os módulos antigos permanecem como fontes estruturais, mas **não são mais importados pelo navegador individualmente**.
+
+Após alterar uma fonte CSS, rodar `npm run build:css` e depois `npm test`. O comando de testes executa `npm run check:css` para recusar qualquer bundle desatualizado. Não reinserir múltiplas referências `<link rel="stylesheet">` nos documentos.
+
+O mesmo padrão de cores é aplicado à home, formulário, painel, serviços, proposta e privacidade: fundo branco ou cinza muito claro, azul-marinho institucional em cabeçalhos/detalhes, dourado de destaque. **Somente a fotografia do hero, faixas institucionais e rodapé usam fundo escuro intencionalmente.** Cores definidas em Logo e cores têm precedência por meio das variáveis CSS em tempo real. A regra de ocultação de elementos impede que login e painel sejam mostrados simultaneamente.
