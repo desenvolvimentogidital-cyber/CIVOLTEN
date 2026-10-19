@@ -256,3 +256,33 @@ body>footer .site-contact{color:#13213a!important;background:#efc364}
  .landing-service-choices button{font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.action-primary,.action-secondary{transition:none}}
+
+/* Visualizador de identidade visual, integrado com a logo REAL salva no banco. */
+.branding-premium-grid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:16px;align-items:start}
+.branding-premium-grid #siteSettings{min-width:0}
+.premium-preview-column{display:grid;gap:14px;min-width:0}
+.premium-preview-panel{border:1px solid #e1e8f0;background:#fff;border-radius:14px;padding:16px;box-shadow:0 5px 24px #08182b08}
+.premium-preview-panel h3{font-size:17px;line-height:1.2;margin:0 0 4px}
+.premium-preview-panel>p{font-size:11px;color:#6c7c92;line-height:1.4;margin-bottom:11px}
+.premium-site-preview{border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;background:#fff}
+.premium-preview-nav{display:flex;align-items:center;justify-content:space-between;background:var(--brand-primary,#08182b);color:#fff;min-height:53px;padding:10px;gap:14px}
+.premium-preview-nav img{width:min(var(--brand-logo-width),62px);max-height:37px;object-fit:contain}
+.premium-preview-nav img[hidden],.premium-paper-preview img[hidden]{display:none!important}
+.premium-preview-nav span{font-size:9px;white-space:nowrap;font-weight:700}
+.premium-preview-copy{display:grid;grid-template-columns:1.2fr 1fr;min-height:180px;overflow:hidden}
+.premium-preview-copy>div{padding:16px 8px 14px 16px;min-width:0}
+.premium-preview-copy>div>span:first-child{display:block;font-size:8px;letter-spacing:.9px;color:#b77e15;font-weight:850}
+.premium-preview-copy h4{font-size:clamp(17px,2.5vw,26px);letter-spacing:-.8px;line-height:1.1;margin:8px 0;color:#08182b;overflow-wrap:anywhere}
+.premium-preview-copy p{font-size:10px;color:#667790;line-height:1.4;margin-bottom:15px}
+.premium-preview-copy img{width:100%;height:100%;object-fit:cover}
+.preview-button{display:inline-block;border-radius:5px;padding:8px;background:var(--brand-accent,#dca629);color:#fff;font-size:9px;font-weight:800}
+.premium-paper-preview{border:1px solid #e4e7ec;box-shadow:0 8px 22px #08182b0b;background:#fff;overflow:hidden;border-radius:5px;min-height:235px}
+.premium-paper-preview>div{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--brand-primary);min-height:53px;padding:10px 15px;color:#fff}
+.premium-paper-preview>div img{max-height:36px;width:min(var(--brand-logo-width),60px);object-fit:contain}
+.premium-paper-preview>div span{font-size:8px;letter-spacing:1px;font-weight:750}
+.premium-paper-preview>section{padding:16px 18px}
+.premium-paper-preview>section>strong{font-size:15px;color:#0c1e36}
+.premium-paper-preview>section>p{font-size:10px;color:#6d7b8e;font-weight:750;margin-top:15px}
+.preview-skeleton{width:100%;height:9px;border-radius:3px;background:#eff2f6;margin:8px 0}
+.preview-skeleton.short{width:65%}
+@media(max-width:1130px){.branding-premium-grid{grid-template-columns:1fr}}
