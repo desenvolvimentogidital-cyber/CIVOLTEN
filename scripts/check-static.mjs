@@ -25,7 +25,7 @@ assert.match(html,/id="footerLogo"/);
 assert.match(html,/id="siteSettings"/);
 assert.doesNotMatch(html,/<div class="brand">|⚡ CIVOL<b>TEN<\/b>/);
 assert.match(html,/href="\/privacidade\.html"/);
-assert.match(html,/site-branding\.js\?v=1/);
+assert.match(html,/site-branding\.js\?v=(?:1|2)/);
 assert.doesNotMatch(fs.readFileSync("proposta.html","utf8"),/<style>|style=|class="brand"/,"Proposta deve cumprir CSP sem nome ou ícone na marca");
 const brandScript=fs.readFileSync("assets/site-branding.js","utf8");
 new vm.Script(brandScript,{filename:"site-branding.js"});
