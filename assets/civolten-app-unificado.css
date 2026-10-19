@@ -776,6 +776,9 @@ body a:focus-visible,body button:focus-visible,body input:focus-visible,body tex
 [hidden],.hidden,#admin .hidden,#client .hidden,#dashboard .hidden{display:none!important}
 :where(button,.btn,.action-primary,.action-secondary){touch-action:manipulation}
 
+/* Degradê institucional único das barras superiores; fundo azul com rosa discreto. */
+:root{--cv-header-gradient:linear-gradient(112deg,#12284e 0%,#2b507e 53%,#814b71 100%);--cv-header-text:#fff;--cv-logo-plate:rgba(255,255,255,.96)}
+
 /* === Padrão final da tela === */
 
 /* INÍCIO, ORÇAMENTO E PAINEL: mesma linguagem visual, sem blocos antigos escuros. */
@@ -858,3 +861,19 @@ body>header.premium-header{background:rgba(255,255,255,.97);border-bottom:1px so
  .landing-service-choices button>span{font-size:19px}
  .quick-subservices{grid-template-columns:1fr}
 }
+
+/* Cabeçalho premium com contraste para o logotipo oficial. */
+body>header.premium-header{background:var(--cv-header-gradient)!important;border-bottom:1px solid rgba(255,211,138,.45);box-shadow:0 7px 24px rgba(10,28,54,.2)}
+.premium-header .premium-site-nav a{color:var(--cv-header-text)!important;text-shadow:0 1px 2px rgba(0,0,0,.2)}
+.premium-header .premium-site-nav a:hover,.premium-header .premium-site-nav a[aria-current="page"]{color:#fff!important}
+.premium-header .premium-site-nav a:hover::after,.premium-header .premium-site-nav a[aria-current="page"]::after{background:var(--brand-accent,#dca629)}
+.premium-header .premium-logo-link{padding:5px 11px;border:1px solid rgba(255,255,255,.85);border-radius:12px;background:var(--cv-logo-plate);box-shadow:0 4px 17px rgba(4,13,30,.24);min-height:50px}
+.premium-header .site-brand-logo{filter:drop-shadow(0 1px 3px rgba(8,28,56,.15))}
+.premium-header #toggle{background:rgba(12,29,59,.38);color:#fff!important;border:1px solid rgba(255,255,255,.75);box-shadow:0 4px 14px rgba(3,19,47,.13)}
+.premium-header #toggle:hover{background:rgba(12,29,59,.58)}
+.premium-header .cv-mobile-nav summary{background:rgba(10,27,58,.27);color:#fff!important;border:1px solid rgba(255,255,255,.65)}
+.premium-header .cv-mobile-nav summary:hover{background:rgba(10,27,58,.46)}
+.premium-header .cv-mobile-nav nav{background:#172d4f;border:1px solid rgba(246,217,169,.36)}
+.premium-header .cv-mobile-nav nav a{color:#fff}
+.premium-header .cv-mobile-nav nav a:hover,.premium-header .cv-mobile-nav nav a[aria-current="page"]{background:rgba(253,201,109,.18);color:#fff}
+@media(max-width:570px){.premium-header .premium-logo-link{padding:4px 7px;min-height:44px}}
