@@ -28,3 +28,14 @@ Data: 19/10/2026. Etapa atual: aprovar melhorias e manter branch principal atual
 - Publicar somente depois da decisão do responsável e disponibilidade da Vercel.
 
 As melhorias opcionais listadas aqui **não estão implementadas** neste PR. A alteração de código desta etapa limita-se a remover o tom rosado, atualizar as versões CSS e manter as páginas geradas sincronizadas.
+
+
+## Ajustes executados: seleção móvel e carregamento condicionado
+
+- Na home, até 630 px, as dez categorias são apresentadas em um **select nativo com rótulo**, evitando duas colunas de dez botões e preservando a área de serviços específicos. Em desktop a grade continua visível; a mudança de categoria sincroniza os controles.
+- A Área da empresa e a home deixam de iniciar automaticamente a busca de catálogo/SIURB e de construir uma linha do formulário escondido. A busca e construção acontecem na rota `/orcamento` (ou `/orcamento.html`); o formulário de orçamento mantém o catálogo de reserva e a opção de atualizar serviços.
+- O **azul técnico #173C67** permanece no centro da faixa de topo, com azul-marinho e azul médio como apoio, menu branco e logo oficial em base clara. Nenhum rosa foi reintroduzido.
+- A estrutura HTML das páginas segue compartilhada por `scripts/build-pages.mjs` e as folhas finais por `scripts/build-css.mjs`.
+- **Não iniciar deploy manual** nesta etapa. Os arquivos estão preparados para homologação; merges em `main` podem, conforme conexão atual, acionar a Vercel automaticamente.
+
+Permanecem para revisão posterior, sem mudanças nesta entrega: divisão real do código-fonte HTML/JS entre telas, recuperação da logo com botão de repetição e testes visuais em navegador real.
