@@ -15,7 +15,7 @@ test('visual público não mostra nome escrito nem ícone substituto',()=>{
  assert.match(home,/data-admin-view="logo"/);
  assert.match(home,/id="adminBrandingPanel"/);
  assert.match(home,/id="siteSettings"/);
- assert.match(proposal,/assets\/proposta.css/);
+ assert.match(proposal,/assets\/civolten-proposta-unificado.css/);
  assert.doesNotMatch(proposal,/<style>|style="/);
 });
 test('identidade pública não inclui rotas privilegiadas, nem insumos e preços',()=>{
