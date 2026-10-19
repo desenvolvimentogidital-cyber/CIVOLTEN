@@ -50,3 +50,14 @@ npm run lint:syntax
 O Next.js completo tem suas próprias variáveis listadas em `app-nextjs/.env.example`. Elas não são necessárias para hospedar a página estática da raiz. Para publicar a app Next.js completa, é preciso validar build e configurar variáveis próprias da CIVOLTEN em ambiente protegido.
 
 *Atualizado em 2026-10-16.*
+## Telas e navegação do site
+
+O projeto utiliza rotas públicas separadas, com os mesmos recursos e regras de negócio:
+
+- `/` — página inicial e apresentação dos serviços.
+- `/servicos` — vitrine completa de serviços oferecidos.
+- `/orcamento` — formulário de solicitação, anexos e simulação.
+- `/empresa` — login e painel de gestão, protegido por sessão e autorização.
+- `/empresa?secao=visao`, `pedidos`, `orcamentos`, `precos`, `siurb`, `logo`, `textos`, `backup` — seções internas; apenas usuários autorizados acessam dados.
+
+A pré-seleção de categoria e quantidade na página inicial é encaminhada via parâmetros para `/orcamento`. O CSS de cada tela apenas controla qual interface aparece; a API, a validação, o cadastro e os PDFs não são duplicados. A identidade visual continua vindo de **Área da empresa → Logo e cores**.

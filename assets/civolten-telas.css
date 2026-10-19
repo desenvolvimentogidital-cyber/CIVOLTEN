@@ -1,0 +1,36 @@
+/* CIVOLTEN — telas independentes, mantendo a identidade do mockup.
+   / apresenta os serviços; /orcamento concentra o formulário;
+   /empresa mantém apenas o painel protegido de administração. */
+body[data-screen="inicio"] .client-form-wrap,
+body[data-screen="inicio"] #admin,
+body[data-screen="orcamento"] .landing-shell,
+body[data-screen="orcamento"] #admin,
+body[data-screen="empresa"] #client {display:none!important}
+body[data-screen="inicio"] .landing-shell{padding-bottom:42px}
+body[data-screen="orcamento"] #client{min-height:calc(100dvh - 160px);background:linear-gradient(180deg,rgba(247,249,253,.93),rgba(255,255,255,.98)),url('/assets/images/background.png') top center/cover no-repeat}
+body[data-screen="orcamento"] .client-form-wrap{width:min(1080px,calc(100% - 32px));max-width:1080px;margin:0 auto;padding:clamp(24px,4vw,56px) 0 75px}
+body[data-screen="orcamento"] .quote-section-heading{max-width:740px;margin:0 auto 24px;padding-top:9px;text-align:center}
+body[data-screen="orcamento"] .quote-section-heading h2{font-size:clamp(30px,4vw,52px);line-height:1.08;letter-spacing:-.045em;color:#0b1e38}
+body[data-screen="orcamento"] .quote-section-heading p{font-size:15px;line-height:1.7;color:#536782}
+body[data-screen="orcamento"] .premium-quote-card{box-shadow:0 25px 70px rgba(8,32,61,.14);border-radius:22px;border:1px solid rgba(218,228,238,.9);padding:clamp(16px,3vw,36px)}
+body[data-screen="orcamento"] .premium-quote-card hr{border-color:#e6ebf1}
+body[data-screen="orcamento"] #formulario{scroll-margin-top:90px}
+body[data-screen="empresa"] #admin{padding-top:22px;min-height:calc(100dvh - 145px);background:#f5f8fc}
+body[data-screen="empresa"] .premium-admin-workspace{min-height:75dvh}
+body[data-screen="empresa"] .premium-company-btn{background:transparent!important;color:#142b46!important;border:1px solid #ccd6e2!important;box-shadow:none!important}
+body[data-screen="empresa"] .admin-entry{text-align:left}
+body[data-screen="empresa"] .admin-entry h1{font-size:clamp(28px,3.5vw,42px);letter-spacing:-.04em}
+body[data-screen="empresa"] #loginbox{box-shadow:0 22px 65px rgba(16,39,67,.12)}
+body[data-screen="inicio"] .landing-category-grid{margin-bottom:12px}
+body[data-screen="inicio"] .landing-top{padding-top:32px}
+body[data-screen="inicio"] .landing-steps{margin-top:10px}
+body[data-screen="inicio"] .premium-header .premium-logo-link,
+body[data-screen="orcamento"] .premium-header .premium-logo-link,
+body[data-screen="empresa"] .premium-header .premium-logo-link{flex-shrink:0}
+@media(max-width:700px){
+ body[data-screen="orcamento"] .client-form-wrap{width:calc(100% - 24px);padding:25px 0 48px}
+ body[data-screen="orcamento"] .quote-section-heading{margin-bottom:17px}
+ body[data-screen="orcamento"] .premium-quote-card{border-radius:15px;padding:17px}
+ body[data-screen="empresa"] #admin{padding:12px}
+ body[data-screen="inicio"] .landing-shell{padding-bottom:28px}
+}

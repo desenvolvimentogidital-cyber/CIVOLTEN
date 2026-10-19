@@ -2,11 +2,12 @@
 <html lang="pt-BR"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><title>CIVOLTEN | Elétrica e Construção Civil — Orçamentos</title><meta name="theme-color" content="#08182B"/><meta name="description" content="Solicite seu orçamento de serviços elétricos, reformas e construção civil na CIVOLTEN."/>
 <link rel="stylesheet" href="/assets/civolten.css?v=7"/>
 <link rel="stylesheet" href="/assets/civolten-premium.css?v=1"/>
-<link rel="stylesheet" href="/assets/civolten-art-direction.css?v=1"/></head><body><a class="skip-link" href="#formulario">Pular para o formulário</a>
+<link rel="stylesheet" href="/assets/civolten-art-direction.css?v=1"/>
+<link rel="stylesheet" href="/assets/civolten-telas.css?v=1"/></head><body><a class="skip-link" href="#formulario">Pular para o formulário</a>
 <header class="premium-header" id="pageHeader"><div class="premium-header-inner">
- <a class="premium-logo-link" href="#inicio" aria-label="Voltar ao início"><img id="siteLogo" class="site-brand-logo" alt="Logo oficial" hidden></a>
+ <a class="premium-logo-link" href="/" aria-label="Voltar ao início"><img id="siteLogo" class="site-brand-logo" alt="Logo oficial" hidden></a>
  <nav class="premium-site-nav" aria-label="Navegação do site">
-  <a href="#inicio">Início</a><a href="#servicos-home">Serviços</a><a href="#como-funciona">Como funciona</a>
+  <a href="#inicio">Início</a><a href="/servicos">Serviços</a><a href="/#como-funciona">Como funciona</a>
  </nav>
  <button type="button" id="toggle" class="premium-company-btn">Área da empresa <span aria-hidden="true">↗</span></button>
  </div></header>
@@ -18,8 +19,8 @@
    <h1 id="siteHeadline">Seu orçamento de forma rápida e profissional.</h1>
    <p id="siteDescription" class="landing-lead">Elétrica, alvenaria, pintura, drywall e reformas. Solicite seu orçamento em poucos passos.</p>
    <div class="landing-hero-actions">
-    <a class="action-primary" href="#formulario">▤ Solicitar orçamento <span aria-hidden="true">→</span></a>
-    <a class="action-secondary" href="#simulacao">▦ Simular valores</a>
+    <a class="action-primary" href="/orcamento">▤ Solicitar orçamento <span aria-hidden="true">→</span></a>
+    <a class="action-secondary" href="/orcamento#simulacao">▦ Simular valores</a>
    </div>
    <div class="landing-trust">
     <span>◇ Dados protegidos</span><span>◷ Atendimento organizado</span><span>✓ Orçamento detalhado</span>
@@ -61,11 +62,11 @@
     <p>Orçamentos para as principais etapas da sua obra ou reforma.</p><a href="/servicos">Ver todos os serviços ↗</a>
   </div>
   <div class="landing-category-grid">
-   <a class="landing-category-card" href="#formulario" data-select-category="eletrica"><div><span class="cat-symbol">⌁</span><strong>Elétrica</strong><p>Instalações, reparos e manutenção.</p></div><img loading="lazy" alt="Serviços de instalações elétricas" src="/assets/images/eletrica.png" data-fallback="https://images.pexels.com/photos/257700/pexels-photo-257700.jpeg?auto=compress&amp;w=470"></a>
-   <a class="landing-category-card" href="#formulario" data-select-category="construcao"><div><span class="cat-symbol">▦</span><strong>Alvenaria</strong><p>Construção de paredes e acabamentos.</p></div><img loading="lazy" alt="Alvenaria e construção" src="/assets/images/alvenaria.png" data-fallback="https://images.pexels.com/photos/259915/pexels-photo-259915.jpeg?auto=compress&amp;w=470"></a>
-   <a class="landing-category-card" href="#formulario" data-select-category="pintura"><div><span class="cat-symbol">▤</span><strong>Pintura</strong><p>Pintura interna e externa.</p></div><img loading="lazy" alt="Pintura de paredes" src="/assets/images/pintura.png" data-fallback="https://images.pexels.com/photos/6474483/pexels-photo-6474483.jpeg?auto=compress&amp;w=470"></a>
-   <a class="landing-category-card" href="#formulario" data-select-category="reforma"><div><span class="cat-symbol">▥</span><strong>Drywall</strong><p>Divisórias, forros e gesso.</p></div><img loading="lazy" alt="Interiores e drywall" src="/assets/images/drywall.png" data-fallback="https://images.pexels.com/photos/1669799/pexels-photo-1669799.jpeg?auto=compress&amp;w=470"></a>
-   <a class="landing-category-card" href="#formulario" data-select-category="reforma"><div><span class="cat-symbol">⌂</span><strong>Reformas</strong><p>Reformas residenciais e comerciais.</p></div><img loading="lazy" alt="Reforma residencial contemporânea" src="/assets/images/reforma.png" data-fallback="https://images.pexels.com/photos/1454806/pexels-photo-1454806.jpeg?auto=compress&amp;w=470"></a>
+   <a class="landing-category-card" href="/orcamento?servico=eletrica" data-select-category="eletrica"><div><span class="cat-symbol">⌁</span><strong>Elétrica</strong><p>Instalações, reparos e manutenção.</p></div><img loading="lazy" alt="Serviços de instalações elétricas" src="/assets/images/eletrica.png" data-fallback="https://images.pexels.com/photos/257700/pexels-photo-257700.jpeg?auto=compress&amp;w=470"></a>
+   <a class="landing-category-card" href="/orcamento?servico=construcao" data-select-category="construcao"><div><span class="cat-symbol">▦</span><strong>Alvenaria</strong><p>Construção de paredes e acabamentos.</p></div><img loading="lazy" alt="Alvenaria e construção" src="/assets/images/alvenaria.png" data-fallback="https://images.pexels.com/photos/259915/pexels-photo-259915.jpeg?auto=compress&amp;w=470"></a>
+   <a class="landing-category-card" href="/orcamento?servico=pintura" data-select-category="pintura"><div><span class="cat-symbol">▤</span><strong>Pintura</strong><p>Pintura interna e externa.</p></div><img loading="lazy" alt="Pintura de paredes" src="/assets/images/pintura.png" data-fallback="https://images.pexels.com/photos/6474483/pexels-photo-6474483.jpeg?auto=compress&amp;w=470"></a>
+   <a class="landing-category-card" href="/orcamento?servico=reforma" data-select-category="reforma"><div><span class="cat-symbol">▥</span><strong>Drywall</strong><p>Divisórias, forros e gesso.</p></div><img loading="lazy" alt="Interiores e drywall" src="/assets/images/drywall.png" data-fallback="https://images.pexels.com/photos/1669799/pexels-photo-1669799.jpeg?auto=compress&amp;w=470"></a>
+   <a class="landing-category-card" href="/orcamento?servico=reforma" data-select-category="reforma"><div><span class="cat-symbol">⌂</span><strong>Reformas</strong><p>Reformas residenciais e comerciais.</p></div><img loading="lazy" alt="Reforma residencial contemporânea" src="/assets/images/reforma.png" data-fallback="https://images.pexels.com/photos/1454806/pexels-photo-1454806.jpeg?auto=compress&amp;w=470"></a>
   </div>
  </section>
 </div>
@@ -162,4 +163,4 @@
  </section>
  </div></div><div id="adminmsg" role="alert" aria-live="assertive"></div></section></main>
 <footer><div class="site-footer"><img id="footerLogo" class="site-footer-logo" alt="Logo CIVOLTEN" hidden><p id="siteFooterNote">Elétrica, reformas e construção civil. Atendimento e orçamentos digitais.</p><a id="siteContactWhatsApp" class="site-contact" href="#" target="_blank" rel="noopener noreferrer" hidden>Falar no WhatsApp</a><a href="/privacidade.html">Privacidade</a></div></footer>
-<script src="/assets/site-branding.js?v=2" defer></script><script src="/assets/civolten-reference.js?v=1" defer></script><script src="/assets/civolten-pro.js?v=4" defer></script><script src="/assets/civolten.js?v=12" defer></script><script src="/assets/civolten-premium.js?v=1" defer></script><script src="/assets/civolten-assets.js?v=1" defer></script></body></html>
+<script src="/assets/site-branding.js?v=2" defer></script><script src="/assets/civolten-reference.js?v=1" defer></script><script src="/assets/civolten-pro.js?v=4" defer></script><script src="/assets/civolten.js?v=12" defer></script><script src="/assets/civolten-premium.js?v=1" defer></script><script src="/assets/civolten-assets.js?v=1" defer></script><script src="/assets/civolten-routes.js?v=1" defer></script></body></html>

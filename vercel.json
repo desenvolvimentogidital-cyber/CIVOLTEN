@@ -34,6 +34,19 @@
           "value": "none"
         }
       ]
+    },
+    {
+      "source": "/empresa",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store"
+        }
+      ]
     }
   ],
   "redirects": [
@@ -43,14 +56,19 @@
       "permanent": false
     },
     {
-      "source": "/orcamento",
-      "destination": "/",
+      "source": "/orcamentos",
+      "destination": "/orcamento",
       "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/orcamento",
+      "destination": "/index.html"
     },
     {
-      "source": "/orcamentos",
-      "destination": "/",
-      "permanent": false
+      "source": "/empresa",
+      "destination": "/index.html"
     }
   ]
 }
