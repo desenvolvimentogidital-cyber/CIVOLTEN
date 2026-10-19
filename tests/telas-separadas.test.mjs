@@ -52,7 +52,8 @@ test('roteador inicializa telas isoladas sem perder formulário e painel existen
       admin:{classList:{contains:()=>true}},quickContinue:{addEventListener(){}},
       quickQuantity:{value:'1'}, siteLogo:{}
    };
-   const links=[{href:''},{href:''},{href:''}];
+   const link=()=>({href:'',setAttribute(){},removeAttribute(){}});
+   const links=[link(),link(),link()];
    const nav={querySelectorAll:()=>links};
    const logo={href:'#inicio'};
    const skip={setAttribute(){},textContent:''};
