@@ -175,3 +175,33 @@ body.site-privacidade{background:linear-gradient(180deg,#f3f7fb 0%,#fff 76%);col
 @media(prefers-reduced-motion:reduce){
  body :is(.btn,.action-primary,.action-secondary,.goldbtn,.premium-company-btn){transition:none}
 }
+
+/* Um único menu compacto para tablet e celular; não duplica a área da empresa. */
+.cv-mobile-nav{display:none;position:relative;z-index:40}
+.cv-mobile-nav summary{
+ list-style:none;cursor:pointer;color:var(--cv-ink);font-weight:800;font-size:13px;
+ background:#fff;border:1px solid var(--cv-border);border-radius:9px;
+ padding:11px 14px;min-height:44px;white-space:nowrap
+}
+.cv-mobile-nav summary::-webkit-details-marker{display:none}
+.cv-mobile-nav nav{
+ position:absolute;right:0;top:calc(100% + 8px);width:min(275px,82vw);
+ background:#fff;border:1px solid var(--cv-border);border-radius:12px;
+ box-shadow:var(--cv-shadow);padding:8px;display:grid;gap:3px
+}
+.cv-mobile-nav nav a{
+ display:block;color:var(--cv-ink);padding:11px 13px;
+ border-radius:8px;text-decoration:none;font-size:13px;font-weight:750
+}
+.cv-mobile-nav nav a:hover,.cv-mobile-nav nav a[aria-current="page"]{
+ background:#fff3df;color:#724a12
+}
+@media(max-width:900px){
+ .premium-header .premium-site-nav{display:none}
+ .premium-header .cv-mobile-nav{display:block}
+}
+@media(max-width:570px){
+ .premium-header .cv-mobile-nav{display:block}
+ .premium-header #toggle{display:none}
+ .premium-header>.premium-header-inner{gap:10px;justify-content:space-between}
+}
