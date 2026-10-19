@@ -1,0 +1,38 @@
+
+/* SERVIÇOS: fundo branco nas seções, foto no hero e mesmos cartões/branco/dourado. */
+body.site-servicos{background:var(--cv-mist);color:var(--cv-ink)}
+.site-servicos .header{background:rgba(255,255,255,.97);border-bottom-color:var(--cv-border)}
+.site-servicos .nav a{color:var(--cv-ink)}
+.site-servicos .nav a[aria-current="page"]::after{background:var(--cv-gold)}
+.site-servicos .hero{background:var(--cv-navy)}
+.site-servicos .hero h1{color:#fff}
+.site-servicos .hero .highlight,.site-servicos .hero-highlights svg{color:#f7c64c;stroke:#f7c64c}
+.site-servicos .hero .btn-gold{color:#0a2039}
+.site-servicos .trustbar{background:var(--cv-navy)}
+.site-servicos .services{background:linear-gradient(180deg,#fff,#f6f8fb);color:var(--cv-ink)}
+.site-servicos .section h2{color:var(--cv-ink)}
+.site-servicos .section h2 .gold,.site-servicos .step b{color:var(--cv-gold)}
+.site-servicos .eyebrow{color:#98620e}
+.site-servicos .section-heading p,.site-servicos .services-note,.site-servicos .step p{color:var(--cv-text)}
+.site-servicos .service-card{background:#fff;border-color:var(--cv-border);box-shadow:0 10px 25px rgba(7,25,53,.07);border-radius:14px}
+.site-servicos .service-card:before{opacity:.10}
+.site-servicos .service-card:hover{border-color:var(--cv-gold);background:#fff}
+.site-servicos .service-card .service-name{color:var(--cv-ink)}
+.site-servicos .service-card .service-icon{stroke:var(--cv-gold)}
+.site-servicos .service-card:after{background:var(--cv-gold);opacity:.7;box-shadow:none}
+.site-servicos .section-features{background:#fff}
+.site-servicos .benefit{background:#f8fafc;border-color:var(--cv-border)}
+.site-servicos .benefit h3{color:var(--cv-ink)}
+.site-servicos .benefit p{color:var(--cv-text)}
+.site-servicos .benefit .number{color:#94620b}
+.site-servicos .process{background:var(--cv-mist)}
+.site-servicos .step h3{color:var(--cv-ink)}
+.site-servicos .cta{background:var(--cv-navy);color:#fff}
+.site-servicos .cta h2{color:#fff}
+.site-servicos .cta h2 .gold{color:#f5c85a}
+.site-servicos .cta p{color:#d2deec}
+.site-servicos .cta .eyebrow{color:#f5c85a}
+.site-servicos .footer{background:#06182d;color:#e9f1f9}
+.site-servicos .footer a{color:#e0e9f3}
+.site-servicos .mobile-links{background:#fff}
+.site-servicos .mobile-links a{color:var(--cv-ink)}
