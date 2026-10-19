@@ -14,7 +14,7 @@ test('cada tela carrega exatamente UM CSS, sem arquivos antigos empilhados',()=>
  for(const [htmlFile,cssFile] of pages){
   const html=read(htmlFile);
   const links=[...html.matchAll(/<link\s+rel="stylesheet"\s+href="([^"]+)"/g)].map(m=>m[1]);
-  assert.deepEqual(links,['/'+cssFile+'?v=1'],htmlFile);
+  assert.deepEqual(links,['/'+cssFile+'?v=2'],htmlFile);
   assert.doesNotMatch(html,/civolten-premium\.css|civolten-art-direction\.css|civolten-telas\.css|civolten-padrao\.css|href="\/assets\/civolten\.css"/,htmlFile);
   assert.ok(read(cssFile).length>10000,cssFile);
  }
