@@ -134,7 +134,7 @@ function openAdminView(view){
   panel.classList.toggle('hidden',panel.id!==panelId);
  }
  const buttons=Array.from(document.querySelectorAll('#adminMenu [data-admin-view]'));
- const overview=document.querySelector('.admin-overview-button');
+ const overview=document.querySelector?.('.admin-overview-button');
  if(overview)buttons.push(overview);
  for(const button of buttons){
   const active=button.dataset.adminView===view;
@@ -170,7 +170,7 @@ function initAdminNavigation(){
  for(const button of document.querySelectorAll('#adminMenu [data-admin-view]')){
   button.addEventListener('click',()=>openAdminView(button.dataset.adminView));
  }
- document.querySelector('.admin-overview-button')?.addEventListener('click',()=>openAdminView('visao'));
+ document.querySelector?.('.admin-overview-button')?.addEventListener('click',()=>openAdminView('visao'));
  for(const button of document.querySelectorAll('[data-admin-shortcut]')){
   button.addEventListener('click',()=>openAdminView(button.dataset.adminShortcut));
  }
