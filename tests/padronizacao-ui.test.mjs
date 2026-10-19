@@ -19,8 +19,8 @@ test('as quatro páginas compartilham os mesmos tokens de identidade',()=>{
  ];
  for(const [name,markup,asset] of pages){
   assert.match(markup, new RegExp('href="/assets/'+asset+'\\.css\\?v=1"'),name);
-  assert.equal((markup.match(/<link\\s+rel="stylesheet"/g)||[]).length,1,name);
-  assert.doesNotMatch(markup,/<style(?:\\s|>)|\\sonclick=/i,name);
+  assert.equal((markup.match(/<link\s+rel="stylesheet"/g)||[]).length,1,name);
+  assert.doesNotMatch(markup,/<style(?:\s|>)|\sonclick=/i,name);
  }
  assert.match(shared,/--cv-navy:var\(--brand-primary/);
  assert.match(shared,/--cv-gold:var\(--brand-accent/);
