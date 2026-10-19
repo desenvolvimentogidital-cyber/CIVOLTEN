@@ -17,8 +17,11 @@ const directory={
   ['reforma_apartamento_completa','Reforma completa'],['demolicao_alvenaria','Demolições'],['regularizacao_contrapiso','Contrapiso'],['drywall_pintura_premium','Drywall e acabamento']]},
  pisos:{label:'Pisos e revestimentos',category:'construcao',options:[
   ['assentamento_porcelanato','Assentamento de porcelanato'],['assentamento_azulejo_pastilha','Azulejos e pastilhas'],['regularizacao_contrapiso','Regularização de contrapiso']]},
- pintura:{label:'Pintura e acabamentos',category:'pintura',options:[
-  ['pintura_alvenaria','Pintura de alvenaria'],['drywall_pintura_premium','Drywall com pintura premium'],['reboco_interno','Preparação e reboco']]},
+ pintura:{label:'Pintura',category:'pintura',options:[
+  ['pintura_alvenaria','Pintura de paredes'],
+  ['avaliacao:pintura_tetos','Pintura de tetos'],
+  ['avaliacao:pintura_pisos','Pintura de pisos'],
+  ['avaliacao:pintura_drywall','Pintura de drywall']]},
  hidraulica:{label:'Serviços hidráulicos',category:'hidraulica',options:[]},
  alvenaria:{label:'Alvenaria e acabamentos',category:'construcao',options:[
   ['levantamento_bloco','Levantamento de blocos'],['reboco_interno','Reboco interno'],['assentamento_porcelanato','Revestimento porcelanato'],['assentamento_azulejo_pastilha','Azulejo ou pastilha']]},
@@ -57,9 +60,13 @@ function render(group){
 }
 function collect(){
  const info=directory[current];
- const ids=Array.from(container?.querySelectorAll('input[name="quickItem"]:checked')||[]).map(x=>x.value);
+ const chosen=Array.from(container?.querySelectorAll('input[name="quickItem"]:checked')||[]).map(x=>x.value);
+ // Pintura de tetos, pisos e drywall ainda não possui composição de preço própria.
+ // Nunca substituir por preço de reboco ou instalação de drywall.
+ const ids=chosen.filter(id=>!id.startsWith('avaliacao:'));
+ const assess=info.options.filter(([id])=>chosen.includes(id)&&id.startsWith('avaliacao:')).map(([,label])=>label);
  const details=$('quickDetails')?.value.trim()||'';
- if(ids.length===0&&details.length<8){
+ if(chosen.length===0&&details.length<8){
   const warning=$('quickWarning');
   if(warning){warning.hidden=false;warning.textContent='Escolha pelo menos um serviço ou descreva sua necessidade (mínimo de 8 caracteres).';}
   $('quickDetails')?.focus();
@@ -68,7 +75,9 @@ function collect(){
  const raw=Number($('quickQuantity')?.value||1);
  const quantity=Number.isFinite(raw)&&raw>0&&raw<=100000?raw:1;
  const mode=document.querySelector('input[name="quickScope"]:checked')?.value==='mao_obra'?'mao_obra':'completo';
- return {category:info.category,group:current,label:info.label,items:ids,details,quantity,mode};
+ const assessment=assess.length?'Pinturas solicitadas para avaliação: '+assess.join(', ')+'. Quantidade aproximada: '+quantity+'.':'';
+ return {category:info.category,group:current,label:info.label,items:ids,
+  details:[assessment,details].filter(Boolean).join(' ').slice(0,500),quantity,mode};
 }
 for(const button of document.querySelectorAll('[data-quick-category]')){
  button.addEventListener('click',()=>render(button.dataset.quickCategory));
