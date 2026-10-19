@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
 const home=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-const css=readFileSync(new URL('../assets/civolten-premium.css',import.meta.url),'utf8');
+const css=readFileSync(new URL('../assets/civolten-app-unificado.css',import.meta.url),'utf8');
 const script=readFileSync(new URL('../assets/civolten-premium.js',import.meta.url),'utf8');
 const state=readFileSync(new URL('../assets/site-branding.js',import.meta.url),'utf8');
 const classic=readFileSync(new URL('../assets/civolten.js',import.meta.url),'utf8');
@@ -14,7 +14,7 @@ test('tela inicial premium conserva o formulário e os 3.463 serviços EDIF/INFR
   assert.match(home,new RegExp('id="'+id+'"'),'elemento obrigatório '+id);
  for(const section of ['landing-top','landing-steps','landing-category-grid','landing-fast-card','premium-quote-card'])
   assert.ok(home.includes(section));
- assert.match(home,/civolten-premium\.css\?v=/);
+ assert.match(home,/civolten-app-unificado\.css\?v=/);
  assert.match(home,/civolten-premium\.js\?v=/);
  assert.match(classic,/api=siurb-list/);
  assert.match(classic,/modalidade:row\._modeSelect/);
