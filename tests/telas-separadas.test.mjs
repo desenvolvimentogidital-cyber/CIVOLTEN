@@ -16,7 +16,7 @@ test('orçamento e empresa são URLs independentes, não redirecionadas à home'
   assert.ok(!cfg.redirects.some(x=>x.source==='/orcamento'||x.source==='/empresa'));
   assert.ok(cfg.headers.some(x=>x.source==='/empresa'&&x.headers.some(h=>h.key==='X-Robots-Tag')));
   assert.match(html,/civolten-routes\.js/);
-  assert.match(html,/civolten-telas\.css/);
+  assert.match(html,/civolten-app-unificado\.css/);
   assert.match(css,/body\[data-screen="inicio"\] \.client-form-wrap/);
   assert.match(css,/body\[data-screen="orcamento"\] \.landing-shell/);
   assert.match(css,/body\[data-screen="empresa"\] #client/);
