@@ -10,14 +10,15 @@ document.body.dataset.screen=screen;
 const $=id=>document.getElementById(id);
 const toggle=$('toggle');
 const skip=document.querySelector('.skip-link');
+// A empresa é acessada diretamente, inclusive sem botão visível no celular.
+if(screen==='empresa'){
+ $('admin')?.classList.remove('hidden');
+ $('client')?.classList.add('hidden');
+ window.CIVOLTEN_ADMIN_BOOT?.();
+}
 if(toggle){
-  // A função antiga alternava o cliente e a empresa na mesma tela.
-  // Agora cada área tem o seu endereço e seu próprio histórico.
-  if(screen==='empresa' && $('admin')?.classList.contains('hidden')){
-    toggle.click();
-  }
-  toggle.onclick=()=>window.location.assign(screen==='empresa'?'/':'/empresa');
-  if(screen==='empresa')toggle.textContent='← Voltar ao site';
+ toggle.onclick=()=>window.location.assign(screen==='empresa'?'/':'/empresa');
+ if(screen==='empresa')toggle.textContent='← Voltar ao site';
 }
 if(skip){
   skip.setAttribute('href',screen==='orcamento'?'#formulario':screen==='empresa'?'#admin':'#inicio');
@@ -52,35 +53,41 @@ for(const link of document.querySelectorAll('.landing-hero-actions a')){
 }
 for(const link of document.querySelectorAll('.landing-category-card[data-select-category]')){
  const category=link.dataset.selectCategory;
- if(['eletrica','pintura','construcao','reforma'].includes(category))
+ if(['eletrica','manutencao','iluminacao','solar','construcao','reforma','pisos','pintura','hidraulica','alvenaria'].includes(category))
    link.href='/orcamento?servico='+encodeURIComponent(category);
 }
 const quick=$('quickContinue');
 if(quick&&screen==='inicio'){
-  quick.addEventListener('click',event=>{
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    const category=document.querySelector('[data-quick-category].active')?.dataset.quickCategory||'eletrica';
-    const num=Number($('quickQuantity')?.value||1);
-    const qty=Number.isFinite(num)&&num>=1&&num<=100000?num:1;
-    const mode=document.querySelector('input[name="quickScope"]:checked')?.value==='mao_obra'?'mao_obra':'completo';
-    const params=new URLSearchParams({servico:category,quantidade:String(qty),modo:mode});
-    window.location.assign('/orcamento?'+params.toString());
-  },true);
+ quick.addEventListener('click',event=>{
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  const chosen=window.CIVOLTEN_QUICK_SELECTION?.collect?.();
+  if(!chosen)return;
+  const params=new URLSearchParams({
+   servico:chosen.category,grupo:chosen.group,quantidade:String(chosen.quantity),
+   modo:chosen.mode,subtipo:chosen.label
+  });
+  if(chosen.items.length)params.set('itens',chosen.items.join(','));
+  if(chosen.details)params.set('detalhes',chosen.details.slice(0,500));
+  window.location.assign('/orcamento?'+params.toString());
+ },true);
 }
 if(screen==='orcamento'){
-  const params=new URLSearchParams(window.location.search);
-  const category=params.get('servico');
-  if(['eletrica','pintura','construcao','reforma'].includes(category)){
-    const button=document.querySelector('[data-quick-category="'+category+'"]');
-    button?.click();
-    const quantity=Number(params.get('quantidade'));
-    if(Number.isFinite(quantity)&&quantity>=1&&quantity<=100000&&$('quickQuantity'))$('quickQuantity').value=String(quantity);
-    if(params.get('modo')==='mao_obra'){
-      const radio=document.querySelector('input[name="quickScope"][value="mao_obra"]');
-      if(radio)radio.checked=true;
-    }
-    quick?.click();
+ const params=new URLSearchParams(window.location.search);
+ const category=params.get('servico');
+ const group=params.get('grupo');
+ const allowed=['eletrica','manutencao','iluminacao','construcao','reforma','pintura','hidraulica','outros'];
+ if(allowed.includes(category)){
+  if(group&&window.CIVOLTEN_QUICK_SELECTION?.directory?.[group]){
+   const button=document.querySelector('[data-quick-category="'+group+'"]');
+   button?.click();
   }
+  const ids=String(params.get('itens')||'').split(',').filter(x=>/^[a-z0-9_]{2,70}$/.test(x)).slice(0,12);
+  window.CIVOLTEN_FORM?.prefillQuickSelection({
+   category,items:ids,details:params.get('detalhes')||'',
+   quantity:params.get('quantidade'),mode:params.get('modo'),
+   label:params.get('subtipo')||''
+  });
+ }
 }
 })();
