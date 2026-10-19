@@ -49,7 +49,7 @@ test('roteador inicializa telas isoladas sem perder formulário e painel existen
  for(const p of ['/','/orcamento','/empresa']){
    const all={};
    const nodes={toggle:{textContent:'Área da empresa',onclick:null,click(){all.clicked=true;},classList:{contains:()=>true}},
-      admin:{classList:{contains:()=>true}},quickContinue:{addEventListener(){}},
+      admin:{classList:{contains:()=>true,remove(){all.adminOpened=true;}}},quickContinue:{addEventListener(){}},
       quickQuantity:{value:'1'}, siteLogo:{}
    };
    const link=()=>({href:'',getAttribute(name){return name==='href'?this.href:null;},setAttribute(){},removeAttribute(){}});
@@ -68,6 +68,6 @@ test('roteador inicializa telas isoladas sem perder formulário e painel existen
    vm.runInNewContext(route,ctx);
    assert.equal(doc.body.dataset.screen,p==='/empresa'?'empresa':p==='/orcamento'?'orcamento':'inicio');
    assert.equal(logo.href,'/');
-   if(p==='/empresa')assert.equal(doc.body.dataset.screen,'empresa');
+   if(p==='/empresa')assert.equal(all.adminOpened,true);
  }
 });
