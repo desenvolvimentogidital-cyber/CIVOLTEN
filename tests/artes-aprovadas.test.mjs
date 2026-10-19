@@ -23,7 +23,7 @@ test('telas públicas usam as artes locais e oferecem fallback, sem ofertas fora
  assert.match(home,/assets\/images\/pintura\.png/);
  assert.match(home,/assets\/images\/drywall\.png/);
  assert.match(home,/assets\/images\/reforma\.png/);
- assert.match(home,/assets\/civolten-art-direction\.css/);
+ assert.match(home,/assets\/civolten-app-unificado\.css/);
  assert.match(home,/assets\/civolten-assets\.js/);
  assert.match(catalog,/assets\/images\/hero\.png/);
  assert.doesNotMatch(catalog,/Automa[cç][aã]o residencial|Sistemas de seguran[cç]a/);
