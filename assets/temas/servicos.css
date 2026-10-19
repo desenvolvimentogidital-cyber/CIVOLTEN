@@ -36,3 +36,16 @@ body.site-servicos{background:var(--cv-mist);color:var(--cv-ink)}
 .site-servicos .footer a{color:#e0e9f3}
 .site-servicos .mobile-links{background:#fff}
 .site-servicos .mobile-links a{color:var(--cv-ink)}
+
+/* Barra da página de serviços igual à home: azul-rosa, navegação branca. */
+.site-servicos .header{background:var(--cv-header-gradient)!important;border-bottom:1px solid rgba(255,211,138,.45);box-shadow:0 7px 24px rgba(10,28,54,.2)}
+.site-servicos .header .nav a{color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.2)}
+.site-servicos .header .nav a:hover{color:#fff!important}
+.site-servicos .header .nav a[aria-current="page"]::after{background:var(--brand-accent,#dca629)}
+.site-servicos .header .logo-link{padding:5px 11px;border-radius:12px;border:1px solid rgba(255,255,255,.85);background:var(--cv-logo-plate);box-shadow:0 4px 17px rgba(4,13,30,.24);min-height:50px}
+.site-servicos .header .brand-logo{filter:drop-shadow(0 1px 3px rgba(8,28,56,.15))}
+.site-servicos .header .mobile-menu summary{color:#fff!important;background:rgba(10,27,58,.27);border:1px solid rgba(255,255,255,.65)}
+.site-servicos .header .mobile-links{background:#172d4f;border-color:rgba(246,217,169,.36)}
+.site-servicos .header .mobile-links a{color:#fff}
+.site-servicos .header .mobile-links a:hover{background:rgba(253,201,109,.18)}
+@media(max-width:760px){.site-servicos .header .logo-link{padding:4px 7px}}
