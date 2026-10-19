@@ -11,8 +11,8 @@ const cfg=JSON.parse(read('vercel.json'));
 
 test('orçamento e empresa são URLs independentes, não redirecionadas à home',()=>{
   const rewrites=Object.fromEntries(cfg.rewrites.map(x=>[x.source,x.destination]));
-  assert.equal(rewrites['/orcamento'],'/index.html');
-  assert.equal(rewrites['/empresa'],'/index.html');
+  assert.equal(rewrites['/orcamento'],'/orcamento.html');
+  assert.equal(rewrites['/empresa'],'/empresa.html');
   assert.ok(!cfg.redirects.some(x=>x.source==='/orcamento'||x.source==='/empresa'));
   assert.ok(cfg.headers.some(x=>x.source==='/empresa'&&x.headers.some(h=>h.key==='X-Robots-Tag')));
   assert.match(html,/civolten-routes\.js/);
@@ -49,7 +49,7 @@ test('roteador inicializa telas isoladas sem perder formulário e painel existen
  for(const p of ['/','/orcamento','/empresa']){
    const all={};
    const nodes={toggle:{textContent:'Área da empresa',onclick:null,click(){all.clicked=true;},classList:{contains:()=>true}},
-      admin:{classList:{contains:()=>true}},quickContinue:{addEventListener(){}},
+      admin:{classList:{contains:()=>true,remove(){all.adminOpened=true;}}},quickContinue:{addEventListener(){}},
       quickQuantity:{value:'1'}, siteLogo:{}
    };
    const link=()=>({href:'',getAttribute(name){return name==='href'?this.href:null;},setAttribute(){},removeAttribute(){}});
@@ -68,6 +68,6 @@ test('roteador inicializa telas isoladas sem perder formulário e painel existen
    vm.runInNewContext(route,ctx);
    assert.equal(doc.body.dataset.screen,p==='/empresa'?'empresa':p==='/orcamento'?'orcamento':'inicio');
    assert.equal(logo.href,'/');
-   if(p==='/empresa')assert.equal(all.clicked,true);
+   if(p==='/empresa')assert.equal(all.adminOpened,true);
  }
 });

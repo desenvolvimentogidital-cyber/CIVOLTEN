@@ -64,11 +64,11 @@
   "rewrites": [
     {
       "source": "/orcamento",
-      "destination": "/index.html"
+      "destination": "/orcamento.html"
     },
     {
       "source": "/empresa",
-      "destination": "/index.html"
+      "destination": "/empresa.html"
     }
   ]
 }

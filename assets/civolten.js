@@ -108,7 +108,25 @@ async function api(method,action,data,auth=false){
  if(!r.ok)throw Error(response.error||'Falha de conexão');
  return response;
 }
-$('toggle').onclick=()=>{const a=$('admin').classList.contains('hidden');$('admin').classList.toggle('hidden',!a);$('client').classList.toggle('hidden',a);$('toggle').textContent=a?'← Voltar ao orçamento':'Área da empresa ↗';if(a){fetch('/api/session',{credentials:'same-origin'}).then(r=>r.json()).then(s=>{if(s.authenticated)refresh();else $('loginbox').classList.remove('hidden')}).catch(()=>{})}};
+// O painel nunca deve depender de um clique sintético para sair de "hidden".
+async function initCompanyAccess(){
+ $('admin').classList.remove('hidden');
+ $('client').classList.add('hidden');
+ $('loginbox').classList.remove('hidden');
+ try{
+  const response=await fetch('/api/session',{method:'GET',credentials:'same-origin',cache:'no-store'});
+  const session=await response.json().catch(()=>({authenticated:false}));
+  if(response.ok&&session.authenticated)await refresh();
+ }catch{
+  // Se a verificação da sessão falhar, o formulário de login continua acessível.
+  $('loginbox').classList.remove('hidden');
+ }
+}
+window.CIVOLTEN_ADMIN_BOOT=initCompanyAccess;
+$('toggle').onclick=()=>{
+ if(window.location.pathname==='/empresa'){window.location.assign('/');return;}
+ window.location.assign('/empresa');
+};
 // Navegação administrativa independente do carregamento dos pedidos.
 let adminMenuInitialized=false,adminView='logo';
 function openAdminView(view,pushHistory=false){
@@ -543,6 +561,39 @@ async function loadCatalog(){
  }
 }
 
+// Preenche serviços reais selecionados na vitrine, sem calcular preços no cliente.
+window.CIVOLTEN_FORM={
+ prefillQuickSelection({category,items,quantity,mode,details,label}={}){
+  const allowed=['eletrica','manutencao','iluminacao','construcao','reforma','pintura','hidraulica','outros'];
+  if(allowed.includes(category))$('category').value=category;
+  const ids=Array.isArray(items)?[...new Set(items)].slice(0,12):[];
+  const valid=ids.filter(id=>typeof id==='string'&&/^[a-z0-9_]{2,70}$/.test(id)&&catalog.some(s=>s.id===id));
+  const rows=$('lines');
+  if(valid.length){
+   rows.replaceChildren();
+   for(const id of valid){
+    add();
+    const row=rows.lastElementChild;
+    const select=row.querySelector('select');
+    select.value=id;
+    select.dispatchEvent(new Event('change'));
+    const n=Number(quantity);
+    row.querySelector('input').value=Number.isFinite(n)&&n>0&&n<=100000?String(n):'1';
+   }
+  }
+  // Descrição apresentada ao cliente é editável e não equivale a proposta ou preço.
+  const titles=valid.map(id=>catalog.find(s=>s.id===id)?.descricao).filter(Boolean);
+  const note=String(details||'').trim().slice(0,500);
+  const group=String(label||'').trim().slice(0,90);
+  const summary=[group?'Categoria: '+group+'.':'',titles.length?'Serviços: '+titles.join(', ')+'.':'',note].filter(Boolean).join(' ');
+  if(summary&&!$('desc').value.trim())$('desc').value=summary.slice(0,4000);
+  if(mode==='mao_obra'){
+   $('catalogstatus').textContent='Para orçamento apenas de mão de obra, selecione uma composição SIURB (EDIF/INFRA) com profissionais identificados. Os itens acima permanecem em serviço completo até essa escolha.';
+  }
+  clearEstimate();
+  return valid.length;
+ }
+};
 $('retryCatalog').onclick=loadCatalog;
 add(); // Sempre mostra o primeiro formulário, mesmo com a API temporariamente indisponível.
 loadCatalog();
