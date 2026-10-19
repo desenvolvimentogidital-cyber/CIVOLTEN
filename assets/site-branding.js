@@ -16,7 +16,7 @@ function apply(branding){
  root.setProperty('--brand-accent',accent);
  root.setProperty('--g',accent);
  root.setProperty('--brand-logo-width',logoWidth+'px');
- for(const img of [$('siteLogo'),$('proposalLogo'),$('footerLogo')]){
+ for(const img of [$('siteLogo'),$('proposalLogo'),$('footerLogo'),$('adminNavLogo'),$('previewSiteLogo'),$('previewPdfLogo')]){
   if(!img)continue;
   const logo=branding.logo_data_url;
   if(typeof logo==='string'&&logo.length<300000&&/^data:image\/(?:png|jpeg);base64,[a-zA-Z0-9+/=]+$/.test(logo)){
@@ -29,6 +29,9 @@ function apply(branding){
  if(heading&&typeof branding.site_headline==='string')heading.textContent=branding.site_headline;
  if(summary&&typeof branding.site_description==='string')summary.textContent=branding.site_description;
  if(footer&&typeof branding.footer_note==='string')footer.textContent=branding.footer_note;
+ const headlinePreview=$('previewHeadline'),descriptionPreview=$('previewDescription');
+ if(headlinePreview&&typeof branding.site_headline==='string')headlinePreview.textContent=branding.site_headline;
+ if(descriptionPreview&&typeof branding.site_description==='string')descriptionPreview.textContent=branding.site_description;
  const wa=$('siteContactWhatsApp');
  const phone=String(branding.contact_whatsapp||'').replace(/\D/g,'');
  if(wa){
