@@ -80,7 +80,7 @@ test('barra inteiramente azul e texto branco compartilham exatamente os mesmos t
 test('cache atualizado no site e em suas telas geradas',()=>{
  for(const p of ['index.html','empresa.html','orcamento.html']){
   const html=read(p);
-  assert.match(html,/civolten-app-unificado\.css\?v=3/);
+  assert.match(html,/civolten-app-unificado\.css\?v=4/);
   assert.match(html,/civolten-servicos-rapidos\.js\?v=2/);
  }
  for(const [p,name] of [['servicos.html','servicos'],['proposta.html','proposta'],['privacidade.html','privacidade']])
