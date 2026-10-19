@@ -523,6 +523,7 @@ async function loadSiurbCatalog(){
   for(const selected of catalog.filter(s=>String(s.id).startsWith('siurb:')))if(!byId.has(selected.id))byId.set(selected.id,selected);
   catalog=[...base,...byId.values()];
   catalogRevision++;
+  window.CIVOLTEN_CARRINHO?.refresh();
   for(const row of document.querySelectorAll('#lines .line')){
    const select=row.querySelector('select'),current=select.value;
    choices(select,current);
@@ -544,6 +545,7 @@ async function loadCatalog(){
   if(response.catalogo.some(s=>!s.id||!s.descricao||!s.unidade))throw Error('Itens inválidos');
   catalog=[...response.catalogo,...catalog.filter(x=>String(x.id).startsWith('siurb:'))];
   catalogRevision++;
+  window.CIVOLTEN_CARRINHO?.refresh();
   document.querySelectorAll('#lines .line').forEach(row=>{
    const select=row.querySelector('select'),old=select.value;
    choices(select,old);
@@ -563,6 +565,58 @@ async function loadCatalog(){
 
 // Preenche serviços reais selecionados na vitrine, sem calcular preços no cliente.
 window.CIVOLTEN_FORM={
+ // Catálogo inteiro já validado pelo backend (17 serviços básicos + base SIURB).
+ // Não entrega preços privados nem armazena dados pessoais no navegador.
+ getCatalog(){return catalog.map(({id,descricao,unidade,categoria})=>({id,descricao,unidade,categoria}));},
+ getCart(){return currentItems();},
+ addCartItem(id,rawQuantity=1,requestedMode='completo'){
+  const service=catalog.find(x=>x.id===id);
+  const amount=Number(rawQuantity);
+  if(!service||!Number.isFinite(amount)||amount<=0||amount>100000)return {ok:false,message:'Serviço ou quantidade inválida.'};
+  if(service.unidade==='unidade'&&!Number.isInteger(amount))return {ok:false,message:'Informe quantidade inteira para serviços por unidade.'};
+  const mode=requestedMode==='mao_obra'&&/^siurb:(EDIF|INFRA):[0-9]{5,12}$/.test(id)?'mao_obra':'completo';
+  const found=Array.from($('lines').querySelectorAll('.line')).find(row=>
+   row.querySelector('select').value===id&&(row._modeSelect?.value||'completo')===mode);
+  if(found){
+   const input=found.querySelector('input');
+   const total=Number(input.value)+amount;
+   if(!Number.isFinite(total)||total>100000)return {ok:false,message:'Limite de quantidade: 100.000.'};
+   input.value=String(Number(total.toFixed(3)));
+   input.dispatchEvent(new Event('input',{bubbles:true}));
+   clearEstimate();
+   window.CIVOLTEN_CARRINHO?.refresh();
+   return {ok:true,merged:true};
+  }
+  if($('lines').querySelectorAll('.line').length>=60)return {ok:false,message:'O carrinho permite até 60 serviços distintos.'};
+  add();
+  const row=$('lines').lastElementChild;
+  if(!row)return {ok:false,message:'Não foi possível criar a linha de serviço.'};
+  const selected=row.querySelector('select');selected.value=id;selected.dispatchEvent(new Event('change',{bubbles:true}));
+  row._modeSelect.value=mode;
+  row.querySelector('input').value=String(amount);
+  clearEstimate();
+  window.CIVOLTEN_CARRINHO?.refresh();
+  return {ok:true,merged:false};
+ },
+ removeCartItem(id,mode='completo'){
+  const row=Array.from($('lines').querySelectorAll('.line')).find(r=>
+   r.querySelector('select').value===id&&(r._modeSelect?.value||'completo')===mode);
+  if(!row)return false;
+  row.querySelector('.remove-service').click();
+  window.CIVOLTEN_CARRINHO?.refresh();
+  return true;
+ },
+ setCartQuantity(id,quantity,mode='completo'){
+  const n=Number(quantity);
+  const service=catalog.find(s=>s.id===id);
+  if(!service||!Number.isFinite(n)||n<=0||n>100000||(service.unidade==='unidade'&&!Number.isInteger(n)))return false;
+  const row=Array.from($('lines').querySelectorAll('.line')).find(r=>
+   r.querySelector('select').value===id&&(r._modeSelect?.value||'completo')===mode);
+  if(!row)return false;
+  const input=row.querySelector('input');input.value=String(n);input.dispatchEvent(new Event('input',{bubbles:true}));
+  window.CIVOLTEN_CARRINHO?.refresh();
+  return true;
+ },
  prefillQuickSelection({category,items,quantity,mode,details,label}={}){
   const allowed=['eletrica','manutencao','iluminacao','construcao','reforma','pintura','hidraulica','outros'];
   if(allowed.includes(category))$('category').value=category;
