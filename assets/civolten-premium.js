@@ -6,16 +6,22 @@ const $=id=>document.getElementById(id);
 const quickButtons=Array.from(document.querySelectorAll('[data-quick-category]'));
 let selectedCategory='eletrica';
 const opts={
- eletrica:{catalog:'instalacao_eletrica_completa',label:'Instalações elétricas'},
- pintura:{catalog:'pintura_alvenaria',label:'Pintura e acabamento'},
- construcao:{catalog:'levantamento_bloco',label:'Alvenaria'},
- reforma:{catalog:'reforma_apartamento_completa',label:'Reforma'},
+ eletrica:{catalog:'instalacao_eletrica_completa',form:'eletrica',label:'Instalações elétricas'},
+ manutencao:{catalog:'ponto_tomada_interruptor',form:'manutencao',label:'Manutenção elétrica'},
+ iluminacao:{catalog:'luminaria_spot_led',form:'iluminacao',label:'Iluminação LED'},
+ solar:{catalog:'',form:'outros',label:'Energia solar'},
+ construcao:{catalog:'levantamento_bloco',form:'construcao',label:'Construção civil'},
+ reforma:{catalog:'reforma_apartamento_completa',form:'reforma',label:'Reformas'},
+ pisos:{catalog:'assentamento_porcelanato',form:'construcao',label:'Pisos e revestimentos'},
+ pintura:{catalog:'pintura_alvenaria',form:'pintura',label:'Pintura e acabamento'},
+ hidraulica:{catalog:'',form:'hidraulica',label:'Hidráulica'},
+ alvenaria:{catalog:'levantamento_bloco',form:'construcao',label:'Alvenaria e acabamentos'},
 };
 function chooseCategory(cat){
  if(!Object.hasOwn(opts,cat))return;
  selectedCategory=cat;
  const form=$('category');
- if(form)form.value=cat;
+ if(form)form.value=opts[cat].form;
  for(const button of quickButtons){
   const active=button.dataset.quickCategory===cat;
   button.classList.toggle('active',active);
