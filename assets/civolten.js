@@ -113,6 +113,7 @@ $('toggle').onclick=()=>{const a=$('admin').classList.contains('hidden');$('admi
 let adminMenuInitialized=false,adminView='logo';
 function openAdminView(view){
  const labels={
+  visao:'Início › Visão geral',
   pedidos:'Atendimento › Pedidos recebidos',
   orcamentos:'Atendimento › Orçamentos e propostas',
   precos:'Serviços e valores › Tabela de preços',
@@ -124,6 +125,7 @@ function openAdminView(view){
  if(!Object.hasOwn(labels,view))return;
  adminView=view;
  const panelId={
+  visao:'adminOverviewPanel',
   pedidos:'adminOrdersPanel',orcamentos:'adminOrdersPanel',
   precos:'adminPricingPanel',siurb:'adminSiurbPanel',
   logo:'adminBrandingPanel',textos:'adminBrandingPanel',backup:'adminBackupPanel'
@@ -131,7 +133,10 @@ function openAdminView(view){
  for(const panel of document.querySelectorAll('#dashboard .admin-panel')){
   panel.classList.toggle('hidden',panel.id!==panelId);
  }
- for(const button of document.querySelectorAll('#adminMenu [data-admin-view]')){
+ const buttons=Array.from(document.querySelectorAll('#adminMenu [data-admin-view]'));
+ const overview=document.querySelector?.('.admin-overview-button');
+ if(overview)buttons.push(overview);
+ for(const button of buttons){
   const active=button.dataset.adminView===view;
   button.classList.toggle('active',active);
   if(active)button.setAttribute('aria-current','page');
@@ -164,6 +169,10 @@ function initAdminNavigation(){
  adminMenuInitialized=true;
  for(const button of document.querySelectorAll('#adminMenu [data-admin-view]')){
   button.addEventListener('click',()=>openAdminView(button.dataset.adminView));
+ }
+ document.querySelector?.('.admin-overview-button')?.addEventListener('click',()=>openAdminView('visao'));
+ for(const button of document.querySelectorAll('[data-admin-shortcut]')){
+  button.addEventListener('click',()=>openAdminView(button.dataset.adminShortcut));
  }
  $('exportOrders').addEventListener('click',()=>window.CIVOLTEN_PRO?.exportOrders?.());
  // Primeira entrada abre a tela da logo, sem que o usuário precise procurar no rodapé.
@@ -434,6 +443,7 @@ async function refresh(){
  pdfHint.textContent='Use Editar orçamento completo para definir cada preço, prazo e pagamento. O PDF final terá o detalhamento salvo. Custos internos permanecem privados.';
  box.append(pdfActions,pdfHint);window.CIVOLTEN_PRO?.attach?.(box,x,total=>{amount.value=String(total);savedAmount=total;amount.disabled=true;});frag.appendChild(box)});$('orders').replaceChildren(frag);
   window.CIVOLTEN_PRO?.dashboard?.($('orders'),d.pedidos);
+  window.CIVOLTEN_PREMIUM?.updateDashboard?.(d.pedidos);
   $('orders').dataset.adminMode=adminView;
   $('orders')._applyAdminFilter?.();
  }catch(e){

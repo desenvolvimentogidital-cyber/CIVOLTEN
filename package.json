@@ -5,7 +5,7 @@
   "type": "module",
   "description": "CIVOLTEN - formulário e painel seguro de orçamentos",
   "scripts": {
-    "test": "node scripts/check-static.mjs && node --test tests/bff-security.test.mjs tests/pdf.test.mjs tests/professional.test.mjs tests/siurb-reference.test.mjs tests/siurb-public.test.mjs tests/site-branding.test.mjs tests/admin-navigation.test.mjs tests/institucional.test.mjs"
+    "test": "node scripts/check-static.mjs && node --test tests/bff-security.test.mjs tests/pdf.test.mjs tests/professional.test.mjs tests/siurb-reference.test.mjs tests/siurb-public.test.mjs tests/site-branding.test.mjs tests/admin-navigation.test.mjs tests/institucional.test.mjs tests/premium-layout.test.mjs"
   },
   "dependencies": {
     "pdf-lib": "1.17.1"
