@@ -31,11 +31,17 @@ if(nav){
   if(links[0])links[0].href='/';
   if(links[1])links[1].href='/servicos';
   if(links[2])links[2].href='/#como-funciona';
+  if(links[3])links[3].href='/orcamento';
   for(const link of links){
     const target=link.getAttribute('href');
     const active=(screen==='inicio'&&target==='/')||(screen==='orcamento'&&target==='/orcamento');
     if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
   }
+}
+for(const link of document.querySelectorAll('.cv-mobile-nav a')){
+ const target=link.getAttribute('href');
+ const active=(screen==='inicio'&&target==='/')||(screen==='orcamento'&&target==='/orcamento')||(screen==='empresa'&&target==='/empresa');
+ if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
 }
 if(screen==='orcamento')document.title='Solicitar orçamento | CIVOLTEN';
 else if(screen==='empresa')document.title='Área da empresa | CIVOLTEN';

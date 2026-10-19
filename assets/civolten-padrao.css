@@ -1,0 +1,207 @@
+/* CIVOLTEN — identidade visual compartilhada.
+ * Fonte de verdade: --brand-primary/--brand-accent/--brand-logo-width
+ * preenchidas por /api/site-branding, sem logotipo ou contato fictícios.
+ * Aplicar depois dos estilos históricos: ajuste leve e específico por tela.
+ */
+:root {
+ --cv-navy:var(--brand-primary,#08182b);
+ --cv-gold:var(--brand-accent,#dca629);
+ --cv-ink:#0c203b;
+ --cv-body:#53657c;
+ --cv-surface:#fff;
+ --cv-soft:#f5f8fc;
+ --cv-border:#dce5ef;
+ --cv-radius:16px;
+ --cv-shadow:0 16px 45px rgba(9,30,58,.10);
+ --cv-max-width:1550px;
+ --cv-font:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+html{scroll-padding-top:88px}
+body{font-family:var(--cv-font);-webkit-font-smoothing:antialiased}
+body :is(a,button,input,textarea,select,summary):focus-visible{
+ outline:3px solid var(--cv-gold);outline-offset:3px
+}
+body :is(a,button,summary){-webkit-tap-highlight-color:rgba(220,166,41,.18)}
+body :is(.btn,.action-primary,.action-secondary,.goldbtn,.premium-company-btn){
+ transition:transform .18s ease,box-shadow .18s ease,background .18s ease
+}
+body :is(.btn,.action-primary,.action-secondary,.goldbtn,.premium-company-btn):not(:disabled):hover{transform:translateY(-2px)}
+body img[id$="Logo"][hidden]{display:none!important}
+
+/* Página inicial, orçamento e área da empresa */
+body>header.premium-header{border-bottom:1px solid var(--cv-border)}
+.premium-header>.premium-header-inner{max-width:var(--cv-max-width)}
+.premium-site-nav{gap:clamp(13px,2.6vw,36px)}
+.premium-site-nav a{color:var(--cv-ink)!important;font-size:13px;white-space:nowrap}
+.premium-site-nav a:first-child:not([aria-current="page"])::after{content:none}
+.premium-site-nav a[aria-current="page"]::after{
+ content:"";display:block;position:absolute;left:0;right:0;bottom:4px;
+ height:3px;border-radius:3px;background:var(--cv-gold)
+}
+body[data-screen="inicio"] .landing-copy h1,
+body[data-screen="orcamento"] .quote-section-heading h2{color:var(--cv-ink)}
+body[data-screen="inicio"] .landing-category-card,
+body[data-screen="orcamento"] .premium-quote-card,
+body[data-screen="empresa"] .premium-preview-panel{border-color:var(--cv-border)}
+body[data-screen="empresa"] #admin .admin-menu-group summary{font-weight:800}
+body[data-screen="empresa"] #admin .admin-submenu button{transition:background .18s ease,color .18s ease}
+body[data-screen="empresa"] #admin .premium-admin-workspace{min-width:0}
+
+/* Vitrine /servicos: mesma barra clara e tipografia da home.
+ * O hero mantém o fundo de fotografia escuro escolhido na arte.
+ */
+body.site-servicos{font-family:var(--cv-font)}
+.site-servicos .header{
+ background:rgba(255,255,255,.97);border-bottom:1px solid var(--cv-border);
+ box-shadow:0 9px 32px rgba(9,29,53,.06);backdrop-filter:blur(16px)
+}
+.site-servicos .header .wrap{width:min(var(--cv-max-width),calc(100% - 48px));min-height:78px}
+.site-servicos .logo-link{min-height:56px}
+.site-servicos .brand-logo{max-height:61px;max-width:min(var(--brand-logo-width,160px),260px)}
+.site-servicos .nav{gap:clamp(14px,2.2vw,32px)}
+.site-servicos .nav a{color:var(--cv-ink);font-size:13px;font-weight:800;position:relative;padding:15px 0}
+.site-servicos .nav a:hover{color:#93651b}
+.site-servicos .nav a[aria-current="page"]::after{
+ content:"";position:absolute;left:0;right:0;bottom:5px;height:3px;
+ background:var(--cv-gold);border-radius:3px
+}
+.site-servicos .btn-gold{
+ background:linear-gradient(115deg,#ffdb7a,var(--cv-gold));
+ color:#0d2138;border-radius:10px
+}
+.site-servicos .header-cta{min-height:44px}
+.site-servicos .hero h1{letter-spacing:-.048em}
+.site-servicos .hero h1 .highlight{color:#ffce60}
+.site-servicos .service-card{border-radius:var(--cv-radius)}
+.site-servicos .footer{background:#061425}
+.site-servicos .footer-links a{font-weight:700}
+.site-servicos .mobile-menu summary{color:var(--cv-ink);border:1px solid var(--cv-border);background:#fff}
+.site-servicos .mobile-links{background:var(--cv-surface);border-color:var(--cv-border)}
+.site-servicos .mobile-links a{color:var(--cv-ink)}
+.site-servicos .mobile-links a:hover{background:#f6f0e3}
+
+/* Proposta: o cliente lê o mesmo padrão da marca em superfície clara. */
+body.site-proposta{background:linear-gradient(180deg,#f2f6fb,#fff 60%);color:var(--cv-ink);min-height:100vh}
+.site-proposta .proposal-wrap{max-width:900px;padding:30px 18px 60px}
+.site-proposta .proposal-head{
+ border-radius:var(--cv-radius) var(--cv-radius) 0 0;
+ border-bottom:4px solid var(--cv-gold);
+ background:var(--cv-navy);
+ color:#fff;
+ padding:clamp(22px,4vw,36px)
+}
+.site-proposta .proposal-head h1{color:#fff;font-size:clamp(25px,3.8vw,36px);letter-spacing:-.03em}
+.site-proposta .proposal-head p{color:#d4dfed;margin-bottom:0}
+.site-proposta .proposal-wrap>.card{
+ border-radius:0 0 var(--cv-radius) var(--cv-radius);
+ border:1px solid var(--cv-border);
+ background:#fff;color:var(--cv-ink);box-shadow:var(--cv-shadow);
+ margin-top:0;padding:clamp(18px,3vw,30px)
+}
+.site-proposta .proposal-table th{
+ background:#eff4fa;color:var(--cv-ink);font-weight:800;
+ font-size:12px;white-space:nowrap
+}
+.site-proposta .proposal-table th,.site-proposta .proposal-table td{border-bottom:1px solid var(--cv-border)}
+.site-proposta .proposal-total{color:#815912;font-weight:900}
+.site-proposta .proposal-terms{color:var(--cv-body)}
+.site-proposta .proposal-wrap>.cv-back{margin:0 0 20px}
+.site-proposta .proposal-wrap>.cv-back a{color:var(--cv-ink);text-decoration:underline;text-underline-offset:4px}
+.site-proposta .proposal-actions button{
+ min-height:48px;border-radius:9px;font-weight:800
+}
+
+/* Aviso de privacidade: leitura clara, largura controlada e logo configurada. */
+body.site-privacidade{background:linear-gradient(180deg,#f3f7fb 0%,#fff 76%);color:var(--cv-ink)}
+.site-privacidade .cv-page-header{
+ background:#fff;border-bottom:1px solid var(--cv-border);
+ box-shadow:0 8px 28px rgba(8,29,55,.05)
+}
+.site-privacidade .cv-page-header-inner{
+ max-width:var(--cv-max-width);margin:auto;display:flex;gap:20px;
+ align-items:center;justify-content:space-between;min-height:78px;padding:12px 22px
+}
+.site-privacidade .cv-page-header img{
+ max-height:56px;max-width:min(var(--brand-logo-width,160px),240px);object-fit:contain
+}
+.site-privacidade .cv-page-header nav{display:flex;gap:24px;flex-wrap:wrap}
+.site-privacidade .cv-page-header nav a{color:var(--cv-ink);font-weight:750;text-decoration:none;font-size:13px}
+.site-privacidade .cv-page-header nav a:hover{color:#93651b}
+.site-privacidade .privacy-page{
+ max-width:940px;padding:clamp(20px,4vw,52px) 18px;margin:0 auto
+}
+.site-privacidade .privacy-page h1{color:var(--cv-ink);font-size:clamp(30px,4.5vw,45px);letter-spacing:-.035em}
+.site-privacidade .privacy-page .hint{color:var(--cv-body)}
+.site-privacidade .privacy-page>.card{
+ background:#fff;color:var(--cv-ink);border:1px solid var(--cv-border);
+ box-shadow:var(--cv-shadow);border-radius:var(--cv-radius);
+ padding:clamp(18px,3vw,32px)
+}
+.site-privacidade .privacy-page .card h2{
+ color:var(--cv-ink);font-size:clamp(17px,2.4vw,21px);margin-top:25px
+}
+.site-privacidade .privacy-page .card h2:first-child{margin-top:0}
+.site-privacidade .privacy-page .card p{color:var(--cv-body);line-height:1.8}
+.site-privacidade .cv-page-footer{
+ background:var(--cv-navy);color:#e6eef8;padding:26px 22px
+}
+.site-privacidade .cv-page-footer .inner{
+ max-width:var(--cv-max-width);margin:auto;display:flex;
+ align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap
+}
+.site-privacidade .cv-page-footer img{
+ max-width:min(var(--brand-logo-width,160px),200px);max-height:60px;object-fit:contain
+}
+.site-privacidade .cv-page-footer a{color:#f6d583}
+.site-privacidade .cv-page-footer p{font-size:12px;color:#bdcbdb;margin:0}
+
+@media(max-width:900px){
+ .premium-site-nav{gap:12px}
+ .premium-site-nav a{font-size:12px}
+}
+@media(max-width:760px){
+ .site-servicos .header .wrap{width:calc(100% - 32px);min-height:72px}
+ .site-servicos .brand-logo{max-width:min(var(--brand-logo-width,160px),170px)}
+ .site-servicos .nav{display:none}
+ .site-servicos .mobile-menu{display:block}
+ .site-privacidade .cv-page-header-inner{min-height:72px}
+}
+@media(max-width:570px){
+ .site-privacidade .cv-page-header-inner{align-items:flex-start;flex-direction:column;gap:12px}
+ .site-privacidade .cv-page-header nav{gap:14px}
+ .site-proposta .proposal-wrap{padding:15px 10px 35px}
+ .site-proposta .proposal-wrap>.card{padding:17px}
+}
+@media(prefers-reduced-motion:reduce){
+ body :is(.btn,.action-primary,.action-secondary,.goldbtn,.premium-company-btn){transition:none}
+}
+
+/* Um único menu compacto para tablet e celular; não duplica a área da empresa. */
+.cv-mobile-nav{display:none;position:relative;z-index:40}
+.cv-mobile-nav summary{
+ list-style:none;cursor:pointer;color:var(--cv-ink);font-weight:800;font-size:13px;
+ background:#fff;border:1px solid var(--cv-border);border-radius:9px;
+ padding:11px 14px;min-height:44px;white-space:nowrap
+}
+.cv-mobile-nav summary::-webkit-details-marker{display:none}
+.cv-mobile-nav nav{
+ position:absolute;right:0;top:calc(100% + 8px);width:min(275px,82vw);
+ background:#fff;border:1px solid var(--cv-border);border-radius:12px;
+ box-shadow:var(--cv-shadow);padding:8px;display:grid;gap:3px
+}
+.cv-mobile-nav nav a{
+ display:block;color:var(--cv-ink);padding:11px 13px;
+ border-radius:8px;text-decoration:none;font-size:13px;font-weight:750
+}
+.cv-mobile-nav nav a:hover,.cv-mobile-nav nav a[aria-current="page"]{
+ background:#fff3df;color:#724a12
+}
+@media(max-width:900px){
+ .premium-header .premium-site-nav{display:none}
+ .premium-header .cv-mobile-nav{display:block}
+}
+@media(max-width:570px){
+ .premium-header .cv-mobile-nav{display:block}
+ .premium-header #toggle{display:none}
+ .premium-header>.premium-header-inner{gap:10px;justify-content:space-between}
+}
