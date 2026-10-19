@@ -1,20 +1,87 @@
 <!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><title>CIVOLTEN | Elétrica e Construção Civil — Orçamentos</title><meta name="theme-color" content="#08182B"/><meta name="description" content="Solicite seu orçamento de serviços elétricos, reformas e construção civil na CIVOLTEN."/>
-<link rel="stylesheet" href="/assets/civolten.css?v=6"/></head><body><header><div><div class="site-brand"><img id="siteLogo" class="site-brand-logo" alt="Logo CIVOLTEN" hidden></div><button id="toggle">Área da empresa ↗</button></div></header>
-<main><section id="client"><div class="hero"><span class="tag">SÃO PAULO • ELÉTRICA E CONSTRUÇÃO CIVIL</span><h1 id="siteHeadline">Peça seu orçamento sem sair de casa.</h1><p id="siteDescription">Descreva o serviço, envie fotos, áudio ou vídeo e, se quiser, faça uma simulação imediata.</p><p class="hint"><a href="/servicos">Conheça nossos serviços de construção e elétrica →</a></p></div>
-<div class="card"><h2>1. Seus dados</h2><div class="grid"><label class="field">Nome<input id="name" required minlength="2" maxlength="100" placeholder="Seu nome"/></label><label class="field">WhatsApp com DDD<input id="phone" required inputmode="tel" autocomplete="tel" maxlength="22" placeholder="+55 (11) 99999-9999"/></label><label class="field">Bairro<input id="neigh" placeholder="Ex.: Mooca"/></label><label class="field">Cidade<input id="city" value="São Paulo"/></label></div>
+<link rel="stylesheet" href="/assets/civolten.css?v=7"/></head><body><a class="skip-link" href="#formulario">Pular para o formulário</a>
+<header class="premium-header" id="pageHeader"><div class="premium-header-inner">
+ <a class="premium-logo-link" href="#inicio" aria-label="Voltar ao início"><img id="siteLogo" class="site-brand-logo" alt="Logo oficial" hidden></a>
+ <nav class="premium-site-nav" aria-label="Navegação do site">
+  <a href="#inicio">Início</a><a href="#servicos-home">Serviços</a><a href="#como-funciona">Como funciona</a>
+ </nav>
+ <button type="button" id="toggle" class="premium-company-btn">Área da empresa <span aria-hidden="true">↗</span></button>
+ </div></header>
+<main id="conteudo"><section id="client">
+<div class="landing-shell">
+ <section class="landing-top" id="inicio" aria-label="Apresentação de serviços e orçamentos">
+  <div class="landing-copy">
+   <p class="eyebrow">OBRAS E SERVIÇOS COM MAIS FACILIDADE</p>
+   <h1 id="siteHeadline">Peça seu orçamento sem sair de casa.</h1>
+   <p id="siteDescription" class="landing-lead">Elétrica, alvenaria, pintura, drywall e reformas. Solicite seu orçamento em poucos passos.</p>
+   <div class="landing-hero-actions">
+    <a class="action-primary" href="#formulario">▤ Solicitar orçamento <span aria-hidden="true">→</span></a>
+    <a class="action-secondary" href="#simulacao">▦ Simular valores</a>
+   </div>
+   <div class="landing-trust">
+    <span>◇ Dados protegidos</span><span>◷ Atendimento organizado</span><span>✓ Orçamento detalhado</span>
+   </div>
+  </div>
+  <div class="landing-visual">
+   <div class="landing-hero-frame">
+    <img class="landing-hero-image" src="https://images.pexels.com/photos/13752348/pexels-photo-13752348.jpeg?auto=compress&amp;dpr=1&amp;w=1200" alt="Ambiente residencial em reforma com acabamento moderno" fetchpriority="high">
+    <div class="landing-graphic-1" aria-hidden="true"></div>
+    <div class="landing-graphic-2" aria-hidden="true"></div>
+   </div>
+   <div class="landing-fast-card" aria-label="Pré-seleção rápida do orçamento">
+    <h2>Solicite seu orçamento</h2>
+    <p>Selecione a categoria e continue no formulário completo.</p>
+    <span class="landing-fast-label">Qual serviço você precisa?</span>
+    <div class="landing-service-choices" id="quickServices">
+     <button type="button" data-quick-category="eletrica" class="active" aria-pressed="true"><span aria-hidden="true">♧</span>Elétrica</button>
+     <button type="button" data-quick-category="pintura" aria-pressed="false"><span aria-hidden="true">▤</span>Pintura</button>
+     <button type="button" data-quick-category="construcao" aria-pressed="false"><span aria-hidden="true">▥</span>Alvenaria</button>
+     <button type="button" data-quick-category="reforma" aria-pressed="false"><span aria-hidden="true">⌂</span>Reformas</button>
+    </div>
+    <label class="fast-field">Quantidade aproximada<input id="quickQuantity" type="number" min="1" max="100000" step="1" value="1" inputmode="numeric"></label>
+    <span class="landing-fast-label">Tipo de contratação</span>
+    <div class="landing-contract-choices" id="quickContract">
+     <label><input type="radio" name="quickScope" value="mao_obra"> Somente mão de obra</label>
+     <label><input type="radio" name="quickScope" value="completo" checked> Serviço completo</label>
+    </div>
+    <button id="quickContinue" class="action-primary" type="button">Continuar orçamento <span aria-hidden="true">→</span></button>
+   </div>
+  </div>
+ </section>
+ <section class="landing-steps" id="como-funciona" aria-label="Como funciona">
+  <div><span class="step-number">1</span><div class="step-icon" aria-hidden="true">▤</div><div><strong>Descreva o serviço</strong><p>Conte o que precisa e informe os detalhes.</p></div></div>
+  <div><span class="step-number">2</span><div class="step-icon" aria-hidden="true">▧</div><div><strong>Anexe fotos ou vídeo</strong><p>Envie imagens e áudios para análise.</p></div></div>
+  <div><span class="step-number">3</span><div class="step-icon" aria-hidden="true">➤</div><div><strong>Receba sua proposta</strong><p>Confira os serviços, valores e condições.</p></div></div>
+ </section>
+ <section class="landing-categories" id="servicos-home" aria-label="Principais serviços">
+  <div class="landing-category-heading"><div><span class="eyebrow">NOSSOS SERVIÇOS</span><h2>Principais categorias</h2></div>
+    <p>Orçamentos para as principais etapas da sua obra ou reforma.</p><a href="/servicos">Ver todos os serviços ↗</a>
+  </div>
+  <div class="landing-category-grid">
+   <a class="landing-category-card" href="#formulario" data-select-category="eletrica"><div><span class="cat-symbol">⌁</span><strong>Elétrica</strong><p>Instalações, reparos e manutenção.</p></div><img loading="lazy" alt="Serviços de instalações elétricas" src="https://images.pexels.com/photos/257700/pexels-photo-257700.jpeg?auto=compress&amp;w=470"></a>
+   <a class="landing-category-card" href="#formulario" data-select-category="construcao"><div><span class="cat-symbol">▦</span><strong>Alvenaria</strong><p>Construção de paredes e acabamentos.</p></div><img loading="lazy" alt="Alvenaria e construção" src="https://images.pexels.com/photos/259915/pexels-photo-259915.jpeg?auto=compress&amp;w=470"></a>
+   <a class="landing-category-card" href="#formulario" data-select-category="pintura"><div><span class="cat-symbol">▤</span><strong>Pintura</strong><p>Pintura interna e externa.</p></div><img loading="lazy" alt="Pintura de paredes" src="https://images.pexels.com/photos/6474483/pexels-photo-6474483.jpeg?auto=compress&amp;w=470"></a>
+   <a class="landing-category-card" href="#formulario" data-select-category="reforma"><div><span class="cat-symbol">▥</span><strong>Drywall</strong><p>Divisórias, forros e gesso.</p></div><img loading="lazy" alt="Interiores e drywall" src="https://images.pexels.com/photos/1669799/pexels-photo-1669799.jpeg?auto=compress&amp;w=470"></a>
+   <a class="landing-category-card" href="#formulario" data-select-category="reforma"><div><span class="cat-symbol">⌂</span><strong>Reformas</strong><p>Reformas residenciais e comerciais.</p></div><img loading="lazy" alt="Reforma residencial contemporânea" src="https://images.pexels.com/photos/1454806/pexels-photo-1454806.jpeg?auto=compress&amp;w=470"></a>
+  </div>
+ </section>
+</div>
+<div class="client-form-wrap">
+ <div class="quote-section-heading"><span class="eyebrow">SOLICITAÇÃO DE ORÇAMENTO</span><h2>Conte sobre seu projeto</h2><p>Seus dados, arquivos e serviços em um único formulário seguro.</p></div>
+<div class="card premium-quote-card" id="formulario"><h2>1. Seus dados</h2><div class="grid"><label class="field">Nome<input id="name" required minlength="2" maxlength="100" placeholder="Seu nome"/></label><label class="field">WhatsApp com DDD<input id="phone" required inputmode="tel" autocomplete="tel" maxlength="22" placeholder="+55 (11) 99999-9999"/></label><label class="field">Bairro<input id="neigh" placeholder="Ex.: Mooca"/></label><label class="field">Cidade<input id="city" value="São Paulo"/></label></div>
 <label class="field">Tipo de serviço<select id="category"><option value="eletrica">Instalações elétricas</option><option value="manutencao">Manutenção elétrica</option><option value="iluminacao">Iluminação / LED</option><option value="reforma">Reformas</option><option value="construcao">Construção civil</option><option value="pintura">Pintura e acabamento</option><option value="hidraulica">Hidráulica</option><option value="outros">Outros</option></select></label>
 <label class="field">Explique o que você precisa<textarea id="desc" required minlength="12" maxlength="4000" placeholder="Preciso trocar três tomadas e reformar a cozinha..."></textarea></label>
 <label class="field">Urgência<select id="urgency"><option value="normal">Sem urgência</option><option value="breve">Nos próximos dias</option><option value="urgente">Urgente</option></select></label>
 <hr/><h2>2. Fotos, vídeos e áudio</h2><p class="hint">Até 6 arquivos, 45 MB cada, 120 MB por pedido. Não envie documentos pessoais.</p><div class="filebox"><input id="files" type="file" accept="image/*,video/mp4,video/webm,video/quicktime,audio/*" multiple/><div class="row"><button type="button" id="record">🎙️ Gravar áudio</button></div><ul id="filelist"></ul></div>
-<hr/><h2>3. Simulação opcional</h2><p class="hint">Escolha o padrão e os serviços. Os preços unitários são internos; você verá apenas o valor total da simulação. Para serviços sem preço configurado, envie seu pedido para avaliação.</p><div class="patterns"><button data-p="baixo" aria-pressed="false">Baixo</button><button data-p="medio" aria-pressed="true">Médio</button><button data-p="alto" aria-pressed="false">Alto</button></div><p class="service-help">Selecione o serviço abaixo e informe a quantidade. Para serviços por m², informe a área do imóvel ou do serviço.</p><div id="catalogstatus" class="status-catalog" role="status" aria-live="polite">Preparando os serviços...</div>
+<hr/><h2 id="simulacao">3. Simulação opcional</h2><p class="hint">Escolha o padrão e os serviços. Os preços unitários são internos; você verá apenas o valor total da simulação. Para serviços sem preço configurado, envie seu pedido para avaliação.</p><div class="patterns"><button data-p="baixo" aria-pressed="false">Baixo</button><button data-p="medio" aria-pressed="true">Médio</button><button data-p="alto" aria-pressed="false">Alto</button></div><p class="service-help">Selecione o serviço abaixo e informe a quantidade. Para serviços por m², informe a área do imóvel ou do serviço.</p><div id="catalogstatus" class="status-catalog" role="status" aria-live="polite">Preparando os serviços...</div>
 <div id="lines" aria-label="Serviços para orçamento"></div><div class="row"><button id="add" type="button" class="goldbtn">+ Adicionar outro serviço</button><button id="retryCatalog" type="button" class="hidden">↻ Atualizar serviços</button></div><div class="grid"><label class="field">Dias estimados<input id="days" type="number" min="1" max="365" step="1" value="1"/></label><label class="field">Distância (km)<input id="km" type="number" min="0" max="1000" step="0.1" value="0"/></label></div><button type="button" id="simulate">⚡ Calcular simulação</button><div id="estimate" class="result hidden"></div>
-<hr/><label class="field"><input type="checkbox" id="consent" required/> Li o <a href="/privacidade.html" target="_blank" rel="noopener noreferrer">aviso de privacidade</a> e autorizo o uso dos meus dados para o orçamento.</label><input id="website" class="hidden" tabindex="-1" autocomplete="off"/><div id="clientmsg" role="alert" aria-live="assertive"></div><button type="button" class="goldbtn" id="send">Enviar pedido de orçamento →</button><p class="hint">Os valores da simulação são estimativas sujeitas à avaliação técnica e confirmação da proposta pela CIVOLTEN.</p></div></section>
-<section id="admin" class="hidden"><div class="hero"><span class="tag">ACESSO RESTRITO</span><h1>Painel <span class="gold">CIVOLTEN</span></h1></div><div class="card" id="loginbox"><h2>Entrar ou ativar acesso</h2><div class="grid"><label class="field">Seu e-mail<input id="email" type="email"/></label><label class="field">Senha<input id="password" type="password" autocomplete="current-password"/></label></div><div class="row"><button class="goldbtn" id="login">Entrar</button></div><hr/><h3>Primeiro acesso</h3><p class="hint">Use o código de ativação particular da CIVOLTEN uma única vez. Escolha uma senha com pelo menos 12 caracteres, letras maiúsculas/minúsculas e número.</p><label class="field">Código de ativação<input id="setupToken" type="password" autocomplete="off"/></label><button id="activate">Criar meu usuário administrador</button></div><div class="card hidden admin-dashboard" id="dashboard">
- <div class="admin-topbar">
-  <h2>Área da empresa</h2>
-  <div class="row"><button id="refresh" type="button">Atualizar pedidos</button><button id="logout" type="button">Sair</button></div>
- </div>
+<hr/><label class="field"><input type="checkbox" id="consent" required/> Li o <a href="/privacidade.html" target="_blank" rel="noopener noreferrer">aviso de privacidade</a> e autorizo o uso dos meus dados para o orçamento.</label><input id="website" class="hidden" tabindex="-1" autocomplete="off"/><div id="clientmsg" role="alert" aria-live="assertive"></div><button type="button" class="goldbtn" id="send">Enviar pedido de orçamento →</button><p class="hint">Os valores da simulação são estimativas sujeitas à avaliação técnica e confirmação da proposta pela CIVOLTEN.</p></div></div></section>
+<section id="admin" class="hidden"><div class="admin-entry"><span class="eyebrow">ÁREA RESTRITA</span><h1>Gestão de orçamentos</h1><p>Administre seus pedidos, serviços, propostas e o visual do site em um único lugar.</p></div><div class="card" id="loginbox"><h2>Entrar ou ativar acesso</h2><div class="grid"><label class="field">Seu e-mail<input id="email" type="email"/></label><label class="field">Senha<input id="password" type="password" autocomplete="current-password"/></label></div><div class="row"><button class="goldbtn" id="login">Entrar</button></div><hr/><h3>Primeiro acesso</h3><p class="hint">Use o código de ativação particular da CIVOLTEN uma única vez. Escolha uma senha com pelo menos 12 caracteres, letras maiúsculas/minúsculas e número.</p><label class="field">Código de ativação<input id="setupToken" type="password" autocomplete="off"/></label><button id="activate">Criar meu usuário administrador</button></div><div class="card hidden admin-dashboard" id="dashboard">
+ <aside class="premium-admin-sidebar" aria-label="Navegação lateral">
+  <div class="premium-admin-side-head"><img id="adminNavLogo" class="premium-admin-logo" alt="Logo oficial" hidden><strong class="admin-side-caption">Painel de gestão</strong></div>
+  <button type="button" data-admin-view="visao" class="admin-overview-button">⌂ Visão geral</button>
+
  <nav id="adminMenu" class="admin-menu" aria-label="Menu administrativo e submenus">
   <details class="admin-menu-group" open>
    <summary>Atendimento</summary>
@@ -44,7 +111,15 @@
    </div>
   </details>
  </nav>
+  <div class="premium-admin-side-note"><strong>Gestão organizada</strong><p>Seu site, preços e propostas no mesmo painel.</p></div>
+ </aside>
+ <div class="premium-admin-workspace">
+  <div class="admin-topbar"><div><span class="eyebrow">ADMINISTRAÇÃO</span><h2>Área da empresa</h2></div><div class="row"><a href="/" class="admin-top-site">Ver meu site ↗</a><button id="refresh" type="button">↻ Atualizar</button><button id="logout" type="button">Sair</button></div></div>
+  <section id="adminKpis" class="admin-kpi-grid" aria-label="Indicadores do negócio"></section>
  <p id="adminCurrentView" class="admin-current" role="status" aria-live="polite"></p>
+ <section id="adminOverviewPanel" class="admin-panel hidden" aria-label="Visão geral">
+   <div class="admin-overview-welcome"><h3>Seu trabalho em um só lugar</h3><p>Acompanhe os pedidos e edite serviços, preços, propostas e aparência pelo menu lateral.</p><div class="row"><button type="button" data-admin-shortcut="pedidos">Ver pedidos</button><button type="button" data-admin-shortcut="logo">Personalizar site</button></div></div>
+ </section>
  <section id="adminOrdersPanel" class="admin-panel hidden" aria-label="Pedidos e orçamentos">
   <div id="orders"></div>
  </section>
@@ -65,6 +140,6 @@
   <p class="hint">O arquivo contém dados pessoais e deve ficar armazenado em local privado. A exportação manual não substitui um backup automático do banco.</p>
   <button id="exportOrders" type="button">Exportar pedidos e propostas (JSON)</button>
  </section>
- </div><div id="adminmsg" role="alert" aria-live="assertive"></div></section></main>
+ </div></div><div id="adminmsg" role="alert" aria-live="assertive"></div></section></main>
 <footer><div class="site-footer"><img id="footerLogo" class="site-footer-logo" alt="Logo CIVOLTEN" hidden><p id="siteFooterNote">Elétrica, reformas e construção civil. Atendimento e orçamentos digitais.</p><a id="siteContactWhatsApp" class="site-contact" href="#" target="_blank" rel="noopener noreferrer" hidden>Falar no WhatsApp</a><a href="/privacidade.html">Privacidade</a></div></footer>
-<script src="/assets/site-branding.js?v=1" defer></script><script src="/assets/civolten-reference.js?v=1" defer></script><script src="/assets/civolten-pro.js?v=3" defer></script><script src="/assets/civolten.js?v=11" defer></script></body></html>
+<script src="/assets/site-branding.js?v=1" defer></script><script src="/assets/civolten-reference.js?v=1" defer></script><script src="/assets/civolten-pro.js?v=4" defer></script><script src="/assets/civolten.js?v=12" defer></script><script src="/assets/civolten-premium.js?v=1" defer></script></body></html>
