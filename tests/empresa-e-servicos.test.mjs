@@ -40,10 +40,15 @@ test('vitrine possui 10 categorias e nenhuma oferta de segurança ou automação
  assert.ok(match,'Catálogo reserva');
  const fallback=JSON.parse(match[1]);
  const valid=new Set(fallback.map(x=>x.id));
- for(const group of Object.values(directory)){
-  for(const [id] of group.options)
+ for(const [name,group] of Object.entries(directory)){
+  for(const [id] of group.options){
+   if(name==='pintura'&&id.startsWith('avaliacao:'))continue;
    assert.ok(valid.has(id),'ID sem composição real: '+id);
+  }
  }
+ assert.deepEqual(Array.from(directory.pintura.options,([id,label])=>label),
+  ['Pintura de paredes','Pintura de tetos','Pintura de pisos','Pintura de drywall']);
+ assert.ok(!directory.pintura.options.some(([id,label])=>/reboco|prepara[cç][aã]o|drywall com pintura/i.test(id+' '+label)));
  assert.equal(directory.solar.options.length,0);
  assert.equal(directory.hidraulica.options.length,0);
  assert.match(js,/depende de avaliação técnica/);
