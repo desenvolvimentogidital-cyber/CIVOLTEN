@@ -18,7 +18,7 @@ test('as quatro páginas compartilham os mesmos tokens de identidade',()=>{
   ['privacidade',privacy,'civolten-privacidade-unificado']
  ];
  for(const [name,markup,asset] of pages){
-  assert.match(markup, new RegExp('href="/assets/'+asset+'\\.css\\?v=3"'),name);
+  assert.match(markup, new RegExp('href="/assets/'+asset+'\\.css\\?v='+(name==='home'?'4':'3')+'"'),name);
   assert.equal((markup.match(/<link\s+rel="stylesheet"/g)||[]).length,1,name);
   assert.doesNotMatch(markup,/<style(?:\s|>)|\sonclick=/i,name);
  }

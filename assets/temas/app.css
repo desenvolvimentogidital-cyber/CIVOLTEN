@@ -95,3 +95,14 @@ body>header.premium-header{background:var(--cv-header-gradient)!important;border
 .premium-header .cv-mobile-nav nav a{color:#fff}
 .premium-header .cv-mobile-nav nav a:hover,.premium-header .cv-mobile-nav nav a[aria-current="page"]{background:rgba(253,201,109,.18);color:#fff}
 @media(max-width:570px){.premium-header .premium-logo-link{padding:4px 7px;min-height:44px}}
+
+/* Seletor acessível e compacto no celular: mesma cor azul técnico, sem rolagem de dez cartões. */
+.quick-category-field{display:none;color:#173c67;font-size:12px;font-weight:850;line-height:1.5}
+.quick-category-field select{display:block;width:100%;min-height:48px;margin-top:7px;padding:10px 39px 10px 14px;border:1px solid #b9cbe0;border-radius:10px;background:#fff;color:#102b4b;font-size:15px;font-weight:700}
+.quick-category-field select:focus-visible{outline:3px solid var(--brand-accent,#dca629);outline-offset:2px}
+@media(max-width:630px){
+ .landing-service-choices{display:none!important}
+ .quick-category-field{display:block}
+ .quick-subservices{margin-top:2px}
+ .landing-fast-card{gap:12px}
+}

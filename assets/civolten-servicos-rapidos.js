@@ -32,6 +32,9 @@ let current='eletrica';
 function render(group){
  if(!Object.hasOwn(directory,group))return;
  current=group;
+ // O seletor nativo e os botões desktop usam sempre a mesma categoria.
+ const compact=$('quickCategorySelect');
+ if(compact&&compact.value!==group)compact.value=group;
  if(!container)return;
  const info=directory[group];
  container.replaceChildren();
@@ -82,6 +85,14 @@ function collect(){
 for(const button of document.querySelectorAll('[data-quick-category]')){
  button.addEventListener('click',()=>render(button.dataset.quickCategory));
 }
+$('quickCategorySelect')?.addEventListener('change',event=>{
+ const group=event.target.value;
+ if(!Object.hasOwn(directory,group))return;
+ // O clique mantém também a categoria do formulário completo e aria-pressed.
+ const button=document.querySelector('[data-quick-category="'+group+'"]');
+ if(button)button.click();
+ else render(group);
+});
 render(current);
 window.CIVOLTEN_QUICK_SELECTION={collect,render,directory};
 })();
