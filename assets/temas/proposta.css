@@ -9,3 +9,7 @@ body.site-proposta{background:var(--cv-mist);color:var(--cv-ink)}
 .site-proposta .proposal-wrap>.cv-back a{color:var(--cv-ink)}
 .site-proposta .proposal-actions button.goldbtn{background:var(--cv-gold);color:#101f33}
 .site-proposta .proposal-actions button:not(.goldbtn){background:#fff;border-color:var(--cv-border);color:var(--cv-ink)}
+
+/* Cabeçalho da proposta no mesmo degradê azul e rosa institucional. */
+.site-proposta .proposal-head{background:var(--cv-header-gradient);color:#fff;border-bottom-color:var(--brand-accent,#dca629)}
+.site-proposta .proposal-head h1,.site-proposta .proposal-head p{color:#fff}
