@@ -20,3 +20,5 @@ Versão anterior preservada em backup-civolten-antes-refatoracao-20261020. A ver
 
 ## Teste
 Execute npm run check. A publicação em produção exige teste real de login, impressão de proposta, cálculos e permissões no celular. A nova versão é proposta em branch separada da main.
+
+Cada funcionário também registra os dias previstos no mês (22 como padrão editável), com estimativa mensal da diária e encargos. O valor da folha deve ser conferido para não contar a mesma mão de obra em custos fixos e no orçamento da obra.
