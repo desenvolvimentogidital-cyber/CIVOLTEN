@@ -94,6 +94,6 @@ test('atalhos móveis aparecem na página de orçamento sem dados pessoais prév
  for(const id of ['projectBuildArea','projectBuildAdd','projectBuildFeedback','projectRenovationArea','projectRenovationAdd','projectRenovationFeedback'])assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(html,/id="projectBuildArea"[^>]*type="number"[^>]*inputmode="decimal"/);
  assert.match(html,/civolten-quote-flow\.js\?v=2/);
- assert.match(html,/civolten-carrinho\.js\?v=4/);
+ assert.match(html,/civolten-carrinho\.js\?v=5/);
  assert.match(read('assets/civolten-app-unificado.css'),/\.project-shortcuts-grid\{display:grid;grid-template-columns:1fr 1fr/);
 });
