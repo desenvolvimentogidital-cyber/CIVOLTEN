@@ -3,9 +3,9 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#08182b">
 <title>CIVOLTEN — Orçamentos por custos reais</title>
-<link rel="stylesheet" href="/assets/app.css"><script type="module" src="/assets/app.js"></script></head>
+<script src="/assets/theme.js"></script><link rel="stylesheet" href="/assets/app.css"><script type="module" src="/assets/app.js"></script></head>
 <body>
-<section id="auth" class="auth-wrap"><div class="auth-card" id="loginCard">
+<section id="auth" class="auth-wrap"><button type="button" class="theme-toggle theme-toggle-auth" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false"><span class="theme-icon" aria-hidden="true">☾</span><span class="theme-label">Modo escuro</span></button><div class="auth-card" id="loginCard">
  <div class="brand"><img class="brand-logo" hidden alt="Logo original CIVOLTEN"><b>CIVOLTEN<small>CONSTRUÇÃO & ELÉTRICA</small></b></div>
  <span class="eyebrow">PAINEL PRIVADO</span><h1>Seus custos. Seu preço.</h1>
  <p>Orçamentos da sua empresa, calculados com a equipe, as despesas, os impostos e sua margem. Sem tabelas de preços externas.</p>
@@ -46,7 +46,7 @@
  <button data-view="settings" class="nav">⚙ Configurações</button><button data-view="access" class="nav">♙ Acessos</button></nav>
  <button id="logout" class="logout">Sair da conta ↗</button>
  </aside>
- <div class="workspace"><header><strong>CIVOLTEN <span>/ Painel interno</span></strong><span class="pill">● Privado</span></header>
+ <div class="workspace"><header><strong>CIVOLTEN <span>/ Painel interno</span></strong><div class="header-actions"><span class="pill">● Privado</span><button type="button" class="theme-toggle" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false"><span class="theme-icon" aria-hidden="true">☾</span><span class="theme-label">Modo escuro</span></button></div></header>
  <main id="content" tabindex="-1"></main></div>
 </div>
 <div id="printArea"></div><div id="flash" role="status" aria-live="polite" hidden></div>
