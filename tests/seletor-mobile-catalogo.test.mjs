@@ -13,9 +13,9 @@ test('home e telas derivadas apresentam seletor compacto com as dez categorias',
   const options=[...match[1].matchAll(/<option value="([^"]+)"/g)].map(x=>x[1]);
   assert.deepEqual(options,['eletrica','manutencao','iluminacao','solar','construcao','reforma','pisos','pintura','hidraulica','alvenaria']);
   assert.match(html,/aria-controls="quickSubservices"/);
-  assert.match(html,/civolten-servicos-rapidos\.js\?v=3/);
-  assert.match(html,/civolten\.js\?v=15/);
-  assert.match(html,/civolten-app-unificado\.css\?v=5/);
+  assert.match(html,/civolten-servicos-rapidos\.js\?v=4/);
+  assert.match(html,/civolten\.js\?v=16/);
+  assert.match(html,/civolten-app-unificado\.css\?v=6/);
  }
  const css=read('assets/civolten-app-unificado.css');
  assert.match(css,/\.quick-category-field\{display:none/);
