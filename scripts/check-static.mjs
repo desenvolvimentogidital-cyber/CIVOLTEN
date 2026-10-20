@@ -155,7 +155,7 @@ for(const online of [true,false]){
     elements.get("add").onclick();
     assert.equal(elements.get("lines").children.length,2,"Botão deve criar segunda linha");
   } else {
-    assert.equal(first.querySelector("select").children.length,18,"A lista reserva precisa permitir trabalhar sem catálogo remoto");
+    assert.equal(first.querySelector("select").children.length,19,"A lista reserva precisa permitir trabalhar sem catálogo remoto");
     assert.equal(elements.get("retryCatalog").classList.contains("hidden"),false,"Exibir botão de tentar novamente");
   }
 }
