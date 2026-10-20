@@ -40,24 +40,49 @@ function mount(dashboard){
  }
  const cost=node('input',{type:'number',min:'0',step:'0.01',placeholder:'Sem custo verificado: deixe vazio'});
  const source=text('https://www.caixa.gov.br/...'),confirm=node('input',{type:'checkbox'});
- const upload=node('input',{type:'file',accept:'.json,application/json'});
- const importOne=node('button',{type:'button',class:'goldbtn',text:'Importar composição individual'});
- const importFile=node('button',{type:'button',text:'Importar arquivo JSON em lotes'});
+ const parser=window.CIVOLTEN_TABLE_IMPORT;
+ const upload=node('input',{type:'file',accept:'.csv,.json,text/csv,application/json'});
+ const importOne=node('button',{type:'button',class:'goldbtn',text:'Salvar composição individual'});
+ const template=node('button',{type:'button',text:'Baixar modelo CSV SINAPI'});
+ const inspect=node('button',{type:'button',text:'Conferir arquivo selecionado'});
+ const importFile=node('button',{type:'button',class:'goldbtn',text:'Salvar arquivo conferido no Supabase'});
+ importFile.disabled=true;
+ const confirmFile=node('input',{type:'checkbox'});
+ const filePeriod=node('input',{type:'month',value:'2026-09'});
+ const fileRegime=node('select');
+ for(const [v,label] of [['sem_desoneracao','Sem desoneração'],['com_desoneracao','Com desoneração']])
+  fileRegime.append(node('option',{value:v,text:label}));
+ const fileSource=node('input',{type:'url',value:'https://www.caixa.gov.br/poder-publico/modernizacao-gestao/sinapi/Paginas/default.aspx',
+  placeholder:'URL oficial CAIXA/IBGE do relatório'});
+ const certify=node('input',{type:'checkbox'});
  const notice=node('p',{class:'hint','aria-live':'polite'});
+ const preview=node('div',{class:'sinapi-file-preview'});
+ let pending=null;
  panel.append(label('Código SINAPI',code),label('Descrição técnica',description),
   label('Unidade original',unit),label('Competência',period),label('Encargos',regime),
   label('Custo unitário verificado (opcional)',cost),label('URL oficial do custo (se houver)',source));
- const checked=label('Confirmo a conferência da fonte oficial para preço positivo',confirm);
- panel.append(checked,importOne,label('Arquivo preparado (JSON)',upload),importFile,notice);
+ const checked=label('Confirmei a fonte oficial do custo positivo',confirm);
+ panel.append(checked,importOne,notice);
  root.append(panel);
+ const filePanel=node('section',{class:'cub-import-file sinapi-import-file'});
+ filePanel.append(node('h4',{text:'Importar composições SINAPI do celular (CSV ou JSON)'}),
+  node('p',{class:'hint',text:'Salve planilhas Excel como CSV. PDF/XLSX não são importados diretamente. Confirme UF, competência e encargos; custos zerados são pendentes.'}),
+  label('Arquivo SINAPI',upload),label('Mês-base / competência do arquivo',filePeriod),
+  label('Regime da planilha',fileRegime),label('Endereço do relatório oficial',fileSource),
+  label('Confirmei todos os custos positivos na fonte CAIXA/IBGE',certify),
+  template,inspect,preview,label('Conferi a prévia e a competência do arquivo',confirmFile),importFile);
+ root.append(filePanel);
  async function importBatch(data){
-  if(data.schema!=='civolten.sinapi.v1'||!Array.isArray(data.items)||data.items.length>12000)
-   throw Error('Arquivo inválido. Use schema civolten.sinapi.v1 com serviços.');
+  if(data.schema!=='civolten.sinapi.v1'||!Array.isArray(data.items)||!data.items.length||
+    data.items.length>15000)throw Error('Arquivo incompatível com o modelo SINAPI.');
   let n=0;
   for(let i=0;i<data.items.length;i+=25){
-   const items=data.items.slice(i,i+25);
-   await api('admin-sinapi-import',null,{schema:data.schema,uf:data.uf,period:data.period,regime:data.regime,items});
-   n+=items.length;notice.textContent=n+' de '+data.items.length+' composições importadas.';
+   await api('admin-sinapi-import',null,{
+    schema:data.schema,uf:data.uf,period:data.period,regime:data.regime,
+    items:data.items.slice(i,i+25)
+   });
+   n+=Math.min(25,data.items.length-i);
+   notice.textContent=n+' de '+data.items.length+' composições SINAPI salvas.';
   }
  }
  importOne.addEventListener('click',async()=>{
@@ -68,19 +93,68 @@ function mount(dashboard){
    await api('admin-sinapi-import',null,{schema:'civolten.sinapi.v1',uf:'SP',period:period.value,regime:regime.value,
     items:[{code:code.value,description:description.value,unit:unit.value,cost:amount,
      price_verified:confirm.checked,source_url:source.value}]});
-   notice.textContent='Composição registrada. Sem valor validado, ficará pendente para simulação.';
-  }catch(e){notice.textContent='Não foi possível importar: '+e.message;}
+   notice.textContent='Composição registrada no Supabase. Sem custo validado, ficará como avaliação.';
+  }catch(e){notice.textContent='Importação individual: '+e.message;}
   finally{importOne.disabled=false;}
  });
- importFile.addEventListener('click',async()=>{
-  const file=upload.files?.[0];if(!file){notice.textContent='Selecione o JSON primeiro.';return;}
-  if(file.size>5000000){notice.textContent='Arquivo muito grande (limite 5 MB).';return;}
+ template.addEventListener('click',()=>{
+  if(!parser)return;
+  parser.download('civolten-modelo-sinapi.csv',
+   'codigo;descricao;unidade;custo;fonte\\n123456;PREENCHER COM O SERVIÇO ORIGINAL;M2;;https://www.caixa.gov.br/poder-publico/modernizacao-gestao/sinapi/Paginas/default.aspx\\n');
+ });
+ upload.addEventListener('change',()=>{pending=null;importFile.disabled=true;confirmFile.checked=false;preview.replaceChildren();});
+ inspect.addEventListener('click',async()=>{
+  importFile.disabled=true;confirmFile.checked=false;pending=null;preview.replaceChildren();
   try{
-   importFile.disabled=true;
-   await importBatch(JSON.parse(await file.text()));
-   notice.textContent='Importação concluída. Consulte o código na pesquisa abaixo.';
-  }catch(e){notice.textContent='Importação incompleta: '+e.message;}
-  finally{importFile.disabled=false;}
+   if(!parser)throw Error('Leitor CSV não carregado. Atualize a página.');
+   const {json,rows}=await parser.loadFile(upload.files?.[0]);
+   if(json){
+    if(json.schema!=='civolten.sinapi.v1'||json.uf!=='SP'||!Array.isArray(json.items))
+     throw Error('JSON precisa do modelo civolten.sinapi.v1 e UF SP.');
+    pending=json;
+   }else{
+    const items=rows.map(row=>{
+     const raw=parser.field(row,'custo','valor','unit_cost','custo unitario','preco');
+     const numeric=parser.numberBR(raw);
+     const verified=certify.checked&&numeric>0;
+     const official=parser.field(row,'fonte','url','source_url')||fileSource.value.trim();
+     return {code:parser.field(row,'codigo','codigo composicao','code'),
+      description:parser.field(row,'descricao','description','nome servico','servico'),
+      unit:parser.field(row,'unidade','unit','und'),
+      cost:verified?numeric:null,
+      price_verified:verified,source_url:official};
+    });
+    pending={schema:'civolten.sinapi.v1',uf:'SP',period:filePeriod.value,
+     regime:fileRegime.value,items};
+   }
+   if(!/^20\\d{2}-(?:0[1-9]|1[0-2])$/.test(pending.period)||
+     !['sem_desoneracao','com_desoneracao'].includes(pending.regime)||
+     !pending.items.length||pending.items.length>15000)
+    throw Error('Confira competência AAAA-MM, regime de encargos e quantidade de composições.');
+   if(pending.items.some(x=>!/^\\d{4,10}$/.test(String(x.code||''))||
+     String(x.description||'').trim().length<3||!String(x.unit||'').trim()))
+    throw Error('Arquivo sem colunas de código, descrição ou unidade válidas. Confira os cabeçalhos.');
+   const duplicate=new Set(pending.items.map(x=>String(x.code)));
+   if(duplicate.size!==pending.items.length)throw Error('Códigos repetidos no mesmo arquivo. Revise antes de salvar.');
+   const withCost=pending.items.filter(x=>Number(x.cost)>0).length;
+   preview.append(node('p',{text:'SP · '+pending.period+' · '+pending.regime+' · '+pending.items.length+
+    ' composições · '+withCost+' com custo declarado.'}));
+   for(const x of pending.items.slice(0,12))preview.append(node('p',{text:String(x.code)+' · '+String(x.description).slice(0,95)+
+    ' · '+String(x.unit)+' · '+(Number(x.cost)>0?'R$ '+Number(x.cost).toFixed(2).replace('.',','):'Custo pendente')}));
+   notice.textContent='Confira a prévia. Só grave os dados da fonte oficial, e não marque custos como confirmados sem evidência.';
+   importFile.disabled=false;
+  }catch(e){pending=null;notice.textContent='Não foi possível ler o arquivo: '+e.message;}
+ });
+ importFile.addEventListener('click',async()=>{
+  if(!pending)return;
+  if(!confirmFile.checked){notice.textContent='Confirme a conferência do arquivo antes de salvar.';return;}
+  importFile.disabled=true;
+  try{
+   await importBatch(pending);
+   notice.textContent=pending.items.length+' composições salvas. Atualize o orçamento para carregar o SINAPI.';
+   pending=null;confirmFile.checked=false;
+  }catch(e){notice.textContent='Importação interrompida: '+e.message+'. Os lotes anteriores podem ter sido gravados.';}
+  finally{importFile.disabled=!pending;}
  });
  const comparison=node('div',{class:'sinapi-compare-panel'});
  comparison.append(node('h4',{text:'Comparar SIURB × SINAPI (mesmo escopo e unidade)'}));
