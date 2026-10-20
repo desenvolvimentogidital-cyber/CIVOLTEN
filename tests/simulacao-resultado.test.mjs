@@ -88,7 +88,7 @@ test('html inclui revisão dos serviços, feedback e versões de cache atualizad
    assert.match(html,new RegExp('id="'+id+'"'));
   assert.match(html,/civolten-carrinho\.js\?v=5/);
   assert.match(html,/civolten\.js\?v=19/);
-  assert.match(html,/civolten-app-unificado\.css\?v=11/);
+  assert.match(html,/civolten-app-unificado\.css\?v=12/);
  }
  const css=read('assets/civolten-app-unificado.css');
  assert.match(css,/\.quote-cart-review\{border:/);

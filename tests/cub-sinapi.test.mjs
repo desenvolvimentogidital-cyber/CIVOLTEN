@@ -89,7 +89,7 @@ test('CUB-SP casa R1-N calcula custo básico, jamais preço final comercial',()=
  assert.match(markup,/id="cubPattern"/);
  assert.match(markup,/id="cubRegime"/);
  assert.match(markup,/id="cubResult"/);
- assert.match(markup,/civolten-cub\.js\?v=1/);
+ assert.match(markup,/civolten-cub\.js\?v=2/);
 });
 test('sinapi fica separado dos preços comerciais; navegação e backend possuem rotas corretas',()=>{
  const sql=read('supabase/migrations/20261020_sinapi_reference_services.sql');
@@ -101,6 +101,6 @@ test('sinapi fica separado dos preços comerciais; navegação e backend possuem
  assert.match(backend,/sinapi-list/);
  assert.match(read('assets/civolten.js'),/sinapi-list/);
  assert.match(read('assets/civolten-reference.js'),/CIVOLTEN_SINAPI_ADMIN/);
- assert.match(read('index.html'),/civolten-sinapi-admin\.js\?v=1/);
+ assert.match(read('index.html'),/civolten-sinapi-admin\.js\?v=2/);
  assert.doesNotMatch(read('assets/civolten-sinapi-admin.js'),/localStorage|sessionStorage|\.innerHTML/);
 });

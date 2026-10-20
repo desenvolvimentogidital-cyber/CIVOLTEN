@@ -131,6 +131,7 @@ function importHub(dashboard){
  box.append(stats,file,btn,cancel,progress);
  dashboard.append(box);
  window.CIVOLTEN_SINAPI_ADMIN?.mount?.(dashboard);
+ window.CIVOLTEN_CUB_ADMIN?.mount?.(dashboard);
  updateStats().catch(e=>stats.textContent='Não foi possível consultar as bases: '+e.message);
 }
 window.CIVOLTEN_SIURB={searchInto,importHub};
