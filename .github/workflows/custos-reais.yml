@@ -2,7 +2,7 @@ name: Testes CIVOLTEN Custos Reais
 on:
   pull_request:
   push:
-    branches: [refatoracao-custos-reais-20261020]
+    branches: [main, refatoracao-custos-reais-20261020]
 permissions:
   contents: read
 jobs:
