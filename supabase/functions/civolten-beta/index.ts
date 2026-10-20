@@ -120,7 +120,7 @@ Deno.serve(async req=>{
   }
   if(req.method==='GET'&&api==='sinapi-list'){
    const raw=url.searchParams.get('offset')||'0';
-   if(!/^\\d{1,5}$/.test(raw))return err('Paginação SINAPI inválida.',400);
+   if(!/^\d{1,5}$/.test(raw))return err('Paginação SINAPI inválida.',400);
    return out(await sinapiPage({db,offset:Number(raw),size:400}));
   }
   if(req.method==='GET'&&api==='siurb-search'){
