@@ -59,10 +59,7 @@ if(screen==='orcamento'){
  const group=params.get('grupo');
  const allowed=['eletrica','manutencao','iluminacao','construcao','reforma','pintura','hidraulica','outros'];
  if(allowed.includes(category)){
-  if(group&&window.CIVOLTEN_QUICK_SELECTION?.directory?.[group]){
-   const button=document.querySelector('[data-quick-category="'+group+'"]');
-   button?.click();
-  }
+  // Links antigos continuam aceitos sem recriar a seleção duplicada na home.
   const ids=String(params.get('itens')||'').split(',').filter(x=>/^[a-z0-9_]{2,70}$/.test(x)).slice(0,60);
   let selections=[];
   try{
