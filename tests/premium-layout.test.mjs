@@ -9,13 +9,15 @@ const script=readFileSync(new URL('../assets/civolten-premium.js',import.meta.ur
 const state=readFileSync(new URL('../assets/site-branding.js',import.meta.url),'utf8');
 const classic=readFileSync(new URL('../assets/civolten.js',import.meta.url),'utf8');
 
-test('tela inicial premium conserva o formulário e os 3.463 serviços EDIF/INFRA',()=>{
- for(const id of ['siteLogo','siteHeadline','siteDescription','formulario','name','phone','category','desc','lines','add','simulate','send','files','record','catalogstatus','quickContinue','quickQuantity','simulacao'])
-  assert.match(home,new RegExp('id="'+id+'"'),'elemento obrigatório '+id);
- for(const section of ['landing-top','landing-steps','landing-category-grid','landing-fast-card','premium-quote-card'])
+test('home premium é vitrine, orçamento concentra pesquisa, carrinho e simulação',()=>{
+ const quote=readFileSync(new URL('../orcamento.html',import.meta.url),'utf8');
+ for(const id of ['siteLogo','siteHeadline','siteDescription','formulario','name','phone','category','desc','lines','add','simulate','send','files','record','catalogstatus','catalogFinder','cartList','quoteContactDetails','simulacao'])
+  assert.match(quote,new RegExp('id="'+id+'"'),'elemento obrigatório '+id);
+ for(const section of ['landing-top','landing-steps','landing-category-grid','premium-quote-card'])
   assert.ok(home.includes(section));
- assert.match(home,/civolten-app-unificado\.css\?v=/);
- assert.match(home,/civolten-premium\.js\?v=/);
+ assert.doesNotMatch(home,/class="landing-fast-card"|id="quickContinue"|quickSubservices|civolten-servicos-rapidos\.js/);
+ assert.match(home,/civolten-app-unificado\.css\?v=7/);
+ assert.match(home,/civolten-premium\.js\?v=3/);
  assert.match(classic,/api=siurb-list/);
  assert.match(classic,/modalidade:row\._modeSelect/);
  assert.doesNotMatch(home,/siteLogo"[^>]*src="/,'A logo deve vir do banco, sem substituição');
@@ -40,33 +42,9 @@ test('logo preservada, aplicada ao site, painel e prévias sem escrever imagem n
  assert.match(css,/brand-accent/);
  assert.doesNotMatch(home,/⚡ CIVOL|class="brand"/);
 });
-test('seleção rápida preenche o formulário real sem inventar preços no navegador',()=>{
- const ids=['quickContinue','quickQuantity','lines','category','formulario','catalogstatus'];
- const elements=Object.fromEntries(ids.map(id=>[id,{
-  id,options:[],value:id==='quickQuantity'?'2':'',listeners:{},
-  addEventListener(name,fn){this.listeners[name]=fn;},scrollIntoView(){this.scrolled=true},
-  querySelector(){return null;},
-  textContent:''
- }]));
- const buttons=['eletrica','pintura','construcao','reforma'].map(cat=>({
-  dataset:{quickCategory:cat},listeners:{},
-  classList:{toggle(){},contains(){return false}},
-  setAttribute(){},addEventListener(name,fn){this.listeners[name]=fn;}
- }));
- const catLinks=[];
- const document={
-  getElementById:id=>elements[id],
-  querySelectorAll:sel=>sel==='[data-quick-category]'?buttons:sel==='[data-select-category]'?catLinks:[],
-  querySelector:()=>({value:'completo'}),
-  createElement:()=>({})
- };
- const ctx=vm.createContext({document,window:{},Object,Number,Array,Event:class Event{}});
- vm.runInContext(script,ctx);
- buttons[1].listeners.click();
- assert.equal(elements.category.value,'pintura');
- elements.quickContinue.listeners.click();
- assert.equal(elements.formulario.scrolled,true);
- assert.equal(elements.category.value,'pintura');
- assert.match(script,/service\.value=chosen/);
- assert.match(script,/mode==='mao_obra'/);
+test('painel premium não depende do formulário duplicado',()=>{
+ assert.doesNotMatch(script,/quickContinue|quickQuantity|chooseCategory|service\.value=chosen/);
+ assert.match(script,/CIVOLTEN_PREMIUM=\{updateDashboard\}/);
+ const route=readFileSync(new URL('../assets/civolten-routes.js',import.meta.url),'utf8');
+ assert.doesNotMatch(route,/quick\.addEventListener\('click'/);
 });
