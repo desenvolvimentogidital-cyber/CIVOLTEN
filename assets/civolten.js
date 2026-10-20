@@ -617,27 +617,40 @@ window.CIVOLTEN_FORM={
   window.CIVOLTEN_CARRINHO?.refresh();
   return true;
  },
- prefillQuickSelection({category,items,quantity,mode,details,label}={}){
+ prefillQuickSelection({category,items,selections,quantity,mode,details,label}={}){
   const allowed=['eletrica','manutencao','iluminacao','construcao','reforma','pintura','hidraulica','outros'];
   if(allowed.includes(category))$('category').value=category;
   const ids=Array.isArray(items)?[...new Set(items)].slice(0,12):[];
   const valid=ids.filter(id=>typeof id==='string'&&/^[a-z0-9_]{2,70}$/.test(id)&&catalog.some(s=>s.id===id));
+  const multi=Array.isArray(selections)?selections.slice(0,60).filter(entry=>
+   entry&&typeof entry.id==='string'&&/^[a-z0-9_]{2,70}$/.test(entry.id)&&
+   catalog.some(s=>s.id===entry.id)&&Number.isFinite(Number(entry.quantity))&&
+   Number(entry.quantity)>0&&Number(entry.quantity)<=100000&&
+   (catalog.find(s=>s.id===entry.id)?.unidade!=='unidade'||Number.isInteger(Number(entry.quantity)))
+  ):[];
+  const unique=new Map();
+  for(const entry of multi){
+   const amount=Number(entry.quantity);
+   unique.set(entry.id,Math.min(100000,Number(((unique.get(entry.id)||0)+amount).toFixed(3))));
+  }
+  const entries=unique.size?Array.from(unique,([id,amount])=>({id,amount})):
+   valid.map(id=>({id,amount:Number(quantity)}));
   const rows=$('lines');
-  if(valid.length){
+  if(entries.length){
    rows.replaceChildren();
-   for(const id of valid){
+   for(const entry of entries.slice(0,60)){
     add();
     const row=rows.lastElementChild;
     const select=row.querySelector('select');
-    select.value=id;
+    select.value=entry.id;
     select.dispatchEvent(new Event('change'));
-    const n=Number(quantity);
+    const n=Number(entry.amount);
     row.querySelector('input').value=Number.isFinite(n)&&n>0&&n<=100000?String(n):'1';
    }
   }
   // Descrição apresentada ao cliente é editável e não equivale a proposta ou preço.
-  const titles=valid.map(id=>catalog.find(s=>s.id===id)?.descricao).filter(Boolean);
-  const note=String(details||'').trim().slice(0,500);
+  const titles=entries.map(entry=>catalog.find(s=>s.id===entry.id)?.descricao).filter(Boolean);
+  const note=String(details||'').trim().slice(0,1800);
   const group=String(label||'').trim().slice(0,90);
   const summary=[group?'Categoria: '+group+'.':'',titles.length?'Serviços: '+titles.join(', ')+'.':'',note].filter(Boolean).join(' ');
   if(summary&&!$('desc').value.trim())$('desc').value=summary.slice(0,4000);
@@ -645,7 +658,8 @@ window.CIVOLTEN_FORM={
    $('catalogstatus').textContent='Para orçamento apenas de mão de obra, selecione uma composição SIURB (EDIF/INFRA) com profissionais identificados. Os itens acima permanecem em serviço completo até essa escolha.';
   }
   clearEstimate();
-  return valid.length;
+  window.CIVOLTEN_CARRINHO?.refresh();
+  return entries.length;
  }
 };
 $('retryCatalog').onclick=loadCatalog;
