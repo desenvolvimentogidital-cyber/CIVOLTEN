@@ -27,7 +27,7 @@
    for(const item of data.rates){
     const key=item.pattern+':'+item.regime;
     const cost=Number(item.unit_cost);
-    if(!imported.has(key)&&/^20\\d{2}-(?:0[1-9]|1[0-2])$/.test(item.base_month)&&
+    if(!imported.has(key)&&/^20\d{2}-(?:0[1-9]|1[0-2])$/.test(item.base_month)&&
      Number.isFinite(cost)&&cost>0&&CUB[item.pattern]?.[item.regime]>0)
      imported.set(key,{cost,month:item.base_month,source:item.source_url});
    }
