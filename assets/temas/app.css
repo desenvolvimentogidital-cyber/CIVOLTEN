@@ -238,3 +238,9 @@ body[data-screen="orcamento"] .status-catalog{font-size:12px}
  .quote-contact-details>summary strong{font-size:14px}
  .quote-simple-head p{font-size:12px}
 }
+
+/* Catálogo contínuo: rolagem nativa no celular, sem botão ou paginação manual. */
+body[data-screen="orcamento"] .catalog-results{overflow-y:auto;max-height:min(68dvh,560px);scrollbar-gutter:stable;touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.catalog-scroll-hint{margin:10px 3px 0;color:#536d85;font-size:12px;line-height:1.5}
+body[data-screen="orcamento"] .catalog-results:focus-visible{outline:3px solid var(--brand-accent,#dca629);outline-offset:3px}
+@media(max-width:580px){body[data-screen="orcamento"] .catalog-results{max-height:min(62dvh,480px)}.catalog-scroll-hint{font-size:11px}}
