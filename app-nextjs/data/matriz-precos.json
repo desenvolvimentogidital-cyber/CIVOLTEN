@@ -151,6 +151,15 @@
       "medio": 2500,
       "alto": 0,
       "observacao": "Valor de R$ 2.500/m² no padrão médio é apenas exemplo inicial, sujeito a avaliação de custos. Padrões baixo e alto a configurar."
+    },
+    "construcao_residencial_completa": {
+      "categoria": "construcao_civil",
+      "descricao": "Construção residencial completa — do zero à entrega pronta",
+      "unidade": "m²",
+      "baixo": 0,
+      "medio": 0,
+      "alto": 0,
+      "observacao": "Orçamento por área construída aproximada. Inclui escopo de fundação, estrutura, alvenaria, cobertura, instalações e acabamento a definir em projeto; preços inicialmente sem referência validada. Valores zero indicam avaliação técnica obrigatória, não obra gratuita. Terreno, projeto, licenças e serviços especiais dependem de análise contratual."
     }
   }
 }

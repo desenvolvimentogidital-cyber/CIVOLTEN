@@ -86,9 +86,9 @@ test('html inclui revisão dos serviços, feedback e versões de cache atualizad
   const html=read(page);
   for(const id of ['quoteCartReview','quoteCartItems','quoteCartCount','quoteCartNotice','estimate'])
    assert.match(html,new RegExp('id="'+id+'"'));
-  assert.match(html,/civolten-carrinho\.js\?v=3/);
-  assert.match(html,/civolten\.js\?v=17/);
-  assert.match(html,/civolten-app-unificado\.css\?v=9/);
+  assert.match(html,/civolten-carrinho\.js\?v=4/);
+  assert.match(html,/civolten\.js\?v=18/);
+  assert.match(html,/civolten-app-unificado\.css\?v=10/);
  }
  const css=read('assets/civolten-app-unificado.css');
  assert.match(css,/\.quote-cart-review\{border:/);

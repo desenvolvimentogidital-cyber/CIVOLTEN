@@ -47,9 +47,11 @@ new vm.Script(fs.readFileSync("assets/proposta.js","utf8"),{filename:"proposta.j
 assert.doesNotMatch(pro,/innerHTML|sessionStorage|localStorage|\.access_token/);
 
 const matrix=JSON.parse(fs.readFileSync("app-nextjs/data/matriz-precos.json","utf8"));
-assert.equal(Object.keys(matrix.servicos).length, 17);
+assert.equal(Object.keys(matrix.servicos).length, 18);
 assert.equal(matrix.servicos.reforma_apartamento_completa.medio, 2500);
 assert.equal(matrix.servicos.instalacao_eletrica_completa.unidade, "m²");
+assert.equal(matrix.servicos.construcao_residencial_completa.unidade, 'm²');
+assert.equal(matrix.servicos.construcao_residencial_completa.medio, 0);
 const backend=fs.readFileSync("supabase/functions/civolten-beta/index.ts","utf8");
 const cookieServer=fs.readFileSync("api/session.mjs","utf8");
 const proxyServer=fs.readFileSync("api/admin.mjs","utf8");
@@ -153,11 +155,11 @@ for(const online of [true,false]){
     elements.get("add").onclick();
     assert.equal(elements.get("lines").children.length,2,"Botão deve criar segunda linha");
   } else {
-    assert.equal(first.querySelector("select").children.length,18,"A lista reserva precisa permitir trabalhar sem catálogo remoto");
+    assert.equal(first.querySelector("select").children.length,19,"A lista reserva precisa permitir trabalhar sem catálogo remoto");
     assert.equal(elements.get("retryCatalog").classList.contains("hidden"),false,"Exibir botão de tentar novamente");
   }
 }
-console.log("CIVOLTEN: script válido; formulário aparece; catálogo remoto e offline; adicionar serviço; simular total; storage bloqueado; 17 serviços.");
+console.log("CIVOLTEN: script válido; formulário aparece; catálogo remoto e offline; adicionar serviço; simular total; storage bloqueado; 18 serviços.");
 
 const missingFields=fixture(false);
 await missingFields.get('send').onclick();

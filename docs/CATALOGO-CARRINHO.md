@@ -34,3 +34,15 @@ O passo **Simulação do orçamento** agora exibe uma revisão sempre sincroniza
 Ao executar **Simular meu carrinho** ou **Calcular simulação**, a própria etapa exibe `Calculando`, seguida do total real devolvido pela API, solicitação de avaliação personalizada ou erro legível no mesmo local (inclusive de validação). O resultado é trazido para a área visível do celular. Fotos, dados pessoais e consentimento não são exigidos para simular; continuam necessários para enviar pedidos segundo as regras já existentes. O painel e a autenticação permanecem inalterados.
 
 Teste manual recomendado: adicionar dois serviços de categorias diferentes, alterar quantidades, clicar em **Ir à simulação** e **Simular meu carrinho**, confirmar os itens/quantidades e o resultado (ou mensagem de avaliação) sem perda de seleção.
+
+
+## Projetos integrais por m² — nova experiência
+
+A tela `/orcamento` possui dois acessos rápidos antes da busca dos serviços:
+
+- **Construção residencial completa — do zero à entrega pronta** (`construcao_residencial_completa`): informar a **área construída aproximada em m²**, não a metragem do terreno. Adiciona uma composição própria, de `construcao_civil`, ao carrinho com a metragem digitada. Inicialmente preços `baixo=0, medio=0, alto=0`, de forma que a API apresente **Avaliação personalizada** em vez de fingir uma estimativa. O administrador poderá configurar referências de custo por m² verificadas quando o escopo for definido.
+- **Reforma completa de apartamento** (`reforma_apartamento_completa`): informa m² da reforma e reutiliza o serviço já cadastrado e as regras do orçamento real, sem um cálculo paralelo. **Atenção:** a tabela original registra R$ 2.500/m² no padrão médio como *exemplo inicial*, e os outros padrões estão sem preço. Confirmar essa referência no painel antes de considerá-la uma estimativa comercial válida.
+
+Ambos os atalhos mantêm o carrinho unificado e preenchem a descrição do pedido apenas quando estiver vazia. O cliente pode depois incluir outros serviços, alterar quantidades e solicitar a avaliação técnica; dados de contato continuam apenas no envio. O sistema não promete um escopo fechado, que depende de projeto executivo, condições do terreno, número de pavimentos, fundações, aprovações legais, padrão e materiais, despesas indiretas e cronograma.
+
+A migração `20261020_construcao_residencial_completa_m2.sql` cria o serviço no catálogo da API de forma idempotente, sem alterar preços preexistentes. **Antes de liberar cálculos automáticos de obra integral**, o responsável técnico deve definir o que a composição inclui e qual referência regional/temporal é adequada (por exemplo CUB/SINAPI), com ajustes próprios de cada obra. Referências de custo não são propostas fechadas nem substituem orçamento analítico.
