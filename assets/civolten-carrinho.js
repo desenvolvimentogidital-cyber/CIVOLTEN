@@ -119,6 +119,29 @@ function renderCatalog(){
   while(shown<matched.length&&results.scrollHeight<=results.clientHeight+60)loadNextBatch();
  }
 }
+function renderQuoteReview(items){
+ const container=$('quoteCartItems'),count=$('quoteCartCount'),notice=$('quoteCartNotice');
+ if(!container||!count)return;
+ container.replaceChildren();
+ count.textContent=items.length+' serviço'+(items.length===1?'':'s');
+ if(!items.length){
+  container.appendChild(create('p','cart-empty','Nenhum serviço selecionado. Pesquise acima e adicione ao carrinho.'));
+  if(notice)notice.textContent='Selecione um serviço no catálogo antes de calcular.';
+  return;
+ }
+ for(const item of items){
+  const service=serviceLabel(item.servico_id);
+  if(!service)continue;
+  const row=create('div','quote-review-item');
+  const name=create('strong','quote-review-name',service.descricao);
+  const detail=create('span','quote-review-details',
+   String(item.quantidade)+' '+service.unidade+
+   (item.modalidade==='mao_obra'?' · Somente mão de obra':' · Serviço completo'));
+  row.append(name,detail);
+  container.appendChild(row);
+ }
+ if(notice)notice.textContent='Estes são os serviços do seu carrinho. Use Calcular simulação para consultar o valor estimado.';
+}
 function renderCart(){
  updateCache();
  const items=api.getCart();
@@ -152,6 +175,7 @@ function renderCart(){
  if(!totalQuantity)cart.appendChild(create('p','cart-empty','Seu carrinho está vazio. Pesquise e adicione serviços para simular.'));
  cartSummary.textContent=totalQuantity+' serviço'+(totalQuantity===1?'':'s')+' selecionado'+(totalQuantity===1?'':'s');
  $('cartBadge').textContent=String(totalQuantity);
+ renderQuoteReview(items);
 }
 function refresh(){
  const previousKey=dataKey;
@@ -172,7 +196,7 @@ results.addEventListener('scroll',()=>{
 $('cartGoSimulate').addEventListener('click',()=>{
  const selected=api.getCart();
  if(!selected.length){showMessage('Adicione um serviço antes de simular. Para serviços não encontrados, descreva sua necessidade abaixo.',true);query.focus();return;}
- $('simulate').scrollIntoView({behavior:'smooth',block:'center'});
+ $('simulacao').scrollIntoView({behavior:'smooth',block:'start'});
  $('simulate').focus({preventScroll:true});
 });
 $('cartDirectEstimate').addEventListener('click',()=>{

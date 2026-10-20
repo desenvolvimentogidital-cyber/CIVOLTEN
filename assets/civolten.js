@@ -304,7 +304,54 @@ $('add').onclick=add;document.querySelectorAll('[data-p]').forEach(b=>b.onclick=
  row.querySelector('select').dispatchEvent(new Event('change'));
  if(row._modeSelect)row._modeSelect.value=o.modalidade||'completo';
  row.querySelector('input').value=o.quantidade});clearEstimate()});
-$('simulate').onclick=async()=>{try{clean('clientmsg');resetFieldErrors();if(showRequiredErrors(simulationRequiredErrors()))return;const items=currentItems();$('simulate').disabled=true;const r=await api('POST','simulate',{itens:items,padrao,dias:Number($('days').value),km:Number($('km').value)});$('estimate').replaceChildren();const a=document.createElement('small');a.textContent='SIMULAÇÃO PRELIMINAR';const b=document.createElement('strong');const d=document.createElement('small');if(r.avaliacao_necessaria){b.textContent='Avaliação personalizada';d.textContent=r.mensagem||'Envie seu pedido para receber orçamento.';}else{b.textContent=BRL(r.simulacao.total_bruto);d.textContent='';}$('estimate').append(a,b,d);$('estimate').classList.remove('hidden');}catch(e){message('clientmsg',e.message)}finally{$('simulate').disabled=false}};
+function showSimulationState(title,detail,{error=false,loading=false}={}){
+ const result=$('estimate');
+ result.replaceChildren();
+ const caption=document.createElement('small');
+ caption.textContent=error?'SIMULAÇÃO NÃO CONCLUÍDA':loading?'PROCESSANDO SIMULAÇÃO':'SIMULAÇÃO PRELIMINAR';
+ const heading=document.createElement('strong');
+ heading.textContent=title;
+ const help=document.createElement('small');
+ help.textContent=detail||'';
+ result.append(caption,heading,help);
+ result.classList.toggle('quote-estimate-error',error);
+ result.classList.remove('hidden');
+ if(!loading)result.scrollIntoView?.({behavior:'smooth',block:'center'});
+}
+$('simulate').onclick=async()=>{
+ const button=$('simulate');
+ try{
+  clean('clientmsg');
+  resetFieldErrors();
+  const issues=simulationRequiredErrors();
+  if(issues.length){
+   const options=$('quoteEstimateOptions');
+   const technical=$('cartTechnicalEditor');
+   if(issues.some(x=>x.field===$('days')||x.field===$('km'))&&options)options.open=true;
+   if(issues.some(x=>x.field&&x.field.closest?.('#lines'))&&technical)technical.open=true;
+   showSimulationState('Confira os dados do carrinho',
+    issues.map(x=>'• '+x.message).join('\n'),{error:true});
+   return;
+  }
+  const items=currentItems();
+  button.disabled=true;
+  showSimulationState('Calculando os serviços selecionados…','Aguarde a resposta do sistema.',{loading:true});
+  const response=await api('POST','simulate',{
+   itens:items,padrao,dias:Number($('days').value),km:Number($('km').value)
+  });
+  if(response.avaliacao_necessaria){
+   showSimulationState('Avaliação personalizada',
+    response.mensagem||'Envie seu pedido para receber um orçamento técnico.');
+  }else{
+   const amount=Number(response.simulacao?.total_bruto);
+   if(!Number.isFinite(amount)||amount<0)throw Error('O sistema não retornou um valor válido. Tente novamente ou envie o pedido para avaliação.');
+   showSimulationState(BRL(amount),'Valor estimado dos serviços selecionados. Sujeito à avaliação técnica.');
+  }
+ }catch(e){
+  showSimulationState('Não foi possível calcular agora',
+   e?.message||'Confira a conexão e tente novamente.',{error:true});
+ }finally{button.disabled=false;}
+};
 $('files').onchange=e=>{files.push(...Array.from(e.target.files||[]));if(files.length>6){files=files.slice(0,6);message('clientmsg','Máximo de seis arquivos.')}showFiles();$('files').value=''};
 function showFiles(){$('filelist').replaceChildren();files.forEach((f,i)=>{const li=document.createElement('li');li.textContent=f.name+' ('+(f.size/1048576).toFixed(1)+' MB) ';const b=document.createElement('button');b.textContent='Remover';b.type='button';b.onclick=()=>{files.splice(i,1);showFiles()};li.appendChild(b);$('filelist').appendChild(li)})}
 $('record').onclick=async()=>{try{if(recorder&&recorder.state==='recording'){recorder.stop();$('record').textContent='🎙️ Gravar áudio';return}if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)throw Error('Este navegador não permite gravação aqui. Grave fora e selecione o arquivo.');stream=await navigator.mediaDevices.getUserMedia({audio:true});let type=MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'';recorder=new MediaRecorder(stream,type?{mimeType:type}:undefined);chunks=[];recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onstop=()=>{let mime=(recorder.mimeType||'audio/webm').split(';')[0];let f=new File([new Blob(chunks,{type:mime})],'audio-'+Date.now()+(mime.includes('mp4')?'.m4a':'.webm'),{type:mime});files.push(f);if(files.length>6)files=files.slice(0,6);showFiles();stream?.getTracks().forEach(x=>x.stop())};recorder.start();$('record').textContent='■ Parar gravação';}catch(e){message('clientmsg',e.message)}};

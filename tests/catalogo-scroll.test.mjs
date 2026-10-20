@@ -20,7 +20,7 @@ function makeFixture(count=137){
  }
  const ids=['catalogFinder','catalogType','catalogQuery','catalogResults','finderStatus',
   'cartList','cartSummary','cartFeedback','cartBadge','cartGoSimulate',
-  'cartDirectEstimate','lines','simulate','category'];
+  'cartDirectEstimate','lines','simulate','category','quoteCartItems','quoteCartCount','quoteCartNotice','simulacao'];
  for(const id of ids)dom[id]=el();
  dom.catalogType.value='todos';
  dom.category.options=[{value:'eletrica'},{value:'outros'}];
@@ -81,6 +81,11 @@ test('adicionar ao carrinho preserva posição e serviços já carregados',()=>{
  assert.equal(results.children.length,100);
  assert.equal(results.scrollTop,oldScroll);
  assert.equal(dom.cartBadge.textContent,'1');
+ assert.equal(dom.quoteCartCount.textContent,'1 serviço');
+ assert.equal(dom.quoteCartItems.children.length,1);
+ assert.equal(dom.quoteCartItems.children[0].children[0].textContent,'INSTALAÇÃO ELÉTRICA 089');
+ assert.match(dom.quoteCartItems.children[0].children[1].textContent,/1 metro/);
+ assert.match(dom.quoteCartNotice.textContent,/mesmos|serviços do seu carrinho/i);
 });
 
 test('buscar serviço filtra e troca de categoria reinicia listagem sem botão',()=>{

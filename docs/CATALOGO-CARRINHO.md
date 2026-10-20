@@ -25,3 +25,12 @@ A simulação usa padrão de acabamento, dias estimados e distância fornecidos 
 6. Rodar `npm test`. Conferir visualmente em celular antes do deploy.
 
 **Nota de publicação:** esta entrega será somente mergeada no GitHub. Não iniciar deploy manual enquanto a atualização da Vercel não for autorizada.
+
+
+## Correção de integração carrinho → simulação (20/10/2026)
+
+O passo **Simulação do orçamento** agora exibe uma revisão sempre sincronizada do carrinho: descrição de cada serviço, quantidade, unidade e modalidade. Não é criado um segundo carrinho ou valores locais; a mesma lista `currentItems()` alimenta o servidor. O botão **Ir à simulação** posiciona o cliente nessa revisão.
+
+Ao executar **Simular meu carrinho** ou **Calcular simulação**, a própria etapa exibe `Calculando`, seguida do total real devolvido pela API, solicitação de avaliação personalizada ou erro legível no mesmo local (inclusive de validação). O resultado é trazido para a área visível do celular. Fotos, dados pessoais e consentimento não são exigidos para simular; continuam necessários para enviar pedidos segundo as regras já existentes. O painel e a autenticação permanecem inalterados.
+
+Teste manual recomendado: adicionar dois serviços de categorias diferentes, alterar quantidades, clicar em **Ir à simulação** e **Simular meu carrinho**, confirmar os itens/quantidades e o resultado (ou mensagem de avaliação) sem perda de seleção.
