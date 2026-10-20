@@ -79,6 +79,7 @@ function searchInto(editor,onSelect){
  run.onclick=find;query.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();find();}};
  source.onchange=()=>{if(query.value.trim().length>=2)find();};
  editor.append(wrap);
+ window.CIVOLTEN_SINAPI_ADMIN?.searchInto?.(editor,onSelect);
 }
 function importHub(dashboard){
  if(dashboard.querySelector('.pro-siurb-import'))return;
@@ -129,6 +130,7 @@ function importHub(dashboard){
  cancel.onclick=()=>{stop=true;progress.textContent='Interrompendo ao terminar o lote atual...';};
  box.append(stats,file,btn,cancel,progress);
  dashboard.append(box);
+ window.CIVOLTEN_SINAPI_ADMIN?.mount?.(dashboard);
  updateStats().catch(e=>stats.textContent='Não foi possível consultar as bases: '+e.message);
 }
 window.CIVOLTEN_SIURB={searchInto,importHub};
