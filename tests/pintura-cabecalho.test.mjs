@@ -32,7 +32,7 @@ test('todas as páginas usam azul técnico e logo sem placa branca',()=>{
 test('cache CSS e fluxo atualizado sem scripts antigos',()=>{
  for(const page of ['index.html','empresa.html','orcamento.html']){
   const html=read(page);
-  assert.ok(html.includes('civolten-app-unificado.css?v=7'),page);
+  assert.ok(html.includes('civolten-app-unificado.css?v=8'),page);
   assert.ok(html.includes('civolten-quote-flow.js?v=1'),page);
   assert.ok(!html.includes('civolten-servicos-rapidos.js'),page);
  }
