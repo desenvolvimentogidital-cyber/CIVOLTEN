@@ -16,7 +16,7 @@ test('home premium é vitrine, orçamento concentra pesquisa, carrinho e simula�
  for(const section of ['landing-top','landing-steps','landing-category-grid','premium-quote-card'])
   assert.ok(home.includes(section));
  assert.doesNotMatch(home,/class="landing-fast-card"|id="quickContinue"|quickSubservices|civolten-servicos-rapidos\.js/);
- assert.match(home,/civolten-app-unificado\.css\?v=9/);
+ assert.match(home,/civolten-app-unificado\.css\?v=10/);
  assert.match(home,/civolten-premium\.js\?v=3/);
  assert.match(classic,/api=siurb-list/);
  assert.match(classic,/modalidade:row\._modeSelect/);
