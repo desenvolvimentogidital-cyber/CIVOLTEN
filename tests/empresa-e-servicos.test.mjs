@@ -23,45 +23,23 @@ test('área da empresa recebe HTML independente com login visível',()=>{
  assert.doesNotMatch(routes,/toggle\.click\(\)/);
 });
 
-test('vitrine possui 10 categorias e nenhuma oferta de segurança ou automação',()=>{
- const categories=['eletrica','manutencao','iluminacao','solar','construcao','reforma','pisos','pintura','hidraulica','alvenaria'];
- for(const id of categories)
-  assert.match(html,new RegExp('data-quick-category="'+id+'"'));
- assert.equal((html.match(/data-quick-category="/g)||[]).length,10);
- assert.match(html,/id="quickSubservices"/);
- assert.doesNotMatch(html,/Sistemas de segurança|Automação residencial|Automação predial/i);
- const js=read('assets/civolten-servicos-rapidos.js');
- const doc={getElementById(){return null},querySelectorAll(){return []}};
- const win={};
- vm.runInNewContext(js,{document:doc,window:win,Object,Array,Number});
- const directory=win.CIVOLTEN_QUICK_SELECTION.directory;
- assert.equal(Object.keys(directory).length,10);
- const match=/const FALLBACK_CATALOG=(\[[^;]+\]);/.exec(core);
- assert.ok(match,'Catálogo reserva');
- const fallback=JSON.parse(match[1]);
- const valid=new Set(fallback.map(x=>x.id));
- for(const [name,group] of Object.entries(directory)){
-  for(const [id] of group.options){
-   if(name==='pintura'&&id.startsWith('avaliacao:'))continue;
-   assert.ok(valid.has(id),'ID sem composição real: '+id);
-  }
- }
- assert.deepEqual(Array.from(directory.pintura.options,([id,label])=>label),
-  ['Pintura de paredes','Pintura de tetos','Pintura de pisos','Pintura de drywall']);
- assert.ok(!directory.pintura.options.some(([id,label])=>/reboco|prepara[cç][aã]o|drywall com pintura/i.test(id+' '+label)));
- assert.equal(directory.solar.options.length,0);
- assert.equal(directory.hidraulica.options.length,0);
- assert.match(js,/depende de avaliação técnica/);
+test('home apresenta serviços sem repetir catálogo e carrinho do orçamento',()=>{
+ assert.match(html,/class="landing-hero-actions"/);
+ assert.match(html,/href="\/orcamento"/);
+ assert.match(html,/class="landing-category-grid"/);
+ assert.doesNotMatch(html,/id="quickContinue"|id="quickSubservices"|data-quick-category=|civolten-servicos-rapidos\.js/);
+ const types=['eletrica','manutencao','iluminacao','solar','construcao','reforma','pisos','pintura','hidraulica','alvenaria'];
+ for(const category of types)
+  assert.match(quote,new RegExp('<option value="'+category+'">'));
+ assert.match(quote,/id="catalogFinder"/);
+ assert.match(quote,/id="cartList"/);
+ assert.doesNotMatch(quote,/Sistemas de segurança|Automação residencial|Automação predial/i);
 });
-
-test('seleções avançam sem inventar preços ou gravar dados do cliente no navegador',()=>{
- assert.match(routes,/CIVOLTEN_QUICK_SELECTION\?\.collect/);
- assert.match(routes,/params\.set\('itens'/);
- assert.match(routes,/params\.set\('selecoes'/);
+test('links antigos de seleção continuam válidos sem formulário duplicado',()=>{
  assert.match(routes,/CIVOLTEN_FORM\?\.prefillQuickSelection/);
  assert.match(core,/prefillQuickSelection\(/);
  assert.match(core,/catalog\.some\(s=>s\.id===id\)/);
  assert.match(core,/rows\.replaceChildren\(\)/);
- assert.doesNotMatch(routes,/localStorage|sessionStorage|\bpreco\s*=|\bprice\s*=/);
  assert.match(routes,/URLSearchParams/);
+ assert.doesNotMatch(routes,/quick\.addEventListener|localStorage|sessionStorage|\bpreco\s*=|\bprice\s*=/);
 });
