@@ -7,7 +7,7 @@ const money=x=>Math.round(Math.max(0,Number(String(x??0).replace(',','.'))||0)*1
 const dec=x=>String(Number(x||0)/100);
 const num=x=>Number(String(x??0).replace(',','.'))||0;
 const total=xs=>xs.reduce((n,x)=>n+Number(x||0),0);
-const state={view:'home',data:{settings:[],workers:[],fixed:[],variable:[],budgets:[]},edit:null,draft:null,draftId:null};
+const state={view:'home',data:{settings:[],workers:[],fixed:[],variable:[],budgets:[]},access:[],edit:null,draft:null,draftId:null};
 const sections={home:'Visão geral',budgets:'Orçamentos',workers:'Funcionários',fixed:'Custos fixos',variable:'Custos variáveis',settings:'Configurações'};
 const fields={
  workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos estimados (%)','number'],['days_month','Dias trabalhados previstos no mês','number'],['active','Profissional ativo','checkbox']],
@@ -36,8 +36,24 @@ async function reload(){
  names.forEach((n,i)=>state.data[n]=lists[i].rows||[]);
 }
 async function showApp(){
- await reload();$('#auth').hidden=true;$('#app').hidden=false;render();
+ await reload();
+ try{state.access=(await request('/api/access?action=list')).rows||[]}catch{state.access=[]}
+ $('#auth').hidden=true;$('#app').hidden=false;render();
 }
+async function showPending(){
+ $('#app').hidden=true;$('#auth').hidden=false;
+ $('#loginCard').hidden=true;$('#pendingCard').hidden=false;
+ try{await request('/api/access?action=request','POST',{});$('#pendingNotice').textContent='Solicitação enviada. Aguarde a aprovação do administrador.'}
+ catch(e){$('#pendingNotice').textContent=e.message}
+}
+function authMode(mode){
+ $('#loginCard').hidden=false;$('#pendingCard').hidden=true;
+ $('#login').hidden=mode!=='login';
+ for(const [name,id] of [['signup','signupForm'],['recover','recoverForm'],['password','passwordForm']])$('#'+id).hidden=mode!==name;
+ document.querySelector('.auth-links').hidden=mode!=='login';
+ $('#authNotice').textContent='';
+}
+let recoveryToken=null;
 function title(name,subtitle,button){
  return '<div class="heading"><div><span class="eyebrow">CIVOLTEN / USO INTERNO</span><h1>'+esc(name)+'</h1><p>'+esc(subtitle)+'</p></div>'+(button||'')+'</div>';
 }
@@ -87,6 +103,14 @@ function settings(){
  '<label>Margem de lucro desejada sobre venda (%)<input name="margin_pct" type="number" min="0" max="99" step=".01" value="'+esc(c.margin_pct)+'" required></label></div>'+
  '<p class="hint">22 dias é um ponto de partida editável. Se houver várias equipes trabalhando ao mesmo tempo, informe a capacidade faturável total para ratear corretamente os custos fixos. Confirme a tributação com seu contador.</p>'+
  '<div class="buttons"><button class="primary">Salvar parâmetros</button></div></form></section>'+notice();
+}
+function accessList(){
+ const rows=state.access||[];
+ return title('Aprovação de cadastros','Somente administradores existentes podem autorizar novos usuários. As contas precisam confirmar seu e-mail.')+
+ '<section class="card"><h2>Solicitações pendentes ('+rows.length+')</h2>'+
+ (rows.length?rows.map(x=>'<div class="entry"><div><strong>'+esc(x.email)+'</strong><small>Recebido em '+new Date(x.requested_at).toLocaleDateString('pt-BR')+'</small></div>'+
+ '<button class="primary" data-action="approve-access" data-id="'+esc(x.user_id)+'">Aprovar cadastro</button></div>').join(''):empty('Não há solicitações aguardando aprovação.'))+
+ '</section><p class="hint">O cadastro não dá acesso aos dados internos até sua aprovação explícita.</p>';
 }
 function budgetList(){
  const rows=state.data.budgets;
@@ -154,7 +178,7 @@ function summary(){
 }
 function render(){
  document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===state.view));
- $('#content').innerHTML=state.view==='home'?dashboard():state.view==='settings'?settings():state.view==='budgets'?budgetList():state.view==='editor'?editor():generic(state.view);
+ $('#content').innerHTML=state.view==='home'?dashboard():state.view==='settings'?settings():state.view==='access'?accessList():state.view==='budgets'?budgetList():state.view==='editor'?editor():generic(state.view);
  if(state.view==='editor')summary();
 }
 async function saveEntity(entity,form){
@@ -198,13 +222,27 @@ function printBudget(){
  window.print();
 }
 document.addEventListener('submit',async ev=>{
- if(!['login','entityForm','settingsForm'].includes(ev.target.id))return;
+ if(!['login','entityForm','settingsForm','signupForm','recoverForm','passwordForm'].includes(ev.target.id))return;
  ev.preventDefault();const f=ev.target,button=f.querySelector('button[type=submit],button.primary');
  if(button)button.disabled=true;
  try{
   if(f.id==='login'){
    const form=new FormData(f);
-   await request('/api/session','POST',{email:form.get('email'),password:form.get('password')});f.reset();await showApp();
+   const result=await request('/api/session','POST',{email:form.get('email'),password:form.get('password')});
+   f.reset();if(result.authenticated)await showApp();else if(result.pending)await showPending();
+  }else if(f.id==='signupForm'){
+   const data=new FormData(f);
+   const r=await request('/api/signup','POST',{email:data.get('email'),password:data.get('password')});
+   authMode('login');$('#authNotice').textContent=r.message||'Se o cadastro for possível, você receberá um e-mail de confirmação. Depois entre para solicitar aprovação.';
+  }else if(f.id==='recoverForm'){
+   const data=new FormData(f);
+   const r=await request('/api/recovery','POST',{action:'request',email:data.get('email')});
+   authMode('login');$('#authNotice').textContent=r.message||'Se a conta existir, enviaremos instruções por e-mail.';
+  }else if(f.id==='passwordForm'){
+   const data=new FormData(f),password=data.get('password');
+   if(password!==data.get('confirm'))throw Error('As duas senhas precisam ser iguais.');
+   await request('/api/recovery','POST',{action:'update',access_token:recoveryToken,password});
+   recoveryToken=null;f.reset();authMode('login');$('#authNotice').textContent='Senha atualizada! Agora entre com seu e-mail e a nova senha.';
   }else if(f.id==='entityForm')await saveEntity(f.dataset.entity,f);
   else await saveSettings(f);
  }catch(error){flash(error.message)}finally{if(button)button.disabled=false}
@@ -232,12 +270,19 @@ document.addEventListener('change',ev=>{
  if(e.dataset.draft&&state.draft){state.draft[e.dataset.draft]=e.value;summary()}
 });
 document.addEventListener('click',async ev=>{
+ const mode=ev.target.closest('[data-auth-mode]');
+ if(mode){authMode(mode.dataset.authMode);return}
  const tab=ev.target.closest('[data-view]');
  if(tab){state.view=tab.dataset.view;state.edit=null;state.draft=null;render();return}
  const el=ev.target.closest('[data-action]');if(!el)return;
  const action=el.dataset.action,id=el.dataset.id,b=state.draft;
  try{
-  if(action==='new-budget')startBudget();
+  if(action==='approve-access'){
+   if(!window.confirm('Autorizar este usuário a acessar todos os custos e orçamentos internos?'))return;
+   await request('/api/access?action=approve','POST',{user_id:id});
+   state.access=(await request('/api/access?action=list')).rows||[];render();flash('Usuário autorizado com sucesso.');
+  }
+  else if(action==='new-budget')startBudget();
   else if(action==='open-budget')startBudget(state.data.budgets.find(x=>x.id===id));
   else if(action==='edit-item'){state.edit=id;render()}
   else if(action==='cancel-edit'){state.edit=null;render()}
@@ -267,6 +312,25 @@ document.addEventListener('click',async ev=>{
   else if(action==='print-budget')printBudget();
  }catch(error){flash(error.message)}
 });
-$('#logout').addEventListener('click',async()=>{try{await request('/api/session','DELETE')}finally{state.view='home';state.draft=null;$('#app').hidden=true;$('#auth').hidden=false;$('#login').reset()}});
+async function logout(){
+ try{await request('/api/session','DELETE')}catch{}
+ state.view='home';state.draft=null;$('#app').hidden=true;$('#auth').hidden=false;authMode('login');$('#login').reset();
+}
+$('#logout').addEventListener('click',logout);
+$('#pendingLogout').addEventListener('click',logout);
+$('#requestAccess').addEventListener('click',async()=>{
+ try{await request('/api/access?action=request','POST',{});$('#pendingNotice').textContent='Solicitação registrada. Aguarde autorização.'}
+ catch(e){$('#pendingNotice').textContent=e.message}
+});
+$('#refreshAccess').addEventListener('click',async()=>{
+ try{const r=await request('/api/session');if(r.authenticated)await showApp();else $('#pendingNotice').textContent='O acesso ainda aguarda aprovação.'}
+ catch(e){$('#pendingNotice').textContent=e.message}
+});
 await loadBrand();
-try{const r=await request('/api/session');if(r.authenticated)await showApp()}catch{/* login disponível */}
+const fragment=new URLSearchParams(window.location.hash.replace(/^#/,''));
+if(fragment.get('type')==='recovery'&&fragment.get('access_token'))recoveryToken=fragment.get('access_token');
+if(fragment.has('access_token')||fragment.has('error'))history.replaceState(null,'',location.pathname+location.search);
+if(recoveryToken)authMode('password');
+else{
+ try{const r=await request('/api/session');if(r.authenticated)await showApp();else if(r.pending)await showPending()}catch{/* login disponível */}
+}
