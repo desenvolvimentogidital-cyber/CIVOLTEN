@@ -17,7 +17,7 @@ function mock(){
    click(){this.listeners.click?.({target:this})}
   };
  }
- for(const id of ['catalogFinder','catalogType','catalogQuery','catalogResults','finderStatus','cartList','cartSummary','cartFeedback','catalogMore','cartBadge','cartGoSimulate','cartDirectEstimate','lines','simulate','category'])
+ for(const id of ['catalogFinder','catalogType','catalogQuery','catalogResults','finderStatus','cartList','cartSummary','cartFeedback','catalogResults','cartBadge','cartGoSimulate','cartDirectEstimate','lines','simulate','category'])
   all[id]=element();
  all.catalogType.value='todos'; all.category.options=['eletrica','pintura','construcao','outros'].map(value=>({value}));
  const items=[
