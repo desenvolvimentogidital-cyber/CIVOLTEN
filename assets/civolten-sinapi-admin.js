@@ -100,7 +100,7 @@ function mount(dashboard){
  template.addEventListener('click',()=>{
   if(!parser)return;
   parser.download('civolten-modelo-sinapi.csv',
-   'codigo;descricao;unidade;custo;fonte\\n123456;PREENCHER COM O SERVIÇO ORIGINAL;M2;;https://www.caixa.gov.br/poder-publico/modernizacao-gestao/sinapi/Paginas/default.aspx\\n');
+   'codigo;descricao;unidade;custo;fonte\n123456;PREENCHER COM O SERVIÇO ORIGINAL;M2;;https://www.caixa.gov.br/poder-publico/modernizacao-gestao/sinapi/Paginas/default.aspx\n');
  });
  upload.addEventListener('change',()=>{pending=null;importFile.disabled=true;confirmFile.checked=false;preview.replaceChildren();});
  inspect.addEventListener('click',async()=>{
@@ -127,11 +127,11 @@ function mount(dashboard){
     pending={schema:'civolten.sinapi.v1',uf:'SP',period:filePeriod.value,
      regime:fileRegime.value,items};
    }
-   if(!/^20\\d{2}-(?:0[1-9]|1[0-2])$/.test(pending.period)||
+   if(!/^20\d{2}-(?:0[1-9]|1[0-2])$/.test(pending.period)||
      !['sem_desoneracao','com_desoneracao'].includes(pending.regime)||
      !pending.items.length||pending.items.length>15000)
     throw Error('Confira competência AAAA-MM, regime de encargos e quantidade de composições.');
-   if(pending.items.some(x=>!/^\\d{4,10}$/.test(String(x.code||''))||
+   if(pending.items.some(x=>!/^\d{4,10}$/.test(String(x.code||''))||
      String(x.description||'').trim().length<3||!String(x.unit||'').trim()))
     throw Error('Arquivo sem colunas de código, descrição ou unidade válidas. Confira os cabeçalhos.');
    const duplicate=new Set(pending.items.map(x=>String(x.code)));
