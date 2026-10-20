@@ -1089,3 +1089,23 @@ body[data-screen="orcamento"] .catalog-results:focus-visible{outline:3px solid v
 .sinapi-find{border-top:1px solid #c7dceb;padding-top:13px}
 .sinapi-find input{max-width:100%;margin-right:6px}
 @media(max-width:670px){.sinapi-reference-fields,.sinapi-compare-panel{grid-template-columns:1fr}.sinapi-reference-fields>.hint,.sinapi-compare-panel>.sinapi-comparison-result{grid-column:1}}
+
+/* Importadores de referências técnicas — pensados para upload no celular. */
+.cub-importer,.sinapi-import-file{display:grid;gap:12px;margin:18px 0;padding:clamp(12px,2vw,19px);
+ border:1px solid #cfdfed;border-radius:13px;background:linear-gradient(135deg,#f3f8fd,#fff)}
+.cub-importer>h3,.sinapi-import-file>h4{margin:0;color:#123c65;font-size:18px}
+.cub-importer>.hint,.sinapi-import-file>.hint{line-height:1.6;font-size:12px;color:#506a85}
+.cub-import-fields,.cub-import-file,.cub-import-preview,.cub-import-saved{display:grid;gap:10px;min-width:0}
+.cub-import-fields,.cub-import-file,.cub-import-saved{padding:13px;background:#fff;border:1px solid #dce7f0;border-radius:11px}
+.cub-import-fields .field,.cub-import-file .field,.sinapi-import-file .field{display:grid;gap:5px;min-width:0;color:#22496c;font-weight:750;font-size:12px}
+.cub-importer input,.cub-importer select,.sinapi-import-file input,.sinapi-import-file select{max-width:100%;min-height:40px;padding:8px;border:1px solid #b9ccdc;border-radius:8px;font-size:14px}
+.cub-importer input[type=file],.sinapi-import-file input[type=file]{width:100%;height:auto;min-height:50px;font-size:12px;background:#f7fbff}
+.cub-importer input[type=checkbox],.sinapi-import-file input[type=checkbox]{width:20px;min-height:20px;height:20px}
+.cub-importer button,.sinapi-import-file button{min-height:43px;border-radius:8px;padding:8px 11px;cursor:pointer}
+.cub-importer button.goldbtn,.sinapi-import-file button.goldbtn{color:#fff;background:#173c67;border:1px solid #173c67}
+.cub-importer button:disabled,.sinapi-import-file button:disabled{cursor:not-allowed;opacity:.6}
+.cub-import-preview,.sinapi-file-preview{max-height:245px;overflow-y:auto;border-radius:8px;background:#edf5fa;font-size:11px;color:#1e4267}
+.cub-import-preview p,.sinapi-file-preview p{padding:7px 10px;border-bottom:1px solid #dae6f0;margin:0;overflow-wrap:anywhere}
+.cub-import-saved p{font-size:12px;color:#314f69;border-bottom:1px solid #e1ebf1;padding:6px 0;margin:0}
+.sinapi-import-file{margin:14px 0}
+@media(max-width:640px){.cub-importer,.sinapi-import-file{padding:10px}.cub-import-fields,.cub-import-file,.cub-import-saved{padding:11px}}
