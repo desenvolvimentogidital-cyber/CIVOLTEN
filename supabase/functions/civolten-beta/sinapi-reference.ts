@@ -43,7 +43,7 @@ export async function sinapiPage({db,offset=0,size=400}){
  if(!Number.isInteger(offset)||offset<0||offset>20000||!Number.isInteger(size)||size<1||size>500)
   throw Error('Paginação SINAPI inválida.');
  // A lista publicada usa uma competência e um regime consistentes.
- const first=await db.from('sinapi_reference_services').select('base_month').eq('uf','SP')
+ const first=await db.from('sinapi_reference_services').select('base_month').eq('uf','SP').eq('regime','sem_desoneracao')
   .order('base_month',{ascending:false}).limit(1);
  if(first.error)throw Error('Referências SINAPI indisponíveis.');
  const period=first.data?.[0]?.base_month;
