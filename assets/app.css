@@ -5,3 +5,96 @@
 input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pre-wrap}
 
 .auth-links{display:flex;flex-wrap:wrap;gap:9px;margin:4px 0 18px}.auth-links button{flex:1;font-size:12px}.auth-card form[hidden]{display:none!important}.auth-card form h2{margin:0}.auth-card form .primary,.auth-card form .subtle{width:100%}.auth-card #signupForm,.auth-card #recoverForm,.auth-card #passwordForm{margin-top:17px;display:grid;gap:15px}#pendingCard .brand{margin-bottom:24px}#pendingCard button{margin:8px 6px 8px 0}#authNotice:not(:empty){color:#0d6651;font-weight:700;background:#edfaf4;border-radius:9px;padding:12px}
+
+
+/* Tema claro/escuro CIVOLTEN. As cores oficiais azul-escuro e dourado permanecem. */
+:root{color-scheme:light}
+.auth-wrap{position:relative;padding-top:74px}
+.header-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px}
+.theme-toggle{
+ display:inline-flex;align-items:center;justify-content:center;gap:9px;
+ min-height:41px;border:1px solid #cbd6e3;border-radius:12px;
+ padding:9px 12px;background:#fff;color:#142842;
+ font-size:13px;font-weight:750;white-space:nowrap;
+ transition:background-color .15s ease,border-color .15s ease,color .15s ease
+}
+.theme-toggle:hover{border-color:var(--gold);background:#fff8e8}
+.theme-toggle:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.theme-icon{font-size:18px;line-height:1;min-width:19px;text-align:center}
+.theme-toggle-auth{position:absolute;z-index:2;top:18px;right:24px;background:#132e4a;color:#fff;border-color:#69819a}
+.theme-toggle-auth:hover{background:#254462}
+:root[data-theme="dark"]{
+ color-scheme:dark;
+ --ink:#eaf1fb;
+ --muted:#b0c1d5;
+ --border:#344c66;
+ --bg:#091625;
+}
+:root[data-theme="dark"] body{background:var(--bg)}
+:root[data-theme="dark"] .auth-wrap{background:radial-gradient(ellipse at top,#233d5d,#060e1b)}
+:root[data-theme="dark"] .auth-card,
+:root[data-theme="dark"] .card{background:#14263b;color:var(--ink);box-shadow:0 8px 30px #0000001b}
+:root[data-theme="dark"] .auth-card p,
+:root[data-theme="dark"] .heading p{color:var(--muted)}
+:root[data-theme="dark"] .auth-card .brand b{color:#f0f5ff}
+:root[data-theme="dark"] .brand small{color:#efbd58}
+:root[data-theme="dark"] .sidebar{background:#071322}
+:root[data-theme="dark"] .workspace header{background:#102236;border-bottom-color:var(--border)}
+:root[data-theme="dark"] .workspace header strong{color:#f1f5fd}
+:root[data-theme="dark"] .workspace header strong span{color:var(--muted)}
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea{
+ background:#0c1c2e;color:#edf4fc;border-color:#46627d
+}
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder{color:#98adc3;opacity:1}
+:root[data-theme="dark"] input:focus,
+:root[data-theme="dark"] select:focus,
+:root[data-theme="dark"] textarea:focus{outline:2px solid var(--gold);border-color:var(--gold)}
+:root[data-theme="dark"] label{color:#d5e2f2}
+:root[data-theme="dark"] input[type="checkbox"]{accent-color:var(--gold)}
+:root[data-theme="dark"] .metric strong,
+:root[data-theme="dark"] .price,
+:root[data-theme="dark"] .sumtotal{color:#f2f6ff}
+:root[data-theme="dark"] .entry,
+:root[data-theme="dark"] .line{border-color:var(--border)}
+:root[data-theme="dark"] .empty{color:var(--muted);border-color:#55728e}
+:root[data-theme="dark"] .summary{background:#1b2d3e;border-color:#856e40}
+:root[data-theme="dark"] .sumtotal{border-color:#856e40}
+:root[data-theme="dark"] .warning{background:#45311e;color:#ffe0ae;border-color:#9b6b38}
+:root[data-theme="dark"] .good{color:#73e5b8}
+:root[data-theme="dark"] .bad{color:#ff9090}
+:root[data-theme="dark"] .secondary{background:#2d506f;color:#f7f9fd}
+:root[data-theme="dark"] .subtle{background:#1e354e;border-color:#53708c;color:#f1f5ff}
+:root[data-theme="dark"] .subtle:hover{background:#2b4865}
+:root[data-theme="dark"] .danger{background:#462a35;color:#ffb1b4;border-color:#885060}
+:root[data-theme="dark"] .status{background:#284056;color:#d9e6f8}
+:root[data-theme="dark"] .status.aprovado{background:#183e35;color:#a0f2c9}
+:root[data-theme="dark"] .status.enviado{background:#413619;color:#ffe29a}
+:root[data-theme="dark"] .pill{background:#174539;color:#bcf5d6}
+:root[data-theme="dark"] .eyebrow{color:#e9b84c}
+:root[data-theme="dark"] #authNotice:not(:empty){background:#193d35;color:#aff5d2}
+:root[data-theme="dark"] .theme-toggle{
+ background:#1e364e;color:#f2f7ff;border-color:#54718e
+}
+:root[data-theme="dark"] .theme-toggle:hover{background:#2b4a68;border-color:var(--gold)}
+:root[data-theme="dark"] .auth-links .subtle{background:#1e354e;color:#fff}
+@media(max-width:680px){
+ .theme-toggle{min-height:38px;padding:8px 10px;font-size:12px;gap:6px}
+ .theme-toggle-auth{right:15px;top:15px}
+ .workspace header{gap:6px}
+ .workspace header strong{font-size:13px}
+ .workspace header strong span{display:none}
+ .header-actions{gap:7px}
+ .header-actions .pill{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .theme-toggle{transition:none}
+}
+@media print{
+ :root,:root[data-theme="dark"]{color-scheme:light!important}
+ :root[data-theme="dark"] body{background:#fff!important;color:#111!important}
+ :root[data-theme="dark"] #printArea{background:#fff!important;color:#111!important}
+ .theme-toggle{display:none!important}
+}
