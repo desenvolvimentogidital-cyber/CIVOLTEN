@@ -26,7 +26,7 @@ const projectTypes=[
 const parseArea=value=>{
  const raw=String(value??'').trim().replace(',','.');
  const amount=Number(raw);
- return /^\\d+(?:\\.\\d{1,3})?$/.test(raw)&&
+ return /^\d+(?:\.\d{1,3})?$/.test(raw)&&
   Number.isFinite(amount)&&amount>=1&&amount<=100000?amount:null;
 };
 for(const preset of projectTypes){
