@@ -22,3 +22,22 @@ Versão anterior preservada em backup-civolten-antes-refatoracao-20261020. A ver
 Execute npm run check. A publicação em produção exige teste real de login, impressão de proposta, cálculos e permissões no celular. A nova versão é proposta em branch separada da main.
 
 Cada funcionário também registra os dias previstos no mês (22 como padrão editável), com estimativa mensal da diária e encargos. O valor da folha deve ser conferido para não contar a mesma mão de obra em custos fixos e no orçamento da obra.
+
+## Acesso e recuperação do administrador
+
+O projeto já possui um administrador no Supabase Auth. Para recuperá-lo, use **Esqueci minha senha** com o endereço da conta original. A recuperação envia e-mail pelo Supabase; a aplicação mostra uma mensagem genérica mesmo se o endereço não estiver cadastrado.
+
+Para novos usuários, **Criar conta de acesso** registra uma conta comum. Depois de confirmar o e-mail e iniciar uma sessão, o usuário solicita aprovação; a conta não lê nenhum dado financeiro enquanto estiver pendente. Um administrador previamente autorizado abre **Acessos** e aprova a solicitação. A concessão ocorre por RPC PostgreSQL que exige explicitamente um administrador ativo, além da confirmação do e-mail. Cadastro público não equivale a permissão administrativa.
+
+### Configuração pendente no Supabase Auth
+Confira no projeto CIVOLTEN a página Authentication → URL Configuration:
+- Site URL: a URL oficial da CIVOLTEN, quando a nova versão entrar em produção;
+- Redirect URLs: adicionar a URL **exata** do deployment de prévia testado, terminando em `/`, antes de testar os links de recuperação/confirmação;
+- conferir os modelos de e-mail e as configurações de confirmação, pois URLs não autorizadas podem fazer o Supabase enviar o usuário à Site URL em vez da prévia.
+
+Sem essas configurações e sem teste do e-mail real não é possível considerar a recuperação completamente homologada.
+
+A função pública de aprovação usa SECURITY DEFINER de maneira intencional, com `auth.uid()`, conferência em `admin_users` e confirmação do usuário. A análise de segurança do Supabase apresenta um aviso para essa função; é necessário revisar o risco antes de produção.
+
+### Implantação da refatoração
+A migração e as alterações estão na branch `refatoracao-custos-reais-20261020`. A branch principal e a produção não foram alteradas. O deploy manual de prévia pela API Vercel retornou 403 (permissão insuficiente); uma implantação mais antiga da branch não representa necessariamente a versão mais nova dos formulários de acesso. Confira se o SHA do deployment corresponde ao HEAD da branch antes de homologar.
