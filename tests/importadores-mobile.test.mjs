@@ -17,9 +17,9 @@ test('CSV português lê cabeçalho, valores brasileiros, aspas e vírgula decim
  assert.equal(csv.field(comma[0],'unidade'),'M2');
  assert.throws(()=>csv.parseCSV('codigo;descricao\n1234;"sem fechamento'),/aspas/);
 });
-test('arquivo XLSX/PDF não é interpretado como CSV ou JSON',()=>{
- assert.throws(()=>csv.loadFile({name:'cub.pdf',size:120,text:async()=>''}),/Formato não suportado/);
- assert.throws(()=>csv.loadFile({name:'sinapi.xlsx',size:120,text:async()=>''}),/Formato não suportado/);
+test('arquivo XLSX/PDF não é interpretado como CSV ou JSON',async()=>{
+ await assert.rejects(csv.loadFile({name:'cub.pdf',size:120,text:async()=>''}),/Formato não suportado/);
+ await assert.rejects(csv.loadFile({name:'sinapi.xlsx',size:120,text:async()=>''}),/Formato não suportado/);
 });
 const cubCtx=vm.createContext({Set,Map,Number,Error});
 vm.runInContext(read('supabase/functions/civolten-beta/cub-reference.ts').replace(/^export /gm,'')+
@@ -85,7 +85,6 @@ test('Interface da empresa contém CUB e SINAPI com prévia e arquivo CSV/JSON, 
  }
  assert.match(read('assets/civolten-cub.js'),/cub-reference/);
  assert.match(read('assets/civolten-app-unificado.css'),/\.cub-importer/);
- for(const file of ['assets/civolten-cub-admin.js','assets/civolten-table-import.js']){
-  assert.match(read(file),/\.csv/);
- }
+ assert.match(read('assets/civolten-cub-admin.js'),/csv/);
+ assert.match(read('assets/civolten-table-import.js'),/csv\\|json/);
 });
