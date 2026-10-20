@@ -173,5 +173,5 @@ await missingFields.get('send').onclick();
 assert.match(missingFields.get('clientmsg').textContent,/pelo menos 12 caracteres/);
 missingFields.get('simulate').onclick();
 for(let i=0;i<10;i++)await Promise.resolve();
-assert.match(missingFields.get('clientmsg').textContent,/Selecione pelo menos um serviço para simular/);
+assert.match(missingFields.get('estimate').children.find(x=>x.tagName==='SMALL'&&x.textContent.includes('Selecione'))?.textContent||'',/Selecione pelo menos um serviço para simular/);
 console.log('CIVOLTEN: mensagens individuais para campos obrigatórios e simulação incompleta.');
