@@ -24,14 +24,14 @@ test('orçamento e empresa são URLs independentes, não redirecionadas à home'
 
 test('links da home e serviços sempre abrem orçamento na própria tela',()=>{
  assert.match(html,/href="\/orcamento"/);
- assert.match(html,/href="\/orcamento#simulacao"/);
+ assert.doesNotMatch(html,/href="\/orcamento#simulacao"/);
  assert.match(html,/href="\/orcamento\?servico=eletrica"/);
  assert.match(html,/href="\/servicos"/);
  const services=read('servicos.html');
  assert.match(services,/href="\/orcamento"/);
  assert.doesNotMatch(services,/href="\/" class="btn btn-gold"/);
  assert.match(route,/URLSearchParams/);
- assert.match(route,/quick\.addEventListener\('click'/);
+ assert.doesNotMatch(route,/quick\.addEventListener\('click'/);
 });
 
 test('navegação do painel tem links para todas as seções e histórico do browser',()=>{
