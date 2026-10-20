@@ -6,16 +6,17 @@ import vm from 'node:vm';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
 function runQuick(selected){
+ let renders=0;
  const container={
-  replaceChildren(){},appendChild(){},
+  replaceChildren(){renders++},appendChild(){},
   querySelectorAll(selector){
    if(selector!=='input[name="quickItem"]:checked')throw Error('Seletor inesperado '+selector);
-   return selected.map(value=>({value}));
+   return renders>1?selected.map(value=>({value})):[];
   }
  };
  const fields={
   quickSubservices:container,quickQuantity:{value:'3'},
-  quickDetails:{value:'Quarto de 20 m²',focus(){}},
+  quickDetails:{value:'',focus(){}},
   quickWarning:{hidden:true,setAttribute(){},textContent:''}
  };
  const document={
@@ -31,6 +32,8 @@ function runQuick(selected){
  const script=read('assets/civolten-servicos-rapidos.js');
  vm.runInNewContext(script,{document,window,Number,Array,Object});
  window.CIVOLTEN_QUICK_SELECTION.render('pintura');
+ fields.quickDetails.value='Quarto de 20 m²';
+ fields.quickQuantity.value='3';
  return window.CIVOLTEN_QUICK_SELECTION.collect();
 }
 
@@ -67,7 +70,7 @@ test('barra inteiramente azul e texto branco compartilham exatamente os mesmos t
  for(const [page,css] of Object.entries(bundles)){
   assert.match(css,/--cv-header-gradient:linear-gradient\(112deg,#0b203c 0%,#173c67 53%,#2b6094 100%\)/,page);
   assert.match(css,/--cv-header-text:#fff/,page);
-  assert.match(css,/--cv-logo-plate:rgba\(255,255,255,\.96\)/,page);
+  assert.match(css,/--cv-logo-plate:transparent/,page);
  }
  assert.match(bundles.app,/body>header\.premium-header\{background:var\(--cv-header-gradient\)!important/);
  assert.match(bundles.app,/\.premium-header \.premium-site-nav a\{color:var\(--cv-header-text\)!important/);
@@ -80,9 +83,9 @@ test('barra inteiramente azul e texto branco compartilham exatamente os mesmos t
 test('cache atualizado no site e em suas telas geradas',()=>{
  for(const p of ['index.html','empresa.html','orcamento.html']){
   const html=read(p);
-  assert.match(html,/civolten-app-unificado\.css\?v=5/);
-  assert.match(html,/civolten-servicos-rapidos\.js\?v=3/);
+  assert.match(html,/civolten-app-unificado\.css\?v=6/);
+  assert.match(html,/civolten-servicos-rapidos\.js\?v=4/);
  }
  for(const [p,name] of [['servicos.html','servicos'],['proposta.html','proposta'],['privacidade.html','privacidade']])
-  assert.match(read(p),new RegExp('civolten-'+name+'-unificado\\.css\\?v=3'));
+  assert.match(read(p),new RegExp('civolten-'+name+'-unificado\\.css\\?v=4'));
 });
