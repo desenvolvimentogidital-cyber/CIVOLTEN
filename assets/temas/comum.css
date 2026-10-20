@@ -10,4 +10,4 @@ body a:focus-visible,body button:focus-visible,body input:focus-visible,body tex
 :where(button,.btn,.action-primary,.action-secondary){touch-action:manipulation}
 
 /* Degradê institucional azul: marinho, azul técnico e azul médio, sem rosa. */
-:root{--cv-header-gradient:linear-gradient(112deg,#0b203c 0%,#173c67 53%,#2b6094 100%);--cv-header-text:#fff;--cv-logo-plate:rgba(255,255,255,.96)}
+:root{--cv-header-gradient:linear-gradient(112deg,#0b203c 0%,#173c67 53%,#2b6094 100%);--cv-header-text:#fff;--cv-logo-plate:transparent}

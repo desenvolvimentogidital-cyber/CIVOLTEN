@@ -68,7 +68,8 @@ if(quick&&screen==='inicio'){
    modo:chosen.mode,subtipo:chosen.label
   });
   if(chosen.items.length)params.set('itens',chosen.items.join(','));
-  if(chosen.details)params.set('detalhes',chosen.details.slice(0,500));
+  if(chosen.selections?.length)params.set('selecoes',JSON.stringify(chosen.selections.slice(0,60)));
+  if(chosen.details)params.set('detalhes',chosen.details.slice(0,1800));
   window.location.assign('/orcamento?'+params.toString());
  },true);
 }
@@ -82,9 +83,14 @@ if(screen==='orcamento'){
    const button=document.querySelector('[data-quick-category="'+group+'"]');
    button?.click();
   }
-  const ids=String(params.get('itens')||'').split(',').filter(x=>/^[a-z0-9_]{2,70}$/.test(x)).slice(0,12);
+  const ids=String(params.get('itens')||'').split(',').filter(x=>/^[a-z0-9_]{2,70}$/.test(x)).slice(0,60);
+  let selections=[];
+  try{
+   const parsed=JSON.parse(params.get('selecoes')||'[]');
+   if(Array.isArray(parsed))selections=parsed.slice(0,60);
+  }catch{selections=[];}
   window.CIVOLTEN_FORM?.prefillQuickSelection({
-   category,items:ids,details:params.get('detalhes')||'',
+   category,items:ids,selections,details:params.get('detalhes')||'',
    quantity:params.get('quantidade'),mode:params.get('modo'),
    label:params.get('subtipo')||''
   });

@@ -57,6 +57,7 @@ test('vitrine possui 10 categorias e nenhuma oferta de segurança ou automação
 test('seleções avançam sem inventar preços ou gravar dados do cliente no navegador',()=>{
  assert.match(routes,/CIVOLTEN_QUICK_SELECTION\?\.collect/);
  assert.match(routes,/params\.set\('itens'/);
+ assert.match(routes,/params\.set\('selecoes'/);
  assert.match(routes,/CIVOLTEN_FORM\?\.prefillQuickSelection/);
  assert.match(core,/prefillQuickSelection\(/);
  assert.match(core,/catalog\.some\(s=>s\.id===id\)/);
