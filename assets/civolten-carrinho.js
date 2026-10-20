@@ -72,7 +72,7 @@ function loadNextBatch(){
   const row=create('div','catalog-result');
   const detail=create('div','catalog-result-content');
   const name=create('strong','catalog-name',item.descricao);
-  const meta=create('small','catalog-meta',item.unidade+' · '+(item.id.startsWith('siurb:')?'SIURB '+item.id.split(':')[1]:'CIVOLTEN'));
+  const meta=create('small','catalog-meta',item.unidade+' · '+(item.id.startsWith('siurb:')?'SIURB '+item.id.split(':')[1]:item.id.startsWith('sinapi:')?'SINAPI SP':'CIVOLTEN'));
   detail.append(name,meta);
   const action=create('button','catalog-add','+ Carrinho');
   action.type='button';
