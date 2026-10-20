@@ -34,7 +34,8 @@ const mapping={
  assentamento_azulejo_pastilha:'pisos',pintura_alvenaria:'pintura',
  rasgo_parede_conduite:'eletrica',passagem_fiacao:'eletrica',quadro_distribuicao:'eletrica',
  ponto_tomada_interruptor:'eletrica',luminaria_spot_led:'iluminacao',fita_led_sanca:'iluminacao',
- instalacao_chuveiro:'eletrica',instalacao_eletrica_completa:'eletrica',reforma_apartamento_completa:'reforma'
+ instalacao_chuveiro:'eletrica',instalacao_eletrica_completa:'eletrica',reforma_apartamento_completa:'reforma',
+ construcao_residencial_completa:'construcao'
 };
 function category(item){
  if(Object.hasOwn(mapping,item.id))return mapping[item.id];
