@@ -10,7 +10,7 @@ const total=xs=>xs.reduce((n,x)=>n+Number(x||0),0);
 const state={view:'home',data:{settings:[],workers:[],fixed:[],variable:[],budgets:[]},edit:null,draft:null,draftId:null};
 const sections={home:'Visão geral',budgets:'Orçamentos',workers:'Funcionários',fixed:'Custos fixos',variable:'Custos variáveis',settings:'Configurações'};
 const fields={
- workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos estimados (%)','number'],['active','Profissional ativo','checkbox']],
+ workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos estimados (%)','number'],['days_month','Dias trabalhados previstos no mês','number'],['active','Profissional ativo','checkbox']],
  fixed:[['name','Despesa fixa','text'],['category','Categoria','text'],['monthly_cents','Valor mensal (R$)','money'],['active','Despesa ativa','checkbox']],
  variable:[['name','Nome do gasto','text'],['category','Categoria','text'],['unit','Unidade (un, m², diária...)','text'],['unit_cents','Custo por unidade (R$)','money']]
 };
@@ -63,7 +63,7 @@ function inputField(f,v){
  return '<label>'+esc(label)+'<input name="'+k+'" type="'+(type==='money'?'number':type)+'" '+(type==='money'||type==='number'?'min="0" step="0.01"':'maxlength="120"')+' value="'+esc(val)+'" required></label>';
 }
 function entryLabel(entity,r){
- if(entity==='workers')return esc(r.profession)+' · '+brl(r.daily_cents)+'/dia · Encargos '+num(r.charges_pct)+'%'+(!r.active?' · Inativo':'');
+ if(entity==='workers')return esc(r.profession)+' · '+brl(r.daily_cents)+'/dia · '+num(r.days_month??22)+' dias/mês · Encargos '+num(r.charges_pct)+'% · Projeção mensal '+brl(Math.round(r.daily_cents*num(r.days_month??22)*(1+num(r.charges_pct)/100)))+(!r.active?' · Inativo':'');
  if(entity==='fixed')return esc(r.category)+' · '+brl(r.monthly_cents)+'/mês'+(!r.active?' · Inativo':'');
  return esc(r.category)+' · '+brl(r.unit_cents)+' / '+esc(r.unit);
 }
