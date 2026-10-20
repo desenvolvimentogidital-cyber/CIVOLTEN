@@ -190,9 +190,9 @@ function printBudget(){
  div.innerHTML='<h1>CIVOLTEN</h1><p>CONSTRUÇÃO & ELÉTRICA</p><h2>Proposta comercial</h2>'+
  '<p><strong>Obra:</strong> '+esc(b.title)+'</p><p><strong>Cliente:</strong> '+esc(b.customer||'Não informado')+'</p>'+
  '<p><strong>Local:</strong> '+esc(b.address||'A confirmar')+'</p>'+
- '<h2>Serviços previstos</h2><p style="white-space:pre-wrap">'+esc(b.services||'Escopo a detalhar em contrato')+'</p>'+
+ '<h2>Serviços previstos</h2><p class="prewrap">'+esc(b.services||'Escopo a detalhar em contrato')+'</p>'+
  '<p><strong>Prazo estimado:</strong> '+esc(b.days)+' dia(s) de execução</p>'+
- (b.notes?'<h2>Condições e observações</h2><p style="white-space:pre-wrap">'+esc(b.notes)+'</p>':'')+
+ (b.notes?'<h2>Condições e observações</h2><p class="prewrap">'+esc(b.notes)+'</p>':'')+
  '<p class="print-price">Valor total da proposta: '+brl(r.price_cents)+'</p>'+
  '<p>Proposta sujeita à confirmação do escopo e às condições comerciais acordadas.</p>';
  window.print();
