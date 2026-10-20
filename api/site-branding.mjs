@@ -1,43 +1,10 @@
-import {EDGE} from '../lib/civolten-security.mjs';
-
-// A identidade é pública; nenhum cookie ou token administrativo é encaminhado.
-const api = new URL(EDGE);
-api.searchParams.set('api', 'site-branding');
-const reply = (data, status = 200) => new Response(JSON.stringify(data), {
-  status,
-  headers: {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store',
-    'X-Content-Type-Options': 'nosniff'
-  }
-});
-
-export default {
-  async fetch(req) {
-    if (req.method !== 'GET') return reply({error: 'Método não permitido'}, 405);
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 9000);
-      let upstream;
-      try {
-        upstream = await fetch(api, {
-          method: 'GET',
-          headers: {'Accept': 'application/json'},
-          cache: 'no-store',
-          signal: controller.signal
-        });
-      } finally {
-        clearTimeout(timeout);
-      }
-      if (!upstream.ok) return reply({error: 'Identidade indisponível'}, 502);
-      if (Number(upstream.headers.get('content-length') || 0) > 360000) return reply({error: 'Resposta excessiva'}, 502);
-      const data = await upstream.json();
-      if (!data || typeof data !== 'object' || !data.branding || typeof data.branding !== 'object') {
-        return reply({error: 'Identidade inválida'}, 502);
-      }
-      return reply({branding: data.branding});
-    } catch {
-      return reply({error: 'Não foi possível carregar a identidade visual'}, 502);
-    }
-  }
-};
+import {EDGE,json} from '../lib/civolten-security.mjs';
+export default {async fetch(r){
+ if(r.method!=='GET')return json({error:'Método não permitido'},405);
+ const c=new AbortController(),timer=setTimeout(()=>c.abort(),9000);
+ try{
+  const v=await fetch(EDGE+'?api=site-branding',{signal:c.signal});if(!v.ok)return json({error:'Marca indisponível'},502);
+  const b=(await v.json()).branding;if(!b)return json({error:'Marca inválida'},502);
+  return json({branding:{company_name:b.company_name,color_primary:b.color_primary,color_accent:b.color_accent,logo_data_url:typeof b.logo_data_url==='string'&&b.logo_data_url.length<=360000&&/^data:image\/(?:png|jpeg);base64,[a-zA-Z0-9+/=]+$/.test(b.logo_data_url)?b.logo_data_url:null}});
+ }catch{return json({error:'Marca indisponível'},502)}finally{clearTimeout(timer)}
+}};

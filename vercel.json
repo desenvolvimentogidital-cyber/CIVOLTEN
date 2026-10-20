@@ -10,65 +10,29 @@
           "value": "nosniff"
         },
         {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
           "key": "X-Frame-Options",
           "value": "DENY"
         },
-        {
-          "key": "Permissions-Policy",
-          "value": "microphone=(self),camera=(),geolocation=()"
-        },
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://rvhnuowqfdugcecgmxnv.supabase.co; img-src 'self' blob: data: https://rvhnuowqfdugcecgmxnv.supabase.co https://images.pexels.com; media-src 'self' blob: https://rvhnuowqfdugcecgmxnv.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
-        },
-        {
-          "key": "Strict-Transport-Security",
-          "value": "max-age=31536000; includeSubDomains"
-        },
-        {
-          "key": "X-Permitted-Cross-Domain-Policies",
-          "value": "none"
-        }
-      ]
-    },
-    {
-      "source": "/empresa",
-      "headers": [
         {
           "key": "X-Robots-Tag",
           "value": "noindex, nofollow"
         },
         {
           "key": "Cache-Control",
-          "value": "private, no-store"
+          "value": "no-store"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
         }
       ]
     }
   ],
   "redirects": [
     {
-      "source": "/teste",
+      "source": "/empresa",
       "destination": "/",
       "permanent": false
-    },
-    {
-      "source": "/orcamentos",
-      "destination": "/orcamento",
-      "permanent": false
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/orcamento",
-      "destination": "/orcamento.html"
-    },
-    {
-      "source": "/empresa",
-      "destination": "/empresa.html"
     }
   ]
 }
