@@ -86,5 +86,5 @@ test('Interface da empresa contém CUB e SINAPI com prévia e arquivo CSV/JSON, 
  assert.match(read('assets/civolten-cub.js'),/cub-reference/);
  assert.match(read('assets/civolten-app-unificado.css'),/\.cub-importer/);
  assert.match(read('assets/civolten-cub-admin.js'),/csv/);
- assert.match(read('assets/civolten-table-import.js'),/csv\\|json/);
+ assert.match(read('assets/civolten-table-import.js'),/Formato não suportado/);
 });
