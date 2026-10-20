@@ -5,14 +5,36 @@
 <title>CIVOLTEN — Orçamentos por custos reais</title>
 <link rel="stylesheet" href="/assets/app.css"><script type="module" src="/assets/app.js"></script></head>
 <body>
-<section id="auth" class="auth-wrap"><div class="auth-card">
+<section id="auth" class="auth-wrap"><div class="auth-card" id="loginCard">
  <div class="brand"><img class="brand-logo" hidden alt="Logo original CIVOLTEN"><b>CIVOLTEN<small>CONSTRUÇÃO & ELÉTRICA</small></b></div>
  <span class="eyebrow">PAINEL PRIVADO</span><h1>Seus custos. Seu preço.</h1>
  <p>Orçamentos da sua empresa, calculados com a equipe, as despesas, os impostos e sua margem. Sem tabelas de preços externas.</p>
- <form id="login"><label>E-mail do administrador<input name="email" type="email" autocomplete="username" required></label>
+ <form id="login"><label>E-mail de acesso<input name="email" type="email" autocomplete="username" required></label>
  <label>Senha<input name="password" type="password" autocomplete="current-password" minlength="12" required></label>
- <button class="primary">Entrar com segurança →</button></form><p class="hint">Uso exclusivamente interno. Custos e lucro não são compartilhados com clientes.</p>
-</div></section>
+ <button class="primary">Entrar com segurança →</button></form>
+ <div class="auth-links"><button type="button" class="subtle" data-auth-mode="recover">Esqueci minha senha</button><button type="button" class="subtle" data-auth-mode="signup">Criar conta de acesso</button></div>
+ <form id="signupForm" hidden><h2>Criar conta</h2><p class="caption">O cadastro precisa ser confirmado por e-mail e aprovado por um administrador. Não libera automaticamente o painel financeiro.</p>
+ <label>Seu e-mail<input name="email" type="email" autocomplete="email" required maxlength="180"></label>
+ <label>Escolha uma senha de 12 ou mais caracteres<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+ <button class="primary" type="submit">Solicitar cadastro</button><button class="subtle" type="button" data-auth-mode="login">Voltar ao login</button></form>
+ <form id="recoverForm" hidden><h2>Recuperar acesso</h2><p class="caption">Informe o e-mail associado à conta. Enviaremos um link de recuperação, caso exista.</p>
+ <label>E-mail cadastrado<input name="email" type="email" autocomplete="email" required maxlength="180"></label>
+ <button class="primary" type="submit">Enviar link de recuperação</button><button class="subtle" type="button" data-auth-mode="login">Voltar ao login</button></form>
+ <form id="passwordForm" hidden><h2>Definir nova senha</h2><p class="caption">Você confirmou o link recebido por e-mail. Escolha uma senha segura.</p>
+ <label>Nova senha<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+ <label>Repita a nova senha<input name="confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+ <button class="primary" type="submit">Salvar nova senha</button></form>
+ <p id="authNotice" class="hint" role="status" aria-live="polite"></p>
+ <p class="hint">Uso exclusivamente interno. Custos e lucro não são compartilhados com clientes.</p>
+</div>
+ <div id="pendingCard" class="auth-card" hidden><div class="brand"><b>CIVOLTEN<small>ACESSO PROTEGIDO</small></b></div>
+ <h1>Cadastro recebido</h1><p>Sua conta está autenticada, mas ainda não tem permissão para visualizar orçamentos, salários ou custos.</p>
+ <p>Solicite aprovação ao administrador atual. Você poderá entrar no painel após a autorização.</p>
+ <button id="requestAccess" class="primary">Solicitar aprovação</button>
+ <button id="refreshAccess" class="subtle">Verificar acesso</button>
+ <button id="pendingLogout" class="subtle">Sair</button>
+ <p id="pendingNotice" class="hint" role="status"></p></div>
+ </section>
 <div id="app" hidden><aside class="sidebar">
  <div class="brand"><img class="brand-logo" hidden alt="CIVOLTEN"><b>CIVOLTEN<small>CONSTRUÇÃO & ELÉTRICA</small></b></div>
  <span class="eyebrow muted-light">SISTEMA DE GESTÃO</span>
@@ -21,7 +43,7 @@
  <button data-view="workers" class="nav">♙ Funcionários</button>
  <button data-view="fixed" class="nav">⌂ Custos fixos</button>
  <button data-view="variable" class="nav">◇ Custos variáveis</button>
- <button data-view="settings" class="nav">⚙ Configurações</button></nav>
+ <button data-view="settings" class="nav">⚙ Configurações</button><button data-view="access" class="nav">♙ Acessos</button></nav>
  <button id="logout" class="logout">Sair da conta ↗</button>
  </aside>
  <div class="workspace"><header><strong>CIVOLTEN <span>/ Painel interno</span></strong><span class="pill">● Privado</span></header>
