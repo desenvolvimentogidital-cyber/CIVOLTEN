@@ -1,17 +1,1 @@
-{
-  "name": "civolten-web",
-  "version": "0.6.0",
-  "private": true,
-  "type": "module",
-  "description": "CIVOLTEN - formulário e painel seguro de orçamentos",
-  "scripts": {
-    "test": "npm run check:pages && npm run check:css && node scripts/check-static.mjs && node --test tests/bff-security.test.mjs tests/pdf.test.mjs tests/professional.test.mjs tests/siurb-reference.test.mjs tests/siurb-public.test.mjs tests/site-branding.test.mjs tests/admin-navigation.test.mjs tests/institucional.test.mjs tests/premium-layout.test.mjs tests/artes-aprovadas.test.mjs tests/telas-separadas.test.mjs tests/padronizacao-ui.test.mjs tests/estilos-unificados.test.mjs tests/empresa-e-servicos.test.mjs tests/pintura-cabecalho.test.mjs tests/seletor-mobile-catalogo.test.mjs tests/catalogo-carrinho.test.mjs tests/orcamento-simplificado.test.mjs tests/catalogo-scroll.test.mjs tests/simulacao-resultado.test.mjs tests/empreitada-m2.test.mjs tests/cub-sinapi.test.mjs tests/importadores-mobile.test.mjs",
-    "build:css": "node scripts/build-css.mjs",
-    "check:css": "node scripts/build-css.mjs --check",
-    "build:pages": "node scripts/build-pages.mjs",
-    "check:pages": "node scripts/build-pages.mjs --check"
-  },
-  "dependencies": {
-    "pdf-lib": "1.17.1"
-  }
-}
+{"name":"civolten-custos-reais","version":"1.0.0","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.mjs","check":"node --check assets/app.js && node --check api/data.mjs && node --check api/session.mjs && npm test"}}

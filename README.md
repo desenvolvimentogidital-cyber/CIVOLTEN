@@ -1,63 +1,43 @@
-# CIVOLTEN — Orçamento Digital (Repositório independente)
+# CIVOLTEN — Gestão interna por custos reais
 
-**Este repositório pertence exclusivamente à CIVOLTEN; não contém código, dados ou dependências do OrçaPro.**
+Reconstrução independente do OrçaPro e sem nenhuma tabela pública de preços para formar orçamentos.
 
-## Estado atual e publicação
+Sistema privado para cadastrar funcionários, profissões, diárias, encargos, custos fixos mensais, despesas variáveis, dias faturáveis da empresa e parâmetros editáveis de imposto e lucro.
 
-- Site responsivo e painel: \`https://civolten.vercel.app\` (Vercel, projeto \`civolten\`).
-- API administrativa: sessão segura em cookie HttpOnly, com autorização validada no Supabase.
-- Backend: Supabase próprio \`rvhnuowqfdugcecgmxnv\`, Edge Function \`civolten-beta\`.
-- Gerador PDF: \`api/quote-pdf.mjs\`, A4 com dados dinâmicos e identidade configurável.
-- Melhorias comerciais: editor de serviços e preços, condições, aceitação via link temporário, histórico, painel e exportação de dados.
-- O diretório \`app-nextjs/\` é um protótipo independente; não o publique sem sincronizar e testar.
-- **Cuidado com dados reais:** revise disponibilidade, regras LGPD, rotina de backups e permissões de produção antes da divulgação pública.
-- **Uso comercial na Vercel:** confirme que o plano da conta permite sua operação comercial; o plano Hobby possui limitações para uso comercial.
+## Cálculo
+Custo total = mão de obra alocada + encargos cadastrados + despesas diretas + rateio de custos fixos.
+Rateio = custos fixos mensais vezes dias previstos da obra dividido pelos dias faturáveis totais do mês.
+Preço sugerido = custo total dividido por (1 - (impostos + margem desejada) / 100).
+Impostos e lucro são porcentagens sobre o faturamento, não sobre o custo. Preço manual permite simulação e revela margem real ou prejuízo.
 
-### Passos de publicação
+22 dias é padrão inicial ajustável, não norma obrigatória. Em trabalhos paralelos, registre a capacidade faturável mensal agregada corretamente para não duplicar custos. Nenhuma alíquota ou margem são presumidas: ambas começam em zero até você configurar. Valide o regime tributário com contador.
 
-1. Executar migração aditiva \`supabase/migrations/20261016_professional_quote_suite.sql\` no Supabase da CIVOLTEN (uma vez).
-2. Publicar \`index.ts\`, \`site.ts\` e \`quote-extra.ts\` da Edge Function \`civolten-beta\`, mantendo \`verify_jwt=false\` porque a função faz sua própria checagem de acesso.
-3. Executar \`npm test\` no GitHub Actions, revisar amostra de PDF e mesclar a atualização aprovada para a branch \`main\`.
-4. Conferir deploy READY na Vercel com o SHA correto e validar pelo celular um pedido sem dados reais.
-5. Testar token inválido, aceite/rejeição, alteração após aprovação, exportação de backup e upload de logo.
+## Privacidade
+Os custos nunca entram na proposta impressa ao cliente. Login reutiliza a autenticação CIVOLTEN com cookie seguro HttpOnly. Novas tabelas cv_ no Supabase protegem cada administrador por RLS. Não há chave de serviço exposta.
 
-Detalhes e limitações: [Plano profissional](docs/PLANO-PROFISSIONAL.md).
+## Segurança de migração
+Versão anterior preservada em backup-civolten-antes-refatoracao-20261020. A versão nova usa cinco tabelas novas sem alterar dados de preço antigos. A identidade visual original (logo e cores) vem de civolten_branding. A Edge Function original ainda participa somente da checagem do administrador e do carregamento da logo.
 
-### Banco de dados
+## Teste
+Execute npm run check. A publicação em produção exige teste real de login, impressão de proposta, cálculos e permissões no celular. A nova versão é proposta em branch separada da main.
 
-O banco CIVOLTEN e a API Edge já existem no Supabase. **Não execute novamente as migrações deste pacote automaticamente**: elas são versões de referência, e o banco real já recebeu migrações equivalentes, atualizadas. Na transição do modo estático para Next.js, reconciliar as migrações antes de qualquer nova execução.
+Cada funcionário também registra os dias previstos no mês (22 como padrão editável), com estimativa mensal da diária e encargos. O valor da folha deve ser conferido para não contar a mesma mão de obra em custos fixos e no orçamento da obra.
 
-### Primeiro administrador
+## Acesso e recuperação do administrador
 
-A função da CIVOLTEN contém fluxo de criação do primeiro administrador por código único, com validade limitada. O HTML `index.html` tem o campo **Código de ativação**. Não registrar senhas nem convites de acesso no GitHub; o convite deve ser enviado fora do repositório.
+O projeto já possui um administrador no Supabase Auth. Para recuperá-lo, use **Esqueci minha senha** com o endereço da conta original. A recuperação envia e-mail pelo Supabase; a aplicação mostra uma mensagem genérica mesmo se o endereço não estiver cadastrado.
 
-### Segurança
+Para novos usuários, **Criar conta de acesso** registra uma conta comum. Depois de confirmar o e-mail e iniciar uma sessão, o usuário solicita aprovação; a conta não lê nenhum dado financeiro enquanto estiver pendente. Um administrador previamente autorizado abre **Acessos** e aprova a solicitação. A concessão ocorre por RPC PostgreSQL que exige explicitamente um administrador ativo, além da confirmação do e-mail. Cadastro público não equivale a permissão administrativa.
 
-- Nenhuma `service_role` key nem token administrativo faz parte do repositório.
-- A chave `sb_publishable_...` usada pela tela de teste é pública por design; as regras de acesso devem continuar restritas no backend.
-- Uploads são armazenados em bucket privado, com URLs temporárias e verificação administrativa.
-- O cálculo de orçamento é executado no servidor. Simulação não é orçamento definitivo nem garantia de lucro.
+### Configuração pendente no Supabase Auth
+Confira no projeto CIVOLTEN a página Authentication → URL Configuration:
+- Site URL: a URL oficial da CIVOLTEN, quando a nova versão entrar em produção;
+- Redirect URLs: adicionar a URL **exata** do deployment de prévia testado, terminando em `/`, antes de testar os links de recuperação/confirmação;
+- conferir os modelos de e-mail e as configurações de confirmação, pois URLs não autorizadas podem fazer o Supabase enviar o usuário à Site URL em vez da prévia.
 
-## Desenvolvimento do sistema Next.js completo
+Sem essas configurações e sem teste do e-mail real não é possível considerar a recuperação completamente homologada.
 
-```bash
-cd app-nextjs
-npm ci # quando houver package-lock.json gerado
-npm run test
-npm run lint:syntax
-```
+A função pública de aprovação usa SECURITY DEFINER de maneira intencional, com `auth.uid()`, conferência em `admin_users` e confirmação do usuário. A análise de segurança do Supabase apresenta um aviso para essa função; é necessário revisar o risco antes de produção.
 
-O Next.js completo tem suas próprias variáveis listadas em `app-nextjs/.env.example`. Elas não são necessárias para hospedar a página estática da raiz. Para publicar a app Next.js completa, é preciso validar build e configurar variáveis próprias da CIVOLTEN em ambiente protegido.
-
-*Atualizado em 2026-10-16.*
-## Telas e navegação do site
-
-O projeto utiliza rotas públicas separadas, com os mesmos recursos e regras de negócio:
-
-- `/` — página inicial e apresentação dos serviços.
-- `/servicos` — vitrine completa de serviços oferecidos.
-- `/orcamento` — formulário de solicitação, anexos e simulação.
-- `/empresa` — login e painel de gestão, protegido por sessão e autorização.
-- `/empresa?secao=visao`, `pedidos`, `orcamentos`, `precos`, `siurb`, `logo`, `textos`, `backup` — seções internas; apenas usuários autorizados acessam dados.
-
-A pré-seleção de categoria e quantidade na página inicial é encaminhada via parâmetros para `/orcamento`. O CSS de cada tela apenas controla qual interface aparece; a API, a validação, o cadastro e os PDFs não são duplicados. A identidade visual continua vindo de **Área da empresa → Logo e cores**.
+### Implantação da refatoração
+A migração e as alterações estão na branch `refatoracao-custos-reais-20261020`. A branch principal e a produção não foram alteradas. O deploy manual de prévia pela API Vercel retornou 403 (permissão insuficiente); uma implantação mais antiga da branch não representa necessariamente a versão mais nova dos formulários de acesso. Confira se o SHA do deployment corresponde ao HEAD da branch antes de homologar.
