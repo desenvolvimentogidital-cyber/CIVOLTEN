@@ -11,11 +11,11 @@ if(!api||!$('catalogFinder'))return;
 const directory=window.CIVOLTEN_QUICK_SELECTION?.directory||{};
 const type=$('catalogType'),query=$('catalogQuery'),results=$('catalogResults');
 const status=$('finderStatus'),cart=$('cartList'),cartSummary=$('cartSummary');
-const feedback=$('cartFeedback'),more=$('catalogMore');
+const feedback=$('cartFeedback');
 const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 const safe=id=>typeof id==='string'&&/^[a-z0-9_:]{2,90}$/i.test(id);
-const LIMIT=30;
-let page=1,cache=[],dataKey='',timer;
+const LIMIT=50;
+let shown=0,matched=[],hasRendered=false,cache=[],dataKey='',timer;
 const groups=[
  ['iluminacao',/\b(?:luminaria|lampada|iluminacao|led|refletor|spot|arandela)\b/],
  ['solar',/\b(?:fotovoltaic|placa solar|painel solar|energia solar|modulo solar)\b/],
@@ -50,7 +50,6 @@ function updateCache(){
  cache=items.filter(x=>safe(x.id)&&typeof x.descricao==='string'&&x.descricao.trim())
  .filter(x=>!/sistema de seguranca|automacao residencial|alarme monitorado/i.test(normalize(x.descricao)))
  .map(x=>({...x,_text:normalize(x.descricao+' '+x.id),_group:category(x)}));
- page=1;
 }
 function create(tag,cls,text){
  const el=document.createElement(tag);
@@ -63,13 +62,11 @@ function showMessage(text,error=false){
  feedback.textContent=text||'';
  feedback.classList.toggle('warn',!!error);
 }
-function renderCatalog(){
- updateCache();
- const phrase=normalize(query.value);
- const group=type.value;
- const list=cache.filter(item=>(group==='todos'||item._group===group)&&(!phrase||item._text.includes(phrase)));
- results.replaceChildren();
- const slice=list.slice(0,page*LIMIT);
+/* Acrescenta resultados automaticamente quando o cliente chega ao final da lista.
+ * Mantemos lotes de 50 para não criar milhares de elementos de uma vez no celular. */
+function loadNextBatch(){
+ if(shown>=matched.length)return;
+ const slice=matched.slice(shown,shown+LIMIT);
  for(const item of slice){
   const row=create('div','catalog-result');
   const detail=create('div','catalog-result-content');
@@ -100,10 +97,27 @@ function renderCatalog(){
   });
   row.append(detail,action);results.appendChild(row);
  }
- const shown=slice.length;
- status.textContent=list.length?shown+' de '+list.length+' serviços nesta busca. '+cache.length+' cadastrados no catálogo.':'Nenhum serviço encontrado. Tente outra palavra ou consulte todos os serviços.';
- more.hidden=shown>=list.length;
- more.disabled=shown>=list.length;
+ shown+=slice.length;
+ status.textContent=shown+' de '+matched.length+' serviços exibidos. Role a lista para continuar.';
+}
+function renderCatalog(){
+ updateCache();
+ const phrase=normalize(query.value);
+ const group=type.value;
+ matched=cache.filter(item=>(group==='todos'||item._group===group)&&(!phrase||item._text.includes(phrase)));
+ results.replaceChildren();
+ results.scrollTop=0;
+ shown=0;
+ hasRendered=true;
+ if(!matched.length){
+  status.textContent='Nenhum serviço encontrado. Tente outra palavra ou consulte todos os serviços.';
+  return;
+ }
+ loadNextBatch();
+ // Em telas grandes ou filtros curtos, preencher até haver conteúdo para rolar.
+ if(results.clientHeight>0){
+  while(shown<matched.length&&results.scrollHeight<=results.clientHeight+60)loadNextBatch();
+ }
 }
 function renderCart(){
  updateCache();
@@ -139,13 +153,22 @@ function renderCart(){
  cartSummary.textContent=totalQuantity+' serviço'+(totalQuantity===1?'':'s')+' selecionado'+(totalQuantity===1?'':'s');
  $('cartBadge').textContent=String(totalQuantity);
 }
-function refresh(){renderCatalog();renderCart();}
+function refresh(){
+ const previousKey=dataKey;
+ updateCache();
+ // Incluir um serviço no carrinho não deve jogar a busca novamente ao topo.
+ if(!hasRendered||previousKey!==dataKey)renderCatalog();
+ renderCart();
+}
 query.addEventListener('input',()=>{
  clearTimeout(timer);
- timer=setTimeout(()=>{page=1;renderCatalog();},180);
+ timer=setTimeout(renderCatalog,180);
 });
-type.addEventListener('change',()=>{page=1;renderCatalog();});
-more.addEventListener('click',()=>{page++;renderCatalog();});
+type.addEventListener('change',renderCatalog);
+results.addEventListener('scroll',()=>{
+ if(shown<matched.length&&results.scrollHeight-results.scrollTop-results.clientHeight<=160)
+  loadNextBatch();
+},{passive:true});
 $('cartGoSimulate').addEventListener('click',()=>{
  const selected=api.getCart();
  if(!selected.length){showMessage('Adicione um serviço antes de simular. Para serviços não encontrados, descreva sua necessidade abaixo.',true);query.focus();return;}

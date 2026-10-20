@@ -17,7 +17,7 @@ function mock(){
    click(){this.listeners.click?.({target:this})}
   };
  }
- for(const id of ['catalogFinder','catalogType','catalogQuery','catalogResults','finderStatus','cartList','cartSummary','cartFeedback','catalogMore','cartBadge','cartGoSimulate','cartDirectEstimate','lines','simulate','category'])
+ for(const id of ['catalogFinder','catalogType','catalogQuery','catalogResults','finderStatus','cartList','cartSummary','cartFeedback','catalogResults','cartBadge','cartGoSimulate','cartDirectEstimate','lines','simulate','category'])
   all[id]=element();
  all.catalogType.value='todos'; all.category.options=['eletrica','pintura','construcao','outros'].map(value=>({value}));
  const items=[
@@ -46,8 +46,8 @@ test('busca e carrinho integram catálogo real ao formulário e ocultam preços 
  const page=read('index.html');
  for(const id of ['catalogFinder','catalogType','catalogQuery','catalogResults','cartList','cartSummary','cartGoSimulate','cartDirectEstimate','cartTechnicalEditor','lines','simulate'])
   assert.match(page,new RegExp('id="'+id+'"'));
- assert.match(page,/civolten-carrinho\.js\?v=1/);
- assert.match(read('orcamento.html'),/civolten-carrinho\.js\?v=1/);
+ assert.match(page,/civolten-carrinho\.js\?v=2/);
+ assert.match(read('orcamento.html'),/civolten-carrinho\.js\?v=2/);
  assert.match(read('assets/civolten-app-unificado.css'),/\.catalog-layout\{display:grid/);
  assert.match(script,/CIVOLTEN_FORM/);
  assert.doesNotMatch(script,/innerHTML|localStorage|sessionStorage|\b(?:preco_unitario|precoTotal)\b/);

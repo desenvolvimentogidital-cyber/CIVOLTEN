@@ -11,7 +11,7 @@ test('no celular o cliente usa só catálogo e carrinho, sem formulário duplica
    assert.ok(!html.includes('id="'+retired+'"'),page);
   for(const id of ['catalogType','catalogResults','cartList','quoteContactDetails'])
    assert.ok(html.includes('id="'+id+'"'),page);
-  assert.ok(html.includes('civolten-app-unificado.css?v=7'),page);
+  assert.ok(html.includes('civolten-app-unificado.css?v=8'),page);
  }
  const css=read('assets/civolten-app-unificado.css');
  assert.ok(css.includes('@media(max-width:630px)'));
