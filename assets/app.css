@@ -3,3 +3,5 @@
 @media print{@page{size:A4;margin:16mm}#app,#auth,#flash{display:none!important}#printArea{display:block!important;background:white;color:black;font-family:Georgia,serif;font-size:12pt}#printArea h1{font-size:23pt;margin-bottom:6px}#printArea h2{font-size:15pt;margin-top:32px;padding-bottom:9px;border-bottom:1px solid #aaa}#printArea p{line-height:1.55}#printArea .print-price{font-size:20pt;font-weight:800;border-top:2px solid #000;margin-top:32px;padding-top:18px}}
 
 input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pre-wrap}
+
+.auth-links{display:flex;flex-wrap:wrap;gap:9px;margin:4px 0 18px}.auth-links button{flex:1;font-size:12px}.auth-card form[hidden]{display:none!important}.auth-card form h2{margin:0}.auth-card form .primary,.auth-card form .subtle{width:100%}.auth-card #signupForm,.auth-card #recoverForm,.auth-card #passwordForm{margin-top:17px;display:grid;gap:15px}#pendingCard .brand{margin-bottom:24px}#pendingCard button{margin:8px 6px 8px 0}#authNotice:not(:empty){color:#0d6651;font-weight:700;background:#edfaf4;border-radius:9px;padding:12px}
