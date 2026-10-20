@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><title>CIVOLTEN | Elétrica e Construção Civil — Orçamentos</title><meta name="theme-color" content="#08182B"/><meta name="description" content="Solicite seu orçamento de serviços elétricos, reformas e construção civil na CIVOLTEN."/>
-<link rel="stylesheet" href="/assets/civolten-app-unificado.css?v=10"/>
+<link rel="stylesheet" href="/assets/civolten-app-unificado.css?v=11"/>
 
 
 
@@ -74,6 +74,20 @@
     <label class="field" for="projectBuildArea">Área construída prevista (m²)
      <input id="projectBuildArea" type="number" inputmode="decimal" min="1" max="100000" step="0.001" placeholder="Ex.: 120">
     </label>
+    <details class="cub-estimate" id="cubDetails">
+     <summary><strong>Consultar referência CUB-SP por m²</strong> <span>(custo básico)</span></summary>
+     <div class="cub-content">
+      <label class="field" for="cubPattern">Padrão residencial (casa térrea)
+       <select id="cubPattern"><option value="R1B">R1-B · Baixo</option><option value="R1N" selected>R1-N · Normal</option><option value="R1A">R1-A · Alto</option></select>
+      </label>
+      <label class="field" for="cubRegime">Regime da referência
+       <select id="cubRegime"><option value="sem_desoneracao">Sem desoneração</option><option value="com_desoneracao">Com desoneração</option></select>
+      </label>
+      <div id="cubResult" class="cub-result" aria-live="polite">Informe a metragem para consultar o custo básico.</div>
+      <p class="cub-disclaimer">O CUB não corresponde ao custo final para entregar a casa pronta. Projeto, fundações especiais, serviços externos, taxas, tributos, lucro e outros itens podem não estar incluídos. A simulação comercial depende de avaliação técnica.</p>
+      <a href="https://sindusconsp.com.br/cub-paulista-sobe-013-em-setembro/" target="_blank" rel="noopener noreferrer">Fonte: SindusCon-SP, set/2026</a>
+     </div>
+    </details>
     <button id="projectBuildAdd" class="project-shortcut-add" type="button">+ Adicionar construção completa</button>
     <small class="project-shortcut-note">Sem preço por m² validado: avaliação técnica necessária.</small>
     <p id="projectBuildFeedback" class="project-shortcut-feedback" role="status" aria-live="polite"></p>
@@ -95,6 +109,7 @@
  <div class="catalog-intro"><div><h3>Encontre os serviços e monte seu carrinho</h3><p>Pesquise pelo nome ou código SIURB, selecione a categoria e adicione quantos serviços precisar. Você poderá revisar tudo antes da simulação.</p></div><span class="catalog-cart-badge">Carrinho <strong id="cartBadge">0</strong></span></div>
  <div class="catalog-layout">
   <div class="catalog-search-panel">
+   <p class="sinapi-status-note">Catálogo técnico SIURB e SINAPI: os custos SINAPI podem estar indisponíveis na divulgação oficial. Itens sem custo validado entram como <strong>avaliação personalizada</strong>; não equivalem a preço zero.</p>
    <div class="catalog-filters">
     <label class="field" for="catalogQuery">Pesquisar serviço<input type="search" id="catalogQuery" placeholder="Ex.: tomadas, pintura, porcelanato, eletroduto..." maxlength="100" autocomplete="off"></label>
     <label class="field" for="catalogType">Categoria<select id="catalogType">
@@ -242,4 +257,4 @@
  </section>
  </div></div><div id="adminmsg" role="alert" aria-live="assertive"></div></section></main>
 <footer><div class="site-footer"><img id="footerLogo" class="site-footer-logo" alt="Logo CIVOLTEN" hidden><p id="siteFooterNote">Elétrica, reformas e construção civil. Atendimento e orçamentos digitais.</p><a id="siteContactWhatsApp" class="site-contact" href="#" target="_blank" rel="noopener noreferrer" hidden>Falar no WhatsApp</a><a href="/privacidade.html">Privacidade</a></div></footer>
-<script src="/assets/site-branding.js?v=2" defer></script><script src="/assets/civolten-reference.js?v=1" defer></script><script src="/assets/civolten-pro.js?v=4" defer></script><script src="/assets/civolten.js?v=18" defer></script><script src="/assets/civolten-premium.js?v=3" defer></script><script src="/assets/civolten-assets.js?v=1" defer></script><script src="/assets/civolten-routes.js?v=4" defer></script><script src="/assets/civolten-carrinho.js?v=4" defer></script><script src="/assets/civolten-quote-flow.js?v=2" defer></script></body></html>
+<script src="/assets/site-branding.js?v=2" defer></script><script src="/assets/civolten-reference.js?v=2" defer></script><script src="/assets/civolten-sinapi-admin.js?v=1" defer></script><script src="/assets/civolten-pro.js?v=4" defer></script><script src="/assets/civolten.js?v=19" defer></script><script src="/assets/civolten-premium.js?v=3" defer></script><script src="/assets/civolten-assets.js?v=1" defer></script><script src="/assets/civolten-routes.js?v=4" defer></script><script src="/assets/civolten-carrinho.js?v=5" defer></script><script src="/assets/civolten-quote-flow.js?v=2" defer></script><script src="/assets/civolten-cub.js?v=1" defer></script></body></html>

@@ -3,6 +3,7 @@ import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {PAGE} from './site.ts';
 import {publicReferenceSearch,publicReferencePage,referencePricingServices,selectedMode,isPublicReferenceId} from './public-siurb.ts';
 import {handleReference} from './siurb-reference.ts';
+import {sinapiPage,sinapiPricingServices,sinapiAdmin} from './sinapi-reference.ts';
 import {handleAdminExtra,handleClientExtra} from './quote-extra.ts';
 const BASE=Deno.env.get('SUPABASE_URL')||'';
 const SECRET=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
@@ -117,6 +118,11 @@ Deno.serve(async req=>{
    const page=await publicReferencePage({db,offset:Number(parsedOffset),size:400});
    return out(page);
   }
+  if(req.method==='GET'&&api==='sinapi-list'){
+   const raw=url.searchParams.get('offset')||'0';
+   if(!/^\d{1,5}$/.test(raw))return err('Paginação SINAPI inválida.',400);
+   return out(await sinapiPage({db,offset:Number(raw),size:400}));
+  }
   if(req.method==='GET'&&api==='siurb-search'){
    const q=url.searchParams.get('q')||'';
    const source=url.searchParams.get('source')||'';
@@ -126,8 +132,11 @@ Deno.serve(async req=>{
   if(req.method==='POST'&&api==='simulate'){
    const b=await body(req),{catalog,conf}=await getPricing();
    try {
-    const references=await referencePricingServices(db,b.itens,conf);
-    const quote=calc(b.itens,b.padrao,b.dias,b.km,[...catalog,...references],conf);
+    const [references,sinapi]=await Promise.all([
+     referencePricingServices(db,b.itens,conf),
+     sinapiPricingServices(db,b.itens,conf)
+    ]);
+    const quote=calc(b.itens,b.padrao,b.dias,b.km,[...catalog,...references,...sinapi],conf);
     return out({simulacao:publicQuote(quote)});
    } catch(e) {
     if(String(e?.message).startsWith('PRECIFICACAO_PENDENTE:'))
@@ -242,6 +251,8 @@ Deno.serve(async req=>{
    if(!await admin(req))return err('Acesso restrito ao administrador',401);
    if(['admin-reference-search','admin-reference-detail','admin-reference-stats','admin-reference-import'].includes(api))
     return await handleReference({api,req,url,db,out,err,body});
+   if(['admin-sinapi-import','admin-sinapi-search','admin-sinapi-compare'].includes(api))
+    return await sinapiAdmin({api,req,url,db,out,err,body});
    if(['admin-commercial','admin-save-commercial','admin-share-commercial','admin-commercial-history','admin-branding'].includes(api))
     return await handleAdminExtra({req,api,db,out,err,body,hash});
    if(req.method==='GET'&&api==='admin-export'){

@@ -583,6 +583,43 @@ async function loadSiurbCatalog(){
  })().finally(()=>{siurbLoading=null;});
  return siurbLoading;
 }
+let sinapiLoaded=false,sinapiLoading=null;
+async function getSinapiPage(offset){
+ const response=await fetch(API+'?api=sinapi-list&offset='+offset,{method:'GET',credentials:'omit',cache:'no-store'});
+ const data=await response.json().catch(()=>({error:'Resposta inválida da base SINAPI.'}));
+ if(!response.ok||!Array.isArray(data.items))throw Error(data.error||'Falha ao carregar SINAPI.');
+ return data;
+}
+async function loadSinapiCatalog(){
+ if(sinapiLoaded)return;
+ if(sinapiLoading)return sinapiLoading;
+ sinapiLoading=(async()=>{
+  const first=await getSinapiPage(0);
+  const total=Number(first.total);
+  if(!Number.isInteger(total)||total<0||total>20000)throw Error('Catálogo SINAPI inconsistente.');
+  if(!total){sinapiLoaded=true;return;}
+  const all=[...first.items];
+  for(let start=400;start<total;start+=1200){
+   const pages=await Promise.all([start,start+400,start+800]
+    .filter(offset=>offset<total).map(getSinapiPage));
+   for(const page of pages)all.push(...page.items);
+  }
+  if(all.length!==total)throw Error('Catálogo SINAPI incompleto.');
+  const valid=all.filter(x=>/^sinapi:SP:[0-9]{4,10}$/.test(x.id)&&x.descricao&&x.unidade);
+  if(valid.length!==all.length)throw Error('Referências SINAPI inválidas.');
+  const rest=catalog.filter(x=>!String(x.id).startsWith('sinapi:'));
+  catalog=[...rest,...valid];
+  catalogRevision++;
+  window.CIVOLTEN_CARRINHO?.refresh();
+  for(const row of document.querySelectorAll('#lines .line')){
+   const select=row.querySelector('select'),previous=select.value;
+   choices(select,previous);
+   select.dispatchEvent(new Event('change'));
+  }
+  sinapiLoaded=true;
+ })().finally(()=>{sinapiLoading=null;});
+ return sinapiLoading;
+}
 async function loadCatalog(){
  const status=$('catalogstatus'),retry=$('retryCatalog');
  status.textContent='Atualizando catálogo de serviços...';status.classList.remove('warn');retry.classList.add('hidden');
@@ -590,7 +627,7 @@ async function loadCatalog(){
   const response=await api('GET','catalog');
   if(!Array.isArray(response.catalogo)||!response.catalogo.length)throw Error('Catálogo vazio');
   if(response.catalogo.some(s=>!s.id||!s.descricao||!s.unidade))throw Error('Itens inválidos');
-  catalog=[...response.catalogo,...catalog.filter(x=>String(x.id).startsWith('siurb:'))];
+  catalog=[...response.catalogo,...catalog.filter(x=>/^(?:siurb:|sinapi:)/.test(String(x.id)))];
   catalogRevision++;
   window.CIVOLTEN_CARRINHO?.refresh();
   document.querySelectorAll('#lines .line').forEach(row=>{
@@ -604,6 +641,14 @@ async function loadCatalog(){
    status.textContent='Os serviços originais continuam disponíveis, mas não foi possível carregar toda a base SIURB: '+e.message+'. Toque em Atualizar serviços para tentar novamente.';
    status.classList.add('warn');retry.classList.remove('hidden');
   }
+  try{
+   await loadSinapiCatalog();
+   if(sinapiLoaded&&catalog.some(x=>String(x.id).startsWith('sinapi:')))
+    status.textContent=catalog.length+' serviços disponíveis incluindo referências SINAPI.';
+  }catch(e){
+   status.textContent+=' SINAPI indisponível: '+e.message+'.';
+   status.classList.add('warn');retry.classList.remove('hidden');
+  }
  }catch(e){
   status.textContent='Não foi possível atualizar os serviços ('+e.message+'). A lista básica continua disponível; tente atualizar antes de enviar.';
   status.classList.add('warn');retry.classList.remove('hidden');
@@ -612,7 +657,7 @@ async function loadCatalog(){
 
 // Preenche serviços reais selecionados na vitrine, sem calcular preços no cliente.
 window.CIVOLTEN_FORM={
- // Catálogo inteiro já validado pelo backend (17 serviços básicos + base SIURB).
+ // Catálogo do backend, com referências SIURB e SINAPI disponíveis quando importadas.
  // Não entrega preços privados nem armazena dados pessoais no navegador.
  getCatalog(){return catalog.map(({id,descricao,unidade,categoria})=>({id,descricao,unidade,categoria}));},
  getCart(){return currentItems();},
