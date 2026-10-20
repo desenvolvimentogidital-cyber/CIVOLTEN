@@ -250,7 +250,7 @@ body a:focus-visible,body button:focus-visible,body input:focus-visible,body tex
 :where(button,.btn,.action-primary,.action-secondary){touch-action:manipulation}
 
 /* Degradê institucional azul: marinho, azul técnico e azul médio, sem rosa. */
-:root{--cv-header-gradient:linear-gradient(112deg,#0b203c 0%,#173c67 53%,#2b6094 100%);--cv-header-text:#fff;--cv-logo-plate:rgba(255,255,255,.96)}
+:root{--cv-header-gradient:linear-gradient(112deg,#0b203c 0%,#173c67 53%,#2b6094 100%);--cv-header-text:#fff;--cv-logo-plate:transparent}
 
 /* === Padrão final da tela === */
 
@@ -297,10 +297,10 @@ body.site-servicos{background:var(--cv-mist);color:var(--cv-ink)}
 .site-servicos .header .nav a{color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.2)}
 .site-servicos .header .nav a:hover{color:#fff!important}
 .site-servicos .header .nav a[aria-current="page"]::after{background:var(--brand-accent,#dca629)}
-.site-servicos .header .logo-link{padding:5px 11px;border-radius:12px;border:1px solid rgba(255,255,255,.85);background:var(--cv-logo-plate);box-shadow:0 4px 17px rgba(4,13,30,.24);min-height:50px}
+.site-servicos .header .logo-link{padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;min-height:50px}
 .site-servicos .header .brand-logo{filter:drop-shadow(0 1px 3px rgba(8,28,56,.15))}
 .site-servicos .header .mobile-menu summary{color:#fff!important;background:rgba(10,27,58,.27);border:1px solid rgba(255,255,255,.65)}
 .site-servicos .header .mobile-links{background:#172d4f;border-color:rgba(246,217,169,.36)}
 .site-servicos .header .mobile-links a{color:#fff}
 .site-servicos .header .mobile-links a:hover{background:rgba(253,201,109,.18)}
-@media(max-width:760px){.site-servicos .header .logo-link{padding:4px 7px}}
+@media(max-width:760px){.site-servicos .header .logo-link{padding:0}}
