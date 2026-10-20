@@ -4,6 +4,7 @@ import {PAGE} from './site.ts';
 import {publicReferenceSearch,publicReferencePage,referencePricingServices,selectedMode,isPublicReferenceId} from './public-siurb.ts';
 import {handleReference} from './siurb-reference.ts';
 import {sinapiPage,sinapiPricingServices,sinapiAdmin} from './sinapi-reference.ts';
+import {publicCubReference,cubAdmin} from './cub-reference.ts';
 import {handleAdminExtra,handleClientExtra} from './quote-extra.ts';
 const BASE=Deno.env.get('SUPABASE_URL')||'';
 const SECRET=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
@@ -118,6 +119,8 @@ Deno.serve(async req=>{
    const page=await publicReferencePage({db,offset:Number(parsedOffset),size:400});
    return out(page);
   }
+  if(req.method==='GET'&&api==='cub-reference')
+   return out(await publicCubReference(db));
   if(req.method==='GET'&&api==='sinapi-list'){
    const raw=url.searchParams.get('offset')||'0';
    if(!/^\d{1,5}$/.test(raw))return err('Paginação SINAPI inválida.',400);
@@ -253,6 +256,8 @@ Deno.serve(async req=>{
     return await handleReference({api,req,url,db,out,err,body});
    if(['admin-sinapi-import','admin-sinapi-search','admin-sinapi-compare'].includes(api))
     return await sinapiAdmin({api,req,url,db,out,err,body});
+   if(['admin-cub-import','admin-cub-list'].includes(api))
+    return await cubAdmin({api,req,url,db,out,err,body});
    if(['admin-commercial','admin-save-commercial','admin-share-commercial','admin-commercial-history','admin-branding'].includes(api))
     return await handleAdminExtra({req,api,db,out,err,body,hash});
    if(req.method==='GET'&&api==='admin-export'){
