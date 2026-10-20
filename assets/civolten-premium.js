@@ -3,60 +3,7 @@
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
-const quickButtons=Array.from(document.querySelectorAll('[data-quick-category]'));
-let selectedCategory='eletrica';
-const opts={
- eletrica:{catalog:'instalacao_eletrica_completa',form:'eletrica',label:'Instalações elétricas'},
- manutencao:{catalog:'ponto_tomada_interruptor',form:'manutencao',label:'Manutenção elétrica'},
- iluminacao:{catalog:'luminaria_spot_led',form:'iluminacao',label:'Iluminação LED'},
- solar:{catalog:'',form:'outros',label:'Energia solar'},
- construcao:{catalog:'levantamento_bloco',form:'construcao',label:'Construção civil'},
- reforma:{catalog:'reforma_apartamento_completa',form:'reforma',label:'Reformas'},
- pisos:{catalog:'assentamento_porcelanato',form:'construcao',label:'Pisos e revestimentos'},
- pintura:{catalog:'pintura_alvenaria',form:'pintura',label:'Pintura e acabamento'},
- hidraulica:{catalog:'',form:'hidraulica',label:'Hidráulica'},
- alvenaria:{catalog:'levantamento_bloco',form:'construcao',label:'Alvenaria e acabamentos'},
-};
-function chooseCategory(cat){
- if(!Object.hasOwn(opts,cat))return;
- selectedCategory=cat;
- const form=$('category');
- if(form)form.value=opts[cat].form;
- for(const button of quickButtons){
-  const active=button.dataset.quickCategory===cat;
-  button.classList.toggle('active',active);
-  button.setAttribute('aria-pressed',String(active));
- }
-}
-for(const button of quickButtons)
- button.addEventListener('click',()=>chooseCategory(button.dataset.quickCategory));
-for(const link of document.querySelectorAll('[data-select-category]')){
- link.addEventListener('click',()=>chooseCategory(link.dataset.selectCategory));
-}
-$('quickContinue')?.addEventListener('click',()=>{
- chooseCategory(selectedCategory);
- const qty=Number($('quickQuantity')?.value||1);
- const mode=document.querySelector('input[name="quickScope"]:checked')?.value||'completo';
- const first=$('lines')?.querySelector('.line');
- const service=first?.querySelector('select');
- const amount=first?.querySelector('input');
- if(amount&&Number.isFinite(qty)&&qty>=1&&qty<=100000)amount.value=String(qty);
- if(service){
-  const chosen=opts[selectedCategory].catalog;
-  if(mode==='completo'&&Array.from(service.options).some(option=>option.value===chosen)){
-   service.value=chosen;
-   service.dispatchEvent(new Event('change'));
-  }else if(mode==='mao_obra'){
-   // A mão de obra só pode ser cotada a partir de composição SIURB com insumos.
-   const status=$('catalogstatus');
-   if(status)status.textContent='Para somente mão de obra, escolha abaixo uma composição EDIF/INFRA que tenha profissionais identificados.';
-  }
-  if(mode==='mao_obra'&&/^siurb:/.test(service.value)&&first._modeSelect){
-   first._modeSelect.value='mao_obra';first._modeSelect.dispatchEvent(new Event('change'));
-  }
- }
- $('formulario')?.scrollIntoView({behavior:'smooth',block:'start'});
-});
+// Painel premium: métricas reais, sem controle duplicado de serviços na home.
 const metric=(label,value,icon)=>{const card=document.createElement('div');card.className='admin-kpi';
  const symbol=document.createElement('div');symbol.className='admin-kpi-icon';symbol.textContent=icon;
  const body=document.createElement('div'),name=document.createElement('span'),number=document.createElement('strong');

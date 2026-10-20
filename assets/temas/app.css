@@ -163,3 +163,78 @@ body>header.premium-header{background:var(--cv-header-gradient)!important;border
 .quick-selected-chip button{flex:0 0 24px;width:24px;height:24px;border:0;background:#ecf2f8;color:#294a68;border-radius:5px;font-size:16px;cursor:pointer}
 .quick-selected-chip button:hover{background:#d9e7f4}
 @media(max-width:570px){.premium-header .premium-logo-link{padding:0}.quick-selected-items{max-height:160px}.quick-selected-chip>span{max-width:215px}}
+
+
+/* CIVOLTEN — home editorial limpa, orçamento organizado em etapas.
+ * Os serviços devem ser adicionados exclusivamente na página /orcamento. */
+body[data-screen="inicio"] .landing-top{display:grid;grid-template-columns:minmax(0,.94fr) minmax(0,1.06fr);gap:clamp(18px,3.5vw,62px);align-items:center;min-height:520px;padding:40px 0 26px}
+body[data-screen="inicio"] .landing-copy{max-width:640px;align-self:center}
+body[data-screen="inicio"] .landing-copy h1{font-size:clamp(35px,4.2vw,66px);line-height:1.07;letter-spacing:-.055em}
+body[data-screen="inicio"] .landing-lead{font-size:clamp(15px,1.3vw,18px);line-height:1.75;max-width:560px}
+body[data-screen="inicio"] .landing-visual{position:relative;display:block;min-height:420px;height:min(42vw,490px);padding:0;margin:0;overflow:visible}
+body[data-screen="inicio"] .landing-hero-frame{position:absolute;inset:0!important;top:0;right:0;bottom:0;left:0;width:100%!important;height:100%!important;min-height:0;opacity:1!important;clip-path:none!important;border-radius:24px;overflow:hidden;box-shadow:0 22px 55px rgba(8,31,59,.16)}
+body[data-screen="inicio"] .landing-hero-image{width:100%;height:100%;object-fit:cover}
+body[data-screen="inicio"] .landing-steps{margin-top:22px}
+body[data-screen="inicio"] .landing-hero-actions .action-primary{min-width:195px}
+body[data-screen="orcamento"] .quote-section-heading{margin-bottom:18px;max-width:630px}
+body[data-screen="orcamento"] .quote-section-heading h2{font-size:clamp(29px,3.5vw,42px)}
+body[data-screen="orcamento"] .premium-quote-card{padding:clamp(16px,2.2vw,27px);box-shadow:0 13px 45px rgba(10,35,64,.09)}
+.quote-simple-head{text-align:center;max-width:700px;margin:0 auto 20px}
+.quote-simple-head .eyebrow{color:#956815}
+.quote-simple-head h2{font-size:clamp(21px,2.5vw,30px);line-height:1.15;letter-spacing:-.035em;color:#112f53;margin:8px 0 10px}
+.quote-simple-head p{font-size:13px;line-height:1.65;color:#5e7286;margin:0}
+body[data-screen="orcamento"] .catalog-browser{margin:12px 0 16px;padding:clamp(12px,1.7vw,20px);background:#f8fafc}
+body[data-screen="orcamento"] .catalog-intro h3{font-size:18px}
+body[data-screen="orcamento"] .catalog-intro p{font-size:12px}
+body[data-screen="orcamento"] .catalog-cart{top:84px}
+body[data-screen="orcamento"] .cart-technical-editor{margin:12px 0 18px;padding:9px 13px}
+body[data-screen="orcamento"] .cart-technical-editor summary{font-size:12px}
+body[data-screen="orcamento"] .status-catalog{font-size:12px}
+.quote-step-title{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.quote-step-title h3{font-size:21px;color:#112f53;line-height:1.25;margin:0 0 5px}
+.quote-step-title p{color:#596e83;font-size:12px;line-height:1.5;margin:0}
+.quote-step-number{width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;background:#173c67;color:#fff;border-radius:11px;font-size:14px;font-weight:900}
+.quote-simulation{border-top:1px solid #dce6ef;padding:21px 2px 18px;scroll-margin-top:95px}
+.quote-optional{border:1px solid #dce6f0;border-radius:11px;background:#f8fafc;margin:11px 0}
+.quote-optional summary{cursor:pointer;min-height:46px;display:flex;align-items:center;padding:11px 14px;color:#284e76;font-size:13px;font-weight:750}
+.quote-optional[open] summary{border-bottom:1px solid #dce6f0}
+.quote-optional-body{padding:14px}
+.quote-optional-body .patterns{margin-bottom:14px}
+.quote-optional-body .grid{margin-bottom:0}
+.quote-simulation-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;margin-top:14px}
+.quote-simulation-actions #simulate,.quote-next-step{width:100%;margin:0;min-height:48px;border-radius:10px;font-size:13px;font-weight:850;padding:10px}
+.quote-simulation-actions #estimate{grid-column:1/-1;grid-row:2;margin:0}
+.quote-next-step{background:#fff;color:#173c67;border:1px solid #a9bfd6;cursor:pointer}
+.quote-next-step:hover{background:#ebf4fc}
+#clientmsg:not(:empty){margin:14px 0}
+.quote-contact-details{margin-top:12px;border:1px solid #ccddeb;border-radius:13px;background:#fff;scroll-margin-top:95px;overflow:hidden}
+.quote-contact-details>summary{cursor:pointer;display:flex;align-items:center;gap:11px;padding:16px;background:linear-gradient(110deg,#edf4fb,#f7fafc);color:#143859;min-height:70px}
+.quote-contact-details>summary>span:nth-child(2){display:grid;gap:4px;flex:1;min-width:0}
+.quote-contact-details>summary strong{font-size:15px}
+.quote-contact-details>summary small{font-size:11px;color:#5a738e;line-height:1.4}
+.quote-contact-details>summary>span:last-child{color:#173c67;font-weight:bold;font-size:19px}
+.quote-contact-details[open]>summary{border-bottom:1px solid #dce6ef}
+.quote-contact-content{padding:clamp(13px,2vw,24px);display:grid;gap:14px}
+.quote-contact-content h3{margin:2px 0;color:#123b64;font-size:19px}
+.quote-contact-content .grid{margin:0}
+.quote-contact-content .quote-optional{margin:0}
+.quote-contact-content .hint{font-size:12px}
+.quote-contact-content #send{width:100%;min-height:49px;font-weight:850}
+@media(max-width:900px){
+ body[data-screen="inicio"] .landing-top{grid-template-columns:1fr;gap:18px;min-height:0;padding-top:32px}
+ body[data-screen="inicio"] .landing-copy{max-width:750px}
+ body[data-screen="inicio"] .landing-visual{min-height:0;height:clamp(270px,51vw,430px);padding:0!important}
+ body[data-screen="inicio"] .landing-hero-frame{border-radius:19px}
+}
+@media(max-width:630px){
+ body[data-screen="inicio"] .landing-top{padding-top:25px;gap:18px}
+ body[data-screen="inicio"] .landing-copy h1{font-size:clamp(31px,8vw,43px)}
+ body[data-screen="inicio"] .landing-visual{height:245px;min-height:0;display:block;padding:0!important}
+ body[data-screen="inicio"] .landing-hero-frame{inset:0!important;width:100%!important;height:100%!important;clip-path:none!important;border-radius:15px;opacity:1!important}
+ body[data-screen="inicio"] .landing-steps{margin-top:15px}
+ .quote-simulation-actions{grid-template-columns:1fr}
+ .quote-simulation-actions #estimate{grid-column:1;grid-row:auto}
+ .quote-contact-details>summary{padding:13px 10px}
+ .quote-contact-details>summary strong{font-size:14px}
+ .quote-simple-head p{font-size:12px}
+}

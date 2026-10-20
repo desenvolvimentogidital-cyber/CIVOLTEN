@@ -47,31 +47,11 @@ for(const link of document.querySelectorAll('.cv-mobile-nav a')){
 if(screen==='orcamento')document.title='Solicitar orçamento | CIVOLTEN';
 else if(screen==='empresa')document.title='Área da empresa | CIVOLTEN';
 else document.title='CIVOLTEN | Construção e elétrica';
-for(const link of document.querySelectorAll('.landing-hero-actions a')){
- const text=link.textContent||'';
- link.href=text.includes('Simular')?'/orcamento#simulacao':'/orcamento';
-}
+// Os botões da home levam ao destino definido no HTML: catálogo ou serviços.
 for(const link of document.querySelectorAll('.landing-category-card[data-select-category]')){
  const category=link.dataset.selectCategory;
  if(['eletrica','manutencao','iluminacao','solar','construcao','reforma','pisos','pintura','hidraulica','alvenaria'].includes(category))
    link.href='/orcamento?servico='+encodeURIComponent(category);
-}
-const quick=$('quickContinue');
-if(quick&&screen==='inicio'){
- quick.addEventListener('click',event=>{
-  event.preventDefault();
-  event.stopImmediatePropagation();
-  const chosen=window.CIVOLTEN_QUICK_SELECTION?.collect?.();
-  if(!chosen)return;
-  const params=new URLSearchParams({
-   servico:chosen.category,grupo:chosen.group,quantidade:String(chosen.quantity),
-   modo:chosen.mode,subtipo:chosen.label
-  });
-  if(chosen.items.length)params.set('itens',chosen.items.join(','));
-  if(chosen.selections?.length)params.set('selecoes',JSON.stringify(chosen.selections.slice(0,60)));
-  if(chosen.details)params.set('detalhes',chosen.details.slice(0,1800));
-  window.location.assign('/orcamento?'+params.toString());
- },true);
 }
 if(screen==='orcamento'){
  const params=new URLSearchParams(window.location.search);
@@ -79,10 +59,7 @@ if(screen==='orcamento'){
  const group=params.get('grupo');
  const allowed=['eletrica','manutencao','iluminacao','construcao','reforma','pintura','hidraulica','outros'];
  if(allowed.includes(category)){
-  if(group&&window.CIVOLTEN_QUICK_SELECTION?.directory?.[group]){
-   const button=document.querySelector('[data-quick-category="'+group+'"]');
-   button?.click();
-  }
+  // Links antigos continuam aceitos sem recriar a seleção duplicada na home.
   const ids=String(params.get('itens')||'').split(',').filter(x=>/^[a-z0-9_]{2,70}$/.test(x)).slice(0,60);
   let selections=[];
   try{
