@@ -144,5 +144,33 @@ test('logo e imagem futura nunca ganham um card branco na folha do PDF',()=>{
  }
  const page=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(page,/<img id="proposalHeaderArt" hidden/);
- assert.doesNotMatch(page,/<img id="proposalHeaderArt"[^>]*src=/);
+ assert.match(page,/src="\/assets\/civolten-proposal-header\.png"/);
+});
+
+
+test('identidade visual oficial instalada em login, painel e proposta',()=>{
+ const page=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
+ const html=buildProposalHtml(sample,{
+  ...options,logoDataUrl:'/assets/civolten-logo.png',
+  headerArtUrl:'/assets/civolten-proposal-header.png'
+ });
+ assert.equal((page.match(/class="brand-logo"/g)||[]).length,3);
+ assert.match(page,/rel="icon" type="image\/png" href="\/assets\/civolten-logo\.png"/);
+ assert.match(page,/id="proposalHeaderArt" hidden src="\/assets\/civolten-proposal-header\.png"/);
+ assert.match(app,/img\.src='\/assets\/civolten-logo\.png'/);
+ assert.doesNotMatch(app,/if\(b\.logo_data_url/);
+ assert.match(html,/class="proposal-logo" src="\/assets\/civolten-logo\.png"/);
+ assert.match(html,/class="proposal-header-art" src="\/assets\/civolten-proposal-header\.png"/);
+ assert.doesNotMatch(html,/<div class="proposal-brand-name">/);
+});
+
+test('imagens PNG reais presentes no repositorio',()=>{
+ const expected=[['civolten-logo.png',1254,1254],['civolten-proposal-header.png',1448,1086]];
+ for(const [name,w,h] of expected){
+  const png=fs.readFileSync(new URL('../assets/'+name,import.meta.url));
+  assert.deepEqual([...png.subarray(0,8)],[137,80,78,71,13,10,26,10]);
+  assert.equal(png.readUInt32BE(16),w);
+  assert.equal(png.readUInt32BE(20),h);
+ }
 });
