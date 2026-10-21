@@ -174,7 +174,7 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
   }
   /* Sobrescreve especificamente o limite de 110px de .sidebar .brand img. */
   #app .sidebar .brand .brand-wordmark{
-    display:block;width:100%;height:auto;
+    display:block;width:calc(100% - 100px);height:auto;
     max-width:none;max-height:none;
     object-fit:contain
   }
