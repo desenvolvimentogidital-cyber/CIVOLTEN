@@ -12,7 +12,7 @@ test('aumento da arte do nome fica restrito ao painel autenticado',()=>{
  const rules=css.slice(mark);
  assert.match(rules,/#app \.sidebar \.brand \.brand-wordmark-frame/);
  assert.doesNotMatch(rules,/\.auth-card|\.auth-wrap|#printArea/);
- assert.doesNotMatch(rules,/\.brand-wordmark-frame(?=\s*\{)/);
+ assert.doesNotMatch(rules,/(?:^|\n)\s*\.brand-wordmark-frame\s*\{/);
 });
 
 test('tela grande usa largura de marca maior do que a original',()=>{
