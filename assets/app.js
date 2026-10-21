@@ -231,7 +231,8 @@ function printBudget(){
   priceCents:r.price_cents,
   id:state.draftId,
   date:new Date(),
-  logoDataUrl:brandLogo?.src||''
+  logoDataUrl:brandLogo?.src||'',
+  headerArtUrl:(()=>{const img=$('#proposalHeaderArt');return img?.complete&&img.naturalWidth>0?img.getAttribute('src')||'':''})()
  });
  $('#printArea').innerHTML=html;
  window.print();
