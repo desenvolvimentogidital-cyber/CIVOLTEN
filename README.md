@@ -16,10 +16,10 @@ Impostos e lucro são porcentagens sobre o faturamento, não sobre o custo. Pre�
 Os custos nunca entram na proposta impressa ao cliente. Login reutiliza a autenticação CIVOLTEN com cookie seguro HttpOnly. Novas tabelas cv_ no Supabase protegem cada administrador por RLS. Não há chave de serviço exposta.
 
 ## Segurança de migração
-Versão anterior preservada em backup-civolten-antes-refatoracao-20261020. A versão nova usa cinco tabelas novas sem alterar dados de preço antigos. A identidade visual original (logo e cores) vem de civolten_branding. A Edge Function original ainda participa somente da checagem do administrador e do carregamento da logo.
+Existe uma referência histórica de código antes da refatoração (`backup-civolten-antes-refatoracao-20261020`). **Uma branch do GitHub não substitui backup do banco Supabase**. As tabelas novas de custos reais preservaram as tabelas antigas; a identidade visual oficial usa dois arquivos PNG locais, e as cores podem ser consultadas pelo serviço de branding. A Edge Function participa da verificação de administrador.
 
 ## Teste
-Execute npm run check. A publicação em produção exige teste real de login, impressão de proposta, cálculos e permissões no celular. A nova versão é proposta em branch separada da main.
+Execute `npm run check`. O CI testa sintaxe, calculadora, formulário, proposta, login não autorizado, regras de acesso e operações da API. Essas verificações **não substituem** o teste com a conta real (login, edição, salvamento, PDF, recuperação de senha e permissões) no celular. Alterações devem ser propostas por PR, com CI verde antes de integrar a branch `main`.
 
 Cada funcionário também registra os dias previstos no mês (22 como padrão editável), com estimativa mensal da diária e encargos. O valor da folha deve ser conferido para não contar a mesma mão de obra em custos fixos e no orçamento da obra.
 
@@ -31,16 +31,16 @@ Para novos usuários, **Criar conta de acesso** registra uma conta comum. Depois
 
 ### Configuração pendente no Supabase Auth
 Confira no projeto CIVOLTEN a página Authentication → URL Configuration:
-- Site URL: a URL oficial da CIVOLTEN, quando a nova versão entrar em produção;
-- Redirect URLs: adicionar a URL **exata** do deployment de prévia testado, terminando em `/`, antes de testar os links de recuperação/confirmação;
+- Site URL: `https://civolten.vercel.app/`;
+- Redirect URLs: permitir a URL de produção `https://civolten.vercel.app/` e somente outros endereços efetivamente necessários;
 - conferir os modelos de e-mail e as configurações de confirmação, pois URLs não autorizadas podem fazer o Supabase enviar o usuário à Site URL em vez da prévia.
 
 Sem essas configurações e sem teste do e-mail real não é possível considerar a recuperação completamente homologada.
 
-A função pública de aprovação usa SECURITY DEFINER de maneira intencional, com `auth.uid()`, conferência em `admin_users` e confirmação do usuário. A análise de segurança do Supabase apresenta um aviso para essa função; é necessário revisar o risco antes de produção.
+A função pública de aprovação usa `SECURITY DEFINER` de maneira intencional, com `auth.uid()`, conferência em `admin_users`, `search_path` vazio e confirmação do usuário. A análise de segurança do Supabase ainda apresenta um aviso para essa função por ser executável por autenticados. Não retirar os bloqueios nem ampliar os grants sem nova auditoria.
 
-### Implantação da refatoração
-A migração e as alterações estão na branch `refatoracao-custos-reais-20261020`. A branch principal e a produção não foram alteradas. O deploy manual de prévia pela API Vercel retornou 403 (permissão insuficiente); uma implantação mais antiga da branch não representa necessariamente a versão mais nova dos formulários de acesso. Confira se o SHA do deployment corresponde ao HEAD da branch antes de homologar.
+### Implantação atual
+A aplicação CIVOLTEN está em produção na Vercel e é publicada pela branch `main`. `vercel.json` desabilita deploys de preview para branches secundárias, preservando a cota e exigindo somente um deploy após integração. Confira sempre se o SHA do deployment `production` corresponde ao commit de `main`.
 
 
 ## Proposta comercial em PDF (layout corporativo)
@@ -57,9 +57,19 @@ No editor do orçamento, preencha **Memorial descritivo / quantitativos** com ca
 
 Valide as medições e condições de execução com o responsável pela obra. As quantidades são informadas manualmente, não medidas pelo sistema; o cadastro descritivo não altera automaticamente a formação do preço.
 
-## Área preparada para futura arte do cabeçalho do PDF
-O PDF comercial preserva a **logo PNG original** no lado esquerdo do cabeçalho, com fundo transparente. O nome da empresa duplicado em texto foi retirado **somente do cabeçalho**. Ao lado da logo foi reservado um espaço vazio, sem texto e sem fundo branco, para uma futura arte horizontal institucional.
+## Identidade visual no cabeçalho do PDF
+O PDF comercial exibe **o ícone PNG e a arte PNG horizontal do nome CIVOLTEN lado a lado**, sem fundo branco, com a marca textual duplicada removida do cabeçalho.
 
 As duas imagens PNG enviadas pelo usuário foram adicionadas ao projeto: `assets/civolten-logo.png` (ícone oficial, substitui a identidade anterior nas telas e no PDF) e `assets/civolten-proposal-header.png` (arte horizontal de nome). A arte já é carregada em `index.html`; o PDF a incorpora após o carregamento, ao lado da nova logo, sem precisar modificar os cálculos ou os dados da proposta.
 
 A arte nova está instalada. A área horizontal tem recorte visual para compensar a margem transparente do arquivo, sem modificar os pixels originais. A marca textual no rodapé permanece para identificação comercial.
+
+## Auditoria de integridade (21/10/2026)
+
+- **Cálculos e preços:** entrada negativa, não numérica, fora dos limites ou sem precisão suficiente deve gerar erro — nunca custo reduzido silenciosamente. Os testes automatizados conferem custo real, encargos, despesas, impostos, rateio, preço manual e lucro/prejuízo.
+- **Listagem:** funcionários, custos e orçamentos são lidos de forma paginada, em lotes de 250, com ordenação estável. A operação não oculta registros antigos silenciosamente. Há limite operacional defensivo de 2.000 registros por tabela; acima disso, será necessário implementar paginação visual com carregamento incremental.
+- **Persistência:** atualizar ou excluir ID inexistente/sem permissão retorna erro, evitando mensagem enganosa de sucesso.
+- **API:** corpos JSON são limitados por bytes durante o streaming, inclusive sem `Content-Length`. Endpoints financeiros exigem sessão e administrador; Supabase aplica RLS por proprietário.
+- **Configuração financeira:** na auditoria, a tabela de configurações ainda não tinha um registro. O painel avisa quando impostos, margem e capacidade faturável não foram salvos ou quando margem/impostos estão em zero. **Configure esses valores reais antes de confiar em um preço comercial**.
+- **Limitações de homologação:** ainda é necessário testar no aparelho real uma sessão autenticada, recuperação de senha, impressão e restauração de backup do banco. O aviso de proteção contra senhas vazadas do Supabase Auth deve ser revisado nas configurações de autenticação. Os avisos de RLS sem política referem-se a tabelas antigas bloqueadas intencionalmente.
+- **Dados:** a auditoria usa consultas de leitura no banco; não apaga nem modifica cadastros existentes e não inclui nenhuma tabela de referência na formação de preços.
