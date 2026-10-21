@@ -6,7 +6,7 @@
 <script src="/assets/theme.js"></script><link rel="stylesheet" href="/assets/app.css"><link rel="stylesheet" href="/assets/proposal-print.css" media="print"><script type="module" src="/assets/app.js"></script></head>
 <body>
 <section id="auth" class="auth-wrap"><button type="button" class="theme-toggle theme-toggle-auth" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false"><span class="theme-icon" aria-hidden="true">☾</span><span class="theme-label">Modo escuro</span></button><div class="auth-card" id="loginCard">
- <div class="brand"><img class="brand-logo" src="/assets/civolten-logo.png" alt="Logo CIVOLTEN"><b>CIVOLTEN<small>CONSTRUÇÃO & ELÉTRICA</small></b></div>
+ <div class="brand" aria-label="CIVOLTEN — Elétrica e Construção Civil"><img class="brand-logo" src="/assets/civolten-logo.png" alt="Símbolo CIVOLTEN"><span class="brand-wordmark-frame"><img class="brand-wordmark" src="/assets/civolten-proposal-header.png" alt="CIVOLTEN — Elétrica & Construção Civil"></span></div>
  <span class="eyebrow">PAINEL PRIVADO</span><h1>Seus custos. Seu preço.</h1>
  <p>Orçamentos da sua empresa, calculados com a equipe, as despesas, os impostos e sua margem. Sem tabelas de preços externas.</p>
  <form id="login"><label>E-mail de acesso<input name="email" type="email" autocomplete="username" required></label>
@@ -27,7 +27,7 @@
  <p id="authNotice" class="hint" role="status" aria-live="polite"></p>
  <p class="hint">Uso exclusivamente interno. Custos e lucro não são compartilhados com clientes.</p>
 </div>
- <div id="pendingCard" class="auth-card" hidden><div class="brand"><img class="brand-logo" src="/assets/civolten-logo.png" alt="Logo CIVOLTEN"><b>CIVOLTEN<small>ACESSO PROTEGIDO</small></b></div>
+ <div id="pendingCard" class="auth-card" hidden><div class="brand" aria-label="CIVOLTEN — Elétrica e Construção Civil"><img class="brand-logo" src="/assets/civolten-logo.png" alt="Símbolo CIVOLTEN"><span class="brand-wordmark-frame"><img class="brand-wordmark" src="/assets/civolten-proposal-header.png" alt="CIVOLTEN — Elétrica & Construção Civil"></span></div>
  <h1>Cadastro recebido</h1><p>Sua conta está autenticada, mas ainda não tem permissão para visualizar orçamentos, salários ou custos.</p>
  <p>Solicite aprovação ao administrador atual. Você poderá entrar no painel após a autorização.</p>
  <button id="requestAccess" class="primary">Solicitar aprovação</button>
@@ -36,7 +36,7 @@
  <p id="pendingNotice" class="hint" role="status"></p></div>
  </section>
 <div id="app" hidden><aside class="sidebar">
- <div class="brand"><img class="brand-logo" src="/assets/civolten-logo.png" alt="Logo CIVOLTEN"><b>CIVOLTEN<small>CONSTRUÇÃO & ELÉTRICA</small></b></div>
+ <div class="brand" aria-label="CIVOLTEN — Elétrica e Construção Civil"><img class="brand-logo" src="/assets/civolten-logo.png" alt="Símbolo CIVOLTEN"><span class="brand-wordmark-frame"><img class="brand-wordmark" src="/assets/civolten-proposal-header.png" alt="CIVOLTEN — Elétrica & Construção Civil"></span></div>
  <span class="eyebrow muted-light">SISTEMA DE GESTÃO</span>
  <nav aria-label="Navegação"><button data-view="home" class="nav active">◫ Visão geral</button>
  <button data-view="budgets" class="nav">▤ Orçamentos</button>
@@ -46,7 +46,7 @@
  <button data-view="settings" class="nav">⚙ Configurações</button><button data-view="access" class="nav">♙ Acessos</button></nav>
  <button id="logout" class="logout">Sair da conta ↗</button>
  </aside>
- <div class="workspace"><header><strong>CIVOLTEN <span>/ Painel interno</span></strong><div class="header-actions"><span class="pill">● Privado</span><button type="button" class="theme-toggle" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false"><span class="theme-icon" aria-hidden="true">☾</span><span class="theme-label">Modo escuro</span></button></div></header>
+ <div class="workspace"><header><strong>Painel interno</strong><div class="header-actions"><span class="pill">● Privado</span><button type="button" class="theme-toggle" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false"><span class="theme-icon" aria-hidden="true">☾</span><span class="theme-label">Modo escuro</span></button></div></header>
  <main id="content" tabindex="-1"></main></div>
 </div>
 <img id="proposalHeaderArt" hidden src="/assets/civolten-proposal-header.png" alt="" aria-hidden="true"><div id="printArea"></div><div id="flash" role="status" aria-live="polite" hidden></div>
