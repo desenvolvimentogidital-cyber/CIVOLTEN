@@ -41,3 +41,13 @@ A função pública de aprovação usa SECURITY DEFINER de maneira intencional, 
 
 ### Implantação da refatoração
 A migração e as alterações estão na branch `refatoracao-custos-reais-20261020`. A branch principal e a produção não foram alteradas. O deploy manual de prévia pela API Vercel retornou 403 (permissão insuficiente); uma implantação mais antiga da branch não representa necessariamente a versão mais nova dos formulários de acesso. Confira se o SHA do deployment corresponde ao HEAD da branch antes de homologar.
+
+
+## Proposta comercial em PDF (layout corporativo)
+No editor de orçamento, escolha **Gerar PDF / imprimir proposta**. No diálogo de impressão do celular ou computador, selecione **Salvar como PDF** para gerar o arquivo A4 para enviar pelo WhatsApp ou e-mail.
+
+O novo documento inclui a marca CIVOLTEN, identificação do projeto e cliente, data e referência quando o orçamento está salvo, prazo, descrição do escopo, condições informadas pelo administrador, investimento total e campos para aceite. A folha é sempre clara, independentemente do tema da interface. O PDF é formado no navegador; não adiciona arquivos externos nem envia o orçamento a serviços de terceiros.
+
+**Privacidade:** o gerador recebe somente título, cliente, endereço, escopo, prazo, observações e o **preço final** já calculado. Os dados de funcionários, custos, encargos, alíquotas, margens, despesas, formação de preço e resultados nunca são interpolados na proposta comercial. Verifique se os campos de escopo e observações não contêm informações internas antes do envio.
+
+**Observação:** a referência `CV-XXXXXXXX` só é exibida depois de salvar o orçamento, quando já existe um identificador real. Antes de salvar, o documento indica `Prévia sem número`. O documento não inventa CNPJ, contatos, condições de pagamento ou prazo de validade que não tenham sido fornecidos.
