@@ -27,7 +27,7 @@ test('imprime lista descritiva com quantidades e unidade para o cliente',()=>{
  assert.match(html,/48/);
  assert.match(html,/22,25/);
  assert.match(html,/ponto/);
- assert.match(html,/R\\$\\s*16\\.500,00/);
+ assert.match(html,/R\$\s*16\.500,00/);
  assert.equal((html.match(/<tbody>/g)||[]).length,1);
  assert.equal((html.match(/<tr>/g)||[]).length,6);
 });
@@ -64,7 +64,7 @@ test('valida unidade, descricao, numero positivo e no maximo duas casas decimais
 test('escapa conteudo HTML de servicos na tabela comercial',()=>{
  const html=buildProposalHtml({...record,scope_items:[{description:'<img src=x onerror=alert(1)>',unit:'m²',quantity:3.5}]},{priceCents:1650000});
  assert.doesNotMatch(html,/<img src=x/);
- assert.match(html,/&lt;img src=x onerror=alert\\(1\\)&gt;/);
+ assert.match(html,/&lt;img src=x onerror=alert\(1\)&gt;/);
 });
 
 test('editor permite adicionar, editar, remover e salvar itens comerciais',()=>{
@@ -74,12 +74,12 @@ test('editor permite adicionar, editar, remover e salvar itens comerciais',()=>{
  assert.match(js,/data-scope-description/);
  assert.match(js,/data-scope-unit/);
  assert.match(js,/data-scope-quantity/);
- assert.match(js,/normalizeScopeItems\\(b\\.scope_items\\|\\|\\[\\]\\)/);
+ assert.match(js,/normalizeScopeItems\(b\.scope_items\|\|\[\]\)/);
 });
 
 test('tabela comercial tem formatacao A4 e cabeçalho repetivel',()=>{
  const css=fs.readFileSync(new URL('../assets/proposal-print.css',import.meta.url),'utf8');
- assert.match(css,/proposal-quantity-table thead\\{display:table-header-group\\}/);
- assert.match(css,/proposal-quantity-table tr\\{break-inside:avoid/);
- assert.match(css,/@page\\{size:A4/);
+ assert.match(css,/proposal-quantity-table thead\{display:table-header-group\}/);
+ assert.match(css,/proposal-quantity-table tr\{break-inside:avoid/);
+ assert.match(css,/@page\{size:A4/);
 });
