@@ -1,0 +1,114 @@
+/* CIVOLTEN | Documento comercial A4 (somente impressao ou salvar em PDF). */
+@page{size:A4;margin:13mm 14mm}
+@media print{
+  :root,:root[data-theme="dark"]{color-scheme:light!important}
+  html,body{width:auto!important;min-width:0!important;margin:0!important;padding:0!important;background:#fff!important;color:#08182b!important}
+  #app,#auth,#flash{display:none!important}
+  #printArea{
+    display:block!important;background:#fff!important;color:#08182b!important;
+    font-family:Arial,"Helvetica Neue",sans-serif!important;font-size:10pt!important;
+    line-height:1.46!important;margin:0!important;padding:0!important;max-width:none!important
+  }
+  #printArea .proposal-sheet,
+  #printArea .proposal-sheet *{box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  #printArea .proposal-sheet{width:100%;color:#15283e;overflow-wrap:anywhere}
+  #printArea .proposal-masthead{
+    display:flex;align-items:center;justify-content:space-between;gap:15px;
+    background:#08182b;color:#fff;border-radius:9px;padding:18px 22px;
+    min-height:111px;break-inside:avoid;page-break-inside:avoid
+  }
+  #printArea .proposal-brand-mark{display:flex;gap:13px;align-items:center;min-width:0}
+  #printArea .proposal-logo{
+    display:block;max-width:115px;max-height:69px;width:auto;height:auto;object-fit:contain;
+    background:#fff;border-radius:8px;padding:7px
+  }
+  #printArea .proposal-monogram{
+    background:#fff;color:#08182b;min-width:60px;height:60px;display:flex;align-items:center;justify-content:center;
+    border-radius:10px;font-size:30px;font-weight:900;letter-spacing:-2px
+  }
+  #printArea .proposal-monogram span{color:#b7831b}
+  #printArea .proposal-brand-name{display:flex;flex-direction:column;min-width:0;gap:5px}
+  #printArea .proposal-brand-name strong{font-size:17px;letter-spacing:1.5px;color:#fff;font-weight:900;line-height:1.1}
+  #printArea .proposal-brand-name span{font-size:7px;letter-spacing:1.25px;color:#ecd298;font-weight:700;line-height:1.35}
+  #printArea .proposal-header-side{text-align:right;display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex:none}
+  #printArea .proposal-header-label{color:#f0c66e;font-size:7.3px;font-weight:800;letter-spacing:1.4px}
+  #printArea .proposal-header-side strong{font-size:15px;line-height:1.05;letter-spacing:.65px;color:#fff;font-weight:900}
+  #printArea .proposal-header-id{color:#d9e3f0;font-size:8px}
+  #printArea .proposal-gold-rule{height:4px;background:#dca629;margin:0 18px;border-radius:0 0 4px 4px}
+  #printArea .proposal-intro{margin:21px 1px 19px}
+  #printArea .proposal-overline{
+    display:block;font-size:8px;letter-spacing:1.55px;color:#97701c;
+    font-weight:900;margin-bottom:8px
+  }
+  #printArea h1.proposal-title{
+    color:#08182b;font-family:Arial,"Helvetica Neue",sans-serif!important;
+    font-size:22pt;font-weight:900;letter-spacing:-.55px;line-height:1.17;
+    margin:0 0 8px!important;overflow-wrap:anywhere
+  }
+  #printArea .proposal-intro p{font-size:9.2pt;color:#647389;margin:0!important;line-height:1.5}
+  #printArea .proposal-facts{
+    display:grid;grid-template-columns:1.45fr 1fr;
+    gap:0;background:#f1f5f9;border:1px solid #dde6ef;border-radius:9px;
+    padding:3px 16px;margin:0 0 23px;break-inside:avoid;page-break-inside:avoid
+  }
+  #printArea .proposal-fact{display:flex;flex-direction:column;gap:5px;padding:13px 2px;min-width:0}
+  #printArea .proposal-fact:nth-child(-n+2){border-bottom:1px solid #dce4eb}
+  #printArea .proposal-fact:nth-child(odd){padding-right:15px}
+  #printArea .proposal-fact:nth-child(even){padding-left:17px;border-left:1px solid #dce4eb}
+  #printArea .proposal-fact>span{font-size:7.5px;letter-spacing:1.2px;color:#63748a;font-weight:900}
+  #printArea .proposal-fact strong{color:#152b45;font-size:10.2px;line-height:1.48;font-weight:750;overflow-wrap:anywhere}
+  #printArea .proposal-section{margin:0 0 22px}
+  #printArea .proposal-section-heading{display:flex;align-items:center;gap:11px;margin:0 0 10px;break-after:avoid;page-break-after:avoid}
+  #printArea .proposal-step{
+    display:flex;align-items:center;justify-content:center;background:#08182b;color:#efc15d;
+    border-radius:7px;font-size:10px;letter-spacing:.3px;font-weight:900;
+    width:32px;height:32px;flex:none
+  }
+  #printArea .proposal-section-kicker{display:block;font-size:7px;letter-spacing:1.4px;color:#a1781f;font-weight:900;margin-bottom:3px}
+  #printArea .proposal-section h2{
+    font-family:Arial,"Helvetica Neue",sans-serif!important;
+    border:none!important;padding:0!important;margin:0!important;
+    color:#142b46;font-size:13.3pt!important;font-weight:850;line-height:1.25
+  }
+  #printArea .proposal-section-content{
+    border-left:2px solid #dca629;padding:5px 0 5px 16px;margin-left:15px;
+    color:#273c54
+  }
+  #printArea p.proposal-rich{
+    margin:0!important;padding:0!important;white-space:pre-wrap;overflow-wrap:anywhere;
+    font-size:10pt;line-height:1.68;orphans:3;widows:3
+  }
+  #printArea .proposal-investment{
+    display:flex;justify-content:space-between;align-items:center;gap:20px;
+    border-radius:9px;background:#08182b;color:#fff;padding:19px 21px;
+    margin:21px 0 19px;border-bottom:4px solid #dca629;
+    break-inside:avoid;page-break-inside:avoid
+  }
+  #printArea .proposal-investment>div{min-width:0;flex:1}
+  #printArea .proposal-investment-label{display:block;color:#e7ba52;font-size:8px;font-weight:900;letter-spacing:1.2px;margin-bottom:5px}
+  #printArea .proposal-investment p{font-size:11.2pt!important;font-weight:800;color:#fff;margin:0 0 4px!important}
+  #printArea .proposal-investment small{font-size:8px;color:#cdd8e4;line-height:1.5;display:block}
+  #printArea .proposal-investment-value{
+    color:#f1c45b;font-size:25pt;font-weight:900;letter-spacing:-.6px;
+    white-space:nowrap;line-height:1.1;flex:none
+  }
+  #printArea .proposal-acceptance{border:1px solid #e0e7ef;border-radius:9px;padding:16px 19px 14px;margin:0 0 19px;break-inside:avoid;page-break-inside:avoid}
+  #printArea .proposal-acceptance-head>span{display:block;font-size:7.5px;font-weight:900;letter-spacing:1.3px;color:#a1781f;margin-bottom:2px}
+  #printArea .proposal-acceptance h2{
+    color:#122842;font-family:Arial,"Helvetica Neue",sans-serif!important;font-size:12.5pt!important;
+    margin:0 0 5px!important;padding:0!important;border:0!important;line-height:1.2
+  }
+  #printArea .proposal-acceptance p{color:#617185;font-size:8.5px;margin:0!important;line-height:1.5}
+  #printArea .proposal-signatures{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin:28px 0 2px}
+  #printArea .proposal-signatures>div{display:flex;flex-direction:column;gap:6px;color:#647389;font-size:8.5px}
+  #printArea .proposal-signature-line{display:block;border-top:1px solid #97a7b8;height:1px}
+  #printArea .proposal-footer{
+    border-top:1px solid #d9e3ed;padding-top:12px;
+    display:grid;grid-template-columns:1fr auto;gap:6px 15px;
+    font-size:8px;color:#758499;line-height:1.45
+  }
+  #printArea .proposal-footer>div{display:flex;gap:6px;align-items:baseline}
+  #printArea .proposal-footer>div strong{color:#0a1e33;font-size:9px;letter-spacing:.6px}
+  #printArea .proposal-footer p{grid-column:1/3;margin:0!important;order:2;color:#758499;font-size:8px;line-height:1.5}
+  #printArea .proposal-footer>span{text-align:right}
+}
