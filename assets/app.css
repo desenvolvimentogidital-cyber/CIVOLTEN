@@ -120,3 +120,44 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
  .scope-entry>label:first-child{grid-column:1/-1}
  .scope-remove{grid-column:1/-1;height:38px}
 }
+
+
+/* Identidade visual oficial: icone + arte do nome PNG sem fundo, em vez de texto duplicado. */
+.brand{flex-wrap:nowrap;min-width:0;gap:10px}
+.brand .brand-logo{
+  display:block;flex:0 0 auto;width:76px;height:76px;
+  max-width:none;max-height:none;object-fit:contain;
+  background:transparent;border:0;padding:0
+}
+.brand .brand-wordmark-frame{
+  position:relative;display:block;flex:1 1 0;min-width:0;
+  height:76px;overflow:hidden;background:transparent;border:0;padding:0
+}
+.brand .brand-wordmark{
+  position:absolute;top:50%;left:0;display:block;
+  width:100%;height:auto;max-width:none;max-height:none;
+  transform:translateY(-50%);object-fit:contain;
+  background:transparent;border:0;padding:0
+}
+.auth-card .brand{width:100%;min-height:76px}
+.sidebar .brand{
+  flex-direction:column;align-items:center;gap:0;
+  min-height:155px;padding:0 5px 13px
+}
+.sidebar .brand .brand-logo{width:77px;height:77px}
+.sidebar .brand .brand-wordmark-frame{
+  flex:none;width:100%;max-width:207px;height:56px
+}
+@media(max-width:680px){
+  .sidebar .brand{
+    flex-direction:row;align-items:center;gap:8px;
+    min-height:0;padding:0;border:0
+  }
+  .sidebar .brand .brand-logo{width:49px;height:49px}
+  .sidebar .brand .brand-wordmark-frame{
+    flex:1 1 auto;width:auto;max-width:235px;height:49px
+  }
+  .auth-card .brand .brand-logo{width:60px;height:60px}
+  .auth-card .brand .brand-wordmark-frame{height:60px}
+  .auth-card .brand{gap:8px;min-height:60px}
+}
