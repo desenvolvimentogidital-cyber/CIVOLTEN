@@ -36,7 +36,7 @@ test('rejeitar taxas invalidas sem truncamento silencioso',()=>{
 test('funcionarios novos começam com 0%, limite de 200% e orçamento permite edição',()=>{
  const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
  const css=fs.readFileSync(new URL('../assets/app.css',import.meta.url),'utf8');
- assert.match(app,/k==='charges_pct'\?\(raw\?\?0\)/);
+ assert.match(app,/k==='charges_pct'\?\(raw==null\|\|Number\(raw\)===0\?'':raw\)/);
  assert.match(app,/k==='charges_pct'\?'min="0" max="200" step="0\.01"'/);
  assert.match(app,/data-staff-charges/);
  assert.match(app,/e\.dataset\.staffCharges!==undefined/);
@@ -45,12 +45,36 @@ test('funcionarios novos começam com 0%, limite de 200% e orçamento permite ed
  assert.match(app,/summary\(\)/);
  assert.match(css,/\.staff-line\{/);
  assert.match(css,/@media\(max-width:1090px\)/);
- assert.match(app,/o cadastro original não muda/); // a edição do orçamento é independente
+ assert.match(app,/sem alterar o cadastro do profissional/); // a edição do orçamento é independente
 });
 
 test('cadastro conserva o percentual informado e não o substitui por referência',()=>{
  const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
- assert.match(app,/\['charges_pct','Encargos estimados \(\%\)','number'\]/);
+ assert.match(app,/\['charges_pct','Encargos adicionais \(\%\) — opcional','number'\]/);
  assert.match(app,/record\[k\]=type==='checkbox'\?e\.checked:type==='money'\?money\(e\.value\):type==='number'\?num\(e\.value\)/);
  assert.match(app,/charges_pct:num\(x\.charges_pct\)/);
+});
+
+
+test('encargos opcionais: campo do cadastro não exige preenchimento',()=>{
+ const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
+ assert.match(app,/k==='charges_pct'\?'':'required'/);
+ assert.match(app,/'min="0" max="200" step="0\.01"'/);
+ assert.match(app,/k==='charges_pct'\?\(raw==null\|\|Number\(raw\)===0\?'':raw\)/);
+ assert.match(app,/\['charges_pct','Encargos adicionais \(\%\) — opcional','number'\]/);
+ // O registro persistido armazena zero quando um numero opcional fica em branco.
+ assert.match(app,/type==='number'\?num\(e\.value\)/);
+ assert.match(app,/if\(entity==='workers'&&\(!Number\.isFinite\(record\.charges_pct\)/);
+});
+
+test('encargos opcionais: apagar a porcentagem no orçamento volta ao custo sem encargos',()=>{
+ const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
+ assert.match(app,/Encargos adicionais \(\%\) — opcional<input data-staff-charges/);
+ assert.match(app,/Number\(x\.charges_pct\?\?0\)===0\?'':x\.charges_pct/);
+ assert.match(app,/const i=Number\(e\.dataset\.staffCharges\),pct=e\.value\.trim\(\)===''\?0:Number\(e\.value\)/);
+ assert.match(app,/b\.staff\[i\]\.charges_pct=pct/);
+ assert.match(app,/summary\(\)/);
+ const result=calculateBudget({...base,staff:[{...base.staff[0],charges_pct:''}]});
+ assert.equal(result.labor_cents,100000);
+ assert.equal(calculateBudget({...base,staff:[{...base.staff[0],charges_pct:15}]}).labor_cents,115000);
 });
