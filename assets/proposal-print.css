@@ -19,26 +19,27 @@
   }
   #printArea .proposal-brand-mark{display:flex;gap:13px;align-items:center;min-width:0;flex:1}
   #printArea .proposal-logo{
-    display:block;max-width:115px;max-height:69px;width:auto;height:auto;object-fit:contain;
-    background:transparent;border-radius:0;padding:0
+    display:block;flex:0 0 76px;min-width:76px;max-width:76px;
+    width:76px;height:76px;max-height:76px;object-fit:contain;
+    background:transparent;border:0;border-radius:0;padding:0
   }
   #printArea .proposal-monogram{
     background:#fff;color:#08182b;min-width:60px;height:60px;display:flex;align-items:center;justify-content:center;
     border-radius:10px;font-size:30px;font-weight:900;letter-spacing:-2px
   }
   #printArea .proposal-monogram span{color:#b7831b}
-  /* Arte horizontal original com margens transparentes no arquivo de origem.
-     Recorte central apenas na exibicao para manter letras proporcionais. */
+  /* Ambas as imagens oficiais aparecem lado a lado na impressao.
+     Centralizamos o conteudo para cortar somente a margem transparente original. */
   #printArea .proposal-header-art-slot{
-    position:relative;display:block;flex:1 1 322px;max-width:322px;
-    min-width:0;height:66px;overflow:hidden;
-    background:transparent;border:0;padding:0
+    position:relative;display:block;flex:1 1 260px;
+    max-width:280px;min-width:130px;height:72px;
+    overflow:hidden;background:transparent;border:0;padding:0
   }
   #printArea .proposal-header-art{
-    position:absolute;top:0;left:0;
-    display:block;width:100%;height:auto;max-width:none;max-height:none;
-    transform:translateY(-40%);
-    object-fit:contain;background:transparent;border:0;border-radius:0;padding:0
+    position:absolute;top:50%;left:0;display:block;
+    width:100%;height:auto;max-width:none;max-height:none;
+    transform:translateY(-50%);object-fit:contain;
+    background:transparent;border:0;border-radius:0;padding:0
   }
   #printArea .proposal-header-side{text-align:right;display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex:none}
   #printArea .proposal-header-label{color:#f0c66e;font-size:7.3px;font-weight:800;letter-spacing:1.4px}
