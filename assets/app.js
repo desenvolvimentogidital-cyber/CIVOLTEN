@@ -81,9 +81,16 @@ function dashboard(){
  const workers=state.data.workers.filter(w=>w.active).length;
  const fixed=total(state.data.fixed.filter(x=>x.active).map(x=>x.monthly_cents));
  const budgets=state.data.budgets;
+ const config=state.data.settings[0];
+ const pricingWarning=!config
+  ? '<div class="warning" role="alert"><strong>Configuração financeira pendente.</strong> Ainda não foram definidos impostos, margem de lucro e dias faturáveis mensais. O sistema usa valores iniciais que podem subestimar seu preço. <button type="button" class="subtle" data-view="settings">Configurar meus custos</button></div>'
+  : (num(config.tax_pct)===0||num(config.margin_pct)===0)
+   ? '<div class="warning" role="alert"><strong>Confira seu preço.</strong> Impostos ou margem estão em 0%. Verifique se isso corresponde ao seu caso antes de enviar uma proposta. <button type="button" class="subtle" data-view="settings">Revisar configurações</button></div>'
+   : '';
  const recent=budgets.slice(0,5).map(b=>'<div class="entry"><div><strong>'+esc(b.title)+'</strong><small>'+esc(b.customer||'Sem cliente')+' · '+esc(b.status)+'</small></div><span class="price">'+brl(b.price_cents)+'</span></div>').join('');
  return title('Seu negócio, sob controle','Acompanhe a operação e construa orçamentos usando exclusivamente seus valores.',
   '<button class="primary" data-action="new-budget">+ Novo orçamento</button>')+
+ pricingWarning+
  '<div class="cards"><article class="card metric"><small>Funcionários ativos</small><strong>'+workers+'</strong><span class="hint">Profissionais cadastrados</span></article>'+
  '<article class="card metric"><small>Custos fixos por mês</small><strong>'+brl(fixed)+'</strong><span class="hint">Despesas ativas da empresa</span></article>'+
  '<article class="card metric"><small>Orçamentos registrados</small><strong>'+budgets.length+'</strong><span class="hint">Histórico da CIVOLTEN</span></article></div>'+
