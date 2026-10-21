@@ -33,7 +33,7 @@ test('auditoria: nenhum custo invalido pode virar silenciosamente zero ou custo 
 });
 
 test('auditoria: valores muito grandes nao podem perder centavos por falta de precisao',()=>{
- assert.throws(()=>calculateBudget({...basis,staff:[{daily_cents:1e11,days:10000,charges_pct:200}]}),/limite seguro/);
+ assert.throws(()=>calculateBudget({...basis,staff:Array.from({length:4},()=>({daily_cents:1e11,days:10000,charges_pct:200}))}),/limite seguro/);
  assert.throws(()=>calculateBudget({...basis,manual_price_cents:Number.MAX_SAFE_INTEGER+1}),/inválido|inteiros|limite/);
 });
 
