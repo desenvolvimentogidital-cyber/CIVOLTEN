@@ -78,6 +78,26 @@
     margin:0!important;padding:0!important;white-space:pre-wrap;overflow-wrap:anywhere;
     font-size:10pt;line-height:1.68;orphans:3;widows:3
   }
+
+  /* Memorial descritivo organizado em linhas, sem revelar precos unitarios. */
+  #printArea .proposal-quantity-table{
+    width:100%;margin:3px 0 2px;border-collapse:collapse;
+    table-layout:fixed;font-size:9pt;color:#243954
+  }
+  #printArea .proposal-quantity-table thead{display:table-header-group}
+  #printArea .proposal-quantity-table tr{break-inside:avoid;page-break-inside:avoid}
+  #printArea .proposal-quantity-table th{
+    background:#132f4a;color:#fff;font-weight:800;text-align:left;
+    font-size:7.2px;letter-spacing:.9px;padding:10px 10px
+  }
+  #printArea .proposal-quantity-table th:first-child{width:64%;border-radius:4px 0 0 0}
+  #printArea .proposal-quantity-table th:nth-child(2){width:15%;text-align:center}
+  #printArea .proposal-quantity-table th:last-child{width:21%;text-align:right;border-radius:0 4px 0 0}
+  #printArea .proposal-quantity-table td{padding:9px 10px;border-bottom:1px solid #dae3ed;vertical-align:top;overflow-wrap:anywhere;line-height:1.45}
+  #printArea .proposal-quantity-table td:nth-child(2){text-align:center;white-space:nowrap}
+  #printArea .proposal-quantity-table td:last-child{text-align:right;white-space:nowrap;font-weight:800;color:#122b44}
+  #printArea .proposal-quantity-table tbody tr:nth-child(even){background:#f1f5f9}
+  #printArea .proposal-rich+.proposal-quantity-table{margin-top:12px}
   #printArea .proposal-investment{
     display:flex;justify-content:space-between;align-items:center;gap:20px;
     border-radius:9px;background:#08182b;color:#fff;padding:19px 21px;

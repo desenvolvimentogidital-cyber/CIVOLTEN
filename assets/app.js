@@ -1,5 +1,5 @@
 import {calculateBudget} from '/lib/civolten-calc.mjs';
-import {buildProposalHtml} from '/lib/civolten-proposal.mjs';
+import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
 
 const $=q=>document.querySelector(q);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -126,7 +126,8 @@ function defaultPricing(){
 }
 function startBudget(row){
  state.draftId=row?.id||null;
- state.draft=row?structuredClone(row.content):{title:'',customer:'',address:'',services:'',notes:'',days:1,status:'rascunho',staff:[],expenses:[],manual_price_cents:null,pricing:defaultPricing()};
+ state.draft=row?structuredClone(row.content):{title:'',customer:'',address:'',services:'',notes:'',days:1,status:'rascunho',staff:[],expenses:[],scope_items:[],manual_price_cents:null,pricing:defaultPricing()};
+ if(!Array.isArray(state.draft.scope_items))state.draft.scope_items=[];
  state.view='editor';render();
 }
 function editor(){
@@ -135,6 +136,12 @@ function editor(){
  const variables=state.data.variable;
  const staffLines=(b.staff||[]).map((x,i)=>'<div class="line"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia · encargos '+num(x.charges_pct)+'%</small></div><label class="line-label">Dias<input data-staff-days="'+i+'" type="number" min="0" max="10000" step=".5" value="'+esc(x.days)+'"></label><span class="price">'+brl(Math.round(x.daily_cents*x.days*(1+x.charges_pct/100)))+'</span><button class="danger" data-action="remove-staff" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
  const expenseLines=(b.expenses||[]).map((x,i)=>'<div class="line"><div><strong>'+esc(x.name)+'</strong><small>'+brl(x.unit_cents)+' / '+esc(x.unit||'un')+'</small></div><label class="line-label">Qtd.<input data-expense-qty="'+i+'" type="number" min="0" step=".01" value="'+esc(x.qty)+'"></label><span class="price">'+brl(Math.round(x.unit_cents*x.qty))+'</span><button class="danger" data-action="remove-expense" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
+ const scopeUnits=['m²','m','m³','un','ponto','serviço'];
+ const scopeLines=(b.scope_items||[]).map((item,i)=>'<div class="scope-entry">'+
+  '<label>Serviço <input data-scope-description="'+i+'" maxlength="180" value="'+esc(item.description||'')+'" placeholder="Ex.: Execução de parede em drywall"></label>'+
+  '<label>Unidade <select data-scope-unit="'+i+'">'+scopeUnits.map(u=>'<option value="'+esc(u)+'" '+((item.unit||'m²')===u?'selected':'')+'>'+esc(u)+'</option>').join('')+'</select></label>'+
+  '<label>Quantidade <input data-scope-quantity="'+i+'" type="number" min="0.01" max="1000000" step="0.01" value="'+esc(item.quantity??1)+'"></label>'+
+  '<button type="button" class="danger scope-remove" data-action="remove-scope" data-index="'+i+'" aria-label="Remover serviço '+(i+1)+'">Remover</button></div>').join('');
  return title(state.draftId?'Editar orçamento':'Novo orçamento','A formação do preço acontece somente com os custos informados neste orçamento.','<button class="subtle" data-view="budgets">← Voltar</button>')+
  '<div class="editor"><div class="stack"><section class="card"><h2>Dados da proposta</h2><div class="grid">'+
  '<label>Nome da obra / orçamento<input data-draft="title" maxlength="150" value="'+esc(b.title)+'" placeholder="Ex.: Reforma de banheiro"></label>'+
@@ -144,6 +151,10 @@ function editor(){
  '<label>Situação<select data-draft="status">'+['rascunho','enviado','aprovado','recusado'].map(x=>'<option value="'+x+'" '+(b.status===x?'selected':'')+'>'+x+'</option>').join('')+'</select></label>'+
  '<label class="wide">Serviços que serão executados<textarea data-draft="services" placeholder="Descreva os serviços e quantidades reais, sem preços externos">'+esc(b.services)+'</textarea></label>'+
  '<label class="wide">Condições, observações e prazo<textarea data-draft="notes">'+esc(b.notes)+'</textarea></label></div></section>'+
+ '<section class="card"><h2>Memorial descritivo / quantitativos</h2>'+
+ '<p class="caption">Liste o que será executado para o cliente: metragem de parede, piso, forro, drywall, pontos elétricos e outros. Estes itens serão apresentados no PDF sem preço unitário ou custos internos.</p>'+
+ '<div class="scope-list">'+(scopeLines||empty('Adicione os serviços e suas quantidades para detalhar a proposta.'))+'</div>'+
+ '<div class="buttons"><button type="button" class="secondary" data-action="add-scope">+ Adicionar serviço</button></div></section>'+
  '<section class="card"><h2>1. Mão de obra por diária</h2><div class="pick"><select id="workerSelect"><option value="">Escolha um funcionário</option>'+workers.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</option>').join('')+'</select><button class="secondary" data-action="add-worker">Adicionar</button></div>'+
  '<p class="caption">Cada profissional mantém o valor da diária e encargos cadastrados no momento do orçamento.</p>'+(staffLines||empty('Nenhum funcionário alocado.'))+'</section>'+
  '<section class="card"><h2>2. Custos variáveis da obra</h2><div class="pick"><select id="variableSelect"><option value="">Escolha uma despesa cadastrada</option>'+variables.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+brl(x.unit_cents)+'/'+esc(x.unit)+'</option>').join('')+'</select><button class="secondary" data-action="add-variable">Adicionar</button></div>'+
@@ -204,6 +215,7 @@ async function saveBudget(){
  const b=state.draft;
  if(!b.title?.trim())throw Error('Informe o título da obra');
  calculateBudget(b);
+ normalizeScopeItems(b.scope_items||[]);
  const record={title:b.title.trim(),customer:(b.customer||'').trim(),status:b.status||'rascunho',content:b};
  await request(route('budgets',state.draftId),state.draftId?'PATCH':'POST',{record});
  state.draft=null;state.draftId=null;state.view='budgets';await reload();render();flash('Orçamento salvo com análise de custos.');
@@ -265,12 +277,16 @@ document.addEventListener('input',ev=>{
   else b.pricing[k]=num(e.value);
   summary();
  }
+ if(e.dataset.scopeDescription!==undefined){b.scope_items[Number(e.dataset.scopeDescription)].description=e.value}
+ if(e.dataset.scopeUnit!==undefined){b.scope_items[Number(e.dataset.scopeUnit)].unit=e.value}
+ if(e.dataset.scopeQuantity!==undefined){b.scope_items[Number(e.dataset.scopeQuantity)].quantity=e.value===''?0:Number(e.value)}
  if(e.dataset.staffDays!==undefined){b.staff[Number(e.dataset.staffDays)].days=num(e.value);summary()}
  if(e.dataset.expenseQty!==undefined){b.expenses[Number(e.dataset.expenseQty)].qty=num(e.value);summary()}
 });
 document.addEventListener('change',ev=>{
  const e=ev.target;
  if(e.dataset.draft&&state.draft){state.draft[e.dataset.draft]=e.value;summary()}
+ if(e.dataset.scopeUnit!==undefined&&state.draft)state.draft.scope_items[Number(e.dataset.scopeUnit)].unit=e.value;
 });
 document.addEventListener('click',async ev=>{
  const mode=ev.target.closest('[data-auth-mode]');
@@ -286,6 +302,11 @@ document.addEventListener('click',async ev=>{
    state.access=(await request('/api/access?action=list')).rows||[];render();flash('Usuário autorizado com sucesso.');
   }
   else if(action==='new-budget')startBudget();
+  else if(action==='add-scope'){
+   if(!b||b.scope_items.length>=100)throw Error('Limite de 100 serviços por proposta');
+   b.scope_items.push({description:'',unit:'m²',quantity:1});render();
+  }
+  else if(action==='remove-scope'){if(b?.scope_items){b.scope_items.splice(Number(el.dataset.index),1);render()}}
   else if(action==='open-budget')startBudget(state.data.budgets.find(x=>x.id===id));
   else if(action==='edit-item'){state.edit=id;render()}
   else if(action==='cancel-edit'){state.edit=null;render()}

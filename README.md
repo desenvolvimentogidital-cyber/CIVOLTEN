@@ -51,3 +51,8 @@ O novo documento inclui a marca CIVOLTEN, identificação do projeto e cliente, 
 **Privacidade:** o gerador recebe somente título, cliente, endereço, escopo, prazo, observações e o **preço final** já calculado. Os dados de funcionários, custos, encargos, alíquotas, margens, despesas, formação de preço e resultados nunca são interpolados na proposta comercial. Verifique se os campos de escopo e observações não contêm informações internas antes do envio.
 
 **Observação:** a referência `CV-XXXXXXXX` só é exibida depois de salvar o orçamento, quando já existe um identificador real. Antes de salvar, o documento indica `Prévia sem número`. O documento não inventa CNPJ, contatos, condições de pagamento ou prazo de validade que não tenham sido fornecidos.
+
+## Memorial descritivo e quantitativos da proposta
+No editor do orçamento, preencha **Memorial descritivo / quantitativos** com cada serviço (ex.: execução de parede), unidade (m², m, m³, un, ponto ou serviço) e quantidade. Use **+ Adicionar serviço** e **Remover** para editar a lista. Ela fica salva dentro do conteúdo do orçamento e vai para o PDF do cliente, em tabela com as três colunas, sem preço por item. O preço global permanece calculado por funcionários, despesas e demais custos reais internos, que não são expostos. O campo textual **Serviços que serão executados** continua disponível para explicações adicionais e para orçamentos antigos.
+
+Valide as medições e condições de execução com o responsável pela obra. As quantidades são informadas manualmente, não medidas pelo sistema; o cadastro descritivo não altera automaticamente a formação do preço.

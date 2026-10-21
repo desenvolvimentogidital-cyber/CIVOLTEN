@@ -88,7 +88,7 @@ test('folha A4 imprime independentemente do tema escuro e nao exibe painel',()=>
  assert.match(css,/break-inside:avoid/);
  assert.match(css,/\.proposal-rich/);
  assert.match(page,/proposal-print\.css" media="print"/);
- assert.match(app,/import \{buildProposalHtml\} from '\/lib\/civolten-proposal\.mjs'/);
+ assert.match(app,/import \{buildProposalHtml,normalizeScopeItems\} from '\/lib\/civolten-proposal\.mjs'/);
  assert.match(app,/priceCents:r\.price_cents/);
 });
 
