@@ -286,7 +286,6 @@ document.addEventListener('input',ev=>{
 document.addEventListener('change',ev=>{
  const e=ev.target;
  if(e.dataset.draft&&state.draft){state.draft[e.dataset.draft]=e.value;summary()}
- if(e.dataset.scopeUnit&&state.draft){/* handled by input event, fallback below */}
  if(e.dataset.scopeUnit!==undefined&&state.draft)state.draft.scope_items[Number(e.dataset.scopeUnit)].unit=e.value;
 });
 document.addEventListener('click',async ev=>{
