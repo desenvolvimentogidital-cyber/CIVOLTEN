@@ -25,12 +25,17 @@ const route=(entity,id)=>'/api/data?entity='+entity+(id?'&id='+encodeURIComponen
 let timer;
 function flash(message){const el=$('#flash');el.textContent=message;el.hidden=false;clearTimeout(timer);timer=setTimeout(()=>el.hidden=true,4500)}
 async function loadBrand(){
+ // A logo oficial enviada pelo administrador e local e nao pode ser substituida
+ // pela identidade antiga retornada pelo servico legado.
+ document.querySelectorAll('.brand-logo').forEach(img=>{
+  img.src='/assets/civolten-logo.png';
+  img.hidden=false;
+ });
  try{
   const r=await request('/api/site-branding');const b=r.branding||{};
   if(/^#[a-f0-9]{6}$/i.test(b.color_primary||''))document.documentElement.style.setProperty('--navy',b.color_primary);
   if(/^#[a-f0-9]{6}$/i.test(b.color_accent||''))document.documentElement.style.setProperty('--gold',b.color_accent);
-  if(b.logo_data_url&&/^data:image\/(png|jpeg);base64,/.test(b.logo_data_url))document.querySelectorAll('.brand-logo').forEach(img=>{img.src=b.logo_data_url;img.hidden=false});
- }catch{/* Marca permanece indicada pelo nome se serviço estiver indisponível */}
+ }catch{/* Paleta visual padrao permanece disponivel. */}
 }
 async function reload(){
  const names=Object.keys(state.data),lists=await Promise.all(names.map(n=>request(route(n))));
@@ -226,12 +231,12 @@ function printBudget(){
  const r=calculateBudget(b);
  // O modelo recebe apenas o valor comercial; os custos permanecem no painel privado.
  const brandLogo=[...document.querySelectorAll('.brand-logo')]
-  .find(img=>!img.hidden&&img.src?.startsWith('data:image/'));
+  .find(img=>!img.hidden&&img.complete&&img.naturalWidth>0);
  const html=buildProposalHtml(b,{
   priceCents:r.price_cents,
   id:state.draftId,
   date:new Date(),
-  logoDataUrl:brandLogo?.src||'',
+  logoDataUrl:brandLogo?.getAttribute('src')||'',
   headerArtUrl:(()=>{const img=$('#proposalHeaderArt');return img?.complete&&img.naturalWidth>0?img.getAttribute('src')||'':''})()
  });
  $('#printArea').innerHTML=html;
