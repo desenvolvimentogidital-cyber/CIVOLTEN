@@ -174,3 +174,55 @@ test('imagens PNG reais presentes no repositorio',()=>{
   assert.equal(png.readUInt32BE(20),h);
  }
 });
+
+
+test('tela de login, aprovacao e painel exibem icone e imagem horizontal no lugar do texto',()=>{
+ const page=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.equal((page.match(/class="brand-logo"/g)||[]).length,3);
+ assert.equal((page.match(/class="brand-wordmark"/g)||[]).length,3);
+ assert.equal((page.match(/class="brand-wordmark-frame"/g)||[]).length,3);
+ assert.equal((page.match(/src="\/assets\/civolten-logo\.png"/g)||[]).length,3);
+ assert.equal((page.match(/src="\/assets\/civolten-proposal-header\.png"/g)||[]).length,4);
+ assert.doesNotMatch(page,/<b>CIVOLTEN<small>/);
+ assert.match(page,/<strong>Painel interno<\/strong>/);
+});
+
+test('recorte do nome na tela preserva a arte PNG transparente e se adapta a celular',()=>{
+ const css=fs.readFileSync(new URL('../assets/app.css',import.meta.url),'utf8');
+ assert.match(css,/\.brand \.brand-wordmark-frame\{/);
+ assert.match(css,/\.brand \.brand-wordmark\{/);
+ assert.match(css,/overflow:hidden;background:transparent/);
+ assert.match(css,/transform:translateY\(-50%\)/);
+ assert.match(css,/@media\(max-width:680px\)\{/);
+ assert.match(css,/\.sidebar \.brand \.brand-wordmark-frame/);
+});
+
+test('impressao espera carregar o icone e o nome e nao depende da tela de login',()=>{
+ const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
+ assert.match(app,/async function printBudget\(\)/);
+ assert.match(app,/logoDataUrl:'\/assets\/civolten-logo\.png'/);
+ assert.match(app,/headerArtUrl:'\/assets\/civolten-proposal-header\.png'/);
+ assert.match(app,/Promise\.all\(\[\.\.\.div\.querySelectorAll\('img'\)\]\.map\(img=>img\.decode\(\)\)\)/);
+ assert.match(app,/else if\(action==='print-budget'\)await printBudget\(\)/);
+ assert.doesNotMatch(app,/brandLogo\?\.getAttribute\('src'\)/);
+ const html=buildProposalHtml(sample,{
+   ...options,
+   logoDataUrl:'/assets/civolten-logo.png',
+   headerArtUrl:'/assets/civolten-proposal-header.png'
+ });
+ const masthead=html.match(/<header class="proposal-masthead">[\s\S]*?<\/header>/)?.[0]||'';
+ assert.match(masthead,/class="proposal-logo" src="\/assets\/civolten-logo\.png"/);
+ assert.match(masthead,/class="proposal-header-art" src="\/assets\/civolten-proposal-header\.png"/);
+});
+
+test('PDF conserva as duas marcas lado a lado sem cartao branco',()=>{
+ const css=fs.readFileSync(new URL('../assets/proposal-print.css',import.meta.url),'utf8');
+ const logo=css.match(/#printArea \.proposal-logo\{([^}]+)\}/)?.[1]||'';
+ const art=css.match(/#printArea \.proposal-header-art\{([^}]+)\}/)?.[1]||'';
+ assert.match(logo,/background:transparent/);
+ assert.match(logo,/padding:0/);
+ assert.match(art,/background:transparent/);
+ assert.match(art,/padding:0/);
+ assert.match(art,/transform:translateY\(-50%\)/);
+ assert.match(css,/\.proposal-brand-mark\{display:flex/);
+});
