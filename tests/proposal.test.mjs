@@ -91,3 +91,15 @@ test('folha A4 imprime independentemente do tema escuro e nao exibe painel',()=>
  assert.match(app,/import \{buildProposalHtml\} from '\/lib\/civolten-proposal\.mjs'/);
  assert.match(app,/priceCents:r\.price_cents/);
 });
+
+
+test('logo PNG no PDF não recebe fundo branco, cartão, borda arredondada ou espaçamento',()=>{
+ const css=fs.readFileSync(new URL('../assets/proposal-print.css',import.meta.url),'utf8');
+ const match=css.match(/#printArea\s*\.proposal-logo\s*\{([^}]*)\}/);
+ assert.ok(match,'Regra da logo precisa existir');
+ const rule=match[1];
+ assert.match(rule,/background\s*:\s*transparent\s*;/);
+ assert.match(rule,/border-radius\s*:\s*0\s*;/);
+ assert.match(rule,/padding\s*:\s*0\s*(?:;|$)/);
+ assert.doesNotMatch(rule,/background\s*:\s*#(?:fff|ffffff)\b/i);
+});
