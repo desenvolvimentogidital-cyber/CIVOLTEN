@@ -5,38 +5,41 @@ import fs from 'node:fs';
 const css=fs.readFileSync(new URL('../assets/app.css',import.meta.url),'utf8');
 const page=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const printer=fs.readFileSync(new URL('../assets/proposal-print.css',import.meta.url),'utf8');
+const intro='/* Ajuste pontual: imagem do NOME maior ao lado do icone no celular.';
+const begin=css.indexOf(intro);
+const correction=css.slice(begin);
 
-test('aumento da arte do nome fica restrito ao painel autenticado',()=>{
- const mark=css.indexOf('/* Marca CIVOLTEN ampliada somente no ambiente APÓS LOGIN.');
- assert.ok(mark>0);
- const rules=css.slice(mark);
- assert.match(rules,/#app \.sidebar \.brand \.brand-wordmark-frame/);
- assert.doesNotMatch(rules,/\.auth-card|\.auth-wrap|#printArea/);
- assert.doesNotMatch(rules,/(?:^|\n)\s*\.brand-wordmark-frame\s*\{/);
+test('corrige somente a imagem do nome na sidebar autenticada',()=>{
+ assert.ok(begin>0,'bloco de correção existente');
+ assert.match(correction,/#app \.sidebar \.brand \.brand-wordmark-frame/);
+ assert.match(correction,/#app \.sidebar \.brand \.brand-wordmark\{/);
+ assert.doesNotMatch(correction,/\.auth-card|\.auth-wrap|#printArea/);
+ assert.doesNotMatch(correction,/#app \.sidebar\{width:|#app \.sidebar\{min-width:/);
+ assert.doesNotMatch(correction,/#app \.sidebar \.brand \.brand-logo/);
 });
-
-test('tela grande usa largura de marca maior do que a original',()=>{
- const block=css.slice(css.indexOf('@media screen and (min-width:971px)'));
- assert.match(block,/#app \.sidebar\{width:298px;min-width:298px\}/);
- assert.match(block, /#app \.sidebar \.brand \.brand-wordmark-frame\{\s*width:100%;max-width:270px;height:76px\s*\}/);
- assert.match(block,/#app \.sidebar \.brand \.brand-logo\{width:90px;height:90px\}/);
+test('restaura composicao horizontal com nome ao lado do simbolo no celular',()=>{
+ assert.match(correction,/#app \.sidebar \.brand\{\s*flex-direction:row;align-items:center;justify-content:flex-start;/);
+ assert.match(correction,/#app \.sidebar \.brand \.brand-wordmark-frame\{\s*flex:1 1 auto;min-width:0;width:auto;max-width:none;height:58px/);
+ assert.doesNotMatch(correction,/flex-direction:column/);
+ assert.doesNotMatch(correction,/max-width:335px/);
 });
-
-test('tablet e celular exibem nome ampliado sem cortar a tela',()=>{
- const tablet=css.slice(css.indexOf('@media screen and (min-width:681px) and (max-width:970px)'));
- const mobile=css.slice(css.lastIndexOf('@media screen and (max-width:680px)'));
- assert.match(tablet,/#app \.sidebar\{width:264px;min-width:264px\}/);
- assert.match(tablet,/max-width:242px;height:70px/);
- assert.match(mobile,/flex-direction:column;align-items:center;justify-content:center/);
- assert.match(mobile,/max-width:335px;height:76px/);
- assert.match(mobile,/\.brand-wordmark\{\s*width:100%;max-width:none/);
+test('remove efetivamente o limite antigo de 110px que encolhia o nome',()=>{
+ const oldCss=css.slice(0,begin);
+ assert.match(oldCss,/\.sidebar \.brand img\{max-height:54px;max-width:110px\}/);
+ assert.match(correction,/#app \.sidebar \.brand \.brand-wordmark\{\s*display:block;width:100%;height:auto;\s*max-width:none;max-height:none/);
 });
-
-test('logo e nome originais ficam no login e no painel, enquanto a impressão é independente',()=>{
+test('medidas de icone e barra lateral anteriores permanecem intactas',()=>{
+ const oldCss=css.slice(0,begin);
+ assert.match(oldCss,/\.sidebar\{background:var\(--navy\).*?width:250px;min-width:250px/);
+ assert.match(oldCss,/@media\(max-width:970px\)\{\.sidebar\{width:205px;min-width:205px/);
+ assert.match(oldCss,/\.sidebar \.brand \.brand-logo\{width:49px;height:49px\}/);
+ assert.match(oldCss,/\.sidebar \.brand \.brand-logo\{width:77px;height:77px\}/);
+});
+test('preserva identidade original no login, nome em imagem e PDF aprovado',()=>{
  assert.equal((page.match(/class="brand-wordmark"/g)||[]).length,3);
  assert.equal((page.match(/class="brand-logo"/g)||[]).length,3);
  assert.match(page,/id="app" hidden><aside class="sidebar"/);
  assert.match(printer,/#printArea \.proposal-header-art-slot/);
  assert.match(printer,/#printArea \.proposal-logo/);
- assert.doesNotMatch(css.slice(css.indexOf('/* Marca CIVOLTEN ampliada somente no ambiente APÓS LOGIN.')),/@media print/);
+ assert.doesNotMatch(correction,/@media print/);
 });
