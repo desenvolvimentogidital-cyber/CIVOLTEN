@@ -20,7 +20,7 @@
   #printArea .proposal-brand-mark{display:flex;gap:13px;align-items:center;min-width:0}
   #printArea .proposal-logo{
     display:block;max-width:115px;max-height:69px;width:auto;height:auto;object-fit:contain;
-    background:#fff;border-radius:8px;padding:7px
+    background:transparent;border-radius:0;padding:0
   }
   #printArea .proposal-monogram{
     background:#fff;color:#08182b;min-width:60px;height:60px;display:flex;align-items:center;justify-content:center;
