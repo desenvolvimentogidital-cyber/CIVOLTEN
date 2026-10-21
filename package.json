@@ -1,1 +1,10 @@
-{"name":"civolten-custos-reais","version":"1.0.0","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.mjs","check":"node --check assets/app.js && node --check api/data.mjs && node --check api/session.mjs && npm test"}}
+{
+  "name": "civolten-custos-reais",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check assets/app.js && node --check api/data.mjs && node --check api/session.mjs && node --check api/bootstrap.mjs && npm test"
+  }
+}

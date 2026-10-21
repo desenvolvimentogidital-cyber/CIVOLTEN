@@ -38,13 +38,25 @@ async function loadBrand(){
  }catch{/* Paleta visual padrao permanece disponivel. */}
 }
 async function reload(){
- const names=Object.keys(state.data),lists=await Promise.all(names.map(n=>request(route(n))));
- names.forEach((n,i)=>state.data[n]=lists[i].rows||[]);
+ // Uma unica resposta autenticada substitui cinco requisicoes e cinco verificacoes.
+ const data=(await request('/api/bootstrap')).data;
+ const names=Object.keys(state.data);
+ if(!data||names.some(n=>!Array.isArray(data[n])))throw Error('Dados do painel incompletos. Atualize e tente novamente.');
+ names.forEach(n=>state.data[n]=data[n]);
 }
 async function showApp(){
- await reload();
- try{state.access=(await request('/api/access?action=list')).rows||[]}catch{state.access=[]}
- $('#auth').hidden=true;$('#app').hidden=false;render();
+ // A sessao ja foi validada no servidor. Exibe feedback imediato durante o
+ // carregamento dos dados reais, sem exibir valores vazios ou liberar a navegacao.
+ const auth=$('#auth'),app=$('#app');
+ auth.hidden=true;app.hidden=false;app.inert=true;
+ $('#content').innerHTML='<section class="card" role="status" aria-live="polite"><h2>Abrindo seu painel...</h2><p>Carregando os dados da CIVOLTEN com segurança.</p></section>';
+ try{
+  await reload();
+  render();
+ }catch(error){
+  app.hidden=true;auth.hidden=false;
+  throw error;
+ }finally{app.inert=false}
 }
 async function showPending(){
  $('#app').hidden=true;$('#auth').hidden=false;
@@ -251,12 +263,14 @@ async function printBudget(){
 document.addEventListener('submit',async ev=>{
  if(!['login','entityForm','settingsForm','signupForm','recoverForm','passwordForm'].includes(ev.target.id))return;
  ev.preventDefault();const f=ev.target,button=f.querySelector('button[type=submit],button.primary');
- if(button)button.disabled=true;
+ const originalLabel=button?.textContent;
+ if(button){button.disabled=true;if(f.id==='login')button.textContent='Verificando acesso...'}
  try{
   if(f.id==='login'){
    const form=new FormData(f);
    const result=await request('/api/session','POST',{email:form.get('email'),password:form.get('password')});
-   f.reset();if(result.authenticated)await showApp();else if(result.pending)await showPending();
+   if(result.authenticated){await showApp();f.reset()}
+   else if(result.pending){await showPending();f.reset()}
   }else if(f.id==='signupForm'){
    const data=new FormData(f);
    const r=await request('/api/signup','POST',{email:data.get('email'),password:data.get('password')});
@@ -272,7 +286,7 @@ document.addEventListener('submit',async ev=>{
    recoveryToken=null;f.reset();authMode('login');$('#authNotice').textContent='Senha atualizada! Agora entre com seu e-mail e a nova senha.';
   }else if(f.id==='entityForm')await saveEntity(f.dataset.entity,f);
   else await saveSettings(f);
- }catch(error){flash(error.message)}finally{if(button)button.disabled=false}
+ }catch(error){flash(error.message)}finally{if(button){button.disabled=false;button.textContent=originalLabel}}
 });
 document.addEventListener('input',ev=>{
  const e=ev.target,b=state.draft;if(!b)return;
@@ -304,7 +318,20 @@ document.addEventListener('click',async ev=>{
  const mode=ev.target.closest('[data-auth-mode]');
  if(mode){authMode(mode.dataset.authMode);return}
  const tab=ev.target.closest('[data-view]');
- if(tab){state.view=tab.dataset.view;state.edit=null;state.draft=null;render();return}
+ if(tab){
+  state.view=tab.dataset.view;state.edit=null;state.draft=null;
+  // Pedidos de acesso so sao consultados quando o administrador abre Acessos.
+  // Eles nao atrasam a entrada em Visao geral.
+  if(state.view==='access'){
+   $('#content').innerHTML='<section class="card" role="status">Carregando solicitações de acesso...</section>';
+   try{state.access=(await request('/api/access?action=list')).rows||[]}
+   catch(error){
+    if(state.view==='access')$('#content').innerHTML='<section class="card"><h2>Não foi possível carregar os acessos</h2><p>Selecione Acessos novamente para tentar.</p></section>';
+    flash(error.message);return;
+   }
+  }
+  render();return
+ }
  const el=ev.target.closest('[data-action]');if(!el)return;
  const action=el.dataset.action,id=el.dataset.id,b=state.draft;
  try{
@@ -362,7 +389,8 @@ $('#refreshAccess').addEventListener('click',async()=>{
  try{const r=await request('/api/session');if(r.authenticated)await showApp();else $('#pendingNotice').textContent='O acesso ainda aguarda aprovação.'}
  catch(e){$('#pendingNotice').textContent=e.message}
 });
-await loadBrand();
+// A consulta opcional de cores nao deve bloquear o inicio da sessao.
+void loadBrand();
 const fragment=new URLSearchParams(window.location.hash.replace(/^#/,''));
 if(fragment.get('type')==='recovery'&&fragment.get('access_token'))recoveryToken=fragment.get('access_token');
 if(fragment.has('access_token')||fragment.has('error'))history.replaceState(null,'',location.pathname+location.search);
