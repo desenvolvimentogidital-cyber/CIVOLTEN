@@ -5,6 +5,6 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check assets/app.js && node --check api/data.mjs && node --check api/session.mjs && node --check api/bootstrap.mjs && npm test"
+    "check": "node --check assets/app.js && node --check api/data.mjs && node --check api/session.mjs && node --check api/bootstrap.mjs && node --check lib/civolten-pages.mjs && node --check lib/civolten-calc.mjs && node --check lib/civolten-security.mjs && npm test"
   }
 }
