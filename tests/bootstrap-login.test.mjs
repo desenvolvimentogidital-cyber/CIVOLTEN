@@ -61,7 +61,7 @@ test('bootstrap verifica admin uma vez e faz cinco consultas RLS em paralelo',as
   assert.equal(opts.headers.Authorization,'Bearer '+jwt,'RLS usa sessão da pessoa autenticada');
   assert.equal(u.searchParams.get('select'),'*');
   assert.equal(u.searchParams.get('limit'),'250');
-  assert.equal(u.searchParams.get('order'),key==='settings'?null:'created_at.desc');
+  assert.equal(u.searchParams.get('order'),key==='settings'?null:'created_at.desc,id.desc');
   restCalls.push(key);
   // Força uma barreira: nenhum pedido pode terminar até todos iniciarem.
   if(restCalls.length===5)release();
