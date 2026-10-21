@@ -98,3 +98,25 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
  :root[data-theme="dark"] #printArea{background:#fff!important;color:#111!important}
  .theme-toggle{display:none!important}
 }
+
+
+/* Memorial de servicos e quantidades (cadastro comercial, sem precificacao interna). */
+.scope-list{display:grid;gap:10px;margin-top:14px}
+.scope-entry{
+ display:grid;grid-template-columns:minmax(180px,2.5fr) minmax(90px,.65fr) minmax(110px,.75fr) auto;
+ align-items:end;gap:10px;padding:13px;border:1px solid var(--border);border-radius:12px;background:var(--bg)
+}
+.scope-entry label{min-width:0;font-size:12px}
+.scope-entry input,.scope-entry select{min-width:0}
+.scope-remove{height:46px;align-self:end;font-size:12px}
+:root[data-theme="dark"] .scope-entry{background:#0c1c2e;border-color:#344c66}
+@media(max-width:760px){
+ .scope-entry{grid-template-columns:minmax(0,1fr) minmax(105px,.48fr);gap:10px}
+ .scope-entry>label:first-child{grid-column:1/-1}
+ .scope-remove{height:43px;align-self:end}
+}
+@media(max-width:400px){
+ .scope-entry{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .scope-entry>label:first-child{grid-column:1/-1}
+ .scope-remove{grid-column:1/-1;height:38px}
+}
