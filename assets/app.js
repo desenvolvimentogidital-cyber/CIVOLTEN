@@ -225,21 +225,27 @@ async function saveBudget(){
  await request(route('budgets',state.draftId),state.draftId?'PATCH':'POST',{record});
  state.draft=null;state.draftId=null;state.view='budgets';await reload();render();flash('Orçamento salvo com análise de custos.');
 }
-function printBudget(){
+async function printBudget(){
  const b=state.draft;
  if(!b?.title?.trim())throw Error('Informe o nome da obra');
  const r=calculateBudget(b);
- // O modelo recebe apenas o valor comercial; os custos permanecem no painel privado.
- const brandLogo=[...document.querySelectorAll('.brand-logo')]
-  .find(img=>!img.hidden&&img.complete&&img.naturalWidth>0);
+ // O valor e apenas comercial. As duas artes sao recursos oficiais locais e obrigatorios.
+ // Nunca omitir a logo por uma condicao de carregamento da tela de login.
  const html=buildProposalHtml(b,{
   priceCents:r.price_cents,
   id:state.draftId,
   date:new Date(),
-  logoDataUrl:brandLogo?.getAttribute('src')||'',
-  headerArtUrl:(()=>{const img=$('#proposalHeaderArt');return img?.complete&&img.naturalWidth>0?img.getAttribute('src')||'':''})()
+  logoDataUrl:'/assets/civolten-logo.png',
+  headerArtUrl:'/assets/civolten-proposal-header.png'
  });
- $('#printArea').innerHTML=html;
+ const div=$('#printArea');
+ div.innerHTML=html;
+ // Aguarda o carregamento das DUAS imagens antes de abrir a impressao no celular.
+ try{
+  await Promise.all([...div.querySelectorAll('img')].map(img=>img.decode()));
+ }catch{
+  throw Error('Nao foi possivel carregar as imagens CIVOLTEN para o PDF. Atualize a pagina e tente novamente.');
+ }
  window.print();
 }
 document.addEventListener('submit',async ev=>{
@@ -339,7 +345,7 @@ document.addEventListener('click',async ev=>{
   else if(action==='remove-staff'){b.staff.splice(Number(el.dataset.index),1);render()}
   else if(action==='remove-expense'){b.expenses.splice(Number(el.dataset.index),1);render()}
   else if(action==='save-budget')await saveBudget();
-  else if(action==='print-budget')printBudget();
+  else if(action==='print-budget')await printBudget();
  }catch(error){flash(error.message)}
 });
 async function logout(){
