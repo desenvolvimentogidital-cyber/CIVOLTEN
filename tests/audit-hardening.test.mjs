@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {calculateBudget} from '../lib/civolten-calc.mjs';
 import {listRows} from '../lib/civolten-pages.mjs';
 import {readBody,EDGE,SUPABASE} from '../lib/civolten-security.mjs';
