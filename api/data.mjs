@@ -1,5 +1,6 @@
 import {SUPABASE,KEY,json,sameOrigin,browserAllowed,readBody,cookieToken,authorized} from '../lib/civolten-security.mjs';
 import {calculateBudget} from '../lib/civolten-calc.mjs';
+import {listRows} from '../lib/civolten-pages.mjs';
 const models={
  settings:['cv_settings','workdays_month','billable_days_month','tax_pct','margin_pct'],
  workers:['cv_workers','name','profession','daily_cents','charges_pct','days_month','active'],
@@ -22,8 +23,8 @@ export default {async fetch(req){
  let payload;
  try{
   if(req.method==='GET'){
-   dst.searchParams.set('select','*');dst.searchParams.set('limit','250');
-   if(entity!=='settings')dst.searchParams.set('order','created_at.desc');
+   dst.searchParams.set('select','*');
+   if(entity!=='settings')dst.searchParams.set('order','created_at.desc,id.desc');
   }else if(req.method==='DELETE'){dst.searchParams.set('id','eq.'+id)}
   else{
    const body=await readBody(req,59000),b=body.record;
@@ -38,9 +39,16 @@ export default {async fetch(req){
    if(req.method==='PATCH')dst.searchParams.set('id','eq.'+id);
    headers['Content-Type']='application/json';payload=JSON.stringify(data);
   }
+  if(req.method==='GET')return json({rows:await listRows(dst,headers)});
   const c=new AbortController(),timer=setTimeout(()=>c.abort(),16000);let r;
   try{r=await fetch(dst,{method:req.method,headers,body:payload,signal:c.signal})}finally{clearTimeout(timer)}
   if(!r.ok){const error=await r.json().catch(()=>({}));return json({error:r.status===403?'Acesso negado':(error.message||'Não foi possível salvar').slice(0,160)},r.status===403?403:400)}
-  return json({rows:await r.json().catch(()=>[])});
+  const rows=await r.json().catch(()=>null);
+  if(!Array.isArray(rows))return json({error:'O banco não confirmou a operação. Atualize e confira os registros.'},502);
+  if((req.method==='PATCH'||req.method==='DELETE')&&rows.length===0)
+   return json({error:'Registro não encontrado ou sem permissão. Atualize a página.'},404);
+  if((req.method==='POST'||req.method==='PATCH')&&rows.length!==1)
+   return json({error:'O banco não confirmou o registro salvo. Atualize e confira os dados.'},502);
+  return json({rows});
  }catch(err){return json({error:err.message?.slice(0,160)||'Falha temporária'},400)}
 }};
