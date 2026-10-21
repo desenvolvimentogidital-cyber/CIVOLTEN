@@ -71,7 +71,7 @@ test('encargos opcionais: apagar a porcentagem no orçamento volta ao custo sem 
  const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
  assert.match(app,/Encargos adicionais \(\%\) — opcional<input data-staff-charges/);
  assert.match(app,/Number\(x\.charges_pct\?\?0\)===0\?'':x\.charges_pct/);
- assert.match(app,/const i=Number\(e\.dataset\.staffCharges\),pct=e\.value\.trim\(\)===''\\?0:Number\(e\.value\)/);
+ assert.match(app,/const i=Number\(e\.dataset\.staffCharges\),pct=e\.value\.trim\(\)===''\?0:Number\(e\.value\)/);
  assert.match(app,/b\.staff\[i\]\.charges_pct=pct/);
  assert.match(app,/summary\(\)/);
  const result=calculateBudget({...base,staff:[{...base.staff[0],charges_pct:''}]});
