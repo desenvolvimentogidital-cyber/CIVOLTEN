@@ -103,3 +103,46 @@ test('logo PNG no PDF não recebe fundo branco, cartão, borda arredondada ou es
  assert.match(rule,/padding\s*:\s*0\s*(?:;|$)/);
  assert.doesNotMatch(rule,/background\s*:\s*#(?:fff|ffffff)\b/i);
 });
+
+
+test('cabecalho mantem logo original mas nao repete o nome textual da empresa',()=>{
+ const html=buildProposalHtml(sample,{...options,logoDataUrl:'data:image/png;base64,aGVsbG8='});
+ const header=html.match(/<header class="proposal-masthead">[\s\S]*?<\/header>/)?.[0];
+ assert.ok(header,'Cabecalho precisa existir');
+ assert.match(header,/class="proposal-logo"/);
+ assert.match(header,/class="proposal-header-art-slot"/);
+ assert.doesNotMatch(header,/proposal-brand-name/);
+ assert.doesNotMatch(header,/CONSTRUÇÃO &amp; ELÉTRICA/);
+ assert.doesNotMatch(header,/class="proposal-header-art"/);
+});
+
+test('arte institucional futura entra no espaco reservado sem alterar a logo atual',()=>{
+ const html=buildProposalHtml(sample,{...options,logoDataUrl:'data:image/png;base64,aGVsbG8=',headerArtUrl:'/assets/civolten-proposal-header.png'});
+ const header=html.match(/<header class="proposal-masthead">[\s\S]*?<\/header>/)?.[0]||'';
+ assert.match(header,/class="proposal-logo"/);
+ assert.match(header,/class="proposal-header-art"/);
+ assert.match(header,/src="\/assets\/civolten-proposal-header\.png"/);
+ assert.doesNotMatch(header,/proposal-brand-name/);
+});
+
+test('nao permite fonte externa ou atributos maliciosos como arte de cabecalho',()=>{
+ for(const candidate of ['https://evil.example/image.png','/assets/x.png','/assets/civolten-proposal-header.png" onerror="alert(1)']){
+  const html=buildProposalHtml(sample,{...options,headerArtUrl:candidate});
+  assert.doesNotMatch(html,/class="proposal-header-art"/);
+  assert.doesNotMatch(html,/evil\.example/);
+  assert.doesNotMatch(html,/onerror=/);
+ }
+});
+
+test('logo e imagem futura nunca ganham um card branco na folha do PDF',()=>{
+ const css=fs.readFileSync(new URL('../assets/proposal-print.css',import.meta.url),'utf8');
+ for(const classname of ['proposal-logo','proposal-header-art']){
+  const block=css.match(new RegExp('#printArea \\.'+classname+'\\s*\\{([^}]+)\\}'));
+  assert.ok(block,classname+' tem CSS');
+  assert.match(block[1],/background:transparent/);
+  assert.match(block[1],/padding:0/);
+ }
+ const page=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(page,/<img id="proposalHeaderArt" hidden/);
+ assert.doesNotMatch(page,/<img id="proposalHeaderArt"[^>]*src=/);
+});
