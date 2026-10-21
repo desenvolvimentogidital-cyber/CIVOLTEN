@@ -11,7 +11,7 @@ const total=xs=>xs.reduce((n,x)=>n+Number(x||0),0);
 const state={view:'home',data:{settings:[],workers:[],fixed:[],variable:[],budgets:[]},access:[],edit:null,draft:null,draftId:null};
 const sections={home:'Visão geral',budgets:'Orçamentos',workers:'Funcionários',fixed:'Custos fixos',variable:'Custos variáveis',settings:'Configurações'};
 const fields={
- workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos estimados (%)','number'],['days_month','Dias trabalhados previstos no mês','number'],['active','Profissional ativo','checkbox']],
+ workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos adicionais (%) — opcional','number'],['days_month','Dias trabalhados previstos no mês','number'],['active','Profissional ativo','checkbox']],
  fixed:[['name','Despesa fixa','text'],['category','Categoria','text'],['monthly_cents','Valor mensal (R$)','money'],['active','Despesa ativa','checkbox']],
  variable:[['name','Nome do gasto','text'],['category','Categoria','text'],['unit','Unidade (un, m², diária...)','text'],['unit_cents','Custo por unidade (R$)','money']]
 };
@@ -93,9 +93,9 @@ function dashboard(){
 function inputField(f,v){
  const [k,label,type]=f,raw=v?.[k];
  if(type==='checkbox')return '<label><span>'+esc(label)+'</span><input type="checkbox" name="'+k+'" '+(v==null||raw?'checked':'')+' style="width:22px;height:22px"></label>';
- const val=type==='money'?dec(raw):k==='charges_pct'?(raw??0):raw??'';
+ const val=type==='money'?dec(raw):k==='charges_pct'?(raw==null||Number(raw)===0?'':raw):raw??'';
  const attrs=k==='charges_pct'?'min="0" max="200" step="0.01"':type==='money'||type==='number'?'min="0" step="0.01"':'maxlength="120"';
- return '<label>'+esc(label)+'<input name="'+k+'" type="'+(type==='money'?'number':type)+'" '+attrs+' value="'+esc(val)+'" required></label>';
+ return '<label>'+esc(label)+'<input name="'+k+'" type="'+(type==='money'?'number':type)+'" '+attrs+' value="'+esc(val)+'" '+(k==='charges_pct'?'':'required')+'></label>';
 }
 function entryLabel(entity,r){
  if(entity==='workers')return esc(r.profession)+' · '+brl(r.daily_cents)+'/dia · '+num(r.days_month??22)+' dias/mês · Encargos '+num(r.charges_pct)+'% · Projeção mensal '+brl(Math.round(r.daily_cents*num(r.days_month??22)*(1+num(r.charges_pct)/100)))+(!r.active?' · Inativo':'');
@@ -152,7 +152,7 @@ function editor(){
  const b=state.draft||{};
  const workers=state.data.workers.filter(x=>x.active);
  const variables=state.data.variable;
- const staffLines=(b.staff||[]).map((x,i)=>'<div class="line staff-line"><div class="staff-info"><strong>'+esc(x.name)+'</strong><small>'+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</small></div><label class="line-label">Dias<input data-staff-days="'+i+'" type="number" min="0" max="10000" step=".5" value="'+esc(x.days)+'"></label><label class="line-label">Encargos (%)<input data-staff-charges="'+i+'" type="number" min="0" max="200" step=".01" value="'+esc(x.charges_pct??0)+'" aria-label="Encargos do profissional '+esc(x.name)+' em porcentagem"></label><span class="price staff-price" data-staff-cost="'+i+'">'+brl(Math.round(x.daily_cents*x.days*(1+num(x.charges_pct)/100)))+'</span><button class="danger" data-action="remove-staff" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
+ const staffLines=(b.staff||[]).map((x,i)=>'<div class="line staff-line"><div class="staff-info"><strong>'+esc(x.name)+'</strong><small>'+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</small></div><label class="line-label">Dias<input data-staff-days="'+i+'" type="number" min="0" max="10000" step=".5" value="'+esc(x.days)+'"></label><label class="line-label">Encargos adicionais (%) — opcional<input data-staff-charges="'+i+'" type="number" min="0" max="200" step=".01" value="'+esc(Number(x.charges_pct??0)===0?'':x.charges_pct)+'" aria-label="Encargos do profissional '+esc(x.name)+' em porcentagem"></label><span class="price staff-price" data-staff-cost="'+i+'">'+brl(Math.round(x.daily_cents*x.days*(1+num(x.charges_pct)/100)))+'</span><button class="danger" data-action="remove-staff" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
  const expenseLines=(b.expenses||[]).map((x,i)=>'<div class="line"><div><strong>'+esc(x.name)+'</strong><small>'+brl(x.unit_cents)+' / '+esc(x.unit||'un')+'</small></div><label class="line-label">Qtd.<input data-expense-qty="'+i+'" type="number" min="0" step=".01" value="'+esc(x.qty)+'"></label><span class="price">'+brl(Math.round(x.unit_cents*x.qty))+'</span><button class="danger" data-action="remove-expense" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
  const scopeUnits=['m²','m','m³','un','ponto','serviço'];
  const scopeLines=(b.scope_items||[]).map((item,i)=>'<div class="scope-entry">'+
@@ -174,7 +174,7 @@ function editor(){
  '<div class="scope-list">'+(scopeLines||empty('Adicione os serviços e suas quantidades para detalhar a proposta.'))+'</div>'+
  '<div class="buttons"><button type="button" class="secondary" data-action="add-scope">+ Adicionar serviço</button></div></section>'+
  '<section class="card"><h2>1. Mão de obra por diária</h2><div class="pick"><select id="workerSelect"><option value="">Escolha um funcionário</option>'+workers.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</option>').join('')+'</select><button class="secondary" data-action="add-worker">Adicionar</button></div>'+
- '<p class="caption">Ao adicionar, a diária e o percentual de encargos são copiados do cadastro. Você pode ajustar os encargos de cada profissional neste orçamento (0% a 200%), com recálculo imediato; o cadastro original não muda.</p>'+(staffLines||empty('Nenhum funcionário alocado.'))+'</section>'+
+ '<p class="caption">Encargos adicionais são opcionais: deixe em branco quando não houver (equivale a 0%). Se informar um percentual entre 0% e 200%, ele será considerado no custo deste orçamento, sem alterar o cadastro do profissional.</p>'+(staffLines||empty('Nenhum funcionário alocado.'))+'</section>'+
  '<section class="card"><h2>2. Custos variáveis da obra</h2><div class="pick"><select id="variableSelect"><option value="">Escolha uma despesa cadastrada</option>'+variables.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+brl(x.unit_cents)+'/'+esc(x.unit)+'</option>').join('')+'</select><button class="secondary" data-action="add-variable">Adicionar</button></div>'+
  '<p class="caption">Ou adicione despesas particulares desta obra (materiais, combustível, transporte, locações, alimentação, EPI e outros).</p>'+
  '<div class="grid" style="margin:15px 0"><label>Nova despesa<input id="customExpenseName" maxlength="120" placeholder="Ex.: Material de acabamento"></label><label>Valor total (R$)<input id="customExpenseValue" type="number" min="0" step=".01"></label></div><button class="subtle" data-action="add-expense">+ Despesa avulsa</button>'+
@@ -317,7 +317,7 @@ document.addEventListener('input',ev=>{
   summary()
  }
  if(e.dataset.staffCharges!==undefined){
-  const i=Number(e.dataset.staffCharges),pct=e.value.trim()===''?NaN:Number(e.value);
+  const i=Number(e.dataset.staffCharges),pct=e.value.trim()===''?0:Number(e.value);
   b.staff[i].charges_pct=pct;
   const cost=document.querySelector('[data-staff-cost="'+i+'"]');
   if(cost)cost.textContent=Number.isFinite(pct)&&pct>=0&&pct<=200?
