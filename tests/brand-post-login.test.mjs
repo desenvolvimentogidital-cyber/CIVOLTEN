@@ -26,7 +26,7 @@ test('restaura composicao horizontal com nome ao lado do simbolo no celular',()=
 test('remove efetivamente o limite antigo de 110px que encolhia o nome',()=>{
  const oldCss=css.slice(0,begin);
  assert.match(oldCss,/\.sidebar \.brand img\{max-height:54px;max-width:110px\}/);
- assert.match(correction,/#app \.sidebar \.brand \.brand-wordmark\{\s*display:block;width:100%;height:auto;\s*max-width:none;max-height:none/);
+ assert.match(correction,/#app \.sidebar \.brand \.brand-wordmark\{\s*display:block;width:calc\(100% - 100px\);height:auto;\s*max-width:none;max-height:none/);
 });
 test('medidas de icone e barra lateral anteriores permanecem intactas',()=>{
  const oldCss=css.slice(0,begin);
@@ -42,4 +42,13 @@ test('preserva identidade original no login, nome em imagem e PDF aprovado',()=>
  assert.match(printer,/#printArea \.proposal-header-art-slot/);
  assert.match(printer,/#printArea \.proposal-logo/);
  assert.doesNotMatch(correction,/@media print/);
+});
+
+
+test('ajuste visual reduz aproximadamente 100px só no nome em imagem',()=>{
+ const rules=correction;
+ assert.match(rules, /#app \.sidebar \.brand \.brand-wordmark\{[\s\S]*?width:calc\(100% - 100px\)/);
+ assert.match(rules, /#app \.sidebar \.brand\{\s*flex-direction:row/);
+ assert.doesNotMatch(rules, /#app \.sidebar \.brand \.brand-logo\{/);
+ assert.doesNotMatch(rules, /\.auth-card|#printArea|\.proposal-header-art/);
 });
