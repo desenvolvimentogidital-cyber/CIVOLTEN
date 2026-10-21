@@ -45,7 +45,7 @@ test('funcionarios novos começam com 0%, limite de 200% e orçamento permite ed
  assert.match(app,/summary\(\)/);
  assert.match(css,/\.staff-line\{/);
  assert.match(css,/@media\(max-width:1090px\)/);
- assert.match(app,/o cadastro original não muda/); // a edição do orçamento é independente
+ assert.match(app,/sem alterar o cadastro do profissional/); // a edição do orçamento é independente
 });
 
 test('cadastro conserva o percentual informado e não o substitui por referência',()=>{
