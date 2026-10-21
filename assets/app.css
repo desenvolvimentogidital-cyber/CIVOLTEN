@@ -162,35 +162,20 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
   .auth-card .brand{gap:8px;min-height:60px}
 }
 
-
-/* Marca CIVOLTEN ampliada somente no ambiente APÓS LOGIN.
-   A tela de entrada e o PDF não são alterados por estas regras. */
-@media screen and (min-width:971px){
-  #app .sidebar{width:298px;min-width:298px}
-  #app .sidebar .brand{min-height:180px;padding:0 4px 16px}
-  #app .sidebar .brand .brand-logo{width:90px;height:90px}
-  #app .sidebar .brand .brand-wordmark-frame{
-    width:100%;max-width:270px;height:76px
-  }
-}
-@media screen and (min-width:681px) and (max-width:970px){
-  #app .sidebar{width:264px;min-width:264px}
-  #app .sidebar .brand{min-height:166px;padding:0 2px 14px}
-  #app .sidebar .brand .brand-logo{width:80px;height:80px}
-  #app .sidebar .brand .brand-wordmark-frame{
-    width:100%;max-width:242px;height:70px
-  }
-}
+/* Ajuste pontual: imagem do NOME maior ao lado do icone no celular.
+   Sem alterar tamanho da logo, formato horizontal, login, PDF ou largura do painel. */
 @media screen and (max-width:680px){
   #app .sidebar .brand{
-    flex-direction:column;align-items:center;justify-content:center;
-    gap:0;width:100%;min-height:0;padding:4px 0 6px
+    flex-direction:row;align-items:center;justify-content:flex-start;
+    gap:8px;min-height:0;padding:0;border:0
   }
-  #app .sidebar .brand .brand-logo{width:72px;height:72px}
   #app .sidebar .brand .brand-wordmark-frame{
-    flex:0 0 auto;width:100%;max-width:335px;height:76px
+    flex:1 1 auto;min-width:0;width:auto;max-width:none;height:58px
   }
+  /* Sobrescreve especificamente o limite de 110px de .sidebar .brand img. */
   #app .sidebar .brand .brand-wordmark{
-    width:100%;max-width:none
+    display:block;width:100%;height:auto;
+    max-width:none;max-height:none;
+    object-fit:contain
   }
 }
