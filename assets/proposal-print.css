@@ -17,7 +17,7 @@
     background:#08182b;color:#fff;border-radius:9px;padding:18px 22px;
     min-height:111px;break-inside:avoid;page-break-inside:avoid
   }
-  #printArea .proposal-brand-mark{display:flex;gap:13px;align-items:center;min-width:0}
+  #printArea .proposal-brand-mark{display:flex;gap:13px;align-items:center;min-width:0;flex:1}
   #printArea .proposal-logo{
     display:block;max-width:115px;max-height:69px;width:auto;height:auto;object-fit:contain;
     background:transparent;border-radius:0;padding:0
@@ -27,9 +27,17 @@
     border-radius:10px;font-size:30px;font-weight:900;letter-spacing:-2px
   }
   #printArea .proposal-monogram span{color:#b7831b}
-  #printArea .proposal-brand-name{display:flex;flex-direction:column;min-width:0;gap:5px}
-  #printArea .proposal-brand-name strong{font-size:17px;letter-spacing:1.5px;color:#fff;font-weight:900;line-height:1.1}
-  #printArea .proposal-brand-name span{font-size:7px;letter-spacing:1.25px;color:#ecd298;font-weight:700;line-height:1.35}
+  /* Espaco reservado para a arte institucional que sera enviada no futuro.
+     Quando estiver vazio, nao imprime nenhum texto ou bloco branco. */
+  #printArea .proposal-header-art-slot{
+    display:flex;align-items:center;justify-content:flex-start;
+    width:175px;max-width:175px;min-width:0;height:72px;
+    background:transparent;border:0;padding:0
+  }
+  #printArea .proposal-header-art{
+    display:block;max-width:100%;max-height:100%;width:auto;height:auto;
+    object-fit:contain;background:transparent;border:0;border-radius:0;padding:0
+  }
   #printArea .proposal-header-side{text-align:right;display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex:none}
   #printArea .proposal-header-label{color:#f0c66e;font-size:7.3px;font-weight:800;letter-spacing:1.4px}
   #printArea .proposal-header-side strong{font-size:15px;line-height:1.05;letter-spacing:.65px;color:#fff;font-weight:900}

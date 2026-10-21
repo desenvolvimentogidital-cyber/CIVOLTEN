@@ -56,3 +56,10 @@ O novo documento inclui a marca CIVOLTEN, identificação do projeto e cliente, 
 No editor do orçamento, preencha **Memorial descritivo / quantitativos** com cada serviço (ex.: execução de parede), unidade (m², m, m³, un, ponto ou serviço) e quantidade. Use **+ Adicionar serviço** e **Remover** para editar a lista. Ela fica salva dentro do conteúdo do orçamento e vai para o PDF do cliente, em tabela com as três colunas, sem preço por item. O preço global permanece calculado por funcionários, despesas e demais custos reais internos, que não são expostos. O campo textual **Serviços que serão executados** continua disponível para explicações adicionais e para orçamentos antigos.
 
 Valide as medições e condições de execução com o responsável pela obra. As quantidades são informadas manualmente, não medidas pelo sistema; o cadastro descritivo não altera automaticamente a formação do preço.
+
+## Área preparada para futura arte do cabeçalho do PDF
+O PDF comercial preserva a **logo PNG original** no lado esquerdo do cabeçalho, com fundo transparente. O nome da empresa duplicado em texto foi retirado **somente do cabeçalho**. Ao lado da logo foi reservado um espaço vazio, sem texto e sem fundo branco, para uma futura arte horizontal institucional.
+
+Ao receber a imagem do usuário, adicionar a arte ao repositório com o caminho `assets/civolten-proposal-header.png` (PNG recomendado, preferencialmente com fundo transparente) e ajustar a tag de preload em `index.html` de `<img id="proposalHeaderArt" hidden alt="" aria-hidden="true">` para incluir `src="/assets/civolten-proposal-header.png"`. O editor somente incorpora a arte quando o navegador tiver carregado o arquivo com sucesso. O gerador permite apenas caminhos locais padronizados, não imagens remotas. Não precisa alterar os cálculos nem o documento.
+
+A arte nova ainda **não foi enviada ou instalada**; portanto a versão atual mantém a logo e deixa a área ao lado vazia. A marca textual no rodapé permanece para identificação comercial.
