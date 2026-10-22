@@ -12,7 +12,8 @@ const tables={
  professions:'cv_professions',
  fixed:'cv_fixed_costs',
  variable:'cv_variable_costs',
- budgets:'cv_budgets'
+ budgets:'cv_budgets',
+ cash:'cv_cash_entries'
 };
 const request=(cookie=true,site='same-origin')=>new Request(root+'/api/bootstrap',{
  headers:{'sec-fetch-site':site,...(cookie?{cookie:'__Host-civolten_session='+jwt}:{})}
@@ -47,7 +48,7 @@ test('bootstrap exige cookie valido e rejeita requisições cross-site',async()=
  }finally{globalThis.fetch=original}
 });
 
-test('bootstrap verifica admin uma vez e faz seis consultas RLS em paralelo',async()=>{
+test('bootstrap verifica admin uma vez e faz sete consultas RLS em paralelo',async()=>{
  const calls=[],restCalls=[];
  const restore=mockFetch(async (url,opts={})=>{
   const endpoint=String(url);calls.push(endpoint);
@@ -62,10 +63,10 @@ test('bootstrap verifica admin uma vez e faz seis consultas RLS em paralelo',asy
   assert.equal(opts.headers.Authorization,'Bearer '+jwt,'RLS usa sessão da pessoa autenticada');
   assert.equal(u.searchParams.get('select'),'*');
   assert.equal(u.searchParams.get('limit'),'250');
-  assert.equal(u.searchParams.get('order'),key==='settings'?null:'created_at.desc,id.desc');
+  assert.equal(u.searchParams.get('order'),key==='settings'?null:key==='cash'?'occurred_on.desc,created_at.desc,id.desc':'created_at.desc,id.desc');
   restCalls.push(key);
   // Força uma barreira: nenhum pedido pode terminar até todos iniciarem.
-  if(restCalls.length===6)release();
+  if(restCalls.length===7)release();
   await allStarted;
   return Response.json([{name:key}]);
  });
@@ -77,9 +78,9 @@ test('bootstrap verifica admin uma vez e faz seis consultas RLS em paralelo',asy
   const payload=await res.json();
   assert.deepEqual(Object.keys(payload.data).sort(),Object.keys(tables).sort());
   for(const name of Object.keys(tables))assert.deepEqual(payload.data[name],[{name}]);
-  assert.equal(calls.length,7,'uma autorização e seis consultas em paralelo');
+  assert.equal(calls.length,8,'uma autorização e sete consultas em paralelo');
   assert.equal(calls.filter(x=>x.startsWith(EDGE)).length,1);
-  assert.equal(restCalls.length,6);
+  assert.equal(restCalls.length,7);
  }finally{restore()}
 });
 
