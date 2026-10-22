@@ -81,3 +81,19 @@ Em **Funcionários → Cadastrar funcionários → Profissão / função**, toqu
 Em **Orçamentos → Mão de obra por diária**, pesquise um funcionário já cadastrado pelo nome ou pela profissão e selecione-o para adicionar à obra. Clicar no seletor sem filtro mostra toda a equipe ativa.
 
 O catálogo contém **somente nomes de profissões**; não altera valores de diárias, custos, encargos ou fórmulas, e não contém nenhuma referência de preços SINAPI/CUB/SIURB. O Supabase aplica RLS para impedir que usuários não autorizados leiam ou adicionem profissões; as opções gerais são compartilhadas, enquanto as personalizadas pertencem ao respectivo administrador.
+
+## Custos fixos, materiais opcionais e indicador de capacidade
+
+**Custos fixos:** todas as despesas marcadas como ativas entram na base mensal de manutenção da CIVOLTEN, mesmo sem obra em andamento. Uma despesa ativa de **R$ 0** não altera a base. Custos como aluguel devem ficar em zero quando a empresa ainda não os paga. **Nunca confunda as estimativas iniciais da lista com custos reais.**
+
+**Indicadores:** o painel e a página de custos fixos exibem o total mensal, custo por dia faturável e custo por hora faturável. Fórmulas:
+
+- Custo por dia = total mensal das despesas fixas ativas ÷ dias-equipe faturáveis por mês.
+- Custo por hora = custo por dia ÷ horas de trabalho por dia.
+- A jornada em horas/dia é editável em **Configurações financeiras** (inicialmente 8 h), assim como a capacidade em dias-equipe (inicialmente 22). Esses padrões são apenas exemplos, não confirmação de sua jornada.
+
+**Por obra:** o sistema copia o custo fixo mensal ativo para o novo orçamento e considera apenas o rateio proporcional aos dias da obra, além dos profissionais alocados diretamente. A tabela de **Custos variáveis** é um catálogo de materiais e serviços: nada é incorporado ao orçamento sem selecionar/adicionar o item. Se o cliente fornecer os materiais, não os inclua. Se a CIVOLTEN fornecer, acrescente apenas quantidades e custos que efetivamente assumirá.
+
+**Tributos e margem:** impostos e margem alvo são calculados sobre o preço de venda, não apenas somados como porcentagens do custo. Para preservar a margem configurada, o preço sugerido divide o total dos custos por `1 - (alíquota de imposto + margem) / 100`. O sistema mostra os impostos estimados e o resultado final na análise interna.
+
+**Evite dupla contagem:** trabalhadores pagos por diária já entram como mão de obra da obra. Salários fixos de administração podem integrar custos fixos; se um mesmo trabalhador estiver lançado no custo fixo mensal e também como diária na obra, a remuneração poderá ser contada duas vezes. Reveja esses lançamentos antes de precificar. Propostas salvas preservam um retrato dos parâmetros originais: alterações nos custos fixos não alteram automaticamente documentos antigos.
