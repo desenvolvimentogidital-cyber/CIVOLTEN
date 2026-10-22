@@ -3,7 +3,7 @@ import {calculateBudget} from '../lib/civolten-calc.mjs';
 import {listRows} from '../lib/civolten-pages.mjs';
 const models={
  settings:['cv_settings','workdays_month','billable_days_month','hours_day','tax_pct','margin_pct'],
- workers:['cv_workers','name','profession','daily_cents','charges_pct','days_month','active'],
+ workers:['cv_workers','name','profession','daily_cents','charges_pct','days_month','cost_mode','active'],
  professions:['cv_professions','name'],
  fixed:['cv_fixed_costs','name','category','monthly_cents','active'],
  variable:['cv_variable_costs','name','category','unit','unit_cents'],

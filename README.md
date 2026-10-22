@@ -97,3 +97,14 @@ O catálogo contém **somente nomes de profissões**; não altera valores de di�
 **Tributos e margem:** impostos e margem alvo são calculados sobre o preço de venda, não apenas somados como porcentagens do custo. Para preservar a margem configurada, o preço sugerido divide o total dos custos por `1 - (alíquota de imposto + margem) / 100`. O sistema mostra os impostos estimados e o resultado final na análise interna.
 
 **Evite dupla contagem:** trabalhadores pagos por diária já entram como mão de obra da obra. Salários fixos de administração podem integrar custos fixos; se um mesmo trabalhador estiver lançado no custo fixo mensal e também como diária na obra, a remuneração poderá ser contada duas vezes. Reveja esses lançamentos antes de precificar. Propostas salvas preservam um retrato dos parâmetros originais: alterações nos custos fixos não alteram automaticamente documentos antigos.
+
+## Folha mensal de funcionários e barra de totais
+
+Em **Funcionários**, cada profissional tem diária, dias trabalhados no mês (22 como ponto inicial ajustável), encargos e uma **Forma de custo**.
+
+- **Fixo mensal** (padrão dos cadastrados): projeção mensal = diária multiplicada pelos dias previstos e acrescida dos encargos. A projeção dos trabalhadores ativos entra automaticamente na base fixa mensal e é mostrada na barra inferior, sempre visível enquanto a lista rola.
+- **Por obra**: não entra na folha mensal; pode ser adicionado como mão de obra extra no orçamento, apenas quando contratado para aquela obra.
+
+O dashboard e a aba de custos fixos mostram despesas da empresa separadas da folha, e o **total combinado por mês, dia e hora**. Novos orçamentos copiam automaticamente a base fixa mensal, que é rateada pelos dias previstos da obra. O trabalhador mensal não precisa ser incluído novamente em cada orçamento e não aparece no seletor de mão de obra extra. Orçamentos antigos preservam o próprio retrato dos custos registrados.
+
+**Evite dupla contagem:** se uma remuneração registrada na folha mensal também estiver lançada como salário administrativo nos custos fixos, ajuste um desses lançamentos. Profissionais pagos apenas quando há serviço devem ter forma de custo **Por obra**.

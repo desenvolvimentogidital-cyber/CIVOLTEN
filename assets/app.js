@@ -1,5 +1,5 @@
 import {calculateBudget} from '/lib/civolten-calc.mjs';
-import {companyRates} from '/lib/civolten-capacity.mjs';
+import {companyRates,payrollSummary} from '/lib/civolten-capacity.mjs';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
 
 const $=q=>document.querySelector(q);
@@ -12,7 +12,7 @@ const total=xs=>xs.reduce((n,x)=>n+Number(x||0),0);
 const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[]},access:[],edit:null,draft:null,draftId:null};
 const sections={home:'Visão geral',budgets:'Orçamentos',workers:'Funcionários',fixed:'Custos fixos',variable:'Custos variáveis',settings:'Configurações'};
 const fields={
- workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos adicionais (%) — opcional','number'],['days_month','Dias trabalhados previstos no mês','number'],['active','Profissional ativo','checkbox']],
+ workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos adicionais (%) — opcional','number'],['days_month','Dias trabalhados previstos no mês','number'],['cost_mode','Forma de custo','select'],['active','Profissional ativo','checkbox']],
  fixed:[['name','Despesa fixa','text'],['category','Categoria','text'],['monthly_cents','Valor mensal (R$)','money'],['active','Despesa ativa','checkbox']],
  variable:[['name','Nome do gasto','text'],['category','Categoria','text'],['unit','Unidade (un, m², diária...)','text'],['unit_cents','Custo por unidade (R$)','money']]
 };
@@ -82,7 +82,9 @@ function dashboard(){
  const workers=state.data.workers.filter(w=>w.active).length;
  const budgets=state.data.budgets;
  const config=state.data.settings[0];
- const rates=companyRates(state.data.fixed,config||{});
+ const rates=companyRates(state.data.fixed,config||{},state.data.workers);
+ const duplicateSalaryWarning=rates.payroll_cents>0&&state.data.fixed.some(x=>x.active&&/sal[aá]rio|folha de pagamento|remunera[cç][aã]o/i.test(x.name))
+  ? '<div class="warning" role="note"><strong>Verifique possível custo de pessoal duplicado.</strong> Há salário em Custos fixos e funcionários na folha mensal. Se for a mesma pessoa, mantenha a remuneração em apenas um dos dois lugares.</div>':'';
  const pricingWarning=!config
   ? '<div class="warning" role="alert"><strong>Configuração financeira pendente.</strong> Ainda não foram definidos impostos, margem de lucro e dias faturáveis mensais. O sistema usa valores iniciais que podem subestimar seu preço. <button type="button" class="subtle" data-view="settings">Configurar meus custos</button></div>'
   : (num(config.tax_pct)===0||num(config.margin_pct)===0)
@@ -91,9 +93,9 @@ function dashboard(){
  const recent=budgets.slice(0,5).map(b=>'<div class="entry"><div><strong>'+esc(b.title)+'</strong><small>'+esc(b.customer||'Sem cliente')+' · '+esc(b.status)+'</small></div><span class="price">'+brl(b.price_cents)+'</span></div>').join('');
  return title('Seu negócio, sob controle','Acompanhe a operação e construa orçamentos usando exclusivamente seus valores.',
   '<button class="primary" data-action="new-budget">+ Novo orçamento</button>')+
- pricingWarning+
+ pricingWarning+duplicateSalaryWarning+
  '<div class="cards"><article class="card metric"><small>Funcionários ativos</small><strong>'+workers+'</strong><span class="hint">Profissionais cadastrados</span></article>'+
- '<article class="card metric"><small>Custo fixo mensal</small><strong>'+brl(rates.monthly_cents)+'</strong><span class="hint">Despesas ativas da empresa</span></article>'+ 
+ '<article class="card metric"><small>Custo mensal total</small><strong>'+brl(rates.monthly_cents)+'</strong><span class="hint">Despesas '+brl(rates.fixed_expenses_cents)+' + folha '+brl(rates.payroll_cents)+'</span></article>'+ 
  '<article class="card metric"><small>Custo fixo por dia</small><strong>'+brl(rates.daily_cents)+'</strong><span class="hint">Dividido por '+rates.billable_days_month+' dias faturáveis/mês</span></article>'+ 
  '<article class="card metric"><small>Custo fixo por hora</small><strong>'+brl(rates.hourly_cents)+'</strong><span class="hint">'+rates.hours_day+' horas/dia · '+(config?'configurado':'estimativa inicial')+'</span></article>'+
  '<article class="card metric"><small>Orçamentos registrados</small><strong>'+budgets.length+'</strong><span class="hint">Histórico da CIVOLTEN</span></article></div>'+
@@ -128,7 +130,7 @@ function closeProfessionOptions(){
 function updateWorkerChoices(){
  const input=$('#workerSearch'),select=$('#workerSelect');if(!input||!select)return;
  const selected=select.value,filter=normalizeProfession(input.value.trim());
- const workers=state.data.workers.filter(x=>x.active)
+ const workers=state.data.workers.filter(x=>x.active&&(x.cost_mode??'monthly')==='project')
   .filter(x=>normalizeProfession(x.name+' '+x.profession).includes(filter))
   .sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
  select.innerHTML='<option value="">'+(workers.length?'Escolha um funcionário':'Nenhum funcionário encontrado')+'</option>'+
@@ -139,6 +141,10 @@ function updateWorkerChoices(){
 function inputField(f,v){
  const [k,label,type]=f,raw=v?.[k];
  if(type==='checkbox')return '<label><span>'+esc(label)+'</span><input type="checkbox" name="'+k+'" '+(v==null||raw?'checked':'')+' style="width:22px;height:22px"></label>';
+ if(k==='cost_mode')return '<label>'+esc(label)+'<select name="cost_mode">'+
+  '<option value="monthly" '+((raw??'monthly')==='monthly'?'selected':'')+'>Fixo mensal — entra automaticamente nos orçamentos</option>'+
+  '<option value="project" '+(raw==='project'?'selected':'')+'>Por obra — adicionar só quando necessário</option>'+
+  '</select></label>';
  if(k==='profession')return '<div class="profession-picker"><label for="workerProfession">'+esc(label)+'</label>'+
   '<input id="workerProfession" name="profession" type="text" value="'+esc(raw??'')+'" maxlength="100" required autocomplete="off" placeholder="Toque para ver a lista ou digite para buscar" aria-autocomplete="list" aria-expanded="false" aria-controls="professionSuggestions">'+
   '<div id="professionSuggestions" class="profession-suggestions" role="listbox" aria-label="Profissões disponíveis" hidden></div>'+
@@ -148,22 +154,27 @@ function inputField(f,v){
  return '<label>'+esc(label)+'<input name="'+k+'" type="'+(type==='money'?'number':type)+'" '+attrs+' value="'+esc(val)+'" '+(k==='charges_pct'?'':'required')+'></label>';
 }
 function entryLabel(entity,r){
- if(entity==='workers')return esc(r.profession)+' · '+brl(r.daily_cents)+'/dia · '+num(r.days_month??22)+' dias/mês · Encargos '+num(r.charges_pct)+'% · Projeção mensal '+brl(Math.round(r.daily_cents*num(r.days_month??22)*(1+num(r.charges_pct)/100)))+(!r.active?' · Inativo':'');
+ if(entity==='workers')return esc(r.profession)+' · '+brl(r.daily_cents)+'/dia · '+num(r.days_month??22)+' dias/mês · Encargos '+num(r.charges_pct)+'% · Projeção mensal '+brl(Math.round(r.daily_cents*num(r.days_month??22)*(1+num(r.charges_pct)/100)))+' · '+((r.cost_mode??'monthly')==='monthly'?'Folha fixa':'Somente por obra')+(!r.active?' · Inativo':'');
  if(entity==='fixed')return esc(r.category)+' · '+brl(r.monthly_cents)+'/mês'+(!r.active?' · Inativo':'');
  return esc(r.category)+' · '+brl(r.unit_cents)+' / '+esc(r.unit);
 }
 function generic(entity){
  const label=sections[entity],items=state.data[entity],editing=items.find(x=>x.id===state.edit);
- const rates=entity==='fixed'?companyRates(items,state.data.settings[0]||{}):null;
- const fixedOverview=rates?'<section class="card financial-rates"><h2>Custo da estrutura da empresa</h2><div class="financial-rate-grid"><div><small>Total mensal ativo</small><strong>'+brl(rates.monthly_cents)+'</strong></div><div><small>Por dia faturável</small><strong>'+brl(rates.daily_cents)+'</strong></div><div><small>Por hora faturável</small><strong>'+brl(rates.hourly_cents)+'</strong></div></div><p class="hint">Base: '+rates.billable_days_month+' dias faturáveis por mês × '+rates.hours_day+' horas por dia. Somente despesas ativas entram no rateio. Uma despesa com valor R$ 0 continua ativa sem aumentar o custo. <button type="button" class="subtle" data-view="settings">Ajustar capacidade</button></p><p class="hint">Funcionários alocados e pagos por diária já entram como mão de obra no orçamento. Não lance a mesma remuneração como custo fixo e por diária ao mesmo tempo.</p></section>':'';
- return title(label,entity==='workers'?'Diárias e encargos de pedreiros, eletricistas, encanadores e outras funções.':entity==='fixed'?'Contas da operação que precisam ser cobertas pelas obras.':'Custos reais que você usa como atalhos ao montar cada orçamento.')+
+ const rates=entity==='fixed'?companyRates(items,state.data.settings[0]||{},state.data.workers):null;
+ const payroll=entity==='workers'?payrollSummary(items):null;
+ const workerFooter=payroll?'<div class="worker-totalbar" role="status" aria-live="polite">'+
+  '<div><small>Folha fixa mensal · '+payroll.monthly_count+' funcionário(s)</small><strong>'+brl(payroll.monthly_cents)+'</strong></div>'+
+  '<div class="worker-totalmeta">'+payroll.project_count+' por obra · encargos incluídos</div></div>':'';
+ const fixedOverview=rates?'<section class="card financial-rates"><h2>Custo da estrutura da empresa</h2><div class="financial-rate-grid"><div><small>Despesas ativas</small><strong>'+brl(rates.fixed_expenses_cents)+'</strong></div><div><small>Folha fixa mensal</small><strong>'+brl(rates.payroll_cents)+'</strong></div><div><small>Total mensal da empresa</small><strong>'+brl(rates.monthly_cents)+'</strong></div><div><small>Por dia faturável</small><strong>'+brl(rates.daily_cents)+'</strong></div><div><small>Por hora faturável</small><strong>'+brl(rates.hourly_cents)+'</strong></div></div><p class="hint">Base: '+rates.billable_days_month+' dias faturáveis por mês × '+rates.hours_day+' horas por dia. Somente despesas ativas entram no rateio. Uma despesa com valor R$ 0 continua ativa sem aumentar o custo. <button type="button" class="subtle" data-view="settings">Ajustar capacidade</button></p><p class="hint">Funcionários com forma de custo "Fixo mensal" entram automaticamente na folha; os de "Por obra" só entram se adicionados ao orçamento. Não repita salários da equipe também na lista de despesas fixas.</p></section>':'';
+ return title(label,entity==='workers'?'Equipe da empresa: funcionários fixos entram automaticamente no rateio mensal; profissionais por obra só quando adicionados.':entity==='fixed'?'Contas da operação que precisam ser cobertas pelas obras.':'Custos reais que você usa como atalhos ao montar cada orçamento.')+
  fixedOverview+
  '<div class="cols"><section class="card"><h2>'+ (editing?'Editar registro':'Cadastrar '+label.toLowerCase())+'</h2>'+
  '<form id="entityForm" data-entity="'+entity+'"><div class="grid">'+fields[entity].map(f=>inputField(f,editing)).join('')+'</div>'+
  '<div class="buttons"><button class="primary" type="submit">'+(editing?'Salvar alterações':'+ Adicionar')+'</button>'+
  (editing?'<button type="button" class="subtle" data-action="cancel-edit">Cancelar</button>':'')+'</div></form></section>'+
- '<section class="card"><h2>Registros ('+items.length+')</h2>'+(items.length?items.map(x=>
- '<div class="entry"><div><strong>'+esc(x.name)+'</strong><small>'+entryLabel(entity,x)+'</small></div><div class="actions"><button class="subtle small" data-action="edit-item" data-id="'+esc(x.id)+'">Editar</button><button class="danger small" data-action="delete-item" data-id="'+esc(x.id)+'">Excluir</button></div></div>').join(''):empty('Nada cadastrado ainda.'))+'</section></div>';
+ '<section class="card '+(entity==='workers'?'worker-ledger':'')+'"><h2>Registros ('+items.length+')</h2>'+
+ '<div class="'+(entity==='workers'?'worker-scroll':'')+'">'+(items.length?items.map(x=>
+ '<div class="entry"><div><strong>'+esc(x.name)+'</strong><small>'+entryLabel(entity,x)+'</small></div><div class="actions"><button class="subtle small" data-action="edit-item" data-id="'+esc(x.id)+'">Editar</button><button class="danger small" data-action="delete-item" data-id="'+esc(x.id)+'">Excluir</button></div></div>').join(''):empty('Nada cadastrado ainda.'))+'</div>'+workerFooter+'</section></div>';
 }
 function settings(){
  const c=state.data.settings[0]||{workdays_month:22,billable_days_month:22,hours_day:8,tax_pct:0,margin_pct:0};
@@ -193,8 +204,9 @@ function budgetList(){
  '<div class="actions"><span class="price">'+brl(b.price_cents)+'</span><button class="subtle small" data-action="open-budget" data-id="'+esc(b.id)+'">Abrir</button><button class="danger small" data-action="delete-budget" data-id="'+esc(b.id)+'">Excluir</button></div></div>').join(''):empty('Nenhum orçamento salvo ainda.'))+'</section>';
 }
 function defaultPricing(){
- const c=state.data.settings[0]||{},fixed=total(state.data.fixed.filter(x=>x.active).map(x=>x.monthly_cents));
- return {tax_pct:num(c.tax_pct),margin_pct:num(c.margin_pct),billable_days_month:num(c.billable_days_month)||22,fixed_monthly_cents:fixed};
+ const c=state.data.settings[0]||{},rates=companyRates(state.data.fixed,c,state.data.workers);
+ return {tax_pct:num(c.tax_pct),margin_pct:num(c.margin_pct),billable_days_month:num(c.billable_days_month)||22,
+  fixed_monthly_cents:rates.monthly_cents,fixed_expenses_cents:rates.fixed_expenses_cents,payroll_cents:rates.payroll_cents};
 }
 function startBudget(row){
  state.draftId=row?.id||null;
@@ -204,7 +216,7 @@ function startBudget(row){
 }
 function editor(){
  const b=state.draft||{};
- const workers=state.data.workers.filter(x=>x.active);
+ const workers=state.data.workers.filter(x=>x.active&&(x.cost_mode??'monthly')==='project');
  const variables=state.data.variable;
  const staffLines=(b.staff||[]).map((x,i)=>'<div class="line staff-line"><div class="staff-info"><strong>'+esc(x.name)+'</strong><small>'+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</small></div><label class="line-label">Dias<input data-staff-days="'+i+'" type="number" min="0" max="10000" step=".5" value="'+esc(x.days)+'"></label><label class="line-label">Encargos adicionais (%) — opcional<input data-staff-charges="'+i+'" type="number" min="0" max="200" step=".01" value="'+esc(Number(x.charges_pct??0)===0?'':x.charges_pct)+'" aria-label="Encargos do profissional '+esc(x.name)+' em porcentagem"></label><span class="price staff-price" data-staff-cost="'+i+'">'+brl(Math.round(x.daily_cents*x.days*(1+num(x.charges_pct)/100)))+'</span><button class="danger" data-action="remove-staff" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
  const expenseLines=(b.expenses||[]).map((x,i)=>'<div class="line"><div><strong>'+esc(x.name)+'</strong><small>'+brl(x.unit_cents)+' / '+esc(x.unit||'un')+'</small></div><label class="line-label">Qtd.<input data-expense-qty="'+i+'" type="number" min="0" step=".01" value="'+esc(x.qty)+'"></label><span class="price">'+brl(Math.round(x.unit_cents*x.qty))+'</span><button class="danger" data-action="remove-expense" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
@@ -227,8 +239,8 @@ function editor(){
  '<p class="caption">Liste o que será executado para o cliente: metragem de parede, piso, forro, drywall, pontos elétricos e outros. Estes itens serão apresentados no PDF sem preço unitário ou custos internos.</p>'+
  '<div class="scope-list">'+(scopeLines||empty('Adicione os serviços e suas quantidades para detalhar a proposta.'))+'</div>'+
  '<div class="buttons"><button type="button" class="secondary" data-action="add-scope">+ Adicionar serviço</button></div></section>'+
- '<section class="card"><h2>1. Mão de obra por diária</h2><label class="worker-search-label">Localizar funcionário já cadastrado<input id="workerSearch" type="search" placeholder="Busque por nome ou profissão" autocomplete="off"></label><div class="pick"><select id="workerSelect" aria-label="Lista de funcionários cadastrados"><option value="">Escolha um funcionário</option>'+workers.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</option>').join('')+'</select><button class="secondary" data-action="add-worker">Adicionar</button></div>'+
- '<p class="caption">Encargos adicionais são opcionais: deixe em branco quando não houver (equivale a 0%). Se informar um percentual entre 0% e 200%, ele será considerado no custo deste orçamento, sem alterar o cadastro do profissional.</p>'+(staffLines||empty('Nenhum funcionário alocado.'))+'</section>'+
+ '<section class="card"><h2>1. Mão de obra extra por obra</h2><label class="worker-search-label">Localizar funcionário já cadastrado<input id="workerSearch" type="search" placeholder="Busque por nome ou profissão" autocomplete="off"></label><div class="pick"><select id="workerSelect" aria-label="Lista de funcionários cadastrados"><option value="">Escolha um funcionário</option>'+workers.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</option>').join('')+'</select><button class="secondary" data-action="add-worker">Adicionar</button></div>'+
+ '<p class="caption">A equipe de folha mensal já está incluída automaticamente no custo fixo rateado desta obra. Aqui aparecem apenas profissionais com forma de custo "Por obra", que você adiciona se necessário. Encargos adicionais são opcionais.</p>'+(staffLines||empty('Nenhum funcionário alocado.'))+'</section>'+
  '<section class="card"><h2>2. Custos variáveis — somente se fornecidos nesta obra</h2><div class="pick"><select id="variableSelect"><option value="">Escolha uma despesa cadastrada</option>'+variables.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+brl(x.unit_cents)+'/'+esc(x.unit)+'</option>').join('')+'</select><button class="secondary" data-action="add-variable">Adicionar</button></div>'+
  '<p class="caption">Esses itens não entram automaticamente no orçamento. Se o cliente fornecer materiais, não os adicione. Quando a CIVOLTEN fornecer materiais ou assumir transporte/locação, adicione os itens e quantidades efetivos abaixo.</p>'+
  '<div class="grid" style="margin:15px 0"><label>Nova despesa<input id="customExpenseName" maxlength="120" placeholder="Ex.: Material de acabamento"></label><label>Valor total (R$)<input id="customExpenseValue" type="number" min="0" step=".01"></label></div><button class="subtle" data-action="add-expense">+ Despesa avulsa</button>'+
@@ -237,9 +249,9 @@ function editor(){
  '<label>Impostos (%)<input data-pricing="tax_pct" type="number" min="0" max="99" step=".01" value="'+esc(b.pricing?.tax_pct)+'"></label>'+
  '<label>Margem-alvo (%)<input data-pricing="margin_pct" type="number" min="0" max="99" step=".01" value="'+esc(b.pricing?.margin_pct)+'"></label>'+
  '<label>Capacidade faturável mensal (dias-equipe)<input data-pricing="billable_days_month" type="number" min=".01" step=".01" value="'+esc(b.pricing?.billable_days_month)+'"></label>'+
- '<label>Custos fixos mensais considerados nesta obra (R$)<input data-pricing="fixed_monthly_reais" type="number" min="0" step=".01" value="'+dec(b.pricing?.fixed_monthly_cents)+'"></label>'+
+ '<label>Custo fixo mensal + folha considerados nesta obra (R$)<input data-pricing="fixed_monthly_reais" type="number" min="0" step=".01" value="'+dec(b.pricing?.fixed_monthly_cents)+'"></label>'+
  '<label class="wide">Preço final manual (R$) — opcional<input data-draft="manual_price" type="number" min="0" step=".01" placeholder="Deixe vazio para usar preço calculado" value="'+(b.manual_price_cents==null?'':dec(b.manual_price_cents))+'"></label></div>'+
- '<p class="caption">O custo fixo mensal ativo é copiado ao criar a obra e rateado pelos dias previstos (não é cobrado inteiro em cada serviço). Confira antes de salvar, pois orçamentos antigos preservam seus valores. O preço final inclui impostos sobre venda e margem definida. Preço manual abaixo do necessário pode resultar em prejuízo.</p></section></div>'+
+ '<p class="caption">As despesas fixas ativas e a folha fixa de funcionários são somadas automaticamente em novos orçamentos e rateadas pelos dias previstos (não é cobrado o mês inteiro em cada serviço). Confira antes de salvar, pois orçamentos antigos preservam os valores anteriores. O preço final inclui impostos sobre venda e margem definida. Preço manual abaixo do necessário pode resultar em prejuízo.</p></section></div>'+
  '<aside class="summary"><h2>Análise interna da obra</h2><div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button><button class="subtle" data-action="print-budget">Gerar PDF / imprimir proposta</button></div><p class="hint">A impressão mostra somente o escopo e o preço final. Custos, impostos, diárias e lucro são sigilosos.</p></aside></div>';
 }
 function summary(){
@@ -248,7 +260,7 @@ function summary(){
   const b=state.draft,r=calculateBudget(b);
   el.innerHTML='<div class="sumrow"><span>Mão de obra + encargos</span><strong>'+brl(r.labor_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Despesas variáveis</span><strong>'+brl(r.variable_cents)+'</strong></div>'+
-   '<div class="sumrow"><span>Rateio dos custos fixos</span><strong>'+brl(r.fixed_cents)+'</strong></div>'+
+   '<div class="sumrow"><span>Rateio mensal (despesas fixas + folha)</span><strong>'+brl(r.fixed_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Subtotal de custos (fixos rateados + equipe + variáveis)</span><strong>'+brl(r.cost_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Impostos estimados sobre o preço final</span><strong>'+brl(r.tax_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Preço sugerido</span><strong>'+brl(r.calculated_price_cents)+'</strong></div>'+
@@ -271,8 +283,11 @@ async function saveEntity(entity,form){
   const e=form.elements.namedItem(k);
   record[k]=type==='checkbox'?e.checked:type==='money'?money(e.value):type==='number'?num(e.value):e.value.trim();
  }
- if(entity==='workers'&&(!Number.isFinite(record.charges_pct)||record.charges_pct<0||record.charges_pct>200))
-  throw Error('Encargos do profissional devem estar entre 0% e 200%');
+ if(entity==='workers'){
+  if(!Number.isFinite(record.charges_pct)||record.charges_pct<0||record.charges_pct>200)
+   throw Error('Encargos do profissional devem estar entre 0% e 200%');
+  if(!['monthly','project'].includes(record.cost_mode))throw Error('Escolha a forma de custo do funcionário');
+ }
  const id=state.edit,method=id?'PATCH':'POST';
  await request(route(entity,id),method,{record});
  let catalogWarning='';
@@ -453,7 +468,8 @@ document.addEventListener('click',async ev=>{
   else if(action==='add-worker'){
    const x=state.data.workers.find(x=>x.id===$('#workerSelect').value);
    if(!x)throw Error('Selecione um profissional cadastrado.');
-   b.staff.push({name:x.name,profession:x.profession,daily_cents:x.daily_cents,charges_pct:num(x.charges_pct),days:b.days});render();
+   if((x.cost_mode??'monthly')!=='project')throw Error('Funcionário de folha fixa já está incluído automaticamente no rateio mensal.');
+   b.staff.push({worker_id:x.id,name:x.name,profession:x.profession,daily_cents:x.daily_cents,charges_pct:num(x.charges_pct),days:b.days});render();
   }
   else if(action==='add-variable'){
    const x=state.data.variable.find(x=>x.id===$('#variableSelect').value);

@@ -249,3 +249,32 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
  .financial-rate-grid{grid-template-columns:1fr;gap:8px}
  .financial-rate-grid>div{padding:12px}
 }
+
+
+/* Folha: lista rolavel com total mensal sempre visivel na borda inferior. */
+.worker-ledger{
+ position:relative;display:flex;flex-direction:column;
+ min-height:230px;min-width:0;overflow:hidden;
+ padding-bottom:0
+}
+.worker-ledger .worker-scroll{
+ flex:1;min-height:0;max-height:60vh;overflow-y:auto;overscroll-behavior:contain;
+ scrollbar-gutter:stable;padding-bottom:10px
+}
+.worker-ledger .worker-scroll .entry{min-width:0}
+.worker-ledger .worker-scroll .entry>div:first-child{min-width:0;overflow-wrap:anywhere}
+.worker-totalbar{
+ position:sticky;bottom:0;z-index:4;margin:0 -23px;
+ border-top:2px solid var(--gold);padding:13px 23px;
+ background:var(--navy);color:#fff;
+ box-shadow:0 -10px 26px rgba(5,20,37,.16);
+ display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap
+}
+.worker-totalbar small{display:block;color:#dee8f4;font-size:12px;font-weight:600}
+.worker-totalbar strong{display:block;font-size:clamp(18px,2.3vw,27px);margin-top:3px}
+.worker-totalmeta{font-size:12px;color:#d6dfeb}
+:root[data-theme="dark"] .worker-totalbar{background:#0b192b}
+@media(max-width:680px){
+ .worker-ledger .worker-scroll{max-height:52vh}
+ .worker-totalbar{margin:0 -18px;padding:14px 18px}
+}
