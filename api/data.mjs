@@ -4,6 +4,7 @@ import {listRows} from '../lib/civolten-pages.mjs';
 const models={
  settings:['cv_settings','workdays_month','billable_days_month','tax_pct','margin_pct'],
  workers:['cv_workers','name','profession','daily_cents','charges_pct','days_month','active'],
+ professions:['cv_professions','name'],
  fixed:['cv_fixed_costs','name','category','monthly_cents','active'],
  variable:['cv_variable_costs','name','category','unit','unit_cents'],
  budgets:['cv_budgets','title','customer','status','content']

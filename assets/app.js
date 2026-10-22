@@ -8,7 +8,7 @@ const money=x=>Math.round(Math.max(0,Number(String(x??0).replace(',','.'))||0)*1
 const dec=x=>String(Number(x||0)/100);
 const num=x=>Number(String(x??0).replace(',','.'))||0;
 const total=xs=>xs.reduce((n,x)=>n+Number(x||0),0);
-const state={view:'home',data:{settings:[],workers:[],fixed:[],variable:[],budgets:[]},access:[],edit:null,draft:null,draftId:null};
+const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[]},access:[],edit:null,draft:null,draftId:null};
 const sections={home:'Visão geral',budgets:'Orçamentos',workers:'Funcionários',fixed:'Custos fixos',variable:'Custos variáveis',settings:'Configurações'};
 const fields={
  workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos adicionais (%) — opcional','number'],['days_month','Dias trabalhados previstos no mês','number'],['active','Profissional ativo','checkbox']],
@@ -97,9 +97,49 @@ function dashboard(){
  '<div class="cols"><div class="card"><h2>Orçamentos recentes</h2>'+(recent||empty('Nenhum orçamento ainda. Crie o primeiro com seus custos reais.'))+'</div>'+
  '<div class="card"><h2>Como seu preço é calculado</h2><p class="caption">1. Diárias da equipe × dias na obra, incluindo encargos.</p><p class="caption">2. Materiais, transporte, ferramentas e outros custos variáveis.</p><p class="caption">3. Parcela dos custos fixos, proporcional aos dias faturáveis.</p><p class="caption">4. Impostos e margem de lucro definidos por você sobre o valor de venda.</p>'+notice()+'</div></div>';
 }
+
+// Catalogo persistido no Supabase; a lista tambem inclui funcoes de funcionarios
+// ja cadastrados, mesmo que tenham sido criados antes do catalogo.
+const normalizeProfession=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
+function professionNames(){
+ const names=new Map();
+ for(const row of [...state.data.professions,...state.data.workers]){
+  const name=(row.profession||row.name||'').trim();
+  if(name&&!names.has(normalizeProfession(name)))names.set(normalizeProfession(name),name);
+ }
+ return [...names.values()].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
+function showProfessionOptions(input){
+ const list=$('#professionSuggestions');if(!list)return;
+ const query=normalizeProfession(input.value.trim());
+ const items=professionNames().filter(name=>normalizeProfession(name).includes(query));
+ list.innerHTML=items.length?items.map(name=>
+  '<button type="button" role="option" class="profession-option" data-profession-option="'+esc(name)+'">'+esc(name)+'</button>'
+ ).join(''):'<p class="hint profession-empty">Nenhuma profissão encontrada. Você pode digitar uma nova para salvá-la.</p>';
+ list.hidden=false;input.setAttribute('aria-expanded','true');
+}
+function closeProfessionOptions(){
+ const list=$('#professionSuggestions');if(list)list.hidden=true;
+ const input=$('#workerProfession');if(input)input.setAttribute('aria-expanded','false');
+}
+function updateWorkerChoices(){
+ const input=$('#workerSearch'),select=$('#workerSelect');if(!input||!select)return;
+ const selected=select.value,filter=normalizeProfession(input.value.trim());
+ const workers=state.data.workers.filter(x=>x.active)
+  .filter(x=>normalizeProfession(x.name+' '+x.profession).includes(filter))
+  .sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+ select.innerHTML='<option value="">'+(workers.length?'Escolha um funcionário':'Nenhum funcionário encontrado')+'</option>'+
+  workers.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</option>').join('');
+ if(workers.some(x=>x.id===selected))select.value=selected;
+}
+
 function inputField(f,v){
  const [k,label,type]=f,raw=v?.[k];
  if(type==='checkbox')return '<label><span>'+esc(label)+'</span><input type="checkbox" name="'+k+'" '+(v==null||raw?'checked':'')+' style="width:22px;height:22px"></label>';
+ if(k==='profession')return '<div class="profession-picker"><label for="workerProfession">'+esc(label)+'</label>'+
+  '<input id="workerProfession" name="profession" type="text" value="'+esc(raw??'')+'" maxlength="100" required autocomplete="off" placeholder="Toque para ver a lista ou digite para buscar" aria-autocomplete="list" aria-expanded="false" aria-controls="professionSuggestions">'+
+  '<div id="professionSuggestions" class="profession-suggestions" role="listbox" aria-label="Profissões disponíveis" hidden></div>'+
+  '<small class="hint">Selecione uma função da lista ou digite outra para salvar no catálogo.</small></div>';
  const val=type==='money'?dec(raw):k==='charges_pct'?(raw==null||Number(raw)===0?'':raw):raw??'';
  const attrs=k==='charges_pct'?'min="0" max="200" step="0.01"':type==='money'||type==='number'?'min="0" step="0.01"':'maxlength="120"';
  return '<label>'+esc(label)+'<input name="'+k+'" type="'+(type==='money'?'number':type)+'" '+attrs+' value="'+esc(val)+'" '+(k==='charges_pct'?'':'required')+'></label>';
@@ -180,7 +220,7 @@ function editor(){
  '<p class="caption">Liste o que será executado para o cliente: metragem de parede, piso, forro, drywall, pontos elétricos e outros. Estes itens serão apresentados no PDF sem preço unitário ou custos internos.</p>'+
  '<div class="scope-list">'+(scopeLines||empty('Adicione os serviços e suas quantidades para detalhar a proposta.'))+'</div>'+
  '<div class="buttons"><button type="button" class="secondary" data-action="add-scope">+ Adicionar serviço</button></div></section>'+
- '<section class="card"><h2>1. Mão de obra por diária</h2><div class="pick"><select id="workerSelect"><option value="">Escolha um funcionário</option>'+workers.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</option>').join('')+'</select><button class="secondary" data-action="add-worker">Adicionar</button></div>'+
+ '<section class="card"><h2>1. Mão de obra por diária</h2><label class="worker-search-label">Localizar funcionário já cadastrado<input id="workerSearch" type="search" placeholder="Busque por nome ou profissão" autocomplete="off"></label><div class="pick"><select id="workerSelect" aria-label="Lista de funcionários cadastrados"><option value="">Escolha um funcionário</option>'+workers.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</option>').join('')+'</select><button class="secondary" data-action="add-worker">Adicionar</button></div>'+
  '<p class="caption">Encargos adicionais são opcionais: deixe em branco quando não houver (equivale a 0%). Se informar um percentual entre 0% e 200%, ele será considerado no custo deste orçamento, sem alterar o cadastro do profissional.</p>'+(staffLines||empty('Nenhum funcionário alocado.'))+'</section>'+
  '<section class="card"><h2>2. Custos variáveis da obra</h2><div class="pick"><select id="variableSelect"><option value="">Escolha uma despesa cadastrada</option>'+variables.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+brl(x.unit_cents)+'/'+esc(x.unit)+'</option>').join('')+'</select><button class="secondary" data-action="add-variable">Adicionar</button></div>'+
  '<p class="caption">Ou adicione despesas particulares desta obra (materiais, combustível, transporte, locações, alimentação, EPI e outros).</p>'+
@@ -228,7 +268,14 @@ async function saveEntity(entity,form){
   throw Error('Encargos do profissional devem estar entre 0% e 200%');
  const id=state.edit,method=id?'PATCH':'POST';
  await request(route(entity,id),method,{record});
- state.edit=null;await reload();render();flash('Cadastro salvo.');
+ let catalogWarning='';
+ // Salvar no catalogo so depois de a pessoa ter sido cadastrada com sucesso.
+ // A falha eventual do catalogo nao desfaz um funcionario ja salvo.
+ if(entity==='workers'&&!state.data.professions.some(p=>normalizeProfession(p.name)===normalizeProfession(record.profession))){
+  try{await request(route('professions'),'POST',{record:{name:record.profession}})}
+  catch{catalogWarning=' O funcionário foi salvo, mas a profissão não entrou no catálogo. Tente novamente depois.'}
+ }
+ state.edit=null;await reload();render();flash('Cadastro salvo.'+catalogWarning);
 }
 async function saveSettings(form){
  const record={};
@@ -298,8 +345,17 @@ document.addEventListener('submit',async ev=>{
   else await saveSettings(f);
  }catch(error){flash(error.message)}finally{if(button){button.disabled=false;button.textContent=originalLabel}}
 });
+document.addEventListener('focusin',ev=>{
+ if(ev.target.id==='workerProfession')showProfessionOptions(ev.target);
+});
+document.addEventListener('keydown',ev=>{
+ if(ev.target.id==='workerProfession'&&ev.key==='Escape')closeProfessionOptions();
+});
 document.addEventListener('input',ev=>{
- const e=ev.target,b=state.draft;if(!b)return;
+ const e=ev.target;
+ if(e.id==='workerProfession'){showProfessionOptions(e);return}
+ if(e.id==='workerSearch'){updateWorkerChoices();return}
+ const b=state.draft;if(!b)return;
  if(e.dataset.draft){
   const k=e.dataset.draft;
   if(k==='days')b.days=num(e.value);
@@ -339,6 +395,14 @@ document.addEventListener('change',ev=>{
  if(e.dataset.scopeUnit!==undefined&&state.draft)state.draft.scope_items[Number(e.dataset.scopeUnit)].unit=e.value;
 });
 document.addEventListener('click',async ev=>{
+ const option=ev.target.closest('[data-profession-option]');
+ if(option){
+  ev.preventDefault();
+  const input=$('#workerProfession');
+  if(input){input.value=option.dataset.professionOption;closeProfessionOptions();input.focus({preventScroll:true})}
+  return;
+ }
+ if(!ev.target.closest('.profession-picker'))closeProfessionOptions();
  const mode=ev.target.closest('[data-auth-mode]');
  if(mode){authMode(mode.dataset.authMode);return}
  const tab=ev.target.closest('[data-view]');

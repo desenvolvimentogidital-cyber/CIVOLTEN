@@ -9,6 +9,7 @@ const jwt='A'.repeat(100);
 const tables={
  settings:'cv_settings',
  workers:'cv_workers',
+ professions:'cv_professions',
  fixed:'cv_fixed_costs',
  variable:'cv_variable_costs',
  budgets:'cv_budgets'
@@ -46,7 +47,7 @@ test('bootstrap exige cookie valido e rejeita requisições cross-site',async()=
  }finally{globalThis.fetch=original}
 });
 
-test('bootstrap verifica admin uma vez e faz cinco consultas RLS em paralelo',async()=>{
+test('bootstrap verifica admin uma vez e faz seis consultas RLS em paralelo',async()=>{
  const calls=[],restCalls=[];
  const restore=mockFetch(async (url,opts={})=>{
   const endpoint=String(url);calls.push(endpoint);
@@ -64,7 +65,7 @@ test('bootstrap verifica admin uma vez e faz cinco consultas RLS em paralelo',as
   assert.equal(u.searchParams.get('order'),key==='settings'?null:'created_at.desc,id.desc');
   restCalls.push(key);
   // Força uma barreira: nenhum pedido pode terminar até todos iniciarem.
-  if(restCalls.length===5)release();
+  if(restCalls.length===6)release();
   await allStarted;
   return Response.json([{name:key}]);
  });
@@ -76,9 +77,9 @@ test('bootstrap verifica admin uma vez e faz cinco consultas RLS em paralelo',as
   const payload=await res.json();
   assert.deepEqual(Object.keys(payload.data).sort(),Object.keys(tables).sort());
   for(const name of Object.keys(tables))assert.deepEqual(payload.data[name],[{name}]);
-  assert.equal(calls.length,6,'uma autorização e cinco consultas em paralelo');
+  assert.equal(calls.length,7,'uma autorização e seis consultas em paralelo');
   assert.equal(calls.filter(x=>x.startsWith(EDGE)).length,1);
-  assert.equal(restCalls.length,5);
+  assert.equal(restCalls.length,6);
  }finally{restore()}
 });
 

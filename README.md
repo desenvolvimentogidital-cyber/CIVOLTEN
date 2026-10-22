@@ -73,3 +73,11 @@ A arte nova está instalada. A área horizontal tem recorte visual para compensa
 - **Configuração financeira:** na auditoria, a tabela de configurações ainda não tinha um registro. O painel avisa quando impostos, margem e capacidade faturável não foram salvos ou quando margem/impostos estão em zero. **Configure esses valores reais antes de confiar em um preço comercial**.
 - **Limitações de homologação:** ainda é necessário testar no aparelho real uma sessão autenticada, recuperação de senha, impressão e restauração de backup do banco. O aviso de proteção contra senhas vazadas do Supabase Auth deve ser revisado nas configurações de autenticação. Os avisos de RLS sem política referem-se a tabelas antigas bloqueadas intencionalmente.
 - **Dados:** a auditoria usa consultas de leitura no banco; não apaga nem modifica cadastros existentes e não inclui nenhuma tabela de referência na formação de preços.
+
+## Catálogo pesquisável de profissões
+
+Em **Funcionários → Cadastrar funcionários → Profissão / função**, toque no campo para abrir a lista de profissões. O catálogo inicial contém **90 funções** de construção civil, elétrica, instalações, acabamento e apoio; digite parte do nome para pesquisar, inclusive sem acento. Escolha uma opção ou informe uma profissão diferente. Depois de salvar um funcionário com uma profissão nova, essa função é armazenada na tabela `cv_professions`, privada do seu administrador, e fica disponível em futuros cadastros. A lista também contempla as funções já registradas antes da atualização.
+
+Em **Orçamentos → Mão de obra por diária**, pesquise um funcionário já cadastrado pelo nome ou pela profissão e selecione-o para adicionar à obra. Clicar no seletor sem filtro mostra toda a equipe ativa.
+
+O catálogo contém **somente nomes de profissões**; não altera valores de diárias, custos, encargos ou fórmulas, e não contém nenhuma referência de preços SINAPI/CUB/SIURB. O Supabase aplica RLS para impedir que usuários não autorizados leiam ou adicionem profissões; as opções gerais são compartilhadas, enquanto as personalizadas pertencem ao respectivo administrador.
