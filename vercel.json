@@ -14,6 +14,10 @@
           "value": "DENY"
         },
         {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
           "key": "Cache-Control",
           "value": "no-store"
         },
@@ -22,39 +26,12 @@
           "value": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
         }
       ]
-    },
-    {
-      "source": "/painel",
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow"
-        }
-      ]
-    },
-    {
-      "source": "/index",
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow"
-        }
-      ]
-    },
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow"
-        }
-      ]
     }
   ],
   "redirects": [
     {
-      "source": "/",
-      "destination": "/empresa",
+      "source": "/empresa",
+      "destination": "/",
       "permanent": false
     }
   ],
