@@ -7,7 +7,7 @@ const page=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const printer=fs.readFileSync(new URL('../assets/proposal-print.css',import.meta.url),'utf8');
 const intro='/* Ajuste pontual: imagem do NOME maior ao lado do icone no celular.';
 const begin=css.indexOf(intro);
-const correction=css.slice(begin);
+const correction=css.slice(begin,css.indexOf('/* Encargos por profissional',begin));
 
 test('corrige somente a imagem do nome na sidebar autenticada',()=>{
  assert.ok(begin>0,'bloco de correção existente');
