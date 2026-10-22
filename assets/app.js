@@ -1,4 +1,5 @@
 import {calculateBudget} from '/lib/civolten-calc.mjs';
+import {companyRates} from '/lib/civolten-capacity.mjs';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
 
 const $=q=>document.querySelector(q);
@@ -79,9 +80,9 @@ function empty(message){return '<div class="empty">'+esc(message)+'</div>'}
 function notice(){return '<div class="warning">Nenhum preço de referência externa é usado. Os valores são definidos por você e não garantem resultado sem a revisão dos custos reais da obra.</div>'}
 function dashboard(){
  const workers=state.data.workers.filter(w=>w.active).length;
- const fixed=total(state.data.fixed.filter(x=>x.active).map(x=>x.monthly_cents));
  const budgets=state.data.budgets;
  const config=state.data.settings[0];
+ const rates=companyRates(state.data.fixed,config||{});
  const pricingWarning=!config
   ? '<div class="warning" role="alert"><strong>Configuração financeira pendente.</strong> Ainda não foram definidos impostos, margem de lucro e dias faturáveis mensais. O sistema usa valores iniciais que podem subestimar seu preço. <button type="button" class="subtle" data-view="settings">Configurar meus custos</button></div>'
   : (num(config.tax_pct)===0||num(config.margin_pct)===0)
@@ -92,10 +93,12 @@ function dashboard(){
   '<button class="primary" data-action="new-budget">+ Novo orçamento</button>')+
  pricingWarning+
  '<div class="cards"><article class="card metric"><small>Funcionários ativos</small><strong>'+workers+'</strong><span class="hint">Profissionais cadastrados</span></article>'+
- '<article class="card metric"><small>Custos fixos por mês</small><strong>'+brl(fixed)+'</strong><span class="hint">Despesas ativas da empresa</span></article>'+
+ '<article class="card metric"><small>Custo fixo mensal</small><strong>'+brl(rates.monthly_cents)+'</strong><span class="hint">Despesas ativas da empresa</span></article>'+ 
+ '<article class="card metric"><small>Custo fixo por dia</small><strong>'+brl(rates.daily_cents)+'</strong><span class="hint">Dividido por '+rates.billable_days_month+' dias faturáveis/mês</span></article>'+ 
+ '<article class="card metric"><small>Custo fixo por hora</small><strong>'+brl(rates.hourly_cents)+'</strong><span class="hint">'+rates.hours_day+' horas/dia · '+(config?'configurado':'estimativa inicial')+'</span></article>'+
  '<article class="card metric"><small>Orçamentos registrados</small><strong>'+budgets.length+'</strong><span class="hint">Histórico da CIVOLTEN</span></article></div>'+
  '<div class="cols"><div class="card"><h2>Orçamentos recentes</h2>'+(recent||empty('Nenhum orçamento ainda. Crie o primeiro com seus custos reais.'))+'</div>'+
- '<div class="card"><h2>Como seu preço é calculado</h2><p class="caption">1. Diárias da equipe × dias na obra, incluindo encargos.</p><p class="caption">2. Materiais, transporte, ferramentas e outros custos variáveis.</p><p class="caption">3. Parcela dos custos fixos, proporcional aos dias faturáveis.</p><p class="caption">4. Impostos e margem de lucro definidos por você sobre o valor de venda.</p>'+notice()+'</div></div>';
+ '<div class="card"><h2>Como seu preço é calculado</h2><p class="caption">1. Diárias da equipe × dias na obra, incluindo encargos.</p><p class="caption">2. Rateio dos custos fixos da empresa conforme os dias da obra.</p><p class="caption">3. Materiais e outras despesas variáveis só entram quando adicionados à obra.</p><p class="caption">4. Impostos e margem são considerados no preço final sobre a venda.</p>'+notice()+'</div></div>';
 }
 
 // Catalogo persistido no Supabase; a lista tambem inclui funcoes de funcionarios
@@ -151,7 +154,10 @@ function entryLabel(entity,r){
 }
 function generic(entity){
  const label=sections[entity],items=state.data[entity],editing=items.find(x=>x.id===state.edit);
+ const rates=entity==='fixed'?companyRates(items,state.data.settings[0]||{}):null;
+ const fixedOverview=rates?'<section class="card financial-rates"><h2>Custo da estrutura da empresa</h2><div class="financial-rate-grid"><div><small>Total mensal ativo</small><strong>'+brl(rates.monthly_cents)+'</strong></div><div><small>Por dia faturável</small><strong>'+brl(rates.daily_cents)+'</strong></div><div><small>Por hora faturável</small><strong>'+brl(rates.hourly_cents)+'</strong></div></div><p class="hint">Base: '+rates.billable_days_month+' dias faturáveis por mês × '+rates.hours_day+' horas por dia. Somente despesas ativas entram no rateio. Uma despesa com valor R$ 0 continua ativa sem aumentar o custo. <button type="button" class="subtle" data-view="settings">Ajustar capacidade</button></p><p class="hint">Funcionários alocados e pagos por diária já entram como mão de obra no orçamento. Não lance a mesma remuneração como custo fixo e por diária ao mesmo tempo.</p></section>':'';
  return title(label,entity==='workers'?'Diárias e encargos de pedreiros, eletricistas, encanadores e outras funções.':entity==='fixed'?'Contas da operação que precisam ser cobertas pelas obras.':'Custos reais que você usa como atalhos ao montar cada orçamento.')+
+ fixedOverview+
  '<div class="cols"><section class="card"><h2>'+ (editing?'Editar registro':'Cadastrar '+label.toLowerCase())+'</h2>'+
  '<form id="entityForm" data-entity="'+entity+'"><div class="grid">'+fields[entity].map(f=>inputField(f,editing)).join('')+'</div>'+
  '<div class="buttons"><button class="primary" type="submit">'+(editing?'Salvar alterações':'+ Adicionar')+'</button>'+
@@ -160,14 +166,15 @@ function generic(entity){
  '<div class="entry"><div><strong>'+esc(x.name)+'</strong><small>'+entryLabel(entity,x)+'</small></div><div class="actions"><button class="subtle small" data-action="edit-item" data-id="'+esc(x.id)+'">Editar</button><button class="danger small" data-action="delete-item" data-id="'+esc(x.id)+'">Excluir</button></div></div>').join(''):empty('Nada cadastrado ainda.'))+'</section></div>';
 }
 function settings(){
- const c=state.data.settings[0]||{workdays_month:22,billable_days_month:22,tax_pct:0,margin_pct:0};
+ const c=state.data.settings[0]||{workdays_month:22,billable_days_month:22,hours_day:8,tax_pct:0,margin_pct:0};
  return title('Configurações financeiras','Defina os parâmetros reais da sua operação. Nada é imposto por uma tabela.')+
  '<section class="card" style="max-width:810px"><form id="settingsForm"><div class="grid">'+
  '<label>Dias úteis do mês<input name="workdays_month" type="number" min="1" max="31" step="1" value="'+esc(c.workdays_month)+'" required></label>'+
- '<label>Dias-equipe faturáveis por mês<input name="billable_days_month" type="number" min=".01" max="1000" step=".01" value="'+esc(c.billable_days_month)+'" required></label>'+
+ '<label>Dias-equipe faturáveis por mês<input name="billable_days_month" type="number" min=".01" max="1000" step=".01" value="'+esc(c.billable_days_month)+'" required></label>'+ 
+ '<label>Horas de trabalho por dia<input name="hours_day" type="number" min=".25" max="24" step=".25" value="'+esc(c.hours_day??8)+'" required></label>'+
  '<label>Impostos estimados sobre venda (%)<input name="tax_pct" type="number" min="0" max="99" step=".01" value="'+esc(c.tax_pct)+'" required></label>'+
  '<label>Margem de lucro desejada sobre venda (%)<input name="margin_pct" type="number" min="0" max="99" step=".01" value="'+esc(c.margin_pct)+'" required></label></div>'+
- '<p class="hint">22 dias é um ponto de partida editável. Se houver várias equipes trabalhando ao mesmo tempo, informe a capacidade faturável total para ratear corretamente os custos fixos. Confirme a tributação com seu contador.</p>'+
+ '<p class="hint">Os custos fixos do mês são divididos pelos dias-equipe faturáveis para obter o custo/dia, e depois pelas horas/dia para obter o custo/hora. 22 dias e 8 horas são valores iniciais editáveis. Se houver várias equipes simultâneas, informe a capacidade faturável total. Impostos e margem são adicionados na formação do preço de venda; confirme a tributação com seu contador.</p>'+
  '<div class="buttons"><button class="primary">Salvar parâmetros</button></div></form></section>'+notice();
 }
 function accessList(){
@@ -222,17 +229,17 @@ function editor(){
  '<div class="buttons"><button type="button" class="secondary" data-action="add-scope">+ Adicionar serviço</button></div></section>'+
  '<section class="card"><h2>1. Mão de obra por diária</h2><label class="worker-search-label">Localizar funcionário já cadastrado<input id="workerSearch" type="search" placeholder="Busque por nome ou profissão" autocomplete="off"></label><div class="pick"><select id="workerSelect" aria-label="Lista de funcionários cadastrados"><option value="">Escolha um funcionário</option>'+workers.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</option>').join('')+'</select><button class="secondary" data-action="add-worker">Adicionar</button></div>'+
  '<p class="caption">Encargos adicionais são opcionais: deixe em branco quando não houver (equivale a 0%). Se informar um percentual entre 0% e 200%, ele será considerado no custo deste orçamento, sem alterar o cadastro do profissional.</p>'+(staffLines||empty('Nenhum funcionário alocado.'))+'</section>'+
- '<section class="card"><h2>2. Custos variáveis da obra</h2><div class="pick"><select id="variableSelect"><option value="">Escolha uma despesa cadastrada</option>'+variables.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+brl(x.unit_cents)+'/'+esc(x.unit)+'</option>').join('')+'</select><button class="secondary" data-action="add-variable">Adicionar</button></div>'+
- '<p class="caption">Ou adicione despesas particulares desta obra (materiais, combustível, transporte, locações, alimentação, EPI e outros).</p>'+
+ '<section class="card"><h2>2. Custos variáveis — somente se fornecidos nesta obra</h2><div class="pick"><select id="variableSelect"><option value="">Escolha uma despesa cadastrada</option>'+variables.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+brl(x.unit_cents)+'/'+esc(x.unit)+'</option>').join('')+'</select><button class="secondary" data-action="add-variable">Adicionar</button></div>'+
+ '<p class="caption">Esses itens não entram automaticamente no orçamento. Se o cliente fornecer materiais, não os adicione. Quando a CIVOLTEN fornecer materiais ou assumir transporte/locação, adicione os itens e quantidades efetivos abaixo.</p>'+
  '<div class="grid" style="margin:15px 0"><label>Nova despesa<input id="customExpenseName" maxlength="120" placeholder="Ex.: Material de acabamento"></label><label>Valor total (R$)<input id="customExpenseValue" type="number" min="0" step=".01"></label></div><button class="subtle" data-action="add-expense">+ Despesa avulsa</button>'+
  '<div style="margin-top:15px">'+(expenseLines||empty('Nenhuma despesa variável.'))+'</div></section>'+
  '<section class="card"><h2>3. Estratégia de venda</h2><div class="grid">'+
  '<label>Impostos (%)<input data-pricing="tax_pct" type="number" min="0" max="99" step=".01" value="'+esc(b.pricing?.tax_pct)+'"></label>'+
  '<label>Margem-alvo (%)<input data-pricing="margin_pct" type="number" min="0" max="99" step=".01" value="'+esc(b.pricing?.margin_pct)+'"></label>'+
  '<label>Capacidade faturável mensal (dias-equipe)<input data-pricing="billable_days_month" type="number" min=".01" step=".01" value="'+esc(b.pricing?.billable_days_month)+'"></label>'+
- '<label>Custos fixos mensais considerados (R$)<input data-pricing="fixed_monthly_reais" type="number" min="0" step=".01" value="'+dec(b.pricing?.fixed_monthly_cents)+'"></label>'+
+ '<label>Custos fixos mensais considerados nesta obra (R$)<input data-pricing="fixed_monthly_reais" type="number" min="0" step=".01" value="'+dec(b.pricing?.fixed_monthly_cents)+'"></label>'+
  '<label class="wide">Preço final manual (R$) — opcional<input data-draft="manual_price" type="number" min="0" step=".01" placeholder="Deixe vazio para usar preço calculado" value="'+(b.manual_price_cents==null?'':dec(b.manual_price_cents))+'"></label></div>'+
- '<p class="caption">Os parâmetros são copiados para cada orçamento para preservar o histórico. Preço manual abaixo do necessário pode resultar em prejuízo.</p></section></div>'+
+ '<p class="caption">O custo fixo mensal ativo é copiado ao criar a obra e rateado pelos dias previstos (não é cobrado inteiro em cada serviço). Confira antes de salvar, pois orçamentos antigos preservam seus valores. O preço final inclui impostos sobre venda e margem definida. Preço manual abaixo do necessário pode resultar em prejuízo.</p></section></div>'+
  '<aside class="summary"><h2>Análise interna da obra</h2><div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button><button class="subtle" data-action="print-budget">Gerar PDF / imprimir proposta</button></div><p class="hint">A impressão mostra somente o escopo e o preço final. Custos, impostos, diárias e lucro são sigilosos.</p></aside></div>';
 }
 function summary(){
@@ -242,8 +249,8 @@ function summary(){
   el.innerHTML='<div class="sumrow"><span>Mão de obra + encargos</span><strong>'+brl(r.labor_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Despesas variáveis</span><strong>'+brl(r.variable_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Rateio dos custos fixos</span><strong>'+brl(r.fixed_cents)+'</strong></div>'+
-   '<div class="sumrow"><span>Custo real estimado</span><strong>'+brl(r.cost_cents)+'</strong></div>'+
-   '<div class="sumrow"><span>Impostos sobre venda</span><strong>'+brl(r.tax_cents)+'</strong></div>'+
+   '<div class="sumrow"><span>Subtotal de custos (fixos rateados + equipe + variáveis)</span><strong>'+brl(r.cost_cents)+'</strong></div>'+
+   '<div class="sumrow"><span>Impostos estimados sobre o preço final</span><strong>'+brl(r.tax_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Preço sugerido</span><strong>'+brl(r.calculated_price_cents)+'</strong></div>'+
    '<div class="sumrow sumtotal"><span>Venda final</span><strong>'+brl(r.price_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Resultado estimado</span><strong class="'+(r.profit_cents<0?'bad':'good')+'">'+brl(r.profit_cents)+'</strong></div>'+
@@ -279,7 +286,8 @@ async function saveEntity(entity,form){
 }
 async function saveSettings(form){
  const record={};
- for(const k of ['workdays_month','billable_days_month','tax_pct','margin_pct'])record[k]=num(form.elements.namedItem(k).value);
+ for(const k of ['workdays_month','billable_days_month','hours_day','tax_pct','margin_pct'])record[k]=num(form.elements.namedItem(k).value);
+ if(!(record.hours_day>0&&record.hours_day<=24))throw Error('Informe a jornada diária de até 24 horas');
  if(record.tax_pct+record.margin_pct>=100)throw Error('Impostos e margem devem somar menos de 100%');
  const id=state.data.settings[0]?.id;
  await request(route('settings',id),id?'PATCH':'POST',{record});

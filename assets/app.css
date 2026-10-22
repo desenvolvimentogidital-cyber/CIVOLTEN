@@ -234,3 +234,18 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
 :root[data-theme="dark"] .profession-option{color:var(--ink)}
 :root[data-theme="dark"] .profession-option:hover,
 :root[data-theme="dark"] .profession-option:focus{background:#24435f}
+
+
+/* Indicadores de custo fixo mensal, por dia e por hora */
+.financial-rates{margin:16px 0}
+.financial-rates h2{margin-bottom:14px}
+.financial-rate-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.financial-rate-grid>div{padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:12px;min-width:0}
+.financial-rate-grid small{display:block;color:var(--muted);margin-bottom:9px}
+.financial-rate-grid strong{font-size:clamp(18px,2vw,25px);color:var(--ink);overflow-wrap:anywhere}
+.financial-rates .hint{margin-top:13px;line-height:1.65}
+.financial-rates .subtle{padding:7px 10px;margin-left:4px}
+@media(max-width:680px){
+ .financial-rate-grid{grid-template-columns:1fr;gap:8px}
+ .financial-rate-grid>div{padding:12px}
+}

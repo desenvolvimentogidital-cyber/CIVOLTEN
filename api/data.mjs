@@ -2,7 +2,7 @@ import {SUPABASE,KEY,json,sameOrigin,browserAllowed,readBody,cookieToken,authori
 import {calculateBudget} from '../lib/civolten-calc.mjs';
 import {listRows} from '../lib/civolten-pages.mjs';
 const models={
- settings:['cv_settings','workdays_month','billable_days_month','tax_pct','margin_pct'],
+ settings:['cv_settings','workdays_month','billable_days_month','hours_day','tax_pct','margin_pct'],
  workers:['cv_workers','name','profession','daily_cents','charges_pct','days_month','active'],
  professions:['cv_professions','name'],
  fixed:['cv_fixed_costs','name','category','monthly_cents','active'],
