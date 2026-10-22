@@ -7,7 +7,8 @@ const models={
  professions:['cv_professions','name'],
  fixed:['cv_fixed_costs','name','category','monthly_cents','active'],
  variable:['cv_variable_costs','name','category','unit','unit_cents'],
- budgets:['cv_budgets','title','customer','status','content']
+ budgets:['cv_budgets','title','customer','status','content'],
+ cash:['cv_cash_entries','kind','amount_cents','description','category','occurred_on','budget_id']
 };
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export default {async fetch(req){
@@ -25,12 +26,26 @@ export default {async fetch(req){
  try{
   if(req.method==='GET'){
    dst.searchParams.set('select','*');
-   if(entity!=='settings')dst.searchParams.set('order','created_at.desc,id.desc');
+   if(entity!=='settings')dst.searchParams.set('order',entity==='cash'?'occurred_on.desc,created_at.desc,id.desc':'created_at.desc,id.desc');
   }else if(req.method==='DELETE'){dst.searchParams.set('id','eq.'+id)}
   else{
    const body=await readBody(req,59000),b=body.record;
    if(!b||typeof b!=='object'||Array.isArray(b))throw Error('Registro inválido');
    const data={};for(const k of model.slice(1))if(Object.prototype.hasOwnProperty.call(b,k))data[k]=b[k];
+   if(entity==='cash'){
+    if(req.method!=='POST')throw Error('Movimentações do caixa não podem ser editadas; exclua e registre novamente.');
+    if(!['entrada','saida'].includes(data.kind))throw Error('Tipo de movimento inválido');
+    if(!Number.isSafeInteger(data.amount_cents)||data.amount_cents<1||data.amount_cents>100000000000)
+     throw Error('Informe valor válido acima de R$ 0,00');
+    if(typeof data.description!=='string'||data.description.trim().length<2||data.description.length>140)
+     throw Error('Informe a descrição do lançamento');
+    if(typeof data.category!=='string'||!data.category.trim()||data.category.length>80)
+     throw Error('Informe a categoria');
+    if(typeof data.occurred_on!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(data.occurred_on)
+       ||Number.isNaN(new Date(data.occurred_on+'T12:00:00Z').getTime()))
+     throw Error('Data inválida');
+    if(data.budget_id!=null&&!uuid.test(data.budget_id))throw Error('Obra vinculada inválida');
+   }
    if(entity==='budgets'){
     if(!data.content||typeof data.content!=='object'||Array.isArray(data.content)||JSON.stringify(data.content).length>55000)throw Error('Orçamento inválido ou extenso');
     if(!['rascunho','enviado','aprovado','recusado'].includes(data.status||'rascunho'))throw Error('Situação inválida');
