@@ -45,7 +45,7 @@ test('funcionarios novos começam com 0%, limite de 200% e orçamento permite ed
  assert.match(app,/summary\(\)/);
  assert.match(css,/\.staff-line\{/);
  assert.match(css,/@media\(max-width:1090px\)/);
- assert.match(app,/sem alterar o cadastro do profissional/); // a edição do orçamento é independente
+ assert.match(app,/b\.staff\[i\]\.charges_pct=pct/); // a edição é feita no orçamento, não no cadastro
 });
 
 test('cadastro conserva o percentual informado e não o substitui por referência',()=>{
@@ -64,7 +64,7 @@ test('encargos opcionais: campo do cadastro não exige preenchimento',()=>{
  assert.match(app,/\['charges_pct','Encargos adicionais \(\%\) — opcional','number'\]/);
  // O registro persistido armazena zero quando um numero opcional fica em branco.
  assert.match(app,/type==='number'\?num\(e\.value\)/);
- assert.match(app,/if\(entity==='workers'&&\(!Number\.isFinite\(record\.charges_pct\)/);
+ assert.match(app,/if\(!Number\.isFinite\(record\.charges_pct\)/);
 });
 
 test('encargos opcionais: apagar a porcentagem no orçamento volta ao custo sem encargos',()=>{

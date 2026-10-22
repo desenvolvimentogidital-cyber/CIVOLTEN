@@ -278,3 +278,87 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
  .worker-ledger .worker-scroll{max-height:52vh}
  .worker-totalbar{margin:0 -18px;padding:14px 18px}
 }
+
+
+/* CIVOLTEN · painel financeiro */
+.fin-section-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:20px 0 14px}
+.fin-section-head h2{font-size:19px;margin:0}
+.fin-section-head span{font-size:12px;color:var(--muted)}
+.fin-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:18px}
+.fin-kpi{min-width:0;display:flex;flex-direction:column;gap:12px;background:var(--card-bg,#fff);background:#fff;border:1px solid var(--border);border-radius:15px;padding:18px;box-shadow:0 5px 15px #08182b0a;position:relative;overflow:hidden}
+.fin-kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#2b5278}
+.fin-kpi-gold:before{background:var(--gold)}
+.fin-kpi-profit:before{background:#15805a}
+.fin-kpi-loss:before{background:#b33745}
+.fin-kpi small{font-size:12px;font-weight:700;color:var(--muted);line-height:1.4}
+.fin-kpi strong{font-size:clamp(18px,1.85vw,27px);line-height:1.2;letter-spacing:-.03em;color:var(--ink);overflow-wrap:anywhere}
+.fin-kpi span{margin-top:auto;font-size:11px;color:var(--muted);line-height:1.5}
+.fin-grid-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-bottom:18px}
+.fin-panel{min-width:0}
+.fin-panel-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:15px}
+.fin-panel-header h2{font-size:19px;line-height:1.25;margin-bottom:5px}
+.fin-panel-header p{font-size:12px;color:var(--muted);margin:0;line-height:1.5}
+.fin-tag{border-radius:25px;padding:7px 10px;background:#f0f4f8;color:#334b64;font-size:10px;font-weight:700;white-space:nowrap}
+.fin-chart-svg{width:100%;height:auto;display:block;overflow:visible}
+.fin-bar-gold{fill:#dca629;background:#dca629}
+.fin-bar-blue{fill:#224c76;background:#224c76}
+.fin-bar-green{fill:#168267;background:#168267}
+.fin-bar-red{fill:#d2696a;background:#d2696a}
+.fin-svg-baseline{stroke:#a4b3c4;stroke-width:1}
+.fin-svg-label{fill:var(--muted);font:12px system-ui,sans-serif}
+.fin-legend{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:13px;margin:4px 0 12px;font-size:11px;color:var(--muted)}
+.fin-legend span{display:flex;align-items:center;gap:6px}
+.fin-legend i{display:inline-block;width:12px;height:12px;border-radius:3px}
+.fin-hint{font-size:11px;line-height:1.65;color:var(--muted);margin:13px 0 0}
+.fin-empty-graph{padding:35px 15px;min-height:135px;display:grid;place-items:center;text-align:center;color:var(--muted);background:var(--bg);border-radius:10px;font-size:12px;line-height:1.5}
+.fin-cash-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.fin-cash-kpis>div{padding:13px 9px;border:1px solid var(--border);border-radius:10px;min-width:0}
+.fin-cash-kpis small{display:block;color:var(--muted);font-size:11px;margin-bottom:9px}
+.fin-cash-kpis strong{font-size:clamp(13px,1.4vw,18px);overflow-wrap:anywhere;color:var(--ink)}
+.fin-positive{color:#087a55!important}
+.fin-negative{color:#bb4054!important}
+.fin-cash-form,.fin-margin-form{padding-top:17px;margin-top:17px;border-top:1px solid var(--border)}
+.fin-cash-form h3,.fin-margin-form h3,.fin-health h3,.fin-subtitle{font-size:14px;margin-bottom:12px}
+.fin-cash-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-bottom:14px}
+.fin-cash-fields label{font-size:11px}
+.fin-cash-fields input,.fin-cash-fields select{padding:10px;font-size:13px}
+.fin-full{grid-column:1/-1}
+.fin-subtitle{margin-top:23px}
+.fin-cash-line{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--border)}
+.fin-cash-line>span{flex:1;min-width:0}
+.fin-cash-line strong{font-size:12px;overflow-wrap:anywhere}
+.fin-cash-line small{display:block;color:var(--muted);font-size:11px;margin-top:4px;line-height:1.45}
+.fin-cash-line>strong{white-space:nowrap}
+.fin-cash-line button{padding:5px 9px}
+.fin-compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.fin-compare>div{background:var(--bg);border-radius:12px;padding:16px 11px;min-width:0}
+.fin-compare small{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-bottom:8px}
+.fin-compare strong{font-size:clamp(20px,2vw,28px);overflow-wrap:anywhere}
+.fin-health{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:15px;margin-top:17px}
+.fin-health p{margin:0;font-size:12px;color:var(--muted);line-height:1.65}
+.fin-status-count{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
+.fin-status-count span{font-size:11px;color:var(--muted);padding:7px 9px;border:1px solid var(--border);border-radius:20px}
+.fin-filters{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 18px}
+.fin-filters label:first-child{flex:2;min-width:230px}
+.fin-filters label:last-child{flex:1;min-width:150px}
+.fin-filters label{font-size:11px}
+.fin-filters input,.fin-filters select{margin-top:5px}
+.fin-project-scroll{max-width:100%;overflow-x:auto;scrollbar-gutter:stable}
+.fin-project-table{width:100%;border-collapse:collapse;min-width:800px}
+.fin-project-table th{text-align:left;color:var(--muted);font-size:11px;padding:12px 10px;border-bottom:1px solid var(--border);font-weight:700;white-space:nowrap}
+.fin-project-table td{border-bottom:1px solid var(--border);padding:13px 10px;font-size:12px;vertical-align:middle;white-space:nowrap}
+.fin-project-table td:first-child{min-width:170px;white-space:normal}
+.fin-project-table td:first-child strong{display:block;color:var(--ink)}
+.fin-project-table td small{display:block;color:var(--muted);margin-top:4px;font-size:10px}
+.fin-status{border-radius:15px;padding:6px 8px;font-size:10px;font-weight:700}
+.fin-status-aprovado{background:#dff4e6;color:#236e49}
+.fin-status-enviado{background:#fff2c7;color:#85650f}
+.fin-status-rascunho{background:#edf1f6;color:#3d5572}
+.fin-status-recusado{background:#ffeaed;color:#a12e46}
+:root[data-theme="dark"] .fin-kpi{background:#14263b}
+:root[data-theme="dark"] .fin-tag,:root[data-theme="dark"] .fin-status-rascunho{background:#273c54;color:#e1ebf6}
+:root[data-theme="dark"] .fin-positive{color:#71d4aa!important}
+:root[data-theme="dark"] .fin-negative{color:#f49ca7!important}
+@media(max-width:1200px){.fin-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:850px){.fin-grid-two{grid-template-columns:1fr}}
+@media(max-width:520px){.fin-kpis{gap:9px}.fin-kpi{padding:13px;gap:8px}.fin-kpi strong{font-size:18px}.fin-panel-header{flex-wrap:wrap}.fin-cash-kpis{grid-template-columns:1fr}.fin-cash-fields{grid-template-columns:1fr}.fin-full{grid-column:auto}.fin-filters label:first-child,.fin-filters label:last-child{min-width:100%}}

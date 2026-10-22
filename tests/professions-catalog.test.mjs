@@ -48,7 +48,7 @@ test('o profissional cadastrado permanece pesquisavel em orcamentos',()=>{
  assert.match(app,/function updateWorkerChoices\(\)/);
  assert.match(app,/normalizeProfession\(x\.name\+' '\+x\.profession\)/);
  assert.match(app,/if\(e\.id==='workerSearch'\)\{updateWorkerChoices\(\);return\}/);
- assert.match(app,/const workers=state\.data\.workers\.filter\(x=>x\.active\)/);
+ assert.match(app,/const workers=state\.data\.workers\.filter\(x=>x\.active&&\(x\.cost_mode\?\?'monthly'\)==='project'\)/);
 });
 
 test('salva profissao personalizada apenas depois de cadastrar o funcionario',()=>{

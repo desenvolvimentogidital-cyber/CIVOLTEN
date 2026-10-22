@@ -108,3 +108,17 @@ Em **Funcionários**, cada profissional tem diária, dias trabalhados no mês (2
 O dashboard e a aba de custos fixos mostram despesas da empresa separadas da folha, e o **total combinado por mês, dia e hora**. Novos orçamentos copiam automaticamente a base fixa mensal, que é rateada pelos dias previstos da obra. O trabalhador mensal não precisa ser incluído novamente em cada orçamento e não aparece no seletor de mão de obra extra. Orçamentos antigos preservam o próprio retrato dos custos registrados.
 
 **Evite dupla contagem:** se uma remuneração registrada na folha mensal também estiver lançada como salário administrativo nos custos fixos, ajuste um desses lançamentos. Profissionais pagos apenas quando há serviço devem ter forma de custo **Por obra**.
+
+## Visão geral financeira — custos, lucro, obras e caixa
+
+A Visão geral agora tem indicadores do custo mensal da estrutura (despesas fixas + folha), custo por dia/hora, quantidade de obras aprovadas e **venda, custos, impostos e lucro previstos das obras aprovadas**. A projeção de lucro não representa recebimento de dinheiro.
+
+**Resultado por obra:** pesquise por título/cliente e filtre por rascunho, enviado, aprovado ou recusado. Cada obra exibe os valores históricos de custo, preço de venda, impostos estimados (alíquota registrada naquela proposta) e lucro/margem resultantes. A tela mantém os botões de abrir proposta e não reescreve o orçamento antigo.
+
+**Gráficos:** dois gráficos dos últimos seis meses. O primeiro compara venda/custo previstos das propostas atualmente aprovadas, agrupadas pela data de criação. O segundo mostra entradas/saídas **registradas efetivamente no livro de caixa** por data do movimento. Não há integração bancária nem reconhecimento automático de receitas.
+
+**Caixa da empresa:** registre manualmente cada entrada efetivamente recebida e cada despesa paga, com data, categoria, descrição e vínculo opcional a uma obra. Lançamentos são protegidos por login, RLS e propriedade do administrador. Podem ser excluídos mediante confirmação; para corrigir valores, exclua e lance novamente. O saldo exibido é apenas entradas menos saídas **registradas desde o início** — não representa saldo bancário inicial, contas a pagar nem o lucro contábil.
+
+**Margem e impostos:** formulário rápido na Visão geral ajusta as configurações financeiras utilizadas em **novas** propostas; exige percentuais válidos cuja soma seja inferior a 100. Propostas já salvas preservam os valores originais para evitar revisões silenciosas.
+
+**Limites financeiros:** valores de orçamentos são estimativas e custos fixos são rateados pelo prazo da obra, não saídas de caixa automaticamente pagas. A saúde financeira só pode ser avaliada de forma completa quando os pagamentos e recebimentos reais, obrigações, tributos e extratos forem conciliados. Não contabilize uma proposta aprovada como recebimento sem lançar o pagamento.

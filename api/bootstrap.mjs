@@ -10,7 +10,8 @@ const tables={
  professions:'cv_professions',
  fixed:'cv_fixed_costs',
  variable:'cv_variable_costs',
- budgets:'cv_budgets'
+ budgets:'cv_budgets',
+ cash:'cv_cash_entries'
 };
 
 export default {async fetch(req){
@@ -24,7 +25,7 @@ export default {async fetch(req){
   const data=Object.fromEntries(await Promise.all(Object.entries(tables).map(async ([key,table])=>{
    const url=new URL(SUPABASE+'/rest/v1/'+table);
    url.searchParams.set('select','*');
-   if(key!=='settings')url.searchParams.set('order','created_at.desc,id.desc');
+   if(key!=='settings')url.searchParams.set('order',key==='cash'?'occurred_on.desc,created_at.desc,id.desc':'created_at.desc,id.desc');
    return [key,await listRows(url,{apikey:KEY,Authorization:'Bearer '+jwt,Accept:'application/json'})];
   })));
   return json({data});
