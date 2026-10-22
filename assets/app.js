@@ -1,5 +1,6 @@
 import {calculateBudget} from '/lib/civolten-calc.mjs';
 import {companyRates,payrollSummary} from '/lib/civolten-capacity.mjs';
+import {financialDashboard,projectResults} from '/assets/dashboard.js';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
 
 const $=q=>document.querySelector(q);
@@ -9,7 +10,7 @@ const money=x=>Math.round(Math.max(0,Number(String(x??0).replace(',','.'))||0)*1
 const dec=x=>String(Number(x||0)/100);
 const num=x=>Number(String(x??0).replace(',','.'))||0;
 const total=xs=>xs.reduce((n,x)=>n+Number(x||0),0);
-const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[]},access:[],edit:null,draft:null,draftId:null};
+const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[],cash:[]},access:[],edit:null,draft:null,draftId:null,dashboardSearch:'',dashboardStatus:'todos'};
 const sections={home:'Visão geral',budgets:'Orçamentos',workers:'Funcionários',fixed:'Custos fixos',variable:'Custos variáveis',settings:'Configurações'};
 const fields={
  workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos adicionais (%) — opcional','number'],['days_month','Dias trabalhados previstos no mês','number'],['cost_mode','Forma de custo','select'],['active','Profissional ativo','checkbox']],
@@ -79,28 +80,40 @@ function title(name,subtitle,button){
 function empty(message){return '<div class="empty">'+esc(message)+'</div>'}
 function notice(){return '<div class="warning">Nenhum preço de referência externa é usado. Os valores são definidos por você e não garantem resultado sem a revisão dos custos reais da obra.</div>'}
 function dashboard(){
- const workers=state.data.workers.filter(w=>w.active).length;
- const budgets=state.data.budgets;
- const config=state.data.settings[0];
- const rates=companyRates(state.data.fixed,config||{},state.data.workers);
- const duplicateSalaryWarning=rates.payroll_cents>0&&state.data.fixed.some(x=>x.active&&/sal[aá]rio|folha de pagamento|remunera[cç][aã]o/i.test(x.name))
-  ? '<div class="warning" role="note"><strong>Verifique possível custo de pessoal duplicado.</strong> Há salário em Custos fixos e funcionários na folha mensal. Se for a mesma pessoa, mantenha a remuneração em apenas um dos dois lugares.</div>':'';
- const pricingWarning=!config
-  ? '<div class="warning" role="alert"><strong>Configuração financeira pendente.</strong> Ainda não foram definidos impostos, margem de lucro e dias faturáveis mensais. O sistema usa valores iniciais que podem subestimar seu preço. <button type="button" class="subtle" data-view="settings">Configurar meus custos</button></div>'
-  : (num(config.tax_pct)===0||num(config.margin_pct)===0)
-   ? '<div class="warning" role="alert"><strong>Confira seu preço.</strong> Impostos ou margem estão em 0%. Verifique se isso corresponde ao seu caso antes de enviar uma proposta. <button type="button" class="subtle" data-view="settings">Revisar configurações</button></div>'
-   : '';
- const recent=budgets.slice(0,5).map(b=>'<div class="entry"><div><strong>'+esc(b.title)+'</strong><small>'+esc(b.customer||'Sem cliente')+' · '+esc(b.status)+'</small></div><span class="price">'+brl(b.price_cents)+'</span></div>').join('');
- return title('Seu negócio, sob controle','Acompanhe a operação e construa orçamentos usando exclusivamente seus valores.',
-  '<button class="primary" data-action="new-budget">+ Novo orçamento</button>')+
- pricingWarning+duplicateSalaryWarning+
- '<div class="cards"><article class="card metric"><small>Funcionários ativos</small><strong>'+workers+'</strong><span class="hint">Profissionais cadastrados</span></article>'+
- '<article class="card metric"><small>Custo mensal total</small><strong>'+brl(rates.monthly_cents)+'</strong><span class="hint">Despesas '+brl(rates.fixed_expenses_cents)+' + folha '+brl(rates.payroll_cents)+'</span></article>'+ 
- '<article class="card metric"><small>Custo fixo por dia</small><strong>'+brl(rates.daily_cents)+'</strong><span class="hint">Dividido por '+rates.billable_days_month+' dias faturáveis/mês</span></article>'+ 
- '<article class="card metric"><small>Custo fixo por hora</small><strong>'+brl(rates.hourly_cents)+'</strong><span class="hint">'+rates.hours_day+' horas/dia · '+(config?'configurado':'estimativa inicial')+'</span></article>'+
- '<article class="card metric"><small>Orçamentos registrados</small><strong>'+budgets.length+'</strong><span class="hint">Histórico da CIVOLTEN</span></article></div>'+
- '<div class="cols"><div class="card"><h2>Orçamentos recentes</h2>'+(recent||empty('Nenhum orçamento ainda. Crie o primeiro com seus custos reais.'))+'</div>'+
- '<div class="card"><h2>Como seu preço é calculado</h2><p class="caption">1. Diárias da equipe × dias na obra, incluindo encargos.</p><p class="caption">2. Rateio dos custos fixos da empresa conforme os dias da obra.</p><p class="caption">3. Materiais e outras despesas variáveis só entram quando adicionados à obra.</p><p class="caption">4. Impostos e margem são considerados no preço final sobre a venda.</p>'+notice()+'</div></div>';
+ return financialDashboard({data:state.data,search:state.dashboardSearch,status:state.dashboardStatus,
+ esc,brl,title,companyRates,notice});
+}
+
+function refreshDashboardProjects(){
+ const el=$('#dashboardProjectResults');
+ if(el&&state.view==='home')el.innerHTML=projectResults(state.data,state.dashboardSearch,state.dashboardStatus,esc,brl);
+}
+async function saveDashboardMargin(form){
+ const margin=Number(form.elements.namedItem('margin_pct').value);
+ const tax=Number(form.elements.namedItem('tax_pct').value);
+ if(!Number.isFinite(margin)||!Number.isFinite(tax)||margin<0||margin>99||tax<0||tax>99||margin+tax>=100)
+  throw Error('Impostos e margem devem ser positivos, até 99%, e somar menos de 100%.');
+ const current=state.data.settings[0];
+ const record=current?{tax_pct:tax,margin_pct:margin}:{workdays_month:22,billable_days_month:22,
+  hours_day:8,tax_pct:tax,margin_pct:margin};
+ await request(route('settings',current?.id),current?'PATCH':'POST',{record});
+ await reload();render();flash('Margem e impostos atualizados para os próximos orçamentos.');
+}
+async function saveCashMovement(form){
+ const raw=String(form.elements.namedItem('amount').value).trim().replace(',','.');
+ const value=Number(raw);
+ if(!Number.isFinite(value)||value<=0||value>1e9||Math.round(value*100)<=0)
+  throw Error('Informe o valor recebido ou pago corretamente.');
+ const record={
+  kind:form.elements.namedItem('kind').value,
+  amount_cents:Math.round(value*100),
+  occurred_on:form.elements.namedItem('occurred_on').value,
+  category:form.elements.namedItem('category').value,
+  description:form.elements.namedItem('description').value.trim(),
+  budget_id:form.elements.namedItem('budget_id').value||null
+ };
+ await request(route('cash'),'POST',{record});
+ await reload();render();flash('Movimentação registrada no caixa.');
 }
 
 // Catalogo persistido no Supabase; a lista tambem inclui funcoes de funcionarios
@@ -341,7 +354,7 @@ async function printBudget(){
  window.print();
 }
 document.addEventListener('submit',async ev=>{
- if(!['login','entityForm','settingsForm','signupForm','recoverForm','passwordForm'].includes(ev.target.id))return;
+ if(!['login','entityForm','settingsForm','signupForm','recoverForm','passwordForm','cashEntryForm','dashboardMarginForm'].includes(ev.target.id))return;
  ev.preventDefault();const f=ev.target,button=f.querySelector('button[type=submit],button.primary');
  const originalLabel=button?.textContent;
  if(button){button.disabled=true;if(f.id==='login')button.textContent='Verificando acesso...'}
@@ -365,6 +378,8 @@ document.addEventListener('submit',async ev=>{
    await request('/api/recovery','POST',{action:'update',access_token:recoveryToken,password});
    recoveryToken=null;f.reset();authMode('login');$('#authNotice').textContent='Senha atualizada! Agora entre com seu e-mail e a nova senha.';
   }else if(f.id==='entityForm')await saveEntity(f.dataset.entity,f);
+  else if(f.id==='cashEntryForm')await saveCashMovement(f);
+  else if(f.id==='dashboardMarginForm')await saveDashboardMargin(f);
   else await saveSettings(f);
  }catch(error){flash(error.message)}finally{if(button){button.disabled=false;button.textContent=originalLabel}}
 });
@@ -378,6 +393,7 @@ document.addEventListener('input',ev=>{
  const e=ev.target;
  if(e.id==='workerProfession'){showProfessionOptions(e);return}
  if(e.id==='workerSearch'){updateWorkerChoices();return}
+ if(e.id==='dashboardProjectSearch'){state.dashboardSearch=e.value;refreshDashboardProjects();return}
  const b=state.draft;if(!b)return;
  if(e.dataset.draft){
   const k=e.dataset.draft;
@@ -414,6 +430,7 @@ document.addEventListener('input',ev=>{
 });
 document.addEventListener('change',ev=>{
  const e=ev.target;
+ if(e.id==='dashboardProjectStatus'){state.dashboardStatus=e.value;refreshDashboardProjects();return}
  if(e.dataset.draft&&state.draft){state.draft[e.dataset.draft]=e.value;summary()}
  if(e.dataset.scopeUnit!==undefined&&state.draft)state.draft.scope_items[Number(e.dataset.scopeUnit)].unit=e.value;
 });
@@ -450,6 +467,11 @@ document.addEventListener('click',async ev=>{
    if(!window.confirm('Autorizar este usuário a acessar todos os custos e orçamentos internos?'))return;
    await request('/api/access?action=approve','POST',{user_id:id});
    state.access=(await request('/api/access?action=list')).rows||[];render();flash('Usuário autorizado com sucesso.');
+  }
+  else if(action==='delete-cash'){
+   if(!window.confirm('Excluir esta movimentação do caixa?'))return;
+   await request(route('cash',id),'DELETE');
+   await reload();render();flash('Movimentação excluída.');
   }
   else if(action==='new-budget')startBudget();
   else if(action==='add-scope'){
