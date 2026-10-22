@@ -83,6 +83,8 @@ function dashboard(){
  const budgets=state.data.budgets;
  const config=state.data.settings[0];
  const rates=companyRates(state.data.fixed,config||{},state.data.workers);
+ const duplicateSalaryWarning=rates.payroll_cents>0&&state.data.fixed.some(x=>x.active&&/sal[aá]rio|folha de pagamento|remunera[cç][aã]o/i.test(x.name))
+  ? '<div class="warning" role="note"><strong>Verifique possível custo de pessoal duplicado.</strong> Há salário em Custos fixos e funcionários na folha mensal. Se for a mesma pessoa, mantenha a remuneração em apenas um dos dois lugares.</div>':'';
  const pricingWarning=!config
   ? '<div class="warning" role="alert"><strong>Configuração financeira pendente.</strong> Ainda não foram definidos impostos, margem de lucro e dias faturáveis mensais. O sistema usa valores iniciais que podem subestimar seu preço. <button type="button" class="subtle" data-view="settings">Configurar meus custos</button></div>'
   : (num(config.tax_pct)===0||num(config.margin_pct)===0)
@@ -91,7 +93,7 @@ function dashboard(){
  const recent=budgets.slice(0,5).map(b=>'<div class="entry"><div><strong>'+esc(b.title)+'</strong><small>'+esc(b.customer||'Sem cliente')+' · '+esc(b.status)+'</small></div><span class="price">'+brl(b.price_cents)+'</span></div>').join('');
  return title('Seu negócio, sob controle','Acompanhe a operação e construa orçamentos usando exclusivamente seus valores.',
   '<button class="primary" data-action="new-budget">+ Novo orçamento</button>')+
- pricingWarning+
+ pricingWarning+duplicateSalaryWarning+
  '<div class="cards"><article class="card metric"><small>Funcionários ativos</small><strong>'+workers+'</strong><span class="hint">Profissionais cadastrados</span></article>'+
  '<article class="card metric"><small>Custo mensal total</small><strong>'+brl(rates.monthly_cents)+'</strong><span class="hint">Despesas '+brl(rates.fixed_expenses_cents)+' + folha '+brl(rates.payroll_cents)+'</span></article>'+ 
  '<article class="card metric"><small>Custo fixo por dia</small><strong>'+brl(rates.daily_cents)+'</strong><span class="hint">Dividido por '+rates.billable_days_month+' dias faturáveis/mês</span></article>'+ 
