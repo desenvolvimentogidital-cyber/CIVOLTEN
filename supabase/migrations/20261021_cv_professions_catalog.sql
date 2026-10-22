@@ -3,7 +3,7 @@
 -- registrar funções adicionais próprias; políticas não permitem modificá-las por terceiros.
 create table if not exists public.cv_professions (
   id uuid primary key default gen_random_uuid(),
-  owner_id uuid references auth.users(id) on delete cascade,
+  owner_id uuid default auth.uid() references auth.users(id) on delete cascade,
   name text not null check (length(btrim(name)) between 2 and 100),
   created_at timestamptz not null default now()
 );
