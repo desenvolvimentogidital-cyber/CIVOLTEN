@@ -229,3 +229,8 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
  .profession-suggestions{max-height:215px}
  .worker-search-label{margin-bottom:10px}
 }
+
+:root[data-theme="dark"] .profession-suggestions{background:#14263b;color:var(--ink)}
+:root[data-theme="dark"] .profession-option{color:var(--ink)}
+:root[data-theme="dark"] .profession-option:hover,
+:root[data-theme="dark"] .profession-option:focus{background:#24435f}
