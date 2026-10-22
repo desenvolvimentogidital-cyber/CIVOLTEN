@@ -432,3 +432,83 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
   .auth-wrap,#app{background-image:none!important;background-color:transparent!important}
   #printArea{background:#fff!important;color:#111!important}
 }
+
+
+/* Apresentação informativa na autenticação CIVOLTEN: login primeiro, recursos ao lado. */
+#loginCard.auth-card{
+  max-width:1130px;
+  display:grid;
+  grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);
+  align-items:start;gap:clamp(22px,3.2vw,42px);
+  padding:clamp(22px,3vw,40px);
+}
+#loginCard .auth-main,#loginCard .auth-overview{min-width:0}
+#loginCard .auth-main .brand{margin-bottom:24px}
+#loginCard .auth-main h1{
+  font-size:clamp(30px,3.2vw,44px);line-height:1.13;margin:15px 0 16px;
+}
+#loginCard .auth-main>p{font-size:14px;line-height:1.68}
+#loginCard .auth-main form{gap:14px;margin:21px 0 19px}
+#loginCard .auth-main form .primary{min-height:50px}
+#loginCard .auth-links{margin-bottom:8px}
+#loginCard .auth-explore{
+  display:inline-flex;align-items:center;gap:8px;
+  color:#ffdb81;font-size:12px;font-weight:750;line-height:1.5;
+  text-decoration:underline;text-decoration-color:#f2c1599e;text-underline-offset:4px;
+}
+#loginCard .auth-explore:hover{color:#fff3cc}
+#loginCard .auth-explore:focus-visible{outline:3px solid #ffdb81;outline-offset:5px;border-radius:3px}
+#loginCard .auth-overview{
+  border:1px solid rgba(144,196,231,.37);
+  border-top:3px solid #f0b83e;
+  border-radius:20px;
+  padding:clamp(20px,2.5vw,30px);
+  background:linear-gradient(145deg,rgba(19,58,94,.83),rgba(6,27,51,.91));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+#loginCard .auth-overview-kicker{
+  color:#ffce62;font-size:11px;font-weight:850;letter-spacing:.17em
+}
+#loginCard .auth-overview h2{
+  color:#fff;font-size:clamp(23px,2.45vw,32px);
+  letter-spacing:-.035em;line-height:1.2;margin:14px 0 12px
+}
+#loginCard .auth-overview .auth-overview-lead{
+  color:#e0eafa;font-size:14px;line-height:1.7;margin-bottom:20px
+}
+#loginCard .auth-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+#loginCard .auth-feature{
+  display:flex;gap:11px;align-items:flex-start;min-width:0;
+  border:1px solid rgba(151,188,225,.29);border-radius:13px;
+  background:rgba(12,34,62,.73);padding:14px 12px
+}
+#loginCard .auth-feature-icon{
+  flex:0 0 30px;display:grid;place-items:center;height:30px;
+  border-radius:9px;background:rgba(238,179,50,.15);color:#ffcd60;
+  font-size:18px
+}
+#loginCard .auth-feature h3{color:#fff;font-size:13px;line-height:1.35;margin:1px 0 6px}
+#loginCard .auth-feature p{font-size:11.5px;line-height:1.6;color:#cddff2;margin:0}
+#loginCard .auth-how{margin-top:18px;padding-top:16px;border-top:1px solid rgba(150,188,217,.3)}
+#loginCard .auth-how h3{font-size:14px;color:#ffdb81;margin:0 0 10px}
+#loginCard .auth-how ol{margin:0;padding-left:21px;display:grid;gap:6px}
+#loginCard .auth-how li{font-size:12px;line-height:1.5;color:#e9f1fc}
+#loginCard .auth-how li::marker{color:#f3c054;font-weight:800}
+#loginCard .auth-overview .auth-overview-note{
+  margin:17px 0 0;border-top:1px solid rgba(150,188,217,.3);
+  padding-top:14px;color:#e9f1fc;font-size:11px;line-height:1.6
+}
+@media(max-width:850px){
+  #loginCard.auth-card{display:block;max-width:550px;padding:24px}
+  #loginCard .auth-overview{margin-top:29px;padding:22px}
+  #loginCard .auth-main h1{font-size:clamp(29px,6vw,38px)}
+}
+@media(max-width:420px){
+  #loginCard.auth-card{padding:20px}
+  #loginCard .auth-overview{padding:18px}
+  #loginCard .auth-feature-grid{grid-template-columns:1fr}
+  #loginCard .auth-main .brand{margin-bottom:18px}
+}
+@media print{
+  #loginCard .auth-overview{display:none!important}
+}
