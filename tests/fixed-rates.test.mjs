@@ -52,10 +52,11 @@ test('interface mostra custos mensais/diarios/horarios, ajuste de horas e materi
  const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
  const api=fs.readFileSync(new URL('../api/data.mjs',import.meta.url),'utf8');
  const migration=fs.readFileSync(new URL('../supabase/migrations/20261022_cv_settings_hours_day.sql',import.meta.url),'utf8');
- assert.match(app,/import \{companyRates\} from '\/lib\/civolten-capacity\.mjs'/);
- assert.match(app,/companyRates\(state\.data\.fixed,config\|\|\{\}\)/);
- assert.match(app,/Custo fixo por dia/);
- assert.match(app,/Custo fixo por hora/);
+ const dashboard=fs.readFileSync(new URL('../assets/dashboard.js',import.meta.url),'utf8');
+ assert.match(app,/import \{companyRates,payrollSummary\} from '\/lib\/civolten-capacity\.mjs'/);
+ assert.match(dashboard,/companyRates\(data\.fixed,cfg\|\|\{\},data\.workers\)/);
+ assert.match(dashboard,/Custo por dia/);
+ assert.match(dashboard,/Custo por hora/);
  assert.match(app,/name="hours_day"/);
  assert.match(app,/Somente despesas ativas entram no rateio/);
  assert.match(app,/Esses itens não entram automaticamente no orçamento/);
