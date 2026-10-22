@@ -20,13 +20,13 @@ create policy cv_cash_entries_select on public.cv_cash_entries for select to aut
 create policy cv_cash_entries_insert on public.cv_cash_entries for insert to authenticated
  with check (owner_id=(select auth.uid()) and (select cv_private.is_admin())
  and (budget_id is null or exists (
-  select 1 from public.cv_budgets b where b.id=budget_id and b.owner_id=owner_id
+  select 1 from public.cv_budgets b where b.id=budget_id and b.owner_id=(select auth.uid())
  )));
 create policy cv_cash_entries_update on public.cv_cash_entries for update to authenticated
  using (owner_id=(select auth.uid()) and (select cv_private.is_admin()))
  with check (owner_id=(select auth.uid()) and (select cv_private.is_admin())
  and (budget_id is null or exists (
-  select 1 from public.cv_budgets b where b.id=budget_id and b.owner_id=owner_id
+  select 1 from public.cv_budgets b where b.id=budget_id and b.owner_id=(select auth.uid())
  )));
 create policy cv_cash_entries_delete on public.cv_cash_entries for delete to authenticated
  using (owner_id=(select auth.uid()) and (select cv_private.is_admin()));
