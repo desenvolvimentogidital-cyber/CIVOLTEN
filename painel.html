@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#08182b">
+<title>CIVOLTEN — Orçamentos por custos reais</title><link rel="icon" type="image/png" href="/assets/civolten-logo.png">
+<script src="/assets/theme.js"></script><link rel="stylesheet" href="/assets/app.css"><link rel="stylesheet" href="/assets/proposal-print.css" media="print"><script type="module" src="/assets/app.js"></script></head>
+<body>
+<section id="auth" class="auth-wrap"><button type="button" class="theme-toggle theme-toggle-auth" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false"><span class="theme-icon" aria-hidden="true">☾</span><span class="theme-label">Modo escuro</span></button><div class="auth-card" id="loginCard">
+ <div class="auth-main">
+ <div class="brand" aria-label="CIVOLTEN — Elétrica e Construção Civil"><img class="brand-logo" src="/assets/civolten-logo.png" alt="Símbolo CIVOLTEN"><span class="brand-wordmark-frame"><img class="brand-wordmark" src="/assets/civolten-proposal-header.png" alt="CIVOLTEN — Elétrica & Construção Civil"></span></div>
+ <span class="eyebrow">PAINEL PRIVADO</span><h1>Seus custos. Seu preço.</h1>
+ <p>Orçamentos da sua empresa, calculados com a equipe, as despesas, os impostos e sua margem. Sem tabelas de preços externas.</p>
+ <form id="login"><label>E-mail de acesso<input name="email" type="email" autocomplete="username" required></label>
+ <label>Senha<input name="password" type="password" autocomplete="current-password" minlength="12" required></label>
+ <button class="primary">Entrar com segurança →</button></form>
+ <div class="auth-links"><button type="button" class="subtle" data-auth-mode="recover">Esqueci minha senha</button><button type="button" class="subtle" data-auth-mode="signup">Criar conta de acesso</button></div>
+ <a class="auth-explore" href="#authFeatures">Conheça as funcionalidades do CIVOLTEN <span aria-hidden="true">↓</span></a>
+ <form id="signupForm" hidden><h2>Criar conta</h2><p class="caption">O cadastro precisa ser confirmado por e-mail e aprovado por um administrador. Não libera automaticamente o painel financeiro.</p>
+ <label>Seu e-mail<input name="email" type="email" autocomplete="email" required maxlength="180"></label>
+ <label>Escolha uma senha de 12 ou mais caracteres<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+ <button class="primary" type="submit">Solicitar cadastro</button><button class="subtle" type="button" data-auth-mode="login">Voltar ao login</button></form>
+ <form id="recoverForm" hidden><h2>Recuperar acesso</h2><p class="caption">Informe o e-mail associado à conta. Enviaremos um link de recuperação, caso exista.</p>
+ <label>E-mail cadastrado<input name="email" type="email" autocomplete="email" required maxlength="180"></label>
+ <button class="primary" type="submit">Enviar link de recuperação</button><button class="subtle" type="button" data-auth-mode="login">Voltar ao login</button></form>
+ <form id="passwordForm" hidden><h2>Definir nova senha</h2><p class="caption">Você confirmou o link recebido por e-mail. Escolha uma senha segura.</p>
+ <label>Nova senha<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+ <label>Repita a nova senha<input name="confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+ <button class="primary" type="submit">Salvar nova senha</button></form>
+ <p id="authNotice" class="hint" role="status" aria-live="polite"></p>
+ <p class="hint">Uso exclusivamente interno. Custos e lucro não são compartilhados com clientes.</p>
+ </div>
+ <section class="auth-overview" id="authFeatures" aria-labelledby="authFeaturesTitle">
+  <span class="auth-overview-kicker">CONHEÇA A PLATAFORMA</span>
+  <h2 id="authFeaturesTitle">Da primeira diária ao resultado de cada obra.</h2>
+  <p class="auth-overview-lead">O CIVOLTEN reúne os custos e a gestão dos seus serviços em um só lugar. Você organiza os números da empresa e monta orçamentos com base na sua própria realidade.</p>
+  <div class="auth-feature-grid">
+   <article class="auth-feature"><span class="auth-feature-icon" aria-hidden="true">▣</span><div><h3>Orçamentos reais</h3><p>Monte preços usando seus custos, prazos e margens. Sem tabelas externas.</p></div></article>
+   <article class="auth-feature"><span class="auth-feature-icon" aria-hidden="true">♙</span><div><h3>Equipe e mão de obra</h3><p>Organize profissões, diárias, dias trabalhados e encargos.</p></div></article>
+   <article class="auth-feature"><span class="auth-feature-icon" aria-hidden="true">◇</span><div><h3>Despesas e impostos</h3><p>Controle custos fixos, variáveis e parâmetros de tributação.</p></div></article>
+   <article class="auth-feature"><span class="auth-feature-icon" aria-hidden="true">▤</span><div><h3>Visão financeira</h3><p>Acompanhe valores previstos, margens e lançamentos reais de caixa.</p></div></article>
+  </div>
+  <div class="auth-how"><h3>Como funciona?</h3><ol><li>Cadastre sua equipe e suas despesas.</li><li>Monte o orçamento de cada obra.</li><li>Analise preço, custos e lucro estimado.</li></ol></div>
+  <p class="auth-overview-note">Acesso restrito: novos cadastros precisam de aprovação administrativa para visualizar dados internos.</p>
+ </section>
+</div>
+ <div id="pendingCard" class="auth-card" hidden><div class="brand" aria-label="CIVOLTEN — Elétrica e Construção Civil"><img class="brand-logo" src="/assets/civolten-logo.png" alt="Símbolo CIVOLTEN"><span class="brand-wordmark-frame"><img class="brand-wordmark" src="/assets/civolten-proposal-header.png" alt="CIVOLTEN — Elétrica & Construção Civil"></span></div>
+ <h1>Cadastro recebido</h1><p>Sua conta está autenticada, mas ainda não tem permissão para visualizar orçamentos, salários ou custos.</p>
+ <p>Solicite aprovação ao administrador atual. Você poderá entrar no painel após a autorização.</p>
+ <button id="requestAccess" class="primary">Solicitar aprovação</button>
+ <button id="refreshAccess" class="subtle">Verificar acesso</button>
+ <button id="pendingLogout" class="subtle">Sair</button>
+ <p id="pendingNotice" class="hint" role="status"></p></div>
+ </section>
+<div id="app" hidden><aside class="sidebar">
+ <div class="brand" aria-label="CIVOLTEN — Elétrica e Construção Civil"><img class="brand-logo" src="/assets/civolten-logo.png" alt="Símbolo CIVOLTEN"><span class="brand-wordmark-frame"><img class="brand-wordmark" src="/assets/civolten-proposal-header.png" alt="CIVOLTEN — Elétrica & Construção Civil"></span></div>
+ <span class="eyebrow muted-light">SISTEMA DE GESTÃO</span>
+ <nav aria-label="Navegação"><button data-view="home" class="nav active">◫ Visão geral</button>
+ <button data-view="budgets" class="nav">▤ Orçamentos</button>
+ <button data-view="workers" class="nav">♙ Funcionários</button>
+ <button data-view="fixed" class="nav">⌂ Custos fixos</button>
+ <button data-view="variable" class="nav">◇ Custos variáveis</button>
+ <button data-view="settings" class="nav">⚙ Configurações</button><button data-view="access" class="nav">♙ Acessos</button></nav>
+ <button id="logout" class="logout">Sair da conta ↗</button>
+ </aside>
+ <div class="workspace"><header><strong>Painel interno</strong><div class="header-actions"><span class="pill">● Privado</span><button type="button" class="theme-toggle" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false"><span class="theme-icon" aria-hidden="true">☾</span><span class="theme-label">Modo escuro</span></button></div></header>
+ <main id="content" tabindex="-1"></main></div>
+</div>
+<img id="proposalHeaderArt" hidden src="/assets/civolten-proposal-header.png" alt="" aria-hidden="true"><div id="printArea"></div><div id="flash" role="status" aria-live="polite" hidden></div>
+</body></html>

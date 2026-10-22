@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /painel
+Disallow: /index
+Disallow: /api/
+Allow: /empresa
