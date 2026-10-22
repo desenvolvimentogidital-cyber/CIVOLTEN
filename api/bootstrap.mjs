@@ -7,6 +7,7 @@ import {listRows} from '../lib/civolten-pages.mjs';
 const tables={
  settings:'cv_settings',
  workers:'cv_workers',
+ professions:'cv_professions',
  fixed:'cv_fixed_costs',
  variable:'cv_variable_costs',
  budgets:'cv_budgets'
