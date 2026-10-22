@@ -362,3 +362,73 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
 @media(max-width:1200px){.fin-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:850px){.fin-grid-two{grid-template-columns:1fr}}
 @media(max-width:520px){.fin-kpis{gap:9px}.fin-kpi{padding:13px;gap:8px}.fin-kpi strong{font-size:18px}.fin-panel-header{flex-wrap:wrap}.fin-cash-kpis{grid-template-columns:1fr}.fin-cash-fields{grid-template-columns:1fr}.fin-full{grid-column:auto}.fin-filters label:first-child,.fin-filters label:last-child{min-width:100%}}
+
+
+/* Background oficial CIVOLTEN: obra ao entardecer, azul vivo e dourado.
+   Uma única imagem para autenticação e todas as seções internas;
+   cartões e formulários continuam contrastados para leitura segura. */
+:root{--civolten-wallpaper:url("/assets/civolten-background.webp")}
+.auth-wrap,:root[data-theme="dark"] .auth-wrap,#app{
+  background-color:#0b2748;
+  background-image:linear-gradient(180deg,rgba(4,18,39,.22),rgba(3,19,39,.42)),var(--civolten-wallpaper);
+  background-position:center center,center center;
+  background-repeat:no-repeat,no-repeat;
+  background-size:cover,cover;
+  background-attachment:fixed,fixed
+}
+#app{
+  background-image:linear-gradient(180deg,rgba(3,17,36,.16),rgba(5,21,42,.36)),var(--civolten-wallpaper)
+}
+.auth-card,:root[data-theme="dark"] .auth-card{
+  color:#f6f9ff;
+  background:linear-gradient(145deg,rgba(11,37,67,.94),rgba(7,25,48,.93));
+  border:1px solid rgba(130,187,224,.6);
+  box-shadow:0 20px 68px rgba(1,11,26,.48);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px)
+}
+.auth-card h1{color:#fff;text-shadow:0 2px 13px rgba(0,0,0,.18)}
+.auth-card .eyebrow,:root[data-theme="dark"] .auth-card .eyebrow{color:#ffd36b}
+.auth-card p,.auth-card .hint,:root[data-theme="dark"] .auth-card p{color:#d7e4f4}
+.auth-card label,:root[data-theme="dark"] .auth-card label{color:#f4f7ff}
+.auth-card input,:root[data-theme="dark"] .auth-card input{
+  color:#f7fbff;background:rgba(5,22,42,.82);
+  border:1px solid #557d9f
+}
+.auth-card input::placeholder,:root[data-theme="dark"] .auth-card input::placeholder{color:#bfd0e2}
+.auth-card input:focus,:root[data-theme="dark"] .auth-card input:focus{outline:2px solid #f7c454;border-color:#f7c454}
+.auth-card .primary{color:#0b2748;background:linear-gradient(130deg,#ffda65,#e4a824);box-shadow:0 7px 22px rgba(204,141,13,.20)}
+.auth-card .primary:hover{background:linear-gradient(130deg,#ffe18b,#f0b739)}
+.auth-card .subtle,:root[data-theme="dark"] .auth-card .subtle,
+:root[data-theme="dark"] .auth-links .subtle{
+  color:#f4f9ff;background:rgba(23,57,89,.86);border:1px solid #6488a9
+}
+.auth-card .subtle:hover,:root[data-theme="dark"] .auth-card .subtle:hover{background:#285279}
+#app .sidebar{background:rgba(6,24,46,.96);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+#app .workspace{background:transparent}
+#app .workspace header{
+  color:#fff;background:rgba(7,28,52,.93);
+  border-bottom:1px solid rgba(152,191,221,.3);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)
+}
+#app .workspace header strong,:root[data-theme="dark"] #app .workspace header strong{color:#f6f9ff}
+#app #content>.heading h1,#app #content .fin-section-head h2{color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.3)}
+#app #content>.heading p,#app #content .fin-section-head span{color:#e3edf9;text-shadow:0 1px 6px rgba(0,0,0,.3)}
+#content .card,#content .fin-kpi{
+  background:rgba(255,255,255,.97);color:var(--ink);
+  box-shadow:0 8px 25px rgba(2,13,30,.20)
+}
+#content .summary{color:var(--ink);box-shadow:0 8px 22px rgba(2,13,30,.15)}
+:root[data-theme="dark"] #content .card,
+:root[data-theme="dark"] #content .fin-kpi{
+  background:rgba(16,37,60,.96);color:var(--ink);
+  box-shadow:0 8px 25px rgba(0,0,0,.26)
+}
+@media(max-width:680px){
+  .auth-card{box-shadow:0 10px 34px rgba(0,0,0,.45)}
+  .auth-wrap,#app{background-attachment:scroll,scroll}
+}
+@media print{
+  .auth-wrap,#app{background-image:none!important;background-color:transparent!important}
+  #printArea{background:#fff!important;color:#111!important}
+}
