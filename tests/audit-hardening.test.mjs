@@ -118,12 +118,13 @@ test('auditoria: JSON curto valido e aceito normalmente',async()=>{
 
 test('auditoria: painel avisa quando impostos e margem nao foram configurados',()=>{
  const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
- const dashboard=app.slice(app.indexOf('function dashboard()'),app.indexOf('function inputField('));
- assert.match(dashboard,/const config=state\.data\.settings\[0\]/);
- assert.match(dashboard,/Configuração financeira pendente/);
- assert.match(dashboard,/podem subestimar seu preço/);
+ const dashboard=fs.readFileSync(new URL('../assets/dashboard.js',import.meta.url),'utf8');
+ assert.match(app,/function dashboard\(\)\{/);
+ assert.match(app,/financialDashboard\(\{data:state\.data/);
+ assert.match(dashboard,/const cfg=data\.settings\[0\]/);
+ assert.match(dashboard,/Parâmetros de margem e impostos não configurados/);
  assert.match(dashboard,/role="alert"/);
- assert.match(dashboard,/data-view="settings"/);
- assert.match(dashboard,/Impostos ou margem estão em 0%/);
- assert.match(dashboard,/pricingWarning\+/);
+ assert.match(dashboard,/Impostos ou margem de lucro estão em 0%/);
+ assert.match(dashboard,/settingsWarning\+duplicateWarning/);
+ assert.match(dashboard,/id="dashboardMarginForm"/);
 });
