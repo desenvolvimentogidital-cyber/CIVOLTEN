@@ -151,3 +151,19 @@ No fechamento do orçamento, o usuário simula descontos percentuais. O sistema 
 ## Indicadores por situação
 
 A Visão geral separa **propostas enviadas em aberto**, **obras aprovadas/fechadas** e **rascunhos ainda em preparação**, sem confundir previsão de venda com dinheiro efetivamente recebido. O livro de caixa reflete somente os pagamentos e recebimentos lançados.
+
+## Contratos de prestação de serviços
+
+A aba **Contratos** permite criar, editar, salvar, acompanhar e imprimir contratos em folha A4 (opção do navegador **Salvar como PDF**). O sistema aceita dois cenários: **a CIVOLTEN como prestadora** e **a CIVOLTEN como contratante** de outra empresa ou profissional.
+
+**Configurações → Dados para contratos**: informe uma única vez o nome/razão social legal da sua empresa, CPF/CNPJ, endereço, representante e contatos. Novos contratos fazem uma cópia desses dados. Alterar o perfil depois **não modifica contratos já salvos**.
+
+**Contrato novo:** informe o tipo de contratação, outra parte (nome e CPF/CNPJ), descrição dos serviços, local, datas de início e término, valor global e condições de pagamento. O sistema preenche cláusulas sugeridas sobre materiais, obrigações, alterações, encerramento e garantias. Abra **Revisão das cláusulas** para editar o texto ou incluir condições particulares e foro; esses valores são **editáveis**, não conclusões automáticas sobre a lei.
+
+**Contrato a partir de orçamento:** gera minuta com nome da obra, cliente, endereço, escopo/quantidades e preço final salvos naquele orçamento. **Não importa equipe, custos, impostos, lucro ou margens**. Complete as informações restantes antes de emitir ou imprimir.
+
+**Estados:** rascunho, emitido, assinado (marcação manual) e cancelado. Marcar como assinado **não significa** aplicar assinatura eletrônica. Para emitir ou marcar como assinado, a API exige os dados essenciais completos. Contratos incompletos podem ser guardados como rascunho.
+
+**Isolamento:** cada contrato e perfil tem `owner_id`, controlado por quatro políticas RLS por usuário autenticado. Um contrato vinculado a orçamento só pode referenciar um orçamento do mesmo usuário. Nenhum dado de outra conta deve ser consultável, editável ou impresso.
+
+**Revisão jurídica:** trata-se de minuta genérica de prestação de serviços. O texto deve ser revisado para o serviço concreto, natureza da contratação, normas aplicáveis, responsáveis técnicos, tributação, materiais, garantia, rescisão e forma de assinatura. O sistema não substitui advogado, contador ou responsáveis habilitados.

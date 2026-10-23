@@ -1,5 +1,6 @@
 import {SUPABASE,KEY,json,sameOrigin,browserAllowed,readBody,cookieToken,authorized} from '../lib/civolten-security.mjs';
 import {calculateBudget} from '../lib/civolten-calc.mjs';
+import {sanitizeContract,validateContractForExport} from '../lib/civolten-contract.mjs';
 import {listRows} from '../lib/civolten-pages.mjs';
 const models={
  settings:['cv_settings','workdays_month','billable_days_month','hours_day','tax_pct','margin_pct'],
@@ -8,7 +9,9 @@ const models={
  fixed:['cv_fixed_costs','name','category','monthly_cents','active'],
  variable:['cv_variable_costs','name','category','unit','unit_cents'],
  budgets:['cv_budgets','title','customer','status','content'],
- cash:['cv_cash_entries','kind','amount_cents','description','category','occurred_on','budget_id']
+ cash:['cv_cash_entries','kind','amount_cents','description','category','occurred_on','budget_id'],
+ contracts:['cv_contracts','title','counterparty','status','content','budget_id'],
+ contract_profiles:['cv_contract_profiles','company_name','company_document','company_address','company_representative','company_phone','company_email','city']
 };
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export default {async fetch(req){
@@ -45,6 +48,23 @@ export default {async fetch(req){
        ||Number.isNaN(new Date(data.occurred_on+'T12:00:00Z').getTime()))
      throw Error('Data inválida');
     if(data.budget_id!=null&&!uuid.test(data.budget_id))throw Error('Obra vinculada inválida');
+   }
+   if(entity==='contracts'){
+    if(typeof data.title!=='string'||data.title.trim().length<3||data.title.length>180)throw Error('Informe o nome do contrato (até 180 caracteres).');
+    if(!['rascunho','emitido','assinado','cancelado'].includes(data.status))throw Error('Situação do contrato inválida.');
+    data.content=sanitizeContract(data.content);
+    if(data.status==='emitido'||data.status==='assinado')validateContractForExport(data.content);
+    data.counterparty=data.content.counterparty_name;
+    if(data.budget_id!=null&&!uuid.test(data.budget_id))throw Error('Vínculo com orçamento inválido.');
+    data.budget_id=data.budget_id||null;
+    data.updated_at=new Date().toISOString();
+   }
+   if(entity==='contract_profiles'){
+    for(const [key,value] of Object.entries(data)){
+     if(typeof value!=='string'||value.length>250)throw Error('Dados da empresa inválidos: '+key);
+     data[key]=value.trim();
+    }
+    data.updated_at=new Date().toISOString();
    }
    if(entity==='budgets'){
     if(!data.content||typeof data.content!=='object'||Array.isArray(data.content)||JSON.stringify(data.content).length>55000)throw Error('Orçamento inválido ou extenso');
