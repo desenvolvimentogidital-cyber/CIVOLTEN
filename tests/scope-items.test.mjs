@@ -28,8 +28,9 @@ test('imprime lista descritiva com quantidades e unidade para o cliente',()=>{
  assert.match(html,/22,25/);
  assert.match(html,/ponto/);
  assert.match(html,/R\$\s*16\.500,00/);
- assert.equal((html.match(/<tbody>/g)||[]).length,1);
- assert.equal((html.match(/<tr>/g)||[]).length,6);
+ const quantityHtml=html.match(/<table class="proposal-quantity-table"[\s\S]*?<\/table>/)?.[0]||'';
+ assert.equal((html.match(/class="proposal-quantity-table"/g)||[]).length,1);
+ assert.equal((quantityHtml.match(/<tr>/g)||[]).length,6);
 });
 
 test('memorial descritivo jamais expoe custos internos ou precos por unidade',()=>{

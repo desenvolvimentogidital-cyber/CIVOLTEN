@@ -37,6 +37,9 @@ O CIVOLTEN usa autenticação Supabase, cookie `HttpOnly; Secure; SameSite=Stric
 A aplicação atual usa HTML/JavaScript modular e funções Vercel; não é Next.js/React nem depende de Tailwind. A identidade azul-escuro/dourado e o modo escuro foram preservados. `main` faz um único deploy de produção (previews desabilitados), sempre após os testes do CI.
 
 ## Proposta comercial em PDF (layout corporativo)
+
+**Modelo CIVOLTEN de sete páginas (outubro/2026):** o botão **Exportar Proposta Comercial (PDF)**, em Orçamentos, utiliza agora uma proposta A4 ilustrada e identificada com a marca CIVOLTEN em todas as páginas: capa, apresentação, escopo civil, escopo elétrico, metodologia, investimento/condições comerciais e garantias/aceite. Informações longas geram páginas adicionais em vez de serem descartadas. O texto do orçamento pode ser complementado com apresentação, descrições civis e elétricas, metodologia, responsável técnico, validade, pagamento e garantias. Os quantitativos podem ser classificados como gerais/civis ou elétricos; nenhum custo unitário ou margem interna será exibido ao cliente. Rascunhos incompletos continuam permitidos, mas a emissão bloqueia ausência de dados comerciais essenciais e destaca os respectivos campos. As novas regras de impressão não se aplicam à aba **Contratos**.
+
 No editor de orçamento, escolha **Gerar PDF / imprimir proposta**. No diálogo de impressão do celular ou computador, selecione **Salvar como PDF** para gerar o arquivo A4 para enviar pelo WhatsApp ou e-mail.
 
 O novo documento inclui a marca CIVOLTEN, identificação do projeto e cliente, data e referência quando o orçamento está salvo, prazo, descrição do escopo, condições informadas pelo administrador, investimento total e campos para aceite. A folha é sempre clara, independentemente do tema da interface. O PDF é formado no navegador; não adiciona arquivos externos nem envia o orçamento a serviços de terceiros.
