@@ -6,6 +6,7 @@ import {financialDashboard,projectResults} from '/assets/dashboard.js';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
 import {buildArtProposalHtml} from '/lib/civolten-proposal-art.mjs';
 import {openArtProposalPreview} from '/assets/proposal-art-preview.js';
+import {installOfficialProposalArts,officialProposalArtUrls,applyOfficialArtUrls} from '/assets/proposal-art-assets.js';
 import {electricalProposalPreset} from '/lib/civolten-proposal-text.mjs';
 import {contractDefaults,defaultContractCompany,contractFromBudget,buildContractHtml} from '/lib/civolten-contract.mjs';
 import {contractList,contractEditor,contractProfilePanel} from '/assets/contracts.js';
@@ -239,6 +240,7 @@ function settings(){
 function budgetList(){
  const rows=state.data.budgets;
  return title('Orçamentos','Nenhuma referência de preços. Cada proposta nasce dos custos desta obra.','<button class="primary" data-action="new-budget">+ Novo orçamento</button>')+
+ '<section class="card cv-art-loader"><h2>Artes originais da proposta CIVOLTEN</h2><p>Para testar a proposta exatamente como as imagens aprovadas, carregue uma vez o pacote ZIP oficial. Ele fica salvo apenas neste navegador, sem enviar fotos, orçamentos ou valores para outros serviços.</p><button type="button" class="secondary" data-action="install-proposal-arts">Carregar artes originais (ZIP)</button><p class="hint">Depois, abra qualquer orçamento e use Ver proposta profissional (7 páginas).</p></section>'+
  '<section class="card"><h2>Histórico de propostas</h2>'+
  (rows.length?rows.map(b=>'<div class="entry"><div><strong>'+esc(b.title)+'</strong><small>'+esc(b.customer||'Cliente não informado')+' · '+new Date(b.created_at).toLocaleDateString('pt-BR')+'</small><small class="status '+esc(b.status)+'">'+esc(b.status)+'</small></div>'+
  '<div class="actions"><span class="price">'+brl(b.price_cents)+'</span><button class="subtle small" data-action="open-budget" data-id="'+esc(b.id)+'">Abrir</button><button class="secondary small" data-action="preview-saved-budget" data-id="'+esc(b.id)+'">Ver proposta</button><button class="subtle small" data-action="create-contract-from-budget" data-id="'+esc(b.id)+'">Gerar contrato</button><button class="danger small" data-action="delete-budget" data-id="'+esc(b.id)+'">Excluir</button></div></div>').join(''):empty('Nenhum orçamento salvo ainda.'))+'</section>';
@@ -329,7 +331,7 @@ function editor(){
  '<label>Desconto (%)<input type="number" min="0" max="100" step="0.5" data-discount-number value="'+esc(b.discount_pct??0)+'"></label></div></div>'+
  '<div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button>'+
  '<button class="secondary" type="button" data-action="preview-art-budget">Ver proposta profissional (7 páginas)</button>'+
- '<button class="subtle" data-action="print-budget">Exportar Proposta Comercial (PDF)</button></div>'+
+ '<button class="subtle" data-action="print-budget">Exportar Proposta Comercial (PDF)</button><button class="subtle" type="button" data-action="install-proposal-arts">Carregar artes originais (ZIP)</button></div>'+
  '<p class="hint">O PDF contém somente o escopo, prazos e preço global. Custos, impostos, diárias e lucro continuam sigilosos.</p></aside></div>';
 }
 function summary(){
@@ -453,6 +455,7 @@ async function printBudget(){
  }
  // O valor e apenas comercial. As duas artes sao recursos oficiais locais e obrigatorios.
  // Nunca omitir a logo por uma condicao de carregamento da tela de login.
+ const artUrls=await officialProposalArtUrls();
  const html=buildArtProposalHtml(b,{
   priceCents:r.price_cents,
   id:state.draftId,
@@ -462,7 +465,8 @@ async function printBudget(){
  });
  const div=$('#printArea');
  div.innerHTML=html;
- // Aguarda o carregamento das DUAS imagens antes de abrir a impressao no celular.
+ applyOfficialArtUrls(div,artUrls);
+ // Aguarda todas as sete artes oficiais antes de abrir a impressão no celular.
  try{
   await Promise.all([...div.querySelectorAll('img')].map(img=>img.decode()));
  }catch{
@@ -628,6 +632,17 @@ document.addEventListener('click',async ev=>{
   else if(action==='save-contract')await saveContract();
   else if(action==='print-contract')await printContract();
   else if(action==='new-budget')startBudget();
+  else if(action==='install-proposal-arts'){
+   const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='.zip,application/zip';fileInput.style.display='none';
+   fileInput.onchange=async()=>{
+    try{const file=fileInput.files?.[0];if(!file)return;
+     const count=await installOfficialProposalArts(file);
+     flash(count+' artes oficiais instaladas. Agora pode visualizar e exportar a proposta profissional.');
+    }catch(err){flash(err.message||'Não foi possível carregar o pacote de artes.')}
+    finally{fileInput.remove()}
+   };
+   document.body.appendChild(fileInput);fileInput.click();
+  }
   else if(action==='preview-saved-budget'){
    const row=state.data.budgets.find(x=>x.id===id);
    if(!row)throw Error('Orçamento não encontrado.');
