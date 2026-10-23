@@ -15,10 +15,10 @@ test('identifica textos livres e exclui senha, email, numeros, datas e campos in
  assert.equal(isDictationField(field('INPUT','text',{dataset:{noDictation:''}})),false);
 });
 test('fala é acrescentada ao texto existente sem apagar descricoes da obra',()=>{
- assert.deepEqual(insertDictation('Execução de','instalação elétrica',10,10),
-  {value:'Execução de instalação elétrica',cursor:29});
+ assert.deepEqual(insertDictation('Execução de','instalação elétrica',11,11),
+  {value:'Execução de instalação elétrica',cursor:'Execução de instalação elétrica'.length});
  assert.deepEqual(insertDictation('instalação elétrica','troca de disjuntores',19,19),
-  {value:'instalação elétrica troca de disjuntores',cursor:39});
+  {value:'instalação elétrica troca de disjuntores',cursor:'instalação elétrica troca de disjuntores'.length});
 });
 test('ditado no cursor mantém texto anterior e posterior',()=>{
  const value='obra concluída',at=value.indexOf('concluída');
