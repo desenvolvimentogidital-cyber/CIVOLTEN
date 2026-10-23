@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {insertDictation,isDictationField,dictationErrorMessage,startVoiceFields} from '../assets/voice.js';
+import {insertDictation,isDictationField,dictationErrorMessage,startVoiceFields,mergeSpeechResults,cleanSpeechSegment} from '../assets/voice.js';
 
 test('identifica textos livres e exclui senha, email, numeros, datas e campos inativos',()=>{
  const field=(tagName,type,extras={})=>({tagName,type,disabled:false,readOnly:false,dataset:{},...extras});
@@ -129,4 +129,51 @@ test('módulo acompanha campos dinâmicos do orçamento e não grava áudio no s
  assert.match(css,/\.voice-field-wrap/);
  assert.match(css,/\.voice-mic-button\.voice-listening/);
  assert.match(css,/@media\(max-width:680px\)/);
+});
+
+
+test('segmentos repetidos do navegador não geram Kleber Kleber Nunes',()=>{
+ const r=t=>({0:{transcript:t},length:1});
+ assert.equal(mergeSpeechResults([r('Kleber'),r('Kleber Nunes')]),'Kleber Nunes');
+ assert.equal(mergeSpeechResults([r('Kleber'),r('Kleber'),r('Kleber Nunes')]),'Kleber Nunes');
+ assert.equal(mergeSpeechResults([r('Kleber'),r('Kleber'),r('Kleber'),r('Kleber')]),'Kleber');
+ assert.equal(mergeSpeechResults([r('Cleber'),r('Cleber Nunes')]),'Cleber Nunes');
+});
+test('remove repetição de palavra ou expressão dentro de um segmento único',()=>{
+ assert.equal(cleanSpeechSegment('Kleber Kleber Kleber Nunes'),'Kleber Nunes');
+ assert.equal(cleanSpeechSegment('instalação elétrica instalação elétrica'),'instalação elétrica');
+ assert.equal(cleanSpeechSegment('troca de disjuntores troca de disjuntores e tomadas'),'troca de disjuntores e tomadas');
+});
+test('mantém texto corrido de descrições e mescla só as sobreposições',()=>{
+ const r=t=>[{transcript:t}];
+ assert.equal(mergeSpeechResults([
+  r('instalação elétrica'),r('elétrica residencial'),r('revisão dos disjuntores'),
+  r('disjuntores do quadro de distribuição')
+ ]),'instalação elétrica residencial revisão dos disjuntores do quadro de distribuição');
+ assert.equal(mergeSpeechResults([r('instalação de'),r('instalação de tomadas e interruptores')]),'instalação de tomadas e interruptores');
+ assert.equal(mergeSpeechResults([r('instalação elétrica'),r('pintura predial')]),'instalação elétrica pintura predial');
+ assert.equal(mergeSpeechResults([r('Quarto'),r('Quarto 2')]),'Quarto 2');
+});
+test('microfone ao vivo substitui palavras parciais sem repeti-las em resultados cumulativos',()=>{
+ const env=fakePage(),manager=startVoiceFields({root:env.root,notify:()=>{}});
+ env.field.value='';
+ env.field.selectionStart=0;env.field.selectionEnd=0;
+ env.buttons[0].click();
+ const r=env.MockSpeech.last;
+ const phrase=t=>[{transcript:t}];
+ r.onresult({results:[phrase('Kleber')]});
+ assert.equal(env.field.value,'Kleber');
+ r.onresult({results:[phrase('Kleber'),phrase('Kleber Nunes')]});
+ assert.equal(env.field.value,'Kleber Nunes');
+ r.onresult({results:[phrase('Kleber'),phrase('Kleber Nunes'),phrase('Kleber Nunes')]});
+ assert.equal(env.field.value,'Kleber Nunes');
+ // Um novo trecho efetivo acrescenta texto sem reintroduzir as palavras anteriores.
+ r.onresult({results:[phrase('Kleber'),phrase('Kleber Nunes'),phrase('eletricista')]});
+ assert.equal(env.field.value,'Kleber Nunes eletricista');
+ manager.disconnect();
+});
+test('não elimina o texto digitado antes do ditado e respeita fim do campo',()=>{
+ const original='Cliente: ';
+ const transcript=mergeSpeechResults([[{transcript:'Kleber'}],[{transcript:'Kleber Nunes'}]]);
+ assert.equal(insertDictation(original,transcript,original.length,original.length,25).value,'Cliente: Kleber Nunes');
 });
