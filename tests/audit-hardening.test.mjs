@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {calculateBudget} from '../lib/civolten-calc.mjs';
 import {listRows} from '../lib/civolten-pages.mjs';
-import {readBody,EDGE,SUPABASE} from '../lib/civolten-security.mjs';
+import {readBody,SUPABASE} from '../lib/civolten-security.mjs';
 import dataApi from '../api/data.mjs';
 
 const basis={days:5,staff:[{daily_cents:20000,days:5,charges_pct:0}],expenses:[{unit_cents:50000,qty:1}],pricing:{fixed_monthly_cents:220000,billable_days_month:22,tax_pct:10,margin_pct:20}};
@@ -82,7 +82,7 @@ test('auditoria: API impede falso sucesso ao editar ou excluir id sem resultado'
  const token='a'.repeat(96),uuid='2f8e7050-f56e-4d31-973d-b53295960819';
  await withMock(async url=>{
   const u=String(url);
-  if(u.startsWith(EDGE))return Response.json({authenticated:true});
+  if(u.startsWith(SUPABASE+'/auth/v1/user'))return Response.json({id:'550e8400-e29b-41d4-a716-446655440000'});
   if(u.startsWith(SUPABASE+'/rest/v1/cv_workers'))return Response.json([]);
   throw Error('Endpoint inesperado');
  },async()=>{
