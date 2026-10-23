@@ -672,9 +672,16 @@ attachFormValidation();
 function activeValidationIssues(){
  if(state.view==='editor'&&state.draft)return budgetIssues(state.draft,{forPdf:lastValidationMode==='budget-pdf'});
  if(state.view==='contract-editor'&&state.contractDraft)return contractIssues(state.contractDraft,{forExport:lastValidationMode==='contract-pdf'||['emitido','assinado'].includes(state.contractDraft.status)});
+ if(state.view==='home'){
+  const f=document.querySelector('#dashboardMarginForm');
+  if(f)return taxMarginIssues(f.elements.namedItem('tax_pct').value,f.elements.namedItem('margin_pct').value);
+ }
  if(state.view==='settings'){
+  const finance=document.querySelector('#settingsForm');
+  const financial=finance?taxMarginIssues(finance.elements.namedItem('tax_pct').value,finance.elements.namedItem('margin_pct').value):[];
   const form=document.querySelector('#contractProfileForm');
-  if(form&&!validBrazilDocument(form.elements.namedItem('company_document').value))return [{selector:'[name="company_document"]',message:'Informe um CPF ou CNPJ válido.'}];
+  if(form&&!validBrazilDocument(form.elements.namedItem('company_document').value))return [...financial,{selector:'[name="company_document"]',message:'Informe um CPF ou CNPJ válido.'}];
+  return financial;
  }
  return [];
 }
