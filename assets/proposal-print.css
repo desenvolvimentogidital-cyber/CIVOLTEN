@@ -624,3 +624,92 @@
     border-top:.35mm solid #8ca1b4;
   }
 }
+
+
+/* CIVOLTEN | Contratos completos v2.
+   Exclusivo ao seletor .contract-document-v2; sem qualquer alteração no
+   gerador comercial, nos contratos legados ou na impressão de orçamentos. */
+@media print {
+ #printArea .contract-document-v2{
+   font-family:Arial,"Helvetica Neue",sans-serif;
+   color:#192e43;font-size:9pt;line-height:1.55;
+   background:#fff;
+ }
+ #printArea .contract-document-v2 .contract-document-head{
+   background:linear-gradient(100deg,#071b32 0%,#133750 94%);
+   color:white;border-bottom:3px solid #e4b75d;
+   padding:13px 15px;margin:0 0 13px;
+   border-radius:0;gap:14px;
+ }
+ #printArea .contract-document-v2 .contract-document-head img{
+   width:61px;height:61px;flex:0 0 61px;
+   filter:drop-shadow(0 1px 3px #0007);
+ }
+ #printArea .contract-document-v2 .contract-document-head span{
+   color:#efc879;letter-spacing:1.2px;font-size:7.7pt;
+ }
+ #printArea .contract-document-v2 .contract-document-head h1{
+   color:white;font-size:16pt!important;line-height:1.15;
+   letter-spacing:.08pt;margin:4px 0 5px;
+ }
+ #printArea .contract-document-v2 .contract-document-head p{
+   color:#e0ebf5;font-size:8pt;line-height:1.32;
+ }
+ #printArea .contract-document-v2 .contract-document-parties{
+   background:linear-gradient(145deg,#f8fafd,#eff4f8);
+   border:1px solid #d8e1ea;
+   border-left:4px solid #d8a543;
+   border-radius:4px;padding:11px 13px;margin:13px 0;
+ }
+ #printArea .contract-document-v2 .contract-document-parties h2{
+   color:#0a2a46;font-size:10.3pt;margin:0 0 8px;
+   padding:0 0 5px;border-bottom:1px solid #d8e2eb;
+ }
+ #printArea .contract-document-v2 .contract-document-parties p{
+   font-size:8.7pt;line-height:1.51;margin:7px 0;
+ }
+ #printArea .contract-document-v2 .contract-document-intro{
+   font-size:8.6pt;color:#394f63;
+   border-left:3px solid #ca9938;
+   padding:5px 9px;margin:14px 0;
+   background:#fbfbfb;
+ }
+ #printArea .contract-document-v2 .contract-clause-v2{
+   position:relative;margin:11px 0 12px;
+   padding:0 0 2px;page-break-inside:auto;
+   break-inside:auto;
+ }
+ #printArea .contract-document-v2 .contract-clause-v2 h2{
+   font-size:9.6pt!important;color:#0b2b46;
+   border:none;border-bottom:1px solid #d5e1e8;
+   border-left:3px solid #d2a045;
+   padding:4px 5px 5px 10px!important;
+   margin:0 0 6px!important;
+   line-height:1.4;
+   background:linear-gradient(90deg,#f3f7fa,transparent);
+   break-after:avoid;page-break-after:avoid;
+ }
+ #printArea .contract-document-v2 .contract-clause-v2 p{
+   margin:0 0 2px;
+   padding:0 5px;
+   font-size:8.85pt;
+   line-height:1.54;
+   color:#233a4e;
+   white-space:pre-wrap;
+   orphans:3;widows:3;
+ }
+ #printArea .contract-document-v2 .contract-signatures{
+   page-break-inside:avoid;break-inside:avoid;
+   margin-top:27px;padding-top:10px;
+   border-top:2px solid #d3a244;
+ }
+ #printArea .contract-document-v2 .contract-signature-grid{margin:23px 0}
+ #printArea .contract-document-v2 .contract-signature-grid span{
+   border-top:1px solid #263849;
+ }
+ #printArea .contract-document-v2 .contract-foot{
+   background:#f2f5f9;border-top:1px solid #d6a448;
+   font-size:7.5pt;line-height:1.4;
+   padding:8px 9px;margin:20px 0 0;color:#4f6274;
+ }
+}
