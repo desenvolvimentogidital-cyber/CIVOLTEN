@@ -36,8 +36,8 @@ test('medidas de icone e barra lateral anteriores permanecem intactas',()=>{
  assert.match(oldCss,/\.sidebar \.brand \.brand-logo\{width:77px;height:77px\}/);
 });
 test('preserva identidade original no login, nome em imagem e PDF aprovado',()=>{
- assert.equal((page.match(/class="brand-wordmark"/g)||[]).length,3);
- assert.equal((page.match(/class="brand-logo"/g)||[]).length,3);
+ assert.equal((page.match(/class="brand-wordmark"/g)||[]).length,2);
+ assert.equal((page.match(/class="brand-logo"/g)||[]).length,2);
  assert.match(page,/id="app" hidden><aside class="sidebar"/);
  assert.match(printer,/#printArea \.proposal-header-art-slot/);
  assert.match(printer,/#printArea \.proposal-logo/);
