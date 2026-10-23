@@ -21,6 +21,12 @@ begin
   execute format('create policy %I on public.%I for delete to authenticated using (owner_id = (select auth.uid()))','cv_tenant_delete',t);
  end loop;
 end $$;
+-- A tabela do caixa foi criada depois das demais e utiliza nomes antigos
+-- de políticas sem o prefixo cv_cv_. Removê-las antes de recriar as regras.
+drop policy if exists cv_cash_entries_select on public.cv_cash_entries;
+drop policy if exists cv_cash_entries_insert on public.cv_cash_entries;
+drop policy if exists cv_cash_entries_update on public.cv_cash_entries;
+drop policy if exists cv_cash_entries_delete on public.cv_cash_entries;
 -- Regras do caixa continuam impedindo associação a orçamento alheio,
 -- inclusive se o usuário alterar o identificador na requisição.
 drop policy if exists cv_tenant_insert on public.cv_cash_entries;
@@ -46,7 +52,7 @@ create policy cv_tenant_professions_insert on public.cv_professions for insert t
  with check (owner_id=(select auth.uid()));
 -- Limpar aprovação e permissões administrativas obsoletas.
 drop function if exists public.cv_approve_access_request(uuid);
-drop function if exists cv_private.is_admin();
 drop table if exists public.cv_access_requests;
+drop function if exists cv_private.is_admin();
 drop table if exists public.admin_users;
 commit;
