@@ -1,6 +1,5 @@
 /* CIVOLTEN | Documento comercial A4 (somente impressao ou salvar em PDF). */
-@page{
- size:A4;margin:13mm 14mm;
+@page{size:A4;margin:13mm 14mm;
  @bottom-right{content:"CIVOLTEN · pág. " counter(page) " de " counter(pages);font:8pt Arial,sans-serif;color:#66778a}
 }
 @media print{
