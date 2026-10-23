@@ -77,9 +77,9 @@ export function contractEditor(c,id,profile,budgets,esc,brl,title){
  (!companyConfigured?'<p class="warning">Antes de imprimir, preencha nome legal e CPF/CNPJ da empresa nas Configurações.</p>':'')+
  '</div></section></div>'+
  '<aside class="summary contract-summary"><h2>Resumo do contrato</h2>'+
- '<div class="sumrow"><span>Outra parte</span><strong>'+esc(c.counterparty_name||'A preencher')+'</strong></div>'+
- '<div class="sumrow"><span>Valor global</span><strong>'+brl(c.value_cents)+'</strong></div>'+
- '<div class="sumrow"><span>Prazo</span><strong>'+esc(c.start_on||'—')+' até '+esc(c.end_on||'—')+'</strong></div>'+
+ '<div class="sumrow"><span>Outra parte</span><strong id="contractSummaryParty">'+esc(c.counterparty_name||'A preencher')+'</strong></div>'+
+ '<div class="sumrow"><span>Valor global</span><strong id="contractSummaryValue">'+brl(c.value_cents)+'</strong></div>'+
+ '<div class="sumrow"><span>Prazo</span><strong id="contractSummaryDates">'+esc(c.start_on||'—')+' até '+esc(c.end_on||'—')+'</strong></div>'+
  '<label>Situação<select id="contractStatus">'+Object.entries({rascunho:'Rascunho',emitido:'Emitido',assinado:'Assinado (marcação manual)',cancelado:'Cancelado'}).map(([value,label])=>
  '<option value="'+value+'" '+((c.status||'rascunho')===value?'selected':'')+'>'+label+'</option>').join('')+'</select></label>'+
  '<p class="hint">“Assinado” é apenas um registro administrativo. Este módulo não faz assinatura eletrônica.</p>'+
