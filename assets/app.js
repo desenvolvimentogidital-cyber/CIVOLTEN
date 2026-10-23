@@ -264,23 +264,23 @@ function editor(){
    '<span class="budget-team-tag '+(monthly?'budget-team-monthly':'budget-team-project')+'">'+
    (monthly?'Equipe fixa · já coberta pela folha mensal':(x.cost_mode==='project'?'Por obra':'Cadastro anterior')+' · '+brl(dailyRef)+'/dia')+'</span>'+
    (!monthly&&num(x.charges_pct)>0?'<small>Encargos do cadastro: '+num(x.charges_pct)+'%</small>':'')+
-   '</div><label>Dia(s) na obra<input data-staff-days="'+i+'" type="number" min=".5" max="10000" step=".5" value="'+esc(x.days)+'"></label>'+
+   '</div><label>Dia(s) na obra<input data-staff-days="'+i+'" required type="number" min=".5" max="10000" step=".5" value="'+esc(x.days)+'"></label>'+
    '<div class="budget-team-cost"><small>'+ (monthly?'Incluso no custo mensal':'Custo adicional') +'</small><strong data-staff-cost="'+i+'">'+(monthly?'Já considerado':brl(amount))+'</strong></div>'+
    '<button type="button" class="danger small" data-action="remove-staff" data-index="'+i+'" aria-label="Remover '+esc(x.name)+' da obra">Remover</button></div>';
  }).join('');
- const expenseLines=(b.expenses||[]).map((x,i)=>'<div class="line"><div><strong>'+esc(x.name)+'</strong><small>'+brl(x.unit_cents)+' / '+esc(x.unit||'un')+'</small></div><label class="line-label">Qtd.<input data-expense-qty="'+i+'" type="number" min="0" step=".01" value="'+esc(x.qty)+'"></label><span class="price">'+brl(Math.round(x.unit_cents*x.qty))+'</span><button class="danger" data-action="remove-expense" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
+ const expenseLines=(b.expenses||[]).map((x,i)=>'<div class="line"><div><strong>'+esc(x.name)+'</strong><small>'+brl(x.unit_cents)+' / '+esc(x.unit||'un')+'</small></div><label class="line-label">Qtd.<input data-expense-qty="'+i+'" required type="number" min="0" step=".01" value="'+esc(x.qty)+'"></label><span class="price">'+brl(Math.round(x.unit_cents*x.qty))+'</span><button class="danger" data-action="remove-expense" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
  const scopeUnits=['m²','m','m³','un','ponto','serviço'];
  const scopeLines=(b.scope_items||[]).map((item,i)=>'<div class="scope-entry">'+
-  '<label>Serviço <input data-scope-description="'+i+'" maxlength="180" value="'+esc(item.description||'')+'" placeholder="Ex.: Execução de parede em drywall"></label>'+
+  '<label>Serviço <input data-scope-description="'+i+'" required maxlength="180" value="'+esc(item.description||'')+'" placeholder="Ex.: Execução de parede em drywall"></label>'+
   '<label>Unidade <select data-scope-unit="'+i+'">'+scopeUnits.map(u=>'<option value="'+esc(u)+'" '+((item.unit||'m²')===u?'selected':'')+'>'+esc(u)+'</option>').join('')+'</select></label>'+
-  '<label>Quantidade <input data-scope-quantity="'+i+'" type="number" min="0.01" max="1000000" step="0.01" value="'+esc(item.quantity??1)+'"></label>'+
+  '<label>Quantidade <input data-scope-quantity="'+i+'" required type="number" min="0.01" max="1000000" step="0.01" value="'+esc(item.quantity??1)+'"></label>'+
   '<button type="button" class="danger scope-remove" data-action="remove-scope" data-index="'+i+'" aria-label="Remover serviço '+(i+1)+'">Remover</button></div>').join('');
  return title(state.draftId?'Editar orçamento':'Novo orçamento','Selecione a equipe, descreva o serviço e inclua materiais só quando necessário. Os custos e percentuais vêm das configurações.','<button class="subtle" data-view="budgets">← Voltar</button>')+
  '<div class="editor budget-simple-editor"><div class="stack"><section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">1</span><div><h2>Dados da obra</h2><p>Informe o serviço e a duração prevista.</p></div></div><div class="grid">'+
- '<label>Nome da obra / orçamento<input data-draft="title" maxlength="150" value="'+esc(b.title)+'" placeholder="Ex.: Reforma de banheiro"></label>'+
- '<label>Cliente<input data-draft="customer" maxlength="150" value="'+esc(b.customer)+'" placeholder="Nome do cliente"></label>'+
- '<label>Local da obra<input data-draft="address" maxlength="250" value="'+esc(b.address)+'"></label>'+
- '<label>Dias previstos de execução<input data-draft="days" type="number" min=".5" step=".5" value="'+esc(b.days)+'"></label>'+
+ '<label>Nome da obra / orçamento<input data-draft="title" required maxlength="150" value="'+esc(b.title)+'" placeholder="Ex.: Reforma de banheiro"></label>'+
+ '<label>Cliente<input data-draft="customer" required maxlength="150" value="'+esc(b.customer)+'" placeholder="Nome do cliente"></label>'+
+ '<label>Local da obra<input data-draft="address" required maxlength="250" value="'+esc(b.address)+'"></label>'+
+ '<label>Dias previstos de execução<input data-draft="days" required type="number" min=".5" step=".5" value="'+esc(b.days)+'"></label>'+
  '<label>Situação<select data-draft="status">'+['rascunho','enviado','aprovado','recusado'].map(x=>'<option value="'+x+'" '+(b.status===x?'selected':'')+'>'+x+'</option>').join('')+'</select></label>'+
  '<label class="wide">Serviços que serão executados<textarea data-draft="services" placeholder="Descreva os serviços e quantidades reais, sem preços externos">'+esc(b.services)+'</textarea></label>'+
  '</div><details class="budget-more-details" '+(b.notes?'open':'')+'><summary>Condições, observações e prazo (opcional)</summary>'+
@@ -598,7 +598,7 @@ document.addEventListener('click',async ev=>{
   else if(action==='create-contract-from-budget')startContract(null,state.data.budgets.find(x=>x.id===id));
   else if(action==='contract-from-selected-budget'){
    const budget=state.data.budgets.find(x=>x.id===$('#contractFromBudgetSelect')?.value);
-   if(!budget)throw Error('Selecione um orçamento.');
+   if(!budget){validateArea(document.querySelector('#content'),{issues:[{selector:'#contractFromBudgetSelect',message:'Selecione o orçamento de origem.'}],checkRequired:false});return}
    startContract(null,budget);
   }
   else if(action==='delete-contract'){
@@ -623,18 +623,22 @@ document.addEventListener('click',async ev=>{
   }
   else if(action==='add-worker'){
    const x=state.data.workers.find(x=>x.id===$('#workerSelect').value);
-   if(!x)throw Error('Selecione um profissional cadastrado.');
+   if(!x){validateArea(document.querySelector('.budget-simple-editor'),{issues:[{selector:'#workerSelect',message:'Selecione um profissional antes de adicionar.'}],checkRequired:false});return}
    if(staffAlreadyAdded(b.staff,x.id))throw Error('Este profissional já está selecionado para a obra.');
    b.staff.push(createBudgetStaff(x,b.days));render();
   }
   else if(action==='add-variable'){
    const x=state.data.variable.find(x=>x.id===$('#variableSelect').value);
-   if(!x)throw Error('Selecione uma despesa.');
+   if(!x){validateArea(document.querySelector('.budget-simple-editor'),{issues:[{selector:'#variableSelect',message:'Selecione uma despesa antes de adicionar.'}],checkRequired:false});return}
    b.expenses.push({name:x.name,unit:x.unit,unit_cents:x.unit_cents,qty:1});render();
   }
   else if(action==='add-expense'){
    const name=$('#customExpenseName').value.trim(),value=$('#customExpenseValue').value;
-   if(!name||!value)throw Error('Informe a despesa e o valor.');
+   const amount=Number(String(value).replace(',','.'));
+   const missing=[];
+   if(!name)missing.push({selector:'#customExpenseName',message:'Informe a descrição da despesa.'});
+   if(!value||!Number.isFinite(amount)||amount<=0)missing.push({selector:'#customExpenseValue',message:'Informe um valor maior que zero.'});
+   if(missing.length){validateArea(document.querySelector('.budget-simple-editor'),{issues:missing,checkRequired:false});return}
    b.expenses.push({name,unit:'total',unit_cents:money(value),qty:1});render();
   }
   else if(action==='remove-staff'){b.staff.splice(Number(el.dataset.index),1);render()}
