@@ -52,7 +52,10 @@ test('Orçamentos oferece prévia das sete páginas e exporta o gerador artísti
  const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
  const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(app,/import \{buildArtProposalHtml\}/);
+ assert.match(app,/async function printArtBudget\(\)/);
  assert.match(app,/const html=buildArtProposalHtml\(b/);
+ assert.match(app,/async function printBudget\(\)/);
+ assert.match(app,/const html=buildProposalHtml\(b/);
  assert.match(app,/data-action="preview-art-budget"/);
  assert.match(app,/data-action="preview-saved-budget"/);
  assert.match(index,/proposal-art-print\.css" media="print"/);
@@ -77,4 +80,22 @@ test('somente as artes originais instaladas podem ir ao PDF ou visualizador',()=
  assert.match(loader,/indexedDB\.open/);
  assert.match(loader,/found\.size===7/);
  assert.match(config,/img-src 'self' data: blob:/);
+});
+
+test('exportação anterior continua independente do ZIP e do desenho de teste',()=>{
+ const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
+ const original=app.slice(app.indexOf('async function printBudget(){'),app.indexOf('async function printArtBudget(){'));
+ const art=app.slice(app.indexOf('async function printArtBudget(){'),app.indexOf("document.addEventListener('submit'",app.indexOf('async function printArtBudget(){')));
+ assert.match(original,/buildProposalHtml\(b/);
+ assert.ok(!original.includes('officialProposalArtUrls('));
+ assert.match(art,/officialProposalArtUrls\(\)/);
+ assert.match(art,/buildArtProposalHtml\(b/);
+ assert.match(app,/data-action="print-art-budget"/);
+});
+test('validação de tamanho das artes não afeta a exportação anterior', async()=>{
+ const {budgetIssues}=await import('../lib/civolten-validation.mjs');
+ const b={title:'Obra teste',customer:'Cliente teste',address:'Local completo',days:5,
+  services:'Serviços civis teste'.repeat(35),payment_terms:'Entrada de 40% e saldo após entrega.',validity_days:15};
+ assert.equal(budgetIssues(b,{forPdf:true}).filter(x=>x.message.includes('arte')).length,0);
+ assert.ok(budgetIssues(b,{forPdf:true,forArtPdf:true}).some(x=>x.message.includes('320 caracteres')));
 });
