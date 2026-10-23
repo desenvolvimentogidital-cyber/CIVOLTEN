@@ -65,3 +65,16 @@ test('textos longos não são cortados silenciosamente na arte',()=>{
  assert.throws(()=>buildArtProposalHtml({title:'Reforma',
   payment_terms:'P'.repeat(161)},{priceCents:10000}),/limite de 160 caracteres/);
 });
+
+test('somente as artes originais instaladas podem ir ao PDF ou visualizador',()=>{
+ const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
+ const loader=fs.readFileSync(new URL('../assets/proposal-art-assets.js',import.meta.url),'utf8');
+ const preview=fs.readFileSync(new URL('../assets/proposal-art-preview.js',import.meta.url),'utf8');
+ const config=fs.readFileSync(new URL('../vercel.json',import.meta.url),'utf8');
+ assert.match(app,/Carregar artes originais \(ZIP\)/);
+ assert.match(app,/applyOfficialArtUrls\(div,artUrls\)/);
+ assert.match(preview,/replaceOfficialArtUrlsInHtml\(html,images\)/);
+ assert.match(loader,/indexedDB\.open/);
+ assert.match(loader,/found\.size===7/);
+ assert.match(config,/img-src 'self' data: blob:/);
+});
