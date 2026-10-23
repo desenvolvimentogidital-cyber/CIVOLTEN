@@ -10,6 +10,7 @@ create table if not exists public.cv_contract_profiles (
  company_phone text not null default '',
  company_email text not null default '',
  city text not null default '',
+ created_at timestamptz not null default now(),
  updated_at timestamptz not null default now(),
  constraint cv_contract_profiles_owner_unique unique(owner_id)
 );
