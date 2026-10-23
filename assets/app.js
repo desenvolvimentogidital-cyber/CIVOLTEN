@@ -274,6 +274,7 @@ function editor(){
  const scopeLines=(b.scope_items||[]).map((item,i)=>'<div class="scope-entry">'+
   '<label>Serviço <input data-scope-description="'+i+'" required maxlength="180" value="'+esc(item.description||'')+'" placeholder="Ex.: Execução de parede em drywall"></label>'+
   '<label>Unidade <select data-scope-unit="'+i+'">'+scopeUnits.map(u=>'<option value="'+esc(u)+'" '+((item.unit||'m²')===u?'selected':'')+'>'+esc(u)+'</option>').join('')+'</select></label>'+
+  '<label>Categoria <select data-scope-category="'+i+'"><option value="geral" '+(!item.category||item.category==='geral'?'selected':'')+'>Geral / civil</option><option value="civil" '+(item.category==='civil'?'selected':'')+'>Construção civil</option><option value="eletrica" '+(item.category==='eletrica'?'selected':'')+'>Instalações elétricas</option></select></label>'+
   '<label>Quantidade <input data-scope-quantity="'+i+'" required type="number" min="0.01" max="1000000" step="0.01" value="'+esc(item.quantity??1)+'"></label>'+
   '<button type="button" class="danger scope-remove" data-action="remove-scope" data-index="'+i+'" aria-label="Remover serviço '+(i+1)+'">Remover</button></div>').join('');
  return title(state.draftId?'Editar orçamento':'Novo orçamento','Selecione a equipe, descreva o serviço e inclua materiais só quando necessário. Os custos e percentuais vêm das configurações.','<button class="subtle" data-view="budgets">← Voltar</button>')+
@@ -287,7 +288,19 @@ function editor(){
  '</div><details class="budget-more-details" '+(b.notes?'open':'')+'><summary>Condições, observações e prazo (opcional)</summary>'+
  '<label>Informações para a proposta<textarea data-draft="notes">'+esc(b.notes)+'</textarea></label></details>'+
  '<div class="buttons"><button type="button" class="subtle" data-action="apply-electrical-proposal">Inserir texto técnico de elétrica (editável)</button></div>'+
- '<p class="hint">Preenche os campos de texto e a lista de serviços nesta tela, sem mudar o modelo visual do PDF. Confira as quantidades e comprove TRT, seguro e treinamentos antes de afirmar que estão incluídos.</p></section>'+
+ '<p class="hint">O memorial acima será incluído no PDF. Confira as quantidades e comprove habilitações, seguro e treinamentos antes de afirmar que estão incluídos.</p>'+
+ '<details class="budget-more-details" open><summary>Personalizar as 7 páginas da proposta CIVOLTEN</summary>'+
+ '<p class="hint">Campos comerciais para o documento do cliente. Revise a ortografia; nenhum custo interno será publicado.</p>'+
+ '<div class="grid">'+
+ '<label class="wide">Apresentação da empresa<textarea data-draft="company_intro" spellcheck="true" maxlength="2000" rows="3" placeholder="Breve apresentação institucional">'+esc(b.company_intro||'')+'</textarea></label>'+
+ '<label class="wide">Descrição dos serviços de construção civil<textarea data-draft="civil_services" spellcheck="true" maxlength="2500" rows="4" placeholder="Descreva apenas os serviços civis realmente contratados">'+esc(b.civil_services||'')+'</textarea></label>'+
+ '<label class="wide">Descrição das instalações elétricas<textarea data-draft="electrical_services" spellcheck="true" maxlength="2500" rows="4" placeholder="Descreva apenas as instalações elétricas realmente contratadas">'+esc(b.electrical_services||'')+'</textarea></label>'+
+ '<label class="wide">Metodologia e etapas da execução<textarea data-draft="methodology" spellcheck="true" maxlength="1200" rows="3" placeholder="Etapas específicas desta obra, quando necessário">'+esc(b.methodology||'')+'</textarea></label>'+
+ '<label>Validade da proposta (dias)<input data-draft="validity_days" type="number" min="1" max="365" step="1" value="'+esc(b.validity_days??'')+'" placeholder="Ex.: 15"></label>'+
+ '<label>Responsável técnico (se aplicável)<input data-draft="technical_responsible" spellcheck="true" maxlength="150" value="'+esc(b.technical_responsible||'')+'"></label>'+
+ '<label class="wide">Condições de pagamento<textarea data-draft="payment_terms" required spellcheck="true" maxlength="1000" rows="3" placeholder="Informe entrada, parcelas, vencimentos e condições efetivamente acordadas">'+esc(b.payment_terms||'')+'</textarea></label>'+
+ '<label class="wide">Garantias e condições de assistência<textarea data-draft="warranty_terms" spellcheck="true" maxlength="1000" rows="3" placeholder="Informe garantias específicas apenas quando aplicáveis">'+esc(b.warranty_terms||'')+'</textarea></label>'+
+ '</div></details></section>'+
  '<section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">2</span><div><h2>Escolha os profissionais da obra</h2><p>Todos os funcionários ativos aparecem, inclusive os fixos.</p></div></div>'+
  '<label class="worker-search-label">Buscar profissional ou profissão<input id="workerSearch" type="search" placeholder="Ex.: eletricista, pedreiro, nome" autocomplete="off"></label>'+
  '<div class="pick"><select id="workerSelect" aria-label="Lista de todos os profissionais cadastrados"><option value="">Selecione um profissional</option>'+workerOptions(workers.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')))+'</select>'+
@@ -564,6 +577,7 @@ document.addEventListener('change',ev=>{
  if(e.id==='dashboardProjectStatus'){state.dashboardStatus=e.value;refreshDashboardProjects();return}
  if(e.dataset.draft&&state.draft){state.draft[e.dataset.draft]=e.value;summary()}
  if(e.dataset.scopeUnit!==undefined&&state.draft)state.draft.scope_items[Number(e.dataset.scopeUnit)].unit=e.value;
+ if(e.dataset.scopeCategory!==undefined&&state.draft)state.draft.scope_items[Number(e.dataset.scopeCategory)].category=e.value;
 });
 document.addEventListener('click',async ev=>{
  const option=ev.target.closest('[data-profession-option]');
@@ -621,7 +635,7 @@ document.addEventListener('click',async ev=>{
   }
   else if(action==='add-scope'){
    if(!b||b.scope_items.length>=100)throw Error('Limite de 100 serviços por proposta');
-   b.scope_items.push({description:'',unit:'m²',quantity:1});render();
+   b.scope_items.push({description:'',unit:'m²',category:'geral',quantity:1});render();
   }
   else if(action==='remove-scope'){if(b?.scope_items){b.scope_items.splice(Number(el.dataset.index),1);render()}}
   else if(action==='open-budget')startBudget(state.data.budgets.find(x=>x.id===id));
