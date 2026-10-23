@@ -278,7 +278,14 @@ function editor(){
   '<label>Quantidade <input data-scope-quantity="'+i+'" required type="number" min="0.01" max="1000000" step="0.01" value="'+esc(item.quantity??1)+'"></label>'+
   '<button type="button" class="danger scope-remove" data-action="remove-scope" data-index="'+i+'" aria-label="Remover serviço '+(i+1)+'">Remover</button></div>').join('');
  return title(state.draftId?'Editar orçamento':'Novo orçamento','Selecione a equipe, descreva o serviço e inclua materiais só quando necessário. Os custos e percentuais vêm das configurações.','<button class="subtle" data-view="budgets">← Voltar</button>')+
- '<div class="editor budget-simple-editor"><div class="stack"><section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">1</span><div><h2>Dados da obra</h2><p>Informe o serviço e a duração prevista.</p></div></div><div class="grid">'+
+ '<div class="budget-workflow-head"><div><strong>Montagem do orçamento</strong><small>Siga as etapas abaixo. As informações financeiras são internas e o PDF mostra apenas o valor comercial.</small></div></div>'+
+ '<nav class="budget-jump-nav" aria-label="Etapas para montar o orçamento">'+
+ '<a href="#budget-step-project"><span>01</span> Obra</a>'+
+ '<a href="#budget-step-services"><span>02</span> Serviços</a>'+
+ '<a href="#budget-step-team"><span>03</span> Equipe</a>'+
+ '<a href="#budget-step-materials"><span>04</span> Materiais</a>'+
+ '<a href="#budget-step-commercial"><span>05</span> Proposta</a></nav>'+ 
+ '<div class="editor budget-simple-editor"><div class="stack"><section id="budget-step-project" class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">1</span><div><h2>Dados da obra</h2><p>Informe o serviço e a duração prevista.</p></div></div><div class="grid">'+
  '<label>Nome da obra / orçamento<input data-draft="title" required maxlength="150" value="'+esc(b.title)+'" placeholder="Ex.: Reforma de banheiro"></label>'+
  '<label>Cliente<input data-draft="customer" required maxlength="150" value="'+esc(b.customer)+'" placeholder="Nome do cliente"></label>'+
  '<label>Local da obra<input data-draft="address" required maxlength="250" value="'+esc(b.address)+'"></label>'+
@@ -289,38 +296,43 @@ function editor(){
  '<label>Informações para a proposta<textarea data-draft="notes">'+esc(b.notes)+'</textarea></label></details>'+
  '<div class="buttons"><button type="button" class="subtle" data-action="apply-electrical-proposal">Inserir texto técnico de elétrica (editável)</button></div>'+
  '<p class="hint">O memorial acima será incluído no PDF. Confira as quantidades e comprove habilitações, seguro e treinamentos antes de afirmar que estão incluídos.</p>'+
- '<details class="budget-more-details" open><summary>Personalizar as 7 páginas da proposta CIVOLTEN</summary>'+
+ '</section>'+ 
+'<section id="budget-step-services" class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">2</span><div><h2>Serviços e quantidades</h2><p>Itens que serão apresentados ao cliente no PDF.</p></div></div>'+
+ '<p class="caption">Liste o que será executado para o cliente: metragem de parede, piso, forro, drywall, pontos elétricos e outros. Estes itens serão apresentados no PDF sem preço unitário ou custos internos.</p>'+
+ '<div class="scope-list">'+(scopeLines||empty('Adicione os serviços e suas quantidades para detalhar a proposta.'))+'</div>'+
+ '<div class="buttons"><button type="button" class="secondary" data-action="add-scope">+ Adicionar serviço</button></div></section>'+
+ '<section id="budget-step-team" class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">3</span><div><h2>Escolha os profissionais da obra</h2><p>Todos os funcionários ativos aparecem, inclusive os fixos.</p></div></div>'+
+ '<label class="worker-search-label">Buscar profissional ou profissão<input id="workerSearch" type="search" placeholder="Ex.: eletricista, pedreiro, nome" autocomplete="off"></label>'+
+ '<div class="pick"><select id="workerSelect" aria-label="Lista de todos os profissionais cadastrados"><option value="">Selecione um profissional</option>'+workerOptions(workers.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')))+'</select>'+
+ '<button type="button" class="secondary" data-action="add-worker">+ Adicionar</button></div>'+
+ '<p class="caption">Equipe fixa: a diária já faz parte da folha mensal rateada, sem cobrança em duplicidade. Profissionais por obra: o valor da diária e os encargos cadastrados entram conforme os dias utilizados. Altere diárias e encargos em Funcionários.</p>'+
+ '<div class="budget-team-list">'+(staffLines||empty('Selecione acima os profissionais que executarão este serviço.'))+'</div></section>'+
+ '<section id="budget-step-materials" class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">4</span><div><h2>Materiais e outras despesas (opcional)</h2><p>Adicione somente o que a CIVOLTEN vai fornecer.</p></div></div><div class="pick"><select id="variableSelect"><option value="">Escolha uma despesa cadastrada</option>'+variables.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+brl(x.unit_cents)+'/'+esc(x.unit)+'</option>').join('')+'</select><button class="secondary" data-action="add-variable">Adicionar</button></div>'+
+ '<p class="caption">Esses itens não entram automaticamente no orçamento. Se o cliente fornecer materiais, não os adicione. Quando a CIVOLTEN fornecer materiais ou assumir transporte/locação, adicione os itens e quantidades efetivos abaixo.</p>'+
+ '<div class="grid" style="margin:15px 0"><label>Nova despesa<input id="customExpenseName" maxlength="120" placeholder="Ex.: Material de acabamento"></label><label>Valor total (R$)<input id="customExpenseValue" type="number" min="0" step=".01"></label></div><button class="subtle" data-action="add-expense">+ Despesa avulsa</button>'+
+ '<div style="margin-top:15px">'+(expenseLines||empty('Nenhuma despesa variável.'))+'</div></section>'+
+ '<section id="budget-step-commercial" class="card budget-step-card budget-commercial-card">'+
+ '<div class="budget-step-title"><span class="budget-step-number">5</span><div><h2>Condições da proposta</h2><p>Preencha o pagamento e a validade para gerar o PDF. Os outros textos podem ser personalizados quando necessário.</p></div></div>'+
+ '<div class="grid budget-commercial-essential">'+
+ '<label>Validade da proposta (dias)<input data-draft="validity_days" type="number" min="1" max="365" step="1" value="'+esc(b.validity_days??'')+'" placeholder="Ex.: 15"></label>'+
+ '<label class="wide">Condições de pagamento<textarea data-draft="payment_terms" required spellcheck="true" maxlength="1000" rows="3" placeholder="Informe entrada, parcelas, vencimentos e condições efetivamente acordadas">'+esc(b.payment_terms||'')+'</textarea></label>'+
+ '</div>'+ 
+'<details class="budget-more-details"><summary>Mais detalhes do PDF: apresentação, escopos específicos, metodologia e garantias</summary>'+
  '<p class="hint">Campos comerciais para o documento do cliente. Revise a ortografia; nenhum custo interno será publicado.</p>'+
  '<div class="grid">'+
  '<label class="wide">Apresentação da empresa<textarea data-draft="company_intro" spellcheck="true" maxlength="2000" rows="3" placeholder="Breve apresentação institucional">'+esc(b.company_intro||'')+'</textarea></label>'+
  '<label class="wide">Descrição dos serviços de construção civil<textarea data-draft="civil_services" spellcheck="true" maxlength="2500" rows="4" placeholder="Descreva apenas os serviços civis realmente contratados">'+esc(b.civil_services||'')+'</textarea></label>'+
  '<label class="wide">Descrição das instalações elétricas<textarea data-draft="electrical_services" spellcheck="true" maxlength="2500" rows="4" placeholder="Descreva apenas as instalações elétricas realmente contratadas">'+esc(b.electrical_services||'')+'</textarea></label>'+
  '<label class="wide">Metodologia e etapas da execução<textarea data-draft="methodology" spellcheck="true" maxlength="1200" rows="3" placeholder="Etapas específicas desta obra, quando necessário">'+esc(b.methodology||'')+'</textarea></label>'+
- '<label>Validade da proposta (dias)<input data-draft="validity_days" type="number" min="1" max="365" step="1" value="'+esc(b.validity_days??'')+'" placeholder="Ex.: 15"></label>'+
  '<label>Responsável técnico (se aplicável)<input data-draft="technical_responsible" spellcheck="true" maxlength="150" value="'+esc(b.technical_responsible||'')+'"></label>'+
- '<label class="wide">Condições de pagamento<textarea data-draft="payment_terms" required spellcheck="true" maxlength="1000" rows="3" placeholder="Informe entrada, parcelas, vencimentos e condições efetivamente acordadas">'+esc(b.payment_terms||'')+'</textarea></label>'+
  '<label class="wide">Garantias e condições de assistência<textarea data-draft="warranty_terms" spellcheck="true" maxlength="1000" rows="3" placeholder="Informe garantias específicas apenas quando aplicáveis">'+esc(b.warranty_terms||'')+'</textarea></label>'+
  '</div></details></section>'+
- '<section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">2</span><div><h2>Escolha os profissionais da obra</h2><p>Todos os funcionários ativos aparecem, inclusive os fixos.</p></div></div>'+
- '<label class="worker-search-label">Buscar profissional ou profissão<input id="workerSearch" type="search" placeholder="Ex.: eletricista, pedreiro, nome" autocomplete="off"></label>'+
- '<div class="pick"><select id="workerSelect" aria-label="Lista de todos os profissionais cadastrados"><option value="">Selecione um profissional</option>'+workerOptions(workers.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')))+'</select>'+
- '<button type="button" class="secondary" data-action="add-worker">+ Adicionar</button></div>'+
- '<p class="caption">Equipe fixa: a diária já faz parte da folha mensal rateada, sem cobrança em duplicidade. Profissionais por obra: o valor da diária e os encargos cadastrados entram conforme os dias utilizados. Altere diárias e encargos em Funcionários.</p>'+
- '<div class="budget-team-list">'+(staffLines||empty('Selecione acima os profissionais que executarão este serviço.'))+'</div></section>'+
- '<section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">3</span><div><h2>Serviços e quantidades</h2><p>Itens que serão apresentados ao cliente no PDF.</p></div></div>'+
- '<p class="caption">Liste o que será executado para o cliente: metragem de parede, piso, forro, drywall, pontos elétricos e outros. Estes itens serão apresentados no PDF sem preço unitário ou custos internos.</p>'+
- '<div class="scope-list">'+(scopeLines||empty('Adicione os serviços e suas quantidades para detalhar a proposta.'))+'</div>'+
- '<div class="buttons"><button type="button" class="secondary" data-action="add-scope">+ Adicionar serviço</button></div></section>'+
- '<section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">4</span><div><h2>Materiais e outras despesas (opcional)</h2><p>Adicione somente o que a CIVOLTEN vai fornecer.</p></div></div><div class="pick"><select id="variableSelect"><option value="">Escolha uma despesa cadastrada</option>'+variables.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+brl(x.unit_cents)+'/'+esc(x.unit)+'</option>').join('')+'</select><button class="secondary" data-action="add-variable">Adicionar</button></div>'+
- '<p class="caption">Esses itens não entram automaticamente no orçamento. Se o cliente fornecer materiais, não os adicione. Quando a CIVOLTEN fornecer materiais ou assumir transporte/locação, adicione os itens e quantidades efetivos abaixo.</p>'+
- '<div class="grid" style="margin:15px 0"><label>Nova despesa<input id="customExpenseName" maxlength="120" placeholder="Ex.: Material de acabamento"></label><label>Valor total (R$)<input id="customExpenseValue" type="number" min="0" step=".01"></label></div><button class="subtle" data-action="add-expense">+ Despesa avulsa</button>'+
- '<div style="margin-top:15px">'+(expenseLines||empty('Nenhuma despesa variável.'))+'</div></section>'+
  '<section class="card budget-setup-note"><div class="budget-setup-icon" aria-hidden="true">⚙</div><div><h2>Cálculo automático</h2><p>Custos fixos e folha, capacidade mensal, impostos e margem são aplicados a partir de <strong>Configurações financeiras</strong>. Você não precisa preencher porcentagens neste orçamento.</p>'+
  '<p class="hint">Parâmetros deste orçamento: imposto '+num(b.pricing?.tax_pct)+'% · margem '+num(b.pricing?.margin_pct)+'% · '+num(b.pricing?.billable_days_month)+' dias faturáveis/mês. Valores preservados no orçamento após salvar.</p>'+
  '<details class="budget-price-details" '+(b.manual_price_cents!=null?'open':'')+'><summary>Ajustar preço final desta obra (opcional)</summary>'+
  '<label>Preço de venda manual (R$)<input data-draft="manual_price" type="number" min="0" step=".01" value="'+(b.manual_price_cents==null?'':dec(b.manual_price_cents))+'" placeholder="Vazio = preço sugerido automaticamente"></label>'+
  '<p class="hint">Caso informe um preço manual, confira o lucro no resumo antes de salvar.</p></details></div></section></div>'+
- '<aside class="summary"><h2>Fechamento da obra</h2>'+
+ '<aside class="summary budget-summary-panel"><div class="budget-summary-label">RESUMO FINANCEIRO · USO INTERNO</div><h2>Fechamento da obra</h2>'+
  '<div class="discount-simulator"><div class="discount-head"><h3>Simulação de desconto</h3><span>Antes de fechar</span></div>'+
  '<p class="hint">Veja como o desconto muda o preço, o lucro e a margem líquida. Só será aplicado à proposta quando ela for salva.</p>'+
  '<div class="discount-controls"><input type="range" min="0" max="50" step="0.5" data-discount-range value="'+esc(b.discount_pct??0)+'" aria-label="Desconto percentual">'+
