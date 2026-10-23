@@ -155,7 +155,7 @@ test('identidade visual oficial instalada em login, painel e proposta',()=>{
   ...options,logoDataUrl:'/assets/civolten-logo.png',
   headerArtUrl:'/assets/civolten-proposal-header.png'
  });
- assert.equal((page.match(/class="brand-logo"/g)||[]).length,3);
+ assert.equal((page.match(/class="brand-logo"/g)||[]).length,2);
  assert.match(page,/rel="icon" type="image\/png" href="\/assets\/civolten-logo\.png"/);
  assert.match(page,/id="proposalHeaderArt" hidden src="\/assets\/civolten-proposal-header\.png"/);
  assert.match(app,/img\.src='\/assets\/civolten-logo\.png'/);
@@ -176,13 +176,13 @@ test('imagens PNG reais presentes no repositorio',()=>{
 });
 
 
-test('tela de login, aprovacao e painel exibem icone e imagem horizontal no lugar do texto',()=>{
+test('tela de login e painel exibem icone e imagem horizontal no lugar do texto',()=>{
  const page=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
- assert.equal((page.match(/class="brand-logo"/g)||[]).length,3);
- assert.equal((page.match(/class="brand-wordmark"/g)||[]).length,3);
- assert.equal((page.match(/class="brand-wordmark-frame"/g)||[]).length,3);
- assert.equal((page.match(/src="\/assets\/civolten-logo\.png"/g)||[]).length,3);
- assert.equal((page.match(/src="\/assets\/civolten-proposal-header\.png"/g)||[]).length,4);
+ assert.equal((page.match(/class="brand-logo"/g)||[]).length,2);
+ assert.equal((page.match(/class="brand-wordmark"/g)||[]).length,2);
+ assert.equal((page.match(/class="brand-wordmark-frame"/g)||[]).length,2);
+ assert.equal((page.match(/src="\/assets\/civolten-logo\.png"/g)||[]).length,2);
+ assert.equal((page.match(/src="\/assets\/civolten-proposal-header\.png"/g)||[]).length,3);
  assert.doesNotMatch(page,/<b>CIVOLTEN<small>/);
  assert.match(page,/<strong>Painel interno<\/strong>/);
 });
