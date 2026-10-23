@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {budgetIssues,contractIssues,taxMarginIssues} from '../lib/civolten-validation.mjs';
 import {contractDefaults} from '../lib/civolten-contract.mjs';
 import {electricalProposalPreset} from '../lib/civolten-proposal-text.mjs';
+import {nativeFieldIssue} from '../assets/field-validation.js';
 
 const selectors=issues=>issues.map(x=>x.selector);
 const pdfBudget=()=>({title:'Instalação elétrica',customer:'Cliente de teste',address:'Rua das Flores, 100',
@@ -87,4 +88,25 @@ test('modelo de texto técnico elétrico permanece editável e não altera o PDF
  assert.match(app,/b\.notes=preset\.notes/);
  assert.match(app,/b\.scope_items=preset\.scope_items/);
  assert.doesNotMatch(preset.services,/1500 m/);
+});
+
+test('validação global diferencia campos obrigatórios, opcionais e formatos inválidos',()=>{
+ const input=(value,required,validity={},type='text')=>({
+  value,required,type,disabled:false,matches:selector=>selector==='input,textarea,select',
+  validity:{valid:true,...validity}
+ });
+ assert.match(nativeFieldIssue(input('',true)),/obrigatório/);
+ assert.equal(nativeFieldIssue(input('',true),{checkRequired:false}),null);
+ assert.equal(nativeFieldIssue(input('',false)),null);
+ assert.match(nativeFieldIssue(input('invalido',true,{valid:false,typeMismatch:true},'email')),/e-mail/);
+ assert.match(nativeFieldIssue(input('-1',true,{valid:false,rangeUnderflow:true},'number')),/mínimo/);
+ assert.match(nativeFieldIssue(input('1.3',true,{valid:false,stepMismatch:true},'number')),/intervalo/);
+});
+test('CPF/CNPJ incorreto fica destacado mesmo ao editar uma minuta',()=>{
+ const c={...contractDefaults(),title:'Contrato de teste',counterparty_document:'000.000.000-00'};
+ assert.ok(selectors(contractIssues(c)).includes('[data-contract="counterparty_document"]'));
+});
+test('aviso de erro não desloca o editor em duas colunas',()=>{
+ const js=fs.readFileSync(new URL('../assets/field-validation.js',import.meta.url),'utf8');
+ assert.match(js,/area\.querySelector\(':scope > \.stack'\)/);
 });
