@@ -38,11 +38,33 @@ export function contractEditor(c,id,profile,budgets,esc,brl,title){
  const budgetId=c.budget_id||'';
  const companyConfigured=Boolean(p.company_name&&p.company_document);
  const standard=contractDefaults();
+ const completeTerms=[
+ ['scope_limits','Limites do escopo, exclusões e anexos'],
+ ['documentation','Projetos, memoriais e documentação técnica'],
+ ['site_access','Acesso, infraestrutura e condições do local'],
+ ['permits','Licenças, liberações e autorizações'],
+ ['work_schedule','Cronograma, horários e etapas'],
+ ['measurements','Medições e critérios de comprovação'],
+ ['billing','Nota fiscal, recibos e retenções legais'],
+ ['adjustments','Reajuste e reequilíbrio econômico'],
+ ['worksite_safety','Segurança do trabalho e do canteiro'],
+ ['electrical_safety','Segurança elétrica (NR-10, procedimentos e riscos)'],
+ ['subcontracting','Equipe e contratação de terceiros'],
+ ['damage_and_insurance','Danos, proteção do imóvel e seguros'],
+ ['waste_management','Resíduos e destinação ambiental'],
+ ['unforeseen','Condições ocultas e imprevistos'],
+ ['late_payment','Atrasos de pagamento e inadimplemento'],
+ ['liability','Responsabilidade civil e direitos assegurados'],
+ ['confidentiality','Sigilo de informações'],
+ ['communications','Notificações, comunicação e registros'],
+ ['dispute_resolution','Solução de divergências e competência'],
+ ['general_provisions','Disposições gerais']
+];
  const editTerms=[['materials','Fornecimento de materiais'],['obligations','Responsabilidades das partes'],
  ['changes','Alterações no escopo e prazo'],['delays','Atrasos, suspensão e prorrogações'],['acceptance','Vistoria e aceite da entrega'],['technical','Responsabilidade técnica / ART ou RRT'],['privacy','Proteção de dados'],['termination','Rescisão e encerramento'],
  ['warranty','Garantias e correções'],['special_terms','Condições particulares'],['jurisdiction','Foro (opcional)']];
  return title(id?'Editar contrato':'Novo contrato',
- 'Preencha as informações da contratação. As cláusulas já aparecem com sugestões revisáveis.',
+ 'Preencha as informações da contratação. A versão completa inclui cláusulas de construção civil e elétrica, todas revisáveis antes da emissão.',
  '<button class="subtle" data-view="contracts">← Todos os contratos</button>')+
  (locked?'<div class="warning">Documento '+esc(c.status)+' protegido contra edição. Crie uma revisão para alterar cláusulas ou valores, preservando a versão anterior.</div>':'')+
  '<div class="contract-editor"><div class="stack">'+
@@ -73,7 +95,11 @@ export function contractEditor(c,id,profile,budgets,esc,brl,title){
  '</div></section>'+
  '<section class="card contract-editor-card"><div class="budget-step-title"><span class="budget-step-number">4</span><div><h2>Revisão das cláusulas</h2><p>O modelo vem preenchido. Abra para alterar quando necessário.</p></div></div>'+
  '<details class="contract-advanced"><summary>Editar materiais, atrasos, aceite, responsável técnico, rescisão e garantias</summary>'+
+ '<p class="hint">Revise cada cláusula e adapte às condições reais. As garantias e responsabilidades legais não podem ser excluídas pelo texto contratual.</p>'+
  '<div class="contract-form-grid">'+editTerms.map(([key,label])=>editorEntry(key,label,c[key]??standard[key],{type:'textarea',wide:true,max:4000,rows:key==='special_terms'?4:3})).join('')+'</div></details>'+
+ '<details class="contract-advanced"><summary>Cláusulas complementares: escopo, autorizações, NR-10, segurança, medições, riscos e demais proteções</summary>'+
+ '<p class="hint">Estas cláusulas são preenchidas automaticamente na versão 2 e podem ser alteradas conforme o serviço. Não afirme que possui licença, seguro ou ART se não houver comprovação.</p>'+
+ '<div class="contract-form-grid">'+completeTerms.map(([key,label])=>editorEntry(key,label,c[key]??standard[key],{type:'textarea',wide:true,max:4000,rows:4})).join('')+'</div></details>'+
  (c.revision_of?'<div class="warning">Revisão de CT-'+esc(c.revision_of.slice(0,8).toUpperCase())+'</div>'+editorEntry('revision_reason','Motivo da revisão',c.revision_reason,{type:'textarea',wide:true,max:500,required:true}):'')+
  '<div class="contract-company-review"><h3>Dados da sua empresa (automáticos)</h3>'+
  '<p><strong>'+esc(p.company_name||'Razão social pendente')+'</strong>'+
@@ -91,7 +117,7 @@ export function contractEditor(c,id,profile,budgets,esc,brl,title){
  (budgetId?'<p class="hint">Vinculado ao orçamento '+esc(budgets.find(x=>x.id===budgetId)?.title||'selecionado')+'</p>':'')+
  '<div class="buttons">'+(locked&&c.status!=='emitido'?'':'<button type="button" class="primary" data-action="save-contract">'+(locked?'Atualizar situação':'Salvar contrato')+'</button>')+(locked?'<button type="button" class="secondary" data-action="revise-open-contract">Criar nova revisão</button>':'')+
  '<button type="button" class="secondary" data-action="print-contract">Gerar contrato / salvar em PDF</button></div>'+
- '<p class="hint">Confira CPF/CNPJ, escopo, parcelas e prazos antes de assinar. Salve o rascunho antes de emitir; uma marcação de assinado não é assinatura eletrônica. O modelo deve ser revisado juridicamente.</p></aside></div>';
+ '<p class="hint">Revise CPF/CNPJ, endereços, escopo, unidades, fornecimento, parcelas, licenças e condições específicas. A marcação “Assinado” não equivale a assinatura eletrônica. Recomenda-se revisão jurídica antes da assinatura.</p></aside></div>';
 }
 export function contractProfilePanel(profile,esc){
  const p=profile||defaultCompanyProfile();
