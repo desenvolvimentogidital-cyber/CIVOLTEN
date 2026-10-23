@@ -4,6 +4,8 @@ import {startVoiceFields} from '/assets/voice.js';
 import {createBudgetStaff,staffAlreadyAdded} from '/lib/civolten-team.mjs';
 import {financialDashboard,projectResults} from '/assets/dashboard.js';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
+import {buildArtProposalHtml,artProposalIssues,proposalArtPaths} from '/lib/civolten-proposal-art.mjs';
+import {openArtProposalPreview} from '/assets/proposal-art-preview.js';
 import {electricalProposalPreset} from '/lib/civolten-proposal-text.mjs';
 import {contractDefaults,defaultContractCompany,contractFromBudget,buildContractHtml} from '/lib/civolten-contract.mjs';
 import {contractList,contractEditor,contractProfilePanel} from '/assets/contracts.js';
@@ -34,9 +36,10 @@ async function request(path,method='GET',record){
 const route=(entity,id)=>'/api/data?entity='+entity+(id?'&id='+encodeURIComponent(id):'');
 let timer;
 let lastValidationMode='';
-function budgetValidation(forPdf=false){
- lastValidationMode=forPdf?'budget-pdf':'budget-save';
- return validateArea(document.querySelector('.budget-simple-editor'),{issues:budgetIssues(state.draft,{forPdf}),checkRequired:false});
+function budgetValidation(forPdf=false,art=false){
+ lastValidationMode=art?'budget-art-pdf':forPdf?'budget-pdf':'budget-save';
+ const issues=[...budgetIssues(state.draft,{forPdf}),...(art?artProposalIssues(state.draft):[])];
+ return validateArea(document.querySelector('.budget-simple-editor'),{issues,checkRequired:false});
 }
 function contractValidation(forExport=false){
  lastValidationMode=forExport?'contract-pdf':'contract-save';
@@ -239,7 +242,7 @@ function budgetList(){
  return title('Orçamentos','Nenhuma referência de preços. Cada proposta nasce dos custos desta obra.','<button class="primary" data-action="new-budget">+ Novo orçamento</button>')+
  '<section class="card"><h2>Histórico de propostas</h2>'+
  (rows.length?rows.map(b=>'<div class="entry"><div><strong>'+esc(b.title)+'</strong><small>'+esc(b.customer||'Cliente não informado')+' · '+new Date(b.created_at).toLocaleDateString('pt-BR')+'</small><small class="status '+esc(b.status)+'">'+esc(b.status)+'</small></div>'+
- '<div class="actions"><span class="price">'+brl(b.price_cents)+'</span><button class="subtle small" data-action="open-budget" data-id="'+esc(b.id)+'">Abrir</button><button class="subtle small" data-action="create-contract-from-budget" data-id="'+esc(b.id)+'">Gerar contrato</button><button class="danger small" data-action="delete-budget" data-id="'+esc(b.id)+'">Excluir</button></div></div>').join(''):empty('Nenhum orçamento salvo ainda.'))+'</section>';
+ '<div class="actions"><span class="price">'+brl(b.price_cents)+'</span><button class="subtle small" data-action="preview-saved-art" data-id="'+esc(b.id)+'">Ver proposta visual</button><button class="subtle small" data-action="open-budget" data-id="'+esc(b.id)+'">Abrir</button><button class="subtle small" data-action="create-contract-from-budget" data-id="'+esc(b.id)+'">Gerar contrato</button><button class="danger small" data-action="delete-budget" data-id="'+esc(b.id)+'">Excluir</button></div></div>').join(''):empty('Nenhum orçamento salvo ainda.'))+'</section>';
 }
 function defaultPricing(){
  const c=state.data.settings[0]||{},rates=companyRates(state.data.fixed,c,state.data.workers);
@@ -326,7 +329,9 @@ function editor(){
  '<div class="discount-controls"><input type="range" min="0" max="50" step="0.5" data-discount-range value="'+esc(b.discount_pct??0)+'" aria-label="Desconto percentual">'+
  '<label>Desconto (%)<input type="number" min="0" max="100" step="0.5" data-discount-number value="'+esc(b.discount_pct??0)+'"></label></div></div>'+
  '<div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button>'+
- '<button class="subtle" data-action="print-budget">Exportar Proposta Comercial (PDF)</button></div>'+
+ '<button class="subtle" data-action="print-budget">Exportar Proposta Comercial (PDF)</button>'+ 
+ '<button class="secondary" type="button" data-action="preview-art-budget">Visualizar nova proposta (7 páginas)</button>'+ 
+ '<button class="subtle" type="button" data-action="print-art-budget">Exportar proposta visual (teste)</button></div>'+
  '<p class="hint">O PDF contém somente o escopo, prazos e preço global. Custos, impostos, diárias e lucro continuam sigilosos.</p></aside></div>';
 }
 function summary(){
@@ -467,6 +472,31 @@ async function printBudget(){
  }
  window.print();
 }
+async function printVisualBudget(){
+ if(!budgetValidation(true,true))return;
+ const b=state.draft;
+ const r=calculateBudget(b);
+ if(!(r.price_cents>0)){
+  validateArea(document.querySelector('.budget-simple-editor'),{checkRequired:false,
+   issues:[{selector:'[data-draft="manual_price"]',
+    message:'Defina um valor comercial acima de R$ 0,00 para exportar a proposta.'}]});
+  return;
+ }
+ const html=buildArtProposalHtml(b,{priceCents:r.price_cents,id:state.draftId,date:new Date()});
+ const printArea=$('#printArea');
+ printArea.innerHTML=html;
+ try{
+  await Promise.all([...printArea.querySelectorAll('img')].map(async img=>{
+   await img.decode();
+   if(!img.naturalWidth||!img.naturalHeight)throw Error('Arte não carregada');
+  }));
+ }catch{
+  printArea.innerHTML='';
+  throw Error('Não foi possível carregar as sete artes no PDF. Atualize a página e tente novamente.');
+ }
+ window.print();
+}
+
 document.addEventListener('submit',async ev=>{
  if(!['login','entityForm','settingsForm','signupForm','recoverForm','passwordForm','cashEntryForm','dashboardMarginForm','contractProfileForm'].includes(ev.target.id))return;
  ev.preventDefault();const f=ev.target,button=f.querySelector('button[type=submit],button.primary');
@@ -625,6 +655,17 @@ document.addEventListener('click',async ev=>{
   else if(action==='save-contract')await saveContract();
   else if(action==='print-contract')await printContract();
   else if(action==='new-budget')startBudget();
+  else if(action==='preview-saved-art'){
+   const saved=state.data.budgets.find(item=>item.id===id);
+   if(!saved)throw Error('Orçamento não encontrado.');
+   await openArtProposalPreview({budget:saved.content,priceCents:saved.price_cents,id:saved.id});
+  }
+  else if(action==='preview-art-budget'){
+   const current=state.draft;
+   if(!current)throw Error('Abra um orçamento antes de visualizar.');
+   const calc=calculateBudget(current);
+   await openArtProposalPreview({budget:current,priceCents:calc.price_cents,id:state.draftId});
+  }
   else if(action==='apply-electrical-proposal'){
    if(!b)return;
    const filled=Boolean(String(b.services||'').trim()||String(b.notes||'').trim()||b.scope_items?.length);
@@ -670,6 +711,7 @@ document.addEventListener('click',async ev=>{
   else if(action==='remove-expense'){b.expenses.splice(Number(el.dataset.index),1);render()}
   else if(action==='save-budget')await saveBudget();
   else if(action==='print-budget')await printBudget();
+  else if(action==='print-art-budget')await printVisualBudget();
  }catch(error){flash(error.message)}
 });
 async function logout(){
@@ -684,7 +726,7 @@ startVoiceFields({notify:flash});
 // Validação delegada: cobre também os formulários que são criados ao mudar de aba.
 attachFormValidation();
 function activeValidationIssues(){
- if(state.view==='editor'&&state.draft)return budgetIssues(state.draft,{forPdf:lastValidationMode==='budget-pdf'});
+ if(state.view==='editor'&&state.draft)return [...budgetIssues(state.draft,{forPdf:lastValidationMode==='budget-pdf'||lastValidationMode==='budget-art-pdf'}),...(lastValidationMode==='budget-art-pdf'?artProposalIssues(state.draft):[])];
  if(state.view==='contract-editor'&&state.contractDraft)return contractIssues(state.contractDraft,{forExport:lastValidationMode==='contract-pdf'||['emitido','assinado'].includes(state.contractDraft.status)});
  if(state.view==='home'){
   const f=document.querySelector('#dashboardMarginForm');
