@@ -597,3 +597,21 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
  .voice-mic-button{width:43px;height:43px;min-width:43px;right:5px}
  .voice-field-wrap>input,.voice-field-wrap>textarea{padding-right:57px}
 }
+
+
+/* Simulador de desconto comercial — foco em margem, legibilidade e modo escuro. */
+.discount-simulator{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:15px;margin:0 0 18px}
+.discount-head{display:flex;justify-content:space-between;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px}
+.discount-head h3{font-size:16px;margin:0}
+.discount-head span{font-size:10px;padding:5px 8px;border-radius:15px;background:var(--navy);color:var(--gold);font-weight:750}
+.discount-simulator p{margin-bottom:13px}
+.discount-controls{display:grid;grid-template-columns:minmax(0,1fr) 112px;align-items:end;gap:14px}
+.discount-controls input[type=range]{accent-color:var(--gold);cursor:pointer;padding:0;height:38px;border:0;background:transparent}
+.discount-controls label{font-size:11px}
+.discount-controls input[type=number]{padding:9px}
+.discount-margin-impact{margin:12px 0;padding:11px;border-radius:9px;background:var(--bg);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;font-size:12px}
+.discount-margin-impact strong{text-align:right}
+.account-settings{margin-top:14px}
+.account-settings>p{line-height:1.65}
+@media(max-width:520px){.discount-controls{grid-template-columns:1fr 110px;gap:10px}.discount-simulator{padding:11px}}
+:root[data-theme="dark"] .discount-simulator,:root[data-theme="dark"] .discount-margin-impact{background:#13283f}
