@@ -12,7 +12,7 @@ const money=x=>Math.round(Math.max(0,Number(String(x??0).replace(',','.'))||0)*1
 const dec=x=>String(Number(x||0)/100);
 const num=x=>Number(String(x??0).replace(',','.'))||0;
 const total=xs=>xs.reduce((n,x)=>n+Number(x||0),0);
-const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[],cash:[]},access:[],edit:null,draft:null,draftId:null,dashboardSearch:'',dashboardStatus:'todos'};
+const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[],cash:[]},accountEmail:'',edit:null,draft:null,draftId:null,dashboardSearch:'',dashboardStatus:'todos'};
 const sections={home:'Visão geral',budgets:'Orçamentos',workers:'Funcionários',fixed:'Custos fixos',variable:'Custos variáveis',settings:'Configurações'};
 const fields={
  workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos adicionais (%) — opcional','number'],['days_month','Dias trabalhados previstos no mês','number'],['cost_mode','Forma de custo','select'],['active','Profissional ativo','checkbox']],
@@ -62,14 +62,8 @@ async function showApp(){
   throw error;
  }finally{app.inert=false}
 }
-async function showPending(){
- $('#app').hidden=true;$('#auth').hidden=false;
- $('#loginCard').hidden=true;$('#pendingCard').hidden=false;
- try{await request('/api/access?action=request','POST',{});$('#pendingNotice').textContent='Solicitação enviada. Aguarde a aprovação do administrador.'}
- catch(e){$('#pendingNotice').textContent=e.message}
-}
 function authMode(mode){
- $('#loginCard').hidden=false;$('#pendingCard').hidden=true;
+ $('#loginCard').hidden=false;
  $('#login').hidden=mode!=='login';
  for(const [name,id] of [['signup','signupForm'],['recover','recoverForm'],['password','passwordForm']])$('#'+id).hidden=mode!==name;
  document.querySelector('.auth-links').hidden=mode!=='login';
@@ -77,7 +71,7 @@ function authMode(mode){
 }
 let recoveryToken=null;
 function title(name,subtitle,button){
- return '<div class="heading"><div><span class="eyebrow">CIVOLTEN / USO INTERNO</span><h1>'+esc(name)+'</h1><p>'+esc(subtitle)+'</p></div>'+(button||'')+'</div>';
+ return '<div class="heading"><div><span class="eyebrow">CIVOLTEN / PAINEL PRIVADO</span><h1>'+esc(name)+'</h1><p>'+esc(subtitle)+'</p></div>'+(button||'')+'</div>';
 }
 function empty(message){return '<div class="empty">'+esc(message)+'</div>'}
 function notice(){return '<div class="warning">Nenhum preço de referência externa é usado. Os valores são definidos por você e não garantem resultado sem a revisão dos custos reais da obra.</div>'}
@@ -218,15 +212,11 @@ function settings(){
  '<div><small>Custo fixo total por mês</small><strong>'+brl(rates.monthly_cents)+'</strong></div></div>'+
  '<p class="hint">Impostos, margem e dias faturáveis são editados acima. Diárias e encargos individuais são definidos no cadastro de Funcionários; despesas operacionais são editadas em Custos fixos. Esses valores já alimentam os novos orçamentos automaticamente.</p>'+
  '<div class="buttons"><button type="button" class="subtle" data-view="workers">Ajustar funcionários e encargos</button>'+
- '<button type="button" class="subtle" data-view="fixed">Ajustar despesas fixas</button></div></section>'+notice();
-}
-function accessList(){
- const rows=state.access||[];
- return title('Aprovação de cadastros','Somente administradores existentes podem autorizar novos usuários. As contas precisam confirmar seu e-mail.')+
- '<section class="card"><h2>Solicitações pendentes ('+rows.length+')</h2>'+
- (rows.length?rows.map(x=>'<div class="entry"><div><strong>'+esc(x.email)+'</strong><small>Recebido em '+new Date(x.requested_at).toLocaleDateString('pt-BR')+'</small></div>'+
- '<button class="primary" data-action="approve-access" data-id="'+esc(x.user_id)+'">Aprovar cadastro</button></div>').join(''):empty('Não há solicitações aguardando aprovação.'))+
- '</section><p class="hint">O cadastro não dá acesso aos dados internos até sua aprovação explícita.</p>';
+ '<button type="button" class="subtle" data-view="fixed">Ajustar despesas fixas</button></div></section>'+
+ '<section class="card account-settings"><h2>Minha conta</h2>'+
+ '<p>Seu acesso é individual. Nenhuma aprovação administrativa é necessária para utilizar seus próprios dados.</p>'+
+ '<p class="hint">E-mail da conta: <strong>'+esc(state.accountEmail||'Conta autenticada')+'</strong></p>'+
+ '<button type="button" class="subtle" data-action="account-reset-password">Receber link para alterar senha</button></section>'+notice();
 }
 function budgetList(){
  const rows=state.data.budgets;
@@ -242,8 +232,9 @@ function defaultPricing(){
 }
 function startBudget(row){
  state.draftId=row?.id||null;
- state.draft=row?structuredClone(row.content):{title:'',customer:'',address:'',services:'',notes:'',days:1,status:'rascunho',staff:[],expenses:[],scope_items:[],manual_price_cents:null,pricing:defaultPricing()};
+ state.draft=row?structuredClone(row.content):{title:'',customer:'',address:'',services:'',notes:'',days:1,status:'rascunho',staff:[],expenses:[],scope_items:[],manual_price_cents:null,discount_pct:0,pricing:defaultPricing()};
  if(!Array.isArray(state.draft.scope_items))state.draft.scope_items=[];
+ if(state.draft.discount_pct==null)state.draft.discount_pct=0;
  state.view='editor';render();
 }
 function editor(){
@@ -298,7 +289,14 @@ function editor(){
  '<details class="budget-price-details" '+(b.manual_price_cents!=null?'open':'')+'><summary>Ajustar preço final desta obra (opcional)</summary>'+
  '<label>Preço de venda manual (R$)<input data-draft="manual_price" type="number" min="0" step=".01" value="'+(b.manual_price_cents==null?'':dec(b.manual_price_cents))+'" placeholder="Vazio = preço sugerido automaticamente"></label>'+
  '<p class="hint">Caso informe um preço manual, confira o lucro no resumo antes de salvar.</p></details></div></section></div>'+
- '<aside class="summary"><h2>Resumo automático da obra</h2><div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button><button class="subtle" data-action="print-budget">Gerar PDF / imprimir proposta</button></div><p class="hint">A impressão mostra somente o escopo e o preço final. Custos, impostos, diárias e lucro são sigilosos.</p></aside></div>';
+ '<aside class="summary"><h2>Fechamento da obra</h2>'+
+ '<div class="discount-simulator"><div class="discount-head"><h3>Simulação de desconto</h3><span>Antes de fechar</span></div>'+
+ '<p class="hint">Veja como o desconto muda o preço, o lucro e a margem líquida. Só será aplicado à proposta quando ela for salva.</p>'+
+ '<div class="discount-controls"><input type="range" min="0" max="50" step="0.5" data-discount-range value="'+esc(b.discount_pct??0)+'" aria-label="Desconto percentual">'+
+ '<label>Desconto (%)<input type="number" min="0" max="100" step="0.5" data-discount-number value="'+esc(b.discount_pct??0)+'"></label></div></div>'+
+ '<div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button>'+
+ '<button class="subtle" data-action="print-budget">Exportar Proposta Comercial (PDF)</button></div>'+
+ '<p class="hint">O PDF contém somente o escopo, prazos e preço global. Custos, impostos, diárias e lucro continuam sigilosos.</p></aside></div>';
 }
 function summary(){
  const el=$('#budgetSummary');if(!el||!state.draft)return;
@@ -309,10 +307,12 @@ function summary(){
    '<div class="sumrow"><span>Rateio mensal (despesas fixas + folha)</span><strong>'+brl(r.fixed_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Subtotal de custos (fixos rateados + equipe + variáveis)</span><strong>'+brl(r.cost_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Impostos estimados sobre o preço final</span><strong>'+brl(r.tax_cents)+'</strong></div>'+
-   '<div class="sumrow"><span>Preço sugerido</span><strong>'+brl(r.calculated_price_cents)+'</strong></div>'+
-   '<div class="sumrow sumtotal"><span>Venda final</span><strong>'+brl(r.price_cents)+'</strong></div>'+
+   '<div class="sumrow"><span>Preço antes do desconto</span><strong>'+brl(r.price_before_discount_cents)+'</strong></div>'+
+   '<div class="sumrow"><span>Desconto ('+r.discount_pct.toFixed(1)+'%)</span><strong>− '+brl(r.discount_cents)+'</strong></div>'+
+   '<div class="sumrow sumtotal"><span>Preço final ao cliente</span><strong>'+brl(r.price_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Resultado estimado</span><strong class="'+(r.profit_cents<0?'bad':'good')+'">'+brl(r.profit_cents)+'</strong></div>'+
-   '<div class="sumrow"><span>Margem real sobre venda</span><strong class="'+(r.margin_pct_real<0?'bad':'good')+'">'+r.margin_pct_real.toFixed(2)+'%</strong></div>'+
+   '<div class="sumrow"><span>Margem líquida estimada</span><strong class="'+(r.margin_pct_real<0?'bad':'good')+'">'+r.margin_pct_real.toFixed(2)+'%</strong></div>'+
+   '<div class="discount-margin-impact"><span>Margem sem desconto</span><strong>'+calculateBudget({...b,discount_pct:0}).margin_pct_real.toFixed(2)+'%</strong><span>Impacto do desconto</span><strong class="'+(r.discount_pct>0?'bad':'')+'">'+(r.margin_pct_real-calculateBudget({...b,discount_pct:0}).margin_pct_real).toFixed(2)+' pontos percentuais</strong></div>'+
    ((num(b.pricing?.tax_pct)===0||num(b.pricing?.margin_pct)===0)?'<div class="warning">Revise impostos e margem: pelo menos um está em 0%. Não assuma que a tributação é zero sem confirmação.</div>':'')+
    (r.profit_cents<0?'<div class="warning">Atenção: o preço escolhido resulta em prejuízo estimado.</div>':'')+
    '<p class="hint">Estimativa interna baseada nos seus lançamentos. Custos imprevistos e tributos reais podem alterar o resultado.</p>';
@@ -320,7 +320,7 @@ function summary(){
 }
 function render(){
  document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===state.view));
- $('#content').innerHTML=state.view==='home'?dashboard():state.view==='settings'?settings():state.view==='access'?accessList():state.view==='budgets'?budgetList():state.view==='editor'?editor():generic(state.view);
+ $('#content').innerHTML=state.view==='home'?dashboard():state.view==='settings'?settings():state.view==='budgets'?budgetList():state.view==='editor'?editor():generic(state.view);
  if(state.view==='editor')summary();
 }
 async function saveEntity(entity,form){
@@ -395,12 +395,12 @@ document.addEventListener('submit',async ev=>{
   if(f.id==='login'){
    const form=new FormData(f);
    const result=await request('/api/session','POST',{email:form.get('email'),password:form.get('password')});
-   if(result.authenticated){await showApp();f.reset()}
-   else if(result.pending){await showPending();f.reset()}
+   if(result.authenticated){state.accountEmail=String(form.get('email')||'');await showApp();f.reset()}
   }else if(f.id==='signupForm'){
    const data=new FormData(f);
    const r=await request('/api/signup','POST',{email:data.get('email'),password:data.get('password')});
-   authMode('login');$('#authNotice').textContent=r.message||'Se o cadastro for possível, você receberá um e-mail de confirmação. Depois entre para solicitar aprovação.';
+   if(r.authenticated){state.accountEmail=String(data.get('email')||'');await showApp();f.reset()}
+   else{authMode('login');$('#authNotice').textContent=r.message||'Confirme o e-mail para entrar sem aprovação.'}
   }else if(f.id==='recoverForm'){
    const data=new FormData(f);
    const r=await request('/api/recovery','POST',{action:'request',email:data.get('email')});
@@ -427,6 +427,16 @@ document.addEventListener('input',ev=>{
  if(e.id==='workerProfession'){showProfessionOptions(e);return}
  if(e.id==='workerSearch'){updateWorkerChoices();return}
  if(e.id==='dashboardProjectSearch'){state.dashboardSearch=e.value;refreshDashboardProjects();return}
+ if(e.dataset.discountRange!==undefined||e.dataset.discountNumber!==undefined){
+  if(!state.draft)return;
+  const val=Number(e.value);
+  if(!Number.isFinite(val)||val<0||val>100){flash('Desconto deve estar entre 0% e 100%.');return}
+  state.draft.discount_pct=val;
+  const mirror=document.querySelector(e.dataset.discountRange!==undefined?'[data-discount-number]':'[data-discount-range]');
+  if(mirror)mirror.value=String(Math.min(50,val));
+  if(e.dataset.discountRange!==undefined&&mirror)mirror.value=String(val);
+  summary();return;
+ }
  const b=state.draft;if(!b)return;
  if(e.dataset.draft){
   const k=e.dataset.draft;
@@ -481,25 +491,15 @@ document.addEventListener('click',async ev=>{
  const tab=ev.target.closest('[data-view]');
  if(tab){
   state.view=tab.dataset.view;state.edit=null;state.draft=null;
-  // Pedidos de acesso so sao consultados quando o administrador abre Acessos.
-  // Eles nao atrasam a entrada em Visao geral.
-  if(state.view==='access'){
-   $('#content').innerHTML='<section class="card" role="status">Carregando solicitações de acesso...</section>';
-   try{state.access=(await request('/api/access?action=list')).rows||[]}
-   catch(error){
-    if(state.view==='access')$('#content').innerHTML='<section class="card"><h2>Não foi possível carregar os acessos</h2><p>Selecione Acessos novamente para tentar.</p></section>';
-    flash(error.message);return;
-   }
-  }
   render();return
  }
  const el=ev.target.closest('[data-action]');if(!el)return;
  const action=el.dataset.action,id=el.dataset.id,b=state.draft;
  try{
-  if(action==='approve-access'){
-   if(!window.confirm('Autorizar este usuário a acessar todos os custos e orçamentos internos?'))return;
-   await request('/api/access?action=approve','POST',{user_id:id});
-   state.access=(await request('/api/access?action=list')).rows||[];render();flash('Usuário autorizado com sucesso.');
+  if(action==='account-reset-password'){
+   if(!state.accountEmail)throw Error('Entre novamente na conta antes de solicitar a alteração de senha.');
+   await request('/api/recovery','POST',{action:'request',email:state.accountEmail});
+   flash('Verifique seu e-mail para alterar sua senha.');
   }
   else if(action==='delete-cash'){
    if(!window.confirm('Excluir esta movimentação do caixa?'))return;
@@ -544,27 +544,27 @@ document.addEventListener('click',async ev=>{
 });
 async function logout(){
  try{await request('/api/session','DELETE')}catch{}
+ state.accountEmail='';
  state.view='home';state.draft=null;$('#app').hidden=true;$('#auth').hidden=false;authMode('login');$('#login').reset();
 }
 $('#logout').addEventListener('click',logout);
-$('#pendingLogout').addEventListener('click',logout);
-$('#requestAccess').addEventListener('click',async()=>{
- try{await request('/api/access?action=request','POST',{});$('#pendingNotice').textContent='Solicitação registrada. Aguarde autorização.'}
- catch(e){$('#pendingNotice').textContent=e.message}
-});
-$('#refreshAccess').addEventListener('click',async()=>{
- try{const r=await request('/api/session');if(r.authenticated)await showApp();else $('#pendingNotice').textContent='O acesso ainda aguarda aprovação.'}
- catch(e){$('#pendingNotice').textContent=e.message}
-});
 // Microfones de ditado também acompanham campos criados dinamicamente em cada tela.
 // O texto entra pelo mesmo evento 'input' utilizado nos orçamentos e cadastros.
 startVoiceFields({notify:flash});
 // A consulta opcional de cores nao deve bloquear o inicio da sessao.
 void loadBrand();
 const fragment=new URLSearchParams(window.location.hash.replace(/^#/,''));
-if(fragment.get('type')==='recovery'&&fragment.get('access_token'))recoveryToken=fragment.get('access_token');
+const fragmentToken=fragment.get('access_token');
+if(fragment.get('type')==='recovery'&&fragmentToken)recoveryToken=fragmentToken;
 if(fragment.has('access_token')||fragment.has('error'))history.replaceState(null,'',location.pathname+location.search);
 if(recoveryToken)authMode('password');
 else{
- try{const r=await request('/api/session');if(r.authenticated)await showApp();else if(r.pending)await showPending()}catch{/* login disponível */}
+ try{
+  // O Supabase pode encaminhar diretamente ao CIVOLTEN após confirmação.
+  // O token é validado no servidor e convertido em cookie HttpOnly.
+  const confirmation=fragmentToken&&fragment.get('type')!=='recovery';
+  const r=confirmation?await request('/api/session','POST',{access_token:fragmentToken}):await request('/api/session');
+  if(r.authenticated){state.accountEmail=r.email||'';await showApp()}
+  else if(confirmation){authMode('login');$('#authNotice').textContent='E-mail confirmado. Entre com sua senha.'}
+ }catch{authMode('login');if(fragmentToken)$('#authNotice').textContent='Não foi possível abrir a sessão. Entre com seu e-mail e senha.'}
 }

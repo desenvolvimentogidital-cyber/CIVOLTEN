@@ -66,7 +66,9 @@ export function financialDashboard({data,search,status,esc,brl,title,companyRate
  card('Custo mensal da empresa',brl(rates.monthly_cents),'Despesas fixas '+brl(rates.fixed_expenses_cents)+' + folha '+brl(rates.payroll_cents),'fin-kpi-gold')+
  card('Custo por dia',brl(rates.daily_cents),rates.billable_days_month+' dias faturáveis/mês')+
  card('Custo por hora',brl(rates.hourly_cents),rates.hours_day+' horas por dia')+
- card('Obras aprovadas',String(p.count),'De '+data.budgets.length+' orçamentos registrados')+
+ card('Propostas em aberto',brl(all.pipeline.open_cents),all.pipeline.open_count+' enviadas · ainda não fechadas','fin-kpi-gold')+
+ card('Obras fechadas (aprovadas)',brl(all.pipeline.closed_cents),all.pipeline.closed_count+' aprovadas · faturamento previsto')+
+ card('Rascunhos em preparação',brl(all.pipeline.draft_cents),all.pipeline.draft_count+' ainda não enviados')+
  card('Venda prevista (aprovadas)',brl(p.price_cents),'Não é dinheiro recebido')+
  card('Custos previstos (aprovadas)',brl(p.cost_cents),'Inclui o rateio da estrutura')+
  card('Impostos previstos',brl(p.tax_cents),'Estimativa sobre o preço de venda')+

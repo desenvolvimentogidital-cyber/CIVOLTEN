@@ -13,35 +13,28 @@ Impostos e lucro são porcentagens sobre o faturamento, não sobre o custo. Pre�
 22 dias é padrão inicial ajustável, não norma obrigatória. Em trabalhos paralelos, registre a capacidade faturável mensal agregada corretamente para não duplicar custos. Nenhuma alíquota ou margem são presumidas: ambas começam em zero até você configurar. Valide o regime tributário com contador.
 
 ## Privacidade
-Os custos nunca entram na proposta impressa ao cliente. Login reutiliza a autenticação CIVOLTEN com cookie seguro HttpOnly. Novas tabelas cv_ no Supabase protegem cada administrador por RLS. Não há chave de serviço exposta.
+Os custos nunca entram na proposta impressa ao cliente. Login reutiliza a autenticação CIVOLTEN com cookie seguro HttpOnly. As tabelas cv_ no Supabase protegem os dados privados de cada proprietário por RLS. Não há chave de serviço exposta.
 
 ## Segurança de migração
-Existe uma referência histórica de código antes da refatoração (`backup-civolten-antes-refatoracao-20261020`). **Uma branch do GitHub não substitui backup do banco Supabase**. As tabelas novas de custos reais preservaram as tabelas antigas; a identidade visual oficial usa dois arquivos PNG locais, e as cores podem ser consultadas pelo serviço de branding. A Edge Function participa da verificação de administrador.
+Existe uma referência histórica de código antes da refatoração (`backup-civolten-antes-refatoracao-20261020`). **Uma branch do GitHub não substitui backup do banco Supabase**. As tabelas novas de custos reais preservaram as tabelas antigas; a identidade visual oficial usa dois arquivos PNG locais, e as cores podem ser consultadas pelo serviço de branding. A verificação de sessão ocorre no Supabase Auth; a Edge Function legada só permanece como fonte opcional de identidade visual.
 
 ## Teste
 Execute `npm run check`. O CI testa sintaxe, calculadora, formulário, proposta, login não autorizado, regras de acesso e operações da API. Essas verificações **não substituem** o teste com a conta real (login, edição, salvamento, PDF, recuperação de senha e permissões) no celular. Alterações devem ser propostas por PR, com CI verde antes de integrar a branch `main`.
 
 Cada funcionário também registra os dias previstos no mês (22 como padrão editável), com estimativa mensal da diária e encargos. O valor da folha deve ser conferido para não contar a mesma mão de obra em custos fixos e no orçamento da obra.
 
-## Acesso e recuperação do administrador
+## Autenticação e isolamento por conta (base para SaaS)
 
-O projeto já possui um administrador no Supabase Auth. Para recuperá-lo, use **Esqueci minha senha** com o endereço da conta original. A recuperação envia e-mail pelo Supabase; a aplicação mostra uma mensagem genérica mesmo se o endereço não estiver cadastrado.
+O CIVOLTEN usa autenticação Supabase, cookie `HttpOnly; Secure; SameSite=Strict` e valida o JWT da sessão diretamente em `/auth/v1/user`. Não existe mais solicitação nem aprovação administrativa. Cada conta acessa somente seus próprios dados: a tabela guarda `owner_id`, e as políticas RLS de `SELECT/INSERT/UPDATE/DELETE` exigem `owner_id=auth.uid()`. A API utiliza exclusivamente o JWT da conta autenticada, nunca uma chave `service_role`.
 
-Para novos usuários, **Criar conta de acesso** registra uma conta comum. Depois de confirmar o e-mail e iniciar uma sessão, o usuário solicita aprovação; a conta não lê nenhum dado financeiro enquanto estiver pendente. Um administrador previamente autorizado abre **Acessos** e aprova a solicitação. A concessão ocorre por RPC PostgreSQL que exige explicitamente um administrador ativo, além da confirmação do e-mail. Cadastro público não equivale a permissão administrativa.
+**Cadastro:** se o Supabase tiver `Confirm email` desligado, a API de cadastro obtém uma sessão válida e faz login imediatamente. Se estiver ligado (opção recomendada para um SaaS aberto), o usuário confirma o endereço e entra sem aprovação humana. O retorno pelo link de confirmação pode ser convertido em sessão HttpOnly após verificação do token pelo próprio Supabase; a pessoa pode também fazer login normalmente. A configuração `Confirm email` é de responsabilidade do projeto Supabase Auth e não pode ser modificada pela aplicação.
 
-### Configuração pendente no Supabase Auth
-Confira no projeto CIVOLTEN a página Authentication → URL Configuration:
-- Site URL: `https://civolten.vercel.app/`;
-- Redirect URLs: permitir a URL de produção `https://civolten.vercel.app/` e somente outros endereços efetivamente necessários;
-- conferir os modelos de e-mail e as configurações de confirmação, pois URLs não autorizadas podem fazer o Supabase enviar o usuário à Site URL em vez da prévia.
+**Privacidade multiusuário:** trabalhadores, custos, caixa, orçamentos e parâmetros têm RLS por proprietário. O catálogo global de profissões contém **somente nomes públicos das atividades**, sem preços ou diárias; funções personalizadas pertencem à respectiva conta. Vincular caixa a uma obra de outro proprietário é bloqueado no banco.
 
-Sem essas configurações e sem teste do e-mail real não é possível considerar a recuperação completamente homologada.
+**Recuperação de senha:** Configurações → Minha conta → Receber link para alterar senha. Valide Site URL e Redirect URLs do Supabase Auth para `https://civolten.vercel.app/` e configure a entrega de e-mail antes da abertura a usuários externos.
 
-A função pública de aprovação usa `SECURITY DEFINER` de maneira intencional, com `auth.uid()`, conferência em `admin_users`, `search_path` vazio e confirmação do usuário. A análise de segurança do Supabase ainda apresenta um aviso para essa função por ser executável por autenticados. Não retirar os bloqueios nem ampliar os grants sem nova auditoria.
-
-### Implantação atual
-A aplicação CIVOLTEN está em produção na Vercel e é publicada pela branch `main`. `vercel.json` desabilita deploys de preview para branches secundárias, preservando a cota e exigindo somente um deploy após integração. Confira sempre se o SHA do deployment `production` corresponde ao commit de `main`.
-
+### Publicação
+A aplicação atual usa HTML/JavaScript modular e funções Vercel; não é Next.js/React nem depende de Tailwind. A identidade azul-escuro/dourado e o modo escuro foram preservados. `main` faz um único deploy de produção (previews desabilitados), sempre após os testes do CI.
 
 ## Proposta comercial em PDF (layout corporativo)
 No editor de orçamento, escolha **Gerar PDF / imprimir proposta**. No diálogo de impressão do celular ou computador, selecione **Salvar como PDF** para gerar o arquivo A4 para enviar pelo WhatsApp ou e-mail.
@@ -69,18 +62,18 @@ A arte nova está instalada. A área horizontal tem recorte visual para compensa
 - **Cálculos e preços:** entrada negativa, não numérica, fora dos limites ou sem precisão suficiente deve gerar erro — nunca custo reduzido silenciosamente. Os testes automatizados conferem custo real, encargos, despesas, impostos, rateio, preço manual e lucro/prejuízo.
 - **Listagem:** funcionários, custos e orçamentos são lidos de forma paginada, em lotes de 250, com ordenação estável. A operação não oculta registros antigos silenciosamente. Há limite operacional defensivo de 2.000 registros por tabela; acima disso, será necessário implementar paginação visual com carregamento incremental.
 - **Persistência:** atualizar ou excluir ID inexistente/sem permissão retorna erro, evitando mensagem enganosa de sucesso.
-- **API:** corpos JSON são limitados por bytes durante o streaming, inclusive sem `Content-Length`. Endpoints financeiros exigem sessão e administrador; Supabase aplica RLS por proprietário.
+- **API:** corpos JSON são limitados por bytes durante o streaming, inclusive sem `Content-Length`. Endpoints financeiros exigem sessão válida e Supabase aplica RLS por proprietário.
 - **Configuração financeira:** na auditoria, a tabela de configurações ainda não tinha um registro. O painel avisa quando impostos, margem e capacidade faturável não foram salvos ou quando margem/impostos estão em zero. **Configure esses valores reais antes de confiar em um preço comercial**.
 - **Limitações de homologação:** ainda é necessário testar no aparelho real uma sessão autenticada, recuperação de senha, impressão e restauração de backup do banco. O aviso de proteção contra senhas vazadas do Supabase Auth deve ser revisado nas configurações de autenticação. Os avisos de RLS sem política referem-se a tabelas antigas bloqueadas intencionalmente.
 - **Dados:** a auditoria usa consultas de leitura no banco; não apaga nem modifica cadastros existentes e não inclui nenhuma tabela de referência na formação de preços.
 
 ## Catálogo pesquisável de profissões
 
-Em **Funcionários → Cadastrar funcionários → Profissão / função**, toque no campo para abrir a lista de profissões. O catálogo inicial contém **90 funções** de construção civil, elétrica, instalações, acabamento e apoio; digite parte do nome para pesquisar, inclusive sem acento. Escolha uma opção ou informe uma profissão diferente. Depois de salvar um funcionário com uma profissão nova, essa função é armazenada na tabela `cv_professions`, privada do seu administrador, e fica disponível em futuros cadastros. A lista também contempla as funções já registradas antes da atualização.
+Em **Funcionários → Cadastrar funcionários → Profissão / função**, toque no campo para abrir a lista de profissões. O catálogo inicial contém **90 funções** de construção civil, elétrica, instalações, acabamento e apoio; digite parte do nome para pesquisar, inclusive sem acento. Escolha uma opção ou informe uma profissão diferente. Depois de salvar um funcionário com uma profissão nova, essa função é armazenada na tabela `cv_professions`, privada da sua conta, e fica disponível em futuros cadastros. A lista também contempla as funções já registradas antes da atualização.
 
 Em **Orçamentos → Mão de obra por diária**, pesquise um funcionário já cadastrado pelo nome ou pela profissão e selecione-o para adicionar à obra. Clicar no seletor sem filtro mostra toda a equipe ativa.
 
-O catálogo contém **somente nomes de profissões**; não altera valores de diárias, custos, encargos ou fórmulas, e não contém nenhuma referência de preços SINAPI/CUB/SIURB. O Supabase aplica RLS para impedir que usuários não autorizados leiam ou adicionem profissões; as opções gerais são compartilhadas, enquanto as personalizadas pertencem ao respectivo administrador.
+O catálogo contém **somente nomes de profissões**; não altera valores de diárias, custos, encargos ou fórmulas, e não contém nenhuma referência de preços SINAPI/CUB/SIURB. O Supabase aplica RLS para impedir que contas sem login leiam ou adicionem profissões; as opções gerais são compartilhadas, enquanto as personalizadas pertencem ao respectivo administrador.
 
 ## Custos fixos, materiais opcionais e indicador de capacidade
 
@@ -117,7 +110,7 @@ A Visão geral agora tem indicadores do custo mensal da estrutura (despesas fixa
 
 **Gráficos:** dois gráficos dos últimos seis meses. O primeiro compara venda/custo previstos das propostas atualmente aprovadas, agrupadas pela data de criação. O segundo mostra entradas/saídas **registradas efetivamente no livro de caixa** por data do movimento. Não há integração bancária nem reconhecimento automático de receitas.
 
-**Caixa da empresa:** registre manualmente cada entrada efetivamente recebida e cada despesa paga, com data, categoria, descrição e vínculo opcional a uma obra. Lançamentos são protegidos por login, RLS e propriedade do administrador. Podem ser excluídos mediante confirmação; para corrigir valores, exclua e lance novamente. O saldo exibido é apenas entradas menos saídas **registradas desde o início** — não representa saldo bancário inicial, contas a pagar nem o lucro contábil.
+**Caixa da empresa:** registre manualmente cada entrada efetivamente recebida e cada despesa paga, com data, categoria, descrição e vínculo opcional a uma obra. Lançamentos são protegidos por login, RLS e propriedade de cada usuário. Podem ser excluídos mediante confirmação; para corrigir valores, exclua e lance novamente. O saldo exibido é apenas entradas menos saídas **registradas desde o início** — não representa saldo bancário inicial, contas a pagar nem o lucro contábil.
 
 **Margem e impostos:** formulário rápido na Visão geral ajusta as configurações financeiras utilizadas em **novas** propostas; exige percentuais válidos cuja soma seja inferior a 100. Propostas já salvas preservam os valores originais para evitar revisões silenciosas.
 
@@ -150,3 +143,11 @@ A transcrição **não substitui o texto anterior**: o trecho novo é inserido n
 O reconhecimento de voz pode enviar a mesma frase várias vezes — por exemplo, um resultado parcial **“Kleber”** seguido do resultado ampliado **“Kleber Nunes”**. O CIVOLTEN agora verifica a sobreposição de palavras e frases entre os segmentos antes de preencher o campo. Assim, trechos já reconhecidos não são acrescentados novamente. A verificação também remove repetições consecutivas idênticas dentro de um único segmento, sem apagar o texto que estava no campo antes de iniciar o ditado.
 
 A gravação continua sem armazenamento no CIVOLTEN, e o reconhecimento ainda depende do navegador. Sempre confira nomes próprios e palavras técnicas antes de salvar.
+
+## Desconto e proposta comercial
+
+No fechamento do orçamento, o usuário simula descontos percentuais. O sistema exibe valor de referência, desconto, preço global ao cliente, impostos sobre a venda, lucro líquido estimado e margem final, além da margem original. O desconto é salvo no orçamento e integra o preço do PDF quando confirmado. O PDF comercial usa o gerador existente de folha A4, mantendo apenas dados comerciais (cliente, serviços, quantitativos descritivos, prazo, condições e investimento total), sem salários, custos, impostos ou margem.
+
+## Indicadores por situação
+
+A Visão geral separa **propostas enviadas em aberto**, **obras aprovadas/fechadas** e **rascunhos ainda em preparação**, sem confundir previsão de venda com dinheiro efetivamente recebido. O livro de caixa reflete somente os pagamentos e recebimentos lançados.
