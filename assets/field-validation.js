@@ -66,7 +66,8 @@ function showSummary(root,count){
  if(!summary){
   summary=document.createElement('div');summary.className='cv-validation-summary';
   summary.setAttribute('role','alert');summary.setAttribute('aria-live','assertive');
-  area.prepend(summary);
+  const host=area.matches?.('.editor,.contract-editor')?area.querySelector(':scope > .stack')||area:area;
+  host.prepend(summary);
  }
  summary.textContent='Revise '+count+' campo(s) destacado(s) em vermelho antes de continuar.';
 }
