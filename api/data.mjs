@@ -1,6 +1,6 @@
 import {SUPABASE,KEY,json,sameOrigin,browserAllowed,readBody,cookieToken,authorized} from '../lib/civolten-security.mjs';
 import {calculateBudget} from '../lib/civolten-calc.mjs';
-import {sanitizeContract,validateContractForExport} from '../lib/civolten-contract.mjs';
+import {sanitizeContract,validateContractForExport,validBrazilDocument} from '../lib/civolten-contract.mjs';
 import {listRows} from '../lib/civolten-pages.mjs';
 const models={
  settings:['cv_settings','workdays_month','billable_days_month','hours_day','tax_pct','margin_pct'],
@@ -14,6 +14,13 @@ const models={
  contract_profiles:['cv_contract_profiles','company_name','company_document','company_address','company_representative','company_phone','company_email','city']
 };
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+async function existingContract(id,jwt){
+ const endpoint=new URL(SUPABASE+'/rest/v1/cv_contracts');
+ endpoint.searchParams.set('select','*');endpoint.searchParams.set('id','eq.'+id);
+ const response=await fetch(endpoint,{headers:{apikey:KEY,Authorization:'Bearer '+jwt,Accept:'application/json'},signal:AbortSignal.timeout(12000)});
+ if(!response.ok)throw Error('Não foi possível conferir a versão atual do contrato.');
+ return (await response.json())[0]||null;
+}
 export default {async fetch(req){
  if(!['GET','POST','PATCH','DELETE'].includes(req.method))return json({error:'Método não permitido'},405);
  if(req.method==='GET'?!browserAllowed(req):!sameOrigin(req))return json({error:'Origem bloqueada'},403);
@@ -30,7 +37,14 @@ export default {async fetch(req){
   if(req.method==='GET'){
    dst.searchParams.set('select','*');
    if(entity!=='settings')dst.searchParams.set('order',entity==='cash'?'occurred_on.desc,created_at.desc,id.desc':'created_at.desc,id.desc');
-  }else if(req.method==='DELETE'){dst.searchParams.set('id','eq.'+id)}
+  }else if(req.method==='DELETE'){
+   if(entity==='contracts'){
+    const current=await existingContract(id,jwt);
+    if(!current)throw Error('Contrato não encontrado ou sem permissão.');
+    if(current.status!=='rascunho')throw Error('Contratos emitidos, assinados ou cancelados devem ser preservados no histórico.');
+   }
+   dst.searchParams.set('id','eq.'+id)
+  }
   else{
    const body=await readBody(req,59000),b=body.record;
    if(!b||typeof b!=='object'||Array.isArray(b))throw Error('Registro inválido');
@@ -50,10 +64,24 @@ export default {async fetch(req){
     if(data.budget_id!=null&&!uuid.test(data.budget_id))throw Error('Obra vinculada inválida');
    }
    if(entity==='contracts'){
+    const existing=req.method==='PATCH'?await existingContract(id,jwt):null;
+    if(req.method==='PATCH'&&!existing)throw Error('Contrato não encontrado ou sem permissão.');
     if(typeof data.title!=='string'||data.title.trim().length<3||data.title.length>180)throw Error('Informe o nome do contrato (até 180 caracteres).');
     if(!['rascunho','emitido','assinado','cancelado'].includes(data.status))throw Error('Situação do contrato inválida.');
     data.content=sanitizeContract(data.content);
     if(data.status==='emitido'||data.status==='assinado')validateContractForExport(data.content);
+    if(req.method==='POST'&&data.status!=='rascunho')throw Error('Salve o contrato primeiro como rascunho.');
+    if(existing){
+     if(existing.status==='assinado'||existing.status==='cancelado')throw Error('Contrato finalizado: crie uma nova revisão.');
+     if(existing.status==='rascunho'&&data.status==='assinado')throw Error('Emita o contrato antes de marcar como assinado.');
+     if(existing.status==='emitido'){
+      if(!['emitido','assinado','cancelado'].includes(data.status))throw Error('Transição de situação inválida.');
+      const old=sanitizeContract(existing.content);
+      if(JSON.stringify(old)!==JSON.stringify(data.content)||existing.title!==data.title||existing.counterparty!==data.content.counterparty_name||(existing.budget_id||null)!==(data.budget_id||null))
+       throw Error('Contrato emitido não pode ser modificado. Crie uma nova revisão.');
+     }
+    }
+    if(data.content.revision_of&&(!uuid.test(data.content.revision_of)||!data.content.revision_reason||data.content.revision_reason.length<5))throw Error('Informe a referência e o motivo da revisão.');
     data.counterparty=data.content.counterparty_name;
     if(data.budget_id!=null&&!uuid.test(data.budget_id))throw Error('Vínculo com orçamento inválido.');
     data.budget_id=data.budget_id||null;
@@ -64,6 +92,7 @@ export default {async fetch(req){
      if(typeof value!=='string'||value.length>250)throw Error('Dados da empresa inválidos: '+key);
      data[key]=value.trim();
     }
+    if(!data.company_name||!validBrazilDocument(data.company_document))throw Error('Informe a razão social e CPF/CNPJ válido da empresa.');
     data.updated_at=new Date().toISOString();
    }
    if(entity==='budgets'){

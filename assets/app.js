@@ -324,10 +324,16 @@ function summary(){
 function contractCompany(){return {...defaultContractCompany(),...(state.data.contract_profiles[0]||{})}}
 function startContract(row=null,budget=null){
  state.contractId=row?.id||null;
- state.contractDraft=row?{...structuredClone(row.content),status:row.status,budget_id:row.budget_id}:
+ state.contractDraft=row?{...contractDefaults(),...structuredClone(row.content),status:row.status,budget_id:row.budget_id,_locked:row.status!=='rascunho'}:
   budget?{...contractFromBudget(budget,contractCompany()),status:'rascunho'}:
   {...contractDefaults(),company:contractCompany(),status:'rascunho',budget_id:null};
  state.view='contract-editor';render();
+}
+function reviseContract(row){
+ if(!row)throw Error('Contrato original não encontrado.');
+ state.contractId=null;
+ state.contractDraft={...contractDefaults(),...structuredClone(row.content),status:'rascunho',revision_of:row.id,revision_reason:'',_locked:false};
+ state.view='contract-editor';render();flash('Nova revisão iniciada como rascunho; o contrato original foi preservado.');
 }
 async function saveContract(){
  const c=state.contractDraft;
@@ -337,7 +343,7 @@ async function saveContract(){
  const reply=await request(route('contracts',state.contractId),state.contractId?'PATCH':'POST',{record});
  const saved=reply.rows?.[0];if(!saved?.id)throw Error('O banco não confirmou o contrato.');
  state.contractId=saved.id;
- state.contractDraft={...structuredClone(saved.content),status:saved.status,budget_id:saved.budget_id};
+ state.contractDraft={...contractDefaults(),...structuredClone(saved.content),status:saved.status,budget_id:saved.budget_id,_locked:saved.status!=='rascunho'};
  await reload();render();flash('Contrato salvo com segurança.');
 }
 async function printContract(){
@@ -562,6 +568,8 @@ document.addEventListener('click',async ev=>{
   }
   else if(action==='new-contract')startContract();
   else if(action==='open-contract')startContract(state.data.contracts.find(x=>x.id===id));
+  else if(action==='revise-contract')reviseContract(state.data.contracts.find(x=>x.id===id));
+  else if(action==='revise-open-contract')reviseContract(state.data.contracts.find(x=>x.id===state.contractId));
   else if(action==='create-contract-from-budget')startContract(null,state.data.budgets.find(x=>x.id===id));
   else if(action==='contract-from-selected-budget'){
    const budget=state.data.budgets.find(x=>x.id===$('#contractFromBudgetSelect')?.value);
