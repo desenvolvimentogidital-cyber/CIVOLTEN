@@ -122,3 +122,15 @@ A Visão geral agora tem indicadores do custo mensal da estrutura (despesas fixa
 **Margem e impostos:** formulário rápido na Visão geral ajusta as configurações financeiras utilizadas em **novas** propostas; exige percentuais válidos cuja soma seja inferior a 100. Propostas já salvas preservam os valores originais para evitar revisões silenciosas.
 
 **Limites financeiros:** valores de orçamentos são estimativas e custos fixos são rateados pelo prazo da obra, não saídas de caixa automaticamente pagas. A saúde financeira só pode ser avaliada de forma completa quando os pagamentos e recebimentos reais, obrigações, tributos e extratos forem conciliados. Não contabilize uma proposta aprovada como recebimento sem lançar o pagamento.
+
+## Orçamento simples: equipe selecionável e configuração centralizada
+
+O orçamento agora funciona em **quatro passos**: dados da obra, profissionais, serviços/quantitativos e materiais/despesas opcionais. Na etapa de profissionais, a busca e a lista exibem **todos os funcionários ativos**, agrupados como **Equipe fixa mensal** e **Profissionais por obra**. Basta selecionar e adicionar. Um mesmo profissional não pode ser incluído duas vezes na mesma obra.
+
+- **Funcionário fixo mensal**: seu salário já faz parte da folha registrada em Custos fixos e rateada no preço da obra. Pode ser selecionado para indicar quem executará o serviço, **sem acrescentar uma segunda diária**. Na lista aparece *Já considerado*.
+- **Profissional contratado por obra**: sua diária, dias da obra e encargos informados no cadastro são utilizados como custo adicional, sem entrar no rateio mensal.
+- **Dia(s) na obra** continua editável por profissional; **dias faturáveis mensais, horas/dia, impostos e margem** ficam exclusivamente em **Configurações financeiras**, onde também há o resumo de despesas fixas e folha e atalhos para editar custos/encargos individuais.
+- **Serviços e quantidades** entram no PDF; **materiais** só são cobrados quando selecionados. O preço sugerido é automático; a opção de preço manual permanece recolhida em detalhes para casos especiais.
+- **Orçamentos anteriores** conservam suas informações e parâmetros históricos. Nunca recalcular valores antigos apenas por ter alterado configuração, funcionário ou despesas da empresa. Ao abrir uma proposta existente, seus dados continuam disponíveis.
+
+Essa divisão evita duplicidade entre folha fixa e mão de obra por obra e preserva o cálculo de impostos sobre preço de venda. O painel não utiliza tabelas externas de preços.

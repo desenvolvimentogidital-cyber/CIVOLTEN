@@ -70,7 +70,7 @@ test('barra de total fica fixa e a lista possui rolagem independente inclusive n
  assert.match(app,/payrollSummary\(items\)/);
  assert.match(app,/worker-scroll/);
 });
-test('modalidade de custo salva no banco e somente por obra aparece para adicionar manualmente',()=>{
+test('modalidade de custo salva no banco e qualquer funcionario ativo pode participar da obra sem duplicacao',()=>{
  const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
  const api=fs.readFileSync(new URL('../api/data.mjs',import.meta.url),'utf8');
  const migration=fs.readFileSync(new URL('../supabase/migrations/20261022_cv_workers_cost_mode.sql',import.meta.url),'utf8');
@@ -79,8 +79,10 @@ test('modalidade de custo salva no banco e somente por obra aparece para adicion
  assert.match(migration,/check \(cost_mode in \('monthly','project'\)\)/);
  assert.match(app,/Fixo mensal — entra automaticamente nos orçamentos/);
  assert.match(app,/Por obra — adicionar só quando necessário/);
- assert.match(app,/const workers=state\.data\.workers\.filter\(x=>x\.active&&\(x\.cost_mode\?\?'monthly'\)==='project'\)/);
- assert.match(app,/Funcionário de folha fixa já está incluído automaticamente/);
+ assert.match(app,/const workers=state\.data\.workers\.filter\(x=>x\.active\)/);
+ assert.match(app,/workerOptions\(workers\.sort/);
+ assert.match(app,/b\.staff\.push\(createBudgetStaff\(x,b\.days\)\)/);
+ assert.match(app,/staffAlreadyAdded\(b\.staff,x\.id\)/);
  assert.match(app,/fixed_monthly_cents:rates\.monthly_cents/);
 });
 test('nao altera orcamento salvo automaticamente; valor da folha e despesas copia para orcamento novo',()=>{

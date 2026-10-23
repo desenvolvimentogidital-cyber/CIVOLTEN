@@ -33,26 +33,26 @@ test('rejeitar taxas invalidas sem truncamento silencioso',()=>{
  assert.equal(calculateBudget({...base,staff:[{...base.staff[0],charges_pct:null}]}).labor_cents,100000);
 });
 
-test('funcionarios novos começam com 0%, limite de 200% e orçamento permite edição',()=>{
+test('funcionarios conservam seus encargos e o orçamento os utiliza sem configuracao duplicada',()=>{
  const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
  const css=fs.readFileSync(new URL('../assets/app.css',import.meta.url),'utf8');
  assert.match(app,/k==='charges_pct'\?\(raw==null\|\|Number\(raw\)===0\?'':raw\)/);
  assert.match(app,/k==='charges_pct'\?'min="0" max="200" step="0\.01"'/);
- assert.match(app,/data-staff-charges/);
+ assert.doesNotMatch(app.slice(app.indexOf('function editor(){'),app.indexOf('function summary(){')),/data-staff-charges/);
  assert.match(app,/e\.dataset\.staffCharges!==undefined/);
  assert.match(app,/b\.staff\[i\]\.charges_pct=pct/);
  assert.match(app,/data-staff-cost/);
  assert.match(app,/summary\(\)/);
  assert.match(css,/\.staff-line\{/);
  assert.match(css,/@media\(max-width:1090px\)/);
- assert.match(app,/b\.staff\[i\]\.charges_pct=pct/); // a edição é feita no orçamento, não no cadastro
+ assert.match(app,/createBudgetStaff\(x,b\.days\)/); // encargos copiados do cadastro
 });
 
 test('cadastro conserva o percentual informado e não o substitui por referência',()=>{
  const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
  assert.match(app,/\['charges_pct','Encargos adicionais \(\%\) — opcional','number'\]/);
  assert.match(app,/record\[k\]=type==='checkbox'\?e\.checked:type==='money'\?money\(e\.value\):type==='number'\?num\(e\.value\)/);
- assert.match(app,/charges_pct:num\(x\.charges_pct\)/);
+ assert.match(app,/createBudgetStaff\(x,b\.days\)/);
 });
 
 
@@ -69,8 +69,8 @@ test('encargos opcionais: campo do cadastro não exige preenchimento',()=>{
 
 test('encargos opcionais: apagar a porcentagem no orçamento volta ao custo sem encargos',()=>{
  const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
- assert.match(app,/Encargos adicionais \(\%\) — opcional<input data-staff-charges/);
- assert.match(app,/Number\(x\.charges_pct\?\?0\)===0\?'':x\.charges_pct/);
+ assert.match(app,/Altere diárias e encargos em Funcionários/);
+ assert.match(app,/cost_mode==='monthly'/);
  assert.match(app,/const i=Number\(e\.dataset\.staffCharges\),pct=e\.value\.trim\(\)===''\?0:Number\(e\.value\)/);
  assert.match(app,/b\.staff\[i\]\.charges_pct=pct/);
  assert.match(app,/summary\(\)/);
