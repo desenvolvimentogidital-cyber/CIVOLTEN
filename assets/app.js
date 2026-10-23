@@ -241,7 +241,18 @@ function editor(){
  const b=state.draft||{};
  const workers=state.data.workers.filter(x=>x.active);
  const variables=state.data.variable;
- const staffLines=(b.staff||[]).map((x,i)=>'<div class="line staff-line"><div class="staff-info"><strong>'+esc(x.name)+'</strong><small>'+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</small></div><label class="line-label">Dias<input data-staff-days="'+i+'" type="number" min="0" max="10000" step=".5" value="'+esc(x.days)+'"></label><label class="line-label">Encargos adicionais (%) — opcional<input data-staff-charges="'+i+'" type="number" min="0" max="200" step=".01" value="'+esc(Number(x.charges_pct??0)===0?'':x.charges_pct)+'" aria-label="Encargos do profissional '+esc(x.name)+' em porcentagem"></label><span class="price staff-price" data-staff-cost="'+i+'">'+brl(Math.round(x.daily_cents*x.days*(1+num(x.charges_pct)/100)))+'</span><button class="danger" data-action="remove-staff" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
+ const staffLines=(b.staff||[]).map((x,i)=>{
+  const monthly=x.cost_mode==='monthly',dailyRef=x.daily_reference_cents??x.daily_cents;
+  const amount=Math.round(x.daily_cents*x.days*(1+num(x.charges_pct)/100));
+  return '<div class="budget-team-entry"><div class="budget-team-person"><strong>'+esc(x.name)+'</strong>'+
+   '<small>'+esc(x.profession)+'</small>'+
+   '<span class="budget-team-tag '+(monthly?'budget-team-monthly':'budget-team-project')+'">'+
+   (monthly?'Equipe fixa · já coberta pela folha mensal':(x.cost_mode==='project'?'Por obra':'Cadastro anterior')+' · '+brl(dailyRef)+'/dia')+'</span>'+
+   (!monthly&&num(x.charges_pct)>0?'<small>Encargos do cadastro: '+num(x.charges_pct)+'%</small>':'')+
+   '</div><label>Dia(s) na obra<input data-staff-days="'+i+'" type="number" min=".5" max="10000" step=".5" value="'+esc(x.days)+'"></label>'+
+   '<div class="budget-team-cost"><small>'+ (monthly?'Incluso no custo mensal':'Custo adicional') +'</small><strong data-staff-cost="'+i+'">'+brl(amount)+'</strong></div>'+
+   '<button type="button" class="danger small" data-action="remove-staff" data-index="'+i+'" aria-label="Remover '+esc(x.name)+' da obra">Remover</button></div>';
+ }).join('');
  const expenseLines=(b.expenses||[]).map((x,i)=>'<div class="line"><div><strong>'+esc(x.name)+'</strong><small>'+brl(x.unit_cents)+' / '+esc(x.unit||'un')+'</small></div><label class="line-label">Qtd.<input data-expense-qty="'+i+'" type="number" min="0" step=".01" value="'+esc(x.qty)+'"></label><span class="price">'+brl(Math.round(x.unit_cents*x.qty))+'</span><button class="danger" data-action="remove-expense" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
  const scopeUnits=['m²','m','m³','un','ponto','serviço'];
  const scopeLines=(b.scope_items||[]).map((item,i)=>'<div class="scope-entry">'+
@@ -262,19 +273,21 @@ function editor(){
  '<p class="caption">Liste o que será executado para o cliente: metragem de parede, piso, forro, drywall, pontos elétricos e outros. Estes itens serão apresentados no PDF sem preço unitário ou custos internos.</p>'+
  '<div class="scope-list">'+(scopeLines||empty('Adicione os serviços e suas quantidades para detalhar a proposta.'))+'</div>'+
  '<div class="buttons"><button type="button" class="secondary" data-action="add-scope">+ Adicionar serviço</button></div></section>'+
- '<section class="card"><h2>1. Mão de obra extra por obra</h2><label class="worker-search-label">Localizar funcionário já cadastrado<input id="workerSearch" type="search" placeholder="Busque por nome ou profissão" autocomplete="off"></label><div class="pick"><select id="workerSelect" aria-label="Lista de funcionários cadastrados"><option value="">Escolha um funcionário</option>'+workers.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</option>').join('')+'</select><button class="secondary" data-action="add-worker">Adicionar</button></div>'+
- '<p class="caption">A equipe de folha mensal já está incluída automaticamente no custo fixo rateado desta obra. Aqui aparecem apenas profissionais com forma de custo "Por obra", que você adiciona se necessário. Encargos adicionais são opcionais.</p>'+(staffLines||empty('Nenhum funcionário alocado.'))+'</section>'+
+ '<section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">2</span><div><h2>Escolha os profissionais da obra</h2><p>Todos os funcionários ativos aparecem, inclusive os fixos.</p></div></div>'+
+ '<label class="worker-search-label">Buscar profissional ou profissão<input id="workerSearch" type="search" placeholder="Ex.: eletricista, pedreiro, nome" autocomplete="off"></label>'+
+ '<div class="pick"><select id="workerSelect" aria-label="Lista de todos os profissionais cadastrados"><option value="">Selecione um profissional</option>'+workerOptions(workers.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')))+'</select>'+
+ '<button type="button" class="secondary" data-action="add-worker">+ Adicionar</button></div>'+
+ '<p class="caption">Equipe fixa: a diária já faz parte da folha mensal rateada, sem cobrança em duplicidade. Profissionais por obra: o valor da diária e os encargos cadastrados entram conforme os dias utilizados. Altere diárias e encargos em Funcionários.</p>'+
+ '<div class="budget-team-list">'+(staffLines||empty('Selecione acima os profissionais que executarão este serviço.'))+'</div></section>'+
  '<section class="card"><h2>2. Custos variáveis — somente se fornecidos nesta obra</h2><div class="pick"><select id="variableSelect"><option value="">Escolha uma despesa cadastrada</option>'+variables.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+brl(x.unit_cents)+'/'+esc(x.unit)+'</option>').join('')+'</select><button class="secondary" data-action="add-variable">Adicionar</button></div>'+
  '<p class="caption">Esses itens não entram automaticamente no orçamento. Se o cliente fornecer materiais, não os adicione. Quando a CIVOLTEN fornecer materiais ou assumir transporte/locação, adicione os itens e quantidades efetivos abaixo.</p>'+
  '<div class="grid" style="margin:15px 0"><label>Nova despesa<input id="customExpenseName" maxlength="120" placeholder="Ex.: Material de acabamento"></label><label>Valor total (R$)<input id="customExpenseValue" type="number" min="0" step=".01"></label></div><button class="subtle" data-action="add-expense">+ Despesa avulsa</button>'+
  '<div style="margin-top:15px">'+(expenseLines||empty('Nenhuma despesa variável.'))+'</div></section>'+
- '<section class="card"><h2>3. Estratégia de venda</h2><div class="grid">'+
- '<label>Impostos (%)<input data-pricing="tax_pct" type="number" min="0" max="99" step=".01" value="'+esc(b.pricing?.tax_pct)+'"></label>'+
- '<label>Margem-alvo (%)<input data-pricing="margin_pct" type="number" min="0" max="99" step=".01" value="'+esc(b.pricing?.margin_pct)+'"></label>'+
- '<label>Capacidade faturável mensal (dias-equipe)<input data-pricing="billable_days_month" type="number" min=".01" step=".01" value="'+esc(b.pricing?.billable_days_month)+'"></label>'+
- '<label>Custo fixo mensal + folha considerados nesta obra (R$)<input data-pricing="fixed_monthly_reais" type="number" min="0" step=".01" value="'+dec(b.pricing?.fixed_monthly_cents)+'"></label>'+
- '<label class="wide">Preço final manual (R$) — opcional<input data-draft="manual_price" type="number" min="0" step=".01" placeholder="Deixe vazio para usar preço calculado" value="'+(b.manual_price_cents==null?'':dec(b.manual_price_cents))+'"></label></div>'+
- '<p class="caption">As despesas fixas ativas e a folha fixa de funcionários são somadas automaticamente em novos orçamentos e rateadas pelos dias previstos (não é cobrado o mês inteiro em cada serviço). Confira antes de salvar, pois orçamentos antigos preservam os valores anteriores. O preço final inclui impostos sobre venda e margem definida. Preço manual abaixo do necessário pode resultar em prejuízo.</p></section></div>'+
+ '<section class="card budget-setup-note"><div class="budget-setup-icon" aria-hidden="true">⚙</div><div><h2>Cálculo automático</h2><p>Custos fixos e folha, capacidade mensal, impostos e margem são aplicados a partir de <strong>Configurações financeiras</strong>. Você não precisa preencher porcentagens neste orçamento.</p>'+
+ '<p class="hint">Parâmetros deste orçamento: imposto '+num(b.pricing?.tax_pct)+'% · margem '+num(b.pricing?.margin_pct)+'% · '+num(b.pricing?.billable_days_month)+' dias faturáveis/mês. Valores preservados no orçamento após salvar.</p>'+
+ '<details class="budget-price-details" '+(b.manual_price_cents!=null?'open':'')+'><summary>Ajustar preço final desta obra (opcional)</summary>'+
+ '<label>Preço de venda manual (R$)<input data-draft="manual_price" type="number" min="0" step=".01" value="'+(b.manual_price_cents==null?'':dec(b.manual_price_cents))+'" placeholder="Vazio = preço sugerido automaticamente"></label>'+
+ '<p class="hint">Caso informe um preço manual, confira o lucro no resumo antes de salvar.</p></details></div></section></div>'+
  '<aside class="summary"><h2>Análise interna da obra</h2><div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button><button class="subtle" data-action="print-budget">Gerar PDF / imprimir proposta</button></div><p class="hint">A impressão mostra somente o escopo e o preço final. Custos, impostos, diárias e lucro são sigilosos.</p></aside></div>';
 }
 function summary(){
