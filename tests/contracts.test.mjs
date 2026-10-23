@@ -132,3 +132,31 @@ test('revisão exige motivo e impede documentos antigos serem alterados pela int
  assert.throws(()=>validateContractForExport({...valid(),revision_of:'550e8400-e29b-41d4-a716-446655440000'}),/Justifique/);
  assert.doesNotThrow(()=>validateContractForExport({...valid(),revision_of:'550e8400-e29b-41d4-a716-446655440000',revision_reason:'Ajuste de prazo acordado'}));
 });
+
+test('API impede alterações e exclusão de contrato já emitido, mesmo com request manual',async()=>{
+ const oldFetch=globalThis.fetch;
+ const id='550e8400-e29b-41d4-a716-446655440000';
+ const token='A'.repeat(96);
+ const current={id,status:'emitido',title:'Instalação elétrica',counterparty:'Cliente Exemplo',budget_id:null,content:sanitizeContract(valid())};
+ const called=[];
+ globalThis.fetch=async (url,options={})=>{
+  const u=String(url);called.push({url:u,method:options.method||'GET'});
+  if(u.endsWith('/auth/v1/user'))return Response.json({id:'a1c1c1c1-0000-4000-8000-000000000001'});
+  if(u.includes('/rest/v1/cv_contracts')&&(!options.method||options.method==='GET'))return Response.json([current]);
+  throw Error('Operação de gravação não deve ser chamada');
+ };
+ const req=(method,record)=>new Request('https://civolten.example.test/api/data?entity=contracts&id='+id,{
+  method,headers:{origin:'https://civolten.example.test','sec-fetch-site':'same-origin','content-type':'application/json',cookie:'__Host-civolten_session='+token},
+  ...(record?{body:JSON.stringify({record})}:{})
+ });
+ try{
+  const change={title:'Instalação elétrica alterada',counterparty:'Cliente Exemplo',status:'emitido',content:valid(),budget_id:null};
+  let res=await dataApi.fetch(req('PATCH',change));
+  assert.equal(res.status,400);
+  assert.match((await res.json()).error,/não pode ser modificado/);
+  res=await dataApi.fetch(req('DELETE'));
+  assert.equal(res.status,400);
+  assert.match((await res.json()).error,/preservados/);
+  assert.ok(called.every(x=>x.method==='GET'));
+ }finally{globalThis.fetch=oldFetch}
+});
