@@ -335,3 +335,292 @@
     width:100%;background:#ffffffeb;color:#132b43;font-size:11pt;text-align:center}
   #printArea .cv-cover-caption strong {color:#a86a19}
 }
+
+
+/* ======================================================================
+   CIVOLTEN | Acabamento visual premium do PDF de orçamentos
+   Escopo EXCLUSIVAMENTE gráfico. Sem alterar layout lógico, textos,
+   cálculos, campos, altura das páginas, contratos ou autenticação.
+   ====================================================================== */
+@media print {
+  /* Papel com iluminação sutil e grafismo arquitetônico discreto. */
+  #printArea .cv-proposal .cv-page {
+    background-color:#f6f8fb;
+    background-image:
+      radial-gradient(ellipse 96mm 86mm at 9% 89%,rgba(221,164,64,.11),transparent 76%),
+      repeating-linear-gradient(135deg,transparent 0,transparent 16mm,rgba(10,42,71,.027) 16.15mm,transparent 16.32mm),
+      linear-gradient(150deg,#fcfdff 0%,#f6f9fc 57%,#eaf0f6 100%);
+    color:#102940;
+  }
+  /* A foto mantém-se dentro de uma forma geométrica, com reflexos
+     e cortes diagonais; nunca fica por cima do conteúdo do cliente. */
+  #printArea .cv-proposal .cv-page::before {
+    width:46%;height:92%;right:0;top:0;
+    background-image:
+      linear-gradient(145deg,rgba(6,21,41,.06),rgba(7,28,49,.18) 45%,rgba(5,19,35,.80) 100%),
+      url("/assets/civolten-background.webp");
+    background-size:cover,cover;
+    background-position:center,64% center;
+    clip-path:polygon(29% 0,100% 0,100% 100%,2% 100%,35% 72%,3% 43%,33% 17%);
+    filter:contrast(1.09) saturate(1.16);
+  }
+  #printArea .cv-proposal .cv-page::after {
+    width:2.3mm;right:42.7%;top:0;height:91.5%;
+    background:linear-gradient(180deg,#fff3be 0%,#e6b54c 20%,#96601c 53%,#f9d57e 81%,#a36a24 100%);
+    box-shadow:0 0 3.5mm rgba(249,193,82,.32);
+    transform:skewX(-17deg);
+  }
+
+  /* Cabeçalho: metal dourado, volume e desenho arquitetônico.
+     A logo original permanece sem qualquer transformação. */
+  #printArea .cv-proposal .cv-page .proposal-masthead {
+    background:
+      linear-gradient(123deg,transparent 0%,transparent 61%,rgba(234,179,77,.19) 61.2%,rgba(234,179,77,.19) 61.8%,transparent 62%),
+      repeating-linear-gradient(125deg,transparent 0,transparent 8mm,rgba(234,179,77,.032) 8.12mm,transparent 8.3mm),
+      linear-gradient(108deg,#061629 0%,#0b2540 66%,rgba(11,35,59,.86) 76%,transparent 77%);
+    box-shadow:inset 0 -1mm 0 rgba(240,189,88,.92);
+  }
+  #printArea .cv-proposal .proposal-brand-mark {filter:drop-shadow(0 .9mm 1mm rgba(0,0,0,.18))}
+  #printArea .cv-proposal .cv-heading {
+    position:relative;isolation:isolate;overflow:hidden;
+    background:
+      radial-gradient(ellipse 68mm 56mm at 74% 38%,rgba(34,74,108,.62),transparent 76%),
+      linear-gradient(104deg,#07182d 0%,#0e304f 77%,#122e48 100%);
+    border-bottom:1.2mm solid #d9a342;
+    box-shadow:0 2mm 3.5mm rgba(4,25,45,.10);
+  }
+  #printArea .cv-proposal .cv-heading::before {
+    content:"";position:absolute;z-index:0;pointer-events:none;
+    right:0;top:0;width:57mm;height:100%;
+    background:
+      repeating-linear-gradient(135deg,transparent 0,transparent 7mm,rgba(255,255,255,.075) 7.1mm,transparent 7.25mm),
+      linear-gradient(130deg,transparent 0%,rgba(231,173,67,.13) 60%,rgba(227,162,53,.39) 100%);
+    clip-path:polygon(43% 0,100% 0,100% 100%,0 100%);
+  }
+  #printArea .cv-proposal .cv-heading::after {
+    content:"";position:absolute;z-index:0;pointer-events:none;
+    right:22mm;top:-6mm;height:50mm;width:2mm;
+    transform:rotate(38deg);
+    background:linear-gradient(#fff1bb,#db9b2f,#965c13);
+    box-shadow:0 0 1.8mm rgba(239,184,65,.20);
+  }
+  #printArea .cv-proposal .cv-heading>span,
+  #printArea .cv-proposal .cv-heading>div {position:relative;z-index:1}
+  #printArea .cv-proposal .cv-heading-number {
+    color:#f5c96d;
+    text-shadow:0 1px 0 #936223,0 2px 3px rgba(0,0,0,.32);
+  }
+  #printArea .cv-proposal .cv-heading h2 {letter-spacing:-.17pt;text-shadow:0 1px 1.5mm rgba(0,0,0,.14)}
+  #printArea .cv-proposal .cv-heading small {color:#f3d493;letter-spacing:1.15pt}
+
+  /* Área branca editorial: elegante, mas sem sacrificar legibilidade. */
+  #printArea .cv-proposal .cv-paper {
+    background:
+      radial-gradient(ellipse 54mm 46mm at 2% 98%,rgba(233,188,94,.085),transparent 82%),
+      linear-gradient(180deg,#fff 0%,#fff 66%,#f8fafc 100%);
+    border-left:.55mm solid #dfb45d;
+    box-shadow:inset 0 0 0 .18mm rgba(26,53,80,.10),0 2mm 4mm rgba(4,24,44,.06);
+  }
+  #printArea .cv-proposal .cv-paper h3 {
+    position:relative;
+    color:#071d36;
+    letter-spacing:-.4pt;
+    border-bottom:.25mm solid #dce4ec!important;
+    padding-bottom:3mm!important;
+  }
+  #printArea .cv-proposal .cv-paper h3::after {
+    content:"";position:absolute;bottom:-.65mm;left:0;
+    width:20mm;height:1.1mm;
+    background:linear-gradient(90deg,#ad741e,#f5ca73 72%,#e0a43d);
+  }
+  #printArea .cv-proposal .cv-paper h3 em {color:#c28b2e}
+  #printArea .cv-proposal .cv-paper h4 {
+    color:#133858;letter-spacing:.08pt;
+  }
+  #printArea .cv-proposal .cv-paper p {color:#2b4156}
+  #printArea .cv-proposal .cv-paper .cv-feature {
+    border-bottom:.2mm solid rgba(40,71,99,.13);
+  }
+  #printArea .cv-proposal .cv-feature-icon {
+    background:linear-gradient(145deg,#163954 0%,#071b30 72%);
+    border:.55mm solid #d9ab53;color:#f3ca75;
+    box-shadow:inset 0 0 0 .25mm rgba(255,246,206,.16),0 .7mm 1.5mm rgba(6,31,54,.16);
+  }
+
+  /* Foto como painel editorial de arquitetura, em vez de bloco plano. */
+  #printArea .cv-proposal .cv-picture {
+    background-image:
+      linear-gradient(140deg,rgba(0,16,30,.05),rgba(9,37,63,.04) 34%,rgba(1,18,35,.43) 100%),
+      url("/assets/civolten-background.webp");
+    background-size:cover;
+    background-position:57% center;
+    filter:contrast(1.09) saturate(1.19);
+    border-bottom:1.5mm solid #e6b75a;
+    isolation:isolate;
+  }
+  #printArea .cv-proposal .cv-picture::before {
+    content:"";position:absolute;pointer-events:none;z-index:1;
+    top:0;right:0;width:60%;height:100%;
+    background:linear-gradient(135deg,rgba(255,218,139,.22),transparent 42%,rgba(4,21,40,.30));
+    clip-path:polygon(38% 0,100% 0,100% 100%,0 100%);
+  }
+  #printArea .cv-proposal .cv-picture::after {
+    content:"";position:absolute;pointer-events:none;z-index:2;
+    right:0;bottom:0;width:40mm;height:2.3mm;
+    transform:rotate(-24deg) translate(4mm,-2mm);
+    transform-origin:right bottom;
+    background:linear-gradient(90deg,#b17b2e,#fbe0a0,#b27a29);
+  }
+  #printArea .cv-proposal .cv-about .cv-picture{background-position:42% 38%}
+  #printArea .cv-proposal .cv-scope .cv-construction{background-position:63% 48%}
+  #printArea .cv-proposal .cv-scope .cv-electrical{background-position:86% center}
+  #printArea .cv-proposal .cv-process .cv-picture{background-position:30% center}
+  #printArea .cv-proposal .cv-final .cv-picture{background-position:76% center}
+  #printArea .cv-proposal .cv-aside {
+    border-left:.6mm solid rgba(231,182,84,.85);
+    background:#071a30;
+  }
+  #printArea .cv-proposal .cv-dark-box {
+    background:
+      repeating-linear-gradient(135deg,transparent 0,transparent 10mm,rgba(243,192,88,.05) 10.12mm,transparent 10.25mm),
+      radial-gradient(ellipse 64mm 70mm at 100% 20%,rgba(43,85,119,.65),transparent 72%),
+      linear-gradient(142deg,#0b2844 0%,#06192e 96%);
+    box-shadow:inset 0 1mm 0 rgba(233,186,87,.40);
+  }
+  #printArea .cv-proposal .cv-dark-box h3{
+    color:#f8d891;
+    border-bottom:.45mm solid #d6a043;
+    letter-spacing:-.18pt;
+    padding-bottom:3mm;
+  }
+  #printArea .cv-proposal .cv-dark-box .cv-detail{
+    border-bottom:.2mm solid rgba(236,202,140,.38);
+  }
+  #printArea .cv-proposal .cv-dark-box .cv-detail span{
+    color:#efcf94;opacity:1;letter-spacing:.26pt;
+  }
+
+  /* Quantitativos e total comercial com acabamento de tabela corporativa. */
+  #printArea .cv-proposal .proposal-quantity-table {
+    border:.23mm solid #d5dee8;
+    background:#fff;
+  }
+  #printArea .cv-proposal .proposal-quantity-table th {
+    background:linear-gradient(105deg,#0a223c,#143953);
+    color:#f5cd7a;
+    border-bottom:.6mm solid #d5a248;
+  }
+  #printArea .cv-proposal .proposal-quantity-table tbody tr:nth-child(even) {
+    background:rgba(232,239,245,.52);
+  }
+  #printArea .cv-proposal .proposal-quantity-table td{
+    border-bottom:.2mm solid #dee5ec;
+  }
+  #printArea .cv-proposal .cv-price-table {
+    border:.25mm solid #cfdae5;
+    box-shadow:0 1.6mm 3mm rgba(13,34,56,.06);
+  }
+  #printArea .cv-proposal .cv-price-table th {
+    background:linear-gradient(110deg,#081d35,#163a55);
+    color:#f7d183;border-bottom:.8mm solid #d5a248;
+  }
+  #printArea .cv-proposal .cv-price-table tbody tr:not(.cv-price-total):nth-child(odd){
+    background:#f1f5f8;
+  }
+  #printArea .cv-proposal .cv-price-total td {
+    background:linear-gradient(105deg,#d09a3a,#f3cc78 70%,#dfaa4a);
+    color:#0b2038;
+    border-top:.6mm solid #bd862c;
+    font-weight:900;
+  }
+  #printArea .cv-proposal .cv-price-total td:last-child {
+    font-size:12pt;letter-spacing:.05pt;
+  }
+
+  /* Capa principal: recortes, filetes e brilho sem substituir nenhuma imagem. */
+  #printArea .cv-proposal .cv-cover {
+    background-color:#06182d;
+    background-image:
+      radial-gradient(ellipse 115mm 93mm at 9% 97%,rgba(22,72,105,.38),transparent 79%),
+      repeating-linear-gradient(138deg,transparent 0,transparent 16mm,rgba(234,185,81,.055) 16.12mm,transparent 16.25mm),
+      linear-gradient(150deg,#071a30,#041225);
+  }
+  #printArea .cv-proposal .cv-cover::before {
+    width:71%;height:100%;right:0;top:0;
+    background-image:
+      linear-gradient(135deg,rgba(6,25,48,.03),rgba(6,21,42,.09) 49%,rgba(4,14,30,.45)),
+      url("/assets/civolten-background.webp");
+    background-position:center,center;
+    background-size:cover;
+    clip-path:polygon(23% 0,100% 0,100% 100%,0 100%,34% 73%,9% 49%,35% 24%);
+    filter:contrast(1.1) saturate(1.21);
+  }
+  #printArea .cv-proposal .cv-cover::after {
+    width:3mm;right:43%;top:1%;height:98%;
+    background:linear-gradient(180deg,#fff0c0 0%,#b8791b 26%,#f8d37d 52%,#99611c 74%,#f8dc96 100%);
+    box-shadow:0 0 4mm rgba(235,168,48,.4);
+    transform:skewX(-23deg);
+  }
+  #printArea .cv-proposal .cv-cover .proposal-masthead {
+    background:
+      repeating-linear-gradient(130deg,transparent 0,transparent 11mm,rgba(235,185,79,.035) 11.2mm,transparent 11.4mm),
+      linear-gradient(109deg,#04172c 0%,#0b2542 78%,transparent 79%);
+    box-shadow:inset 0 -1mm 0 #e3b057;
+  }
+  #printArea .cv-proposal .cv-cover-hero {
+    position:relative;isolation:isolate;overflow:hidden;
+    background:linear-gradient(118deg,rgba(4,17,34,.99) 0%,rgba(8,29,53,.97) 69%,rgba(7,27,48,.86) 82%,transparent 83%);
+    box-shadow:inset .7mm 0 0 rgba(218,165,64,.25);
+  }
+  #printArea .cv-proposal .cv-cover-hero::before {
+    content:"";position:absolute;z-index:-1;pointer-events:none;
+    left:0;bottom:0;width:100%;height:45%;
+    background:
+      repeating-linear-gradient(0deg,transparent 0,transparent 9mm,rgba(177,203,218,.07) 9.15mm,transparent 9.3mm),
+      repeating-linear-gradient(90deg,transparent 0,transparent 14mm,rgba(177,203,218,.065) 14.15mm,transparent 14.3mm);
+    clip-path:polygon(0 27%,77% 0,100% 100%,0 100%);
+  }
+  #printArea .cv-proposal .cv-cover .cv-kicker {
+    color:#f6d38b;letter-spacing:1.65pt;
+  }
+  #printArea .cv-proposal .cv-cover-hero h1{
+    text-shadow:0 1.2mm 2mm rgba(0,0,0,.29);
+    letter-spacing:-1pt;
+  }
+  #printArea .cv-proposal .cv-cover-hero h1 em {
+    color:#f6ca70;text-shadow:0 .3mm 0 #9c661d,0 1mm 2.7mm rgba(0,0,0,.26);
+  }
+  #printArea .cv-proposal .cv-cover-details {
+    background:linear-gradient(110deg,rgba(1,14,29,.92),rgba(7,33,57,.84));
+    border-left:1.1mm solid #e6b763;
+    box-shadow:inset 0 0 0 .2mm rgba(239,207,140,.10),0 1.5mm 4mm rgba(0,0,0,.15);
+  }
+  #printArea .cv-proposal .cv-cover-details .cv-detail{
+    border-bottom:.2mm solid rgba(236,204,141,.45);
+  }
+  #printArea .cv-proposal .cv-cover-details .cv-detail span{
+    color:#f0c572;opacity:1;
+  }
+  #printArea .cv-proposal .cv-cover-caption {
+    border-top:.55mm solid #d6a147;
+    border-bottom:.55mm solid #d6a147;
+    background:linear-gradient(97deg,#ffffff,#f8f1e3 48%,#ffffff);
+    box-shadow:0 -.8mm 2mm rgba(4,20,35,.15);
+    letter-spacing:.06pt;
+  }
+  #printArea .cv-proposal .cv-cover-caption strong{color:#aa741f}
+  #printArea .cv-proposal .cv-footer{
+    background:
+      linear-gradient(90deg,transparent 0%,rgba(229,181,85,.10) 48%,transparent 74%),
+      linear-gradient(90deg,#04162b,#102e4b);
+    border-top:1.3mm solid #e3b058;
+  }
+  #printArea .cv-proposal .cv-footer strong {
+    color:#f5d489;text-shadow:0 .5mm 1mm #0007;
+  }
+
+  /* Área de assinatura continua clara e fácil de utilizar com caneta. */
+  #printArea .cv-proposal .proposal-signature-line{
+    border-top:.35mm solid #8ca1b4;
+  }
+}
