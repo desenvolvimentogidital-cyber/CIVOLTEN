@@ -167,3 +167,15 @@ A aba **Contratos** permite criar, editar, salvar, acompanhar e imprimir contrat
 **Isolamento:** cada contrato e perfil tem `owner_id`, controlado por quatro políticas RLS por usuário autenticado. Um contrato vinculado a orçamento só pode referenciar um orçamento do mesmo usuário. Nenhum dado de outra conta deve ser consultável, editável ou impresso.
 
 **Revisão jurídica:** trata-se de minuta genérica de prestação de serviços. O texto deve ser revisado para o serviço concreto, natureza da contratação, normas aplicáveis, responsáveis técnicos, tributação, materiais, garantia, rescisão e forma de assinatura. O sistema não substitui advogado, contador ou responsáveis habilitados.
+
+## Melhorias de segurança contratual (23/10/2026)
+
+- **Antes do primeiro contrato:** em Configurações → Dados para contratos, cadastre o nome legal e um CPF/CNPJ válido. O validador aceita CNPJ numérico e CNPJ alfanumérico vigente a partir de 2026.
+- **Salvar e emitir:** crie e salve como **rascunho**. Preencha identificação das partes, escopo, local, datas, valor, condições de pagamento e um cronograma de parcelas/vencimentos ou de medições. Depois mude a situação para **emitido** e salve.
+- **Versões preservadas:** o conteúdo de contrato emitido não pode ser reescrito nem excluído. Pode passar a assinado (registro manual) ou cancelado. Para mudar escopo, cláusulas ou valor, use **Criar nova revisão** e justifique-a; o documento anterior permanece.
+- **Modelo:** cláusulas editáveis de materiais, obrigações, alterações, suspensão, atraso, aceite, garantias, encerramento, responsabilidade técnica (ART/RRT quando aplicável) e dados pessoais. Confirme os termos para o caso concreto; o sistema não determina automaticamente obrigações legais.
+- **PDF:** botão **Gerar contrato / salvar em PDF**, impressão A4 no próprio navegador, paginação compatível com navegadores que suportam caixas de margem e áreas para assinaturas das partes e testemunhas.
+- **Assinatura:** o status assinado é um marcador interno; **não executa assinatura eletrônica, não coleta assinaturas e não valida a autenticidade de assinaturas em arquivos externos**. Guarde as vias assinadas por meio apropriado.
+- **Proteção adicional no banco:** a migração `20261023184500_cv_contracts_lifecycle_guard.sql` cria um trigger que impede alterações e exclusões indevidas depois da emissão, inclusive por escrita direta no banco. Aplicar na produção antes de usar o bloqueio de versões.
+
+**Testes de homologação manual:** após fazer login, salvar perfil, criar rascunho, emitir, gerar PDF no Chrome/Android e em desktop, conferir que quebra de páginas e assinaturas ficaram corretas e que o documento emitido só oferece atualização de situação ou criação de revisão. Nunca use dados reais de clientes nos testes de visualização públicos.
