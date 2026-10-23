@@ -37,9 +37,9 @@ async function request(path,method='GET',record){
 const route=(entity,id)=>'/api/data?entity='+entity+(id?'&id='+encodeURIComponent(id):'');
 let timer;
 let lastValidationMode='';
-function budgetValidation(forPdf=false){
- lastValidationMode=forPdf?'budget-pdf':'budget-save';
- return validateArea(document.querySelector('.budget-simple-editor'),{issues:budgetIssues(state.draft,{forPdf}),checkRequired:false});
+function budgetValidation(forPdf=false,forArtPdf=false){
+ lastValidationMode=forArtPdf?'budget-art-pdf':forPdf?'budget-pdf':'budget-save';
+ return validateArea(document.querySelector('.budget-simple-editor'),{issues:budgetIssues(state.draft,{forPdf,forArtPdf}),checkRequired:false});
 }
 function contractValidation(forExport=false){
  lastValidationMode=forExport?'contract-pdf':'contract-save';
@@ -331,7 +331,7 @@ function editor(){
  '<label>Desconto (%)<input type="number" min="0" max="100" step="0.5" data-discount-number value="'+esc(b.discount_pct??0)+'"></label></div></div>'+
  '<div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button>'+
  '<button class="secondary" type="button" data-action="preview-art-budget">Ver proposta profissional (7 páginas)</button>'+
- '<button class="subtle" data-action="print-budget">Exportar Proposta Comercial (PDF)</button><button class="subtle" type="button" data-action="install-proposal-arts">Carregar artes originais (ZIP)</button></div>'+
+ '<button class="subtle" data-action="print-budget">Exportar PDF atual</button><button class="secondary" type="button" data-action="print-art-budget">Exportar proposta artística (teste)</button><button class="subtle" type="button" data-action="install-proposal-arts">Carregar artes originais (ZIP)</button></div>'+
  '<p class="hint">O PDF contém somente o escopo, prazos e preço global. Custos, impostos, diárias e lucro continuam sigilosos.</p></aside></div>';
 }
 function summary(){
@@ -453,25 +453,30 @@ async function printBudget(){
   validateArea(document.querySelector('.budget-simple-editor'),{checkRequired:false,issues:[{selector:'[data-draft="manual_price"]',message:'A proposta precisa ter preço final acima de R$ 0,00. Revise os custos ou informe um preço manual.'}]});
   return;
  }
- // O valor e apenas comercial. As duas artes sao recursos oficiais locais e obrigatorios.
- // Nunca omitir a logo por uma condicao de carregamento da tela de login.
- const artUrls=await officialProposalArtUrls();
- const html=buildArtProposalHtml(b,{
-  priceCents:r.price_cents,
-  id:state.draftId,
-  date:new Date(),
+ const html=buildProposalHtml(b,{
+  priceCents:r.price_cents,id:state.draftId,date:new Date(),
   logoDataUrl:'/assets/civolten-logo.png',
   headerArtUrl:'/assets/civolten-proposal-header.png'
  });
- const div=$('#printArea');
- div.innerHTML=html;
- applyOfficialArtUrls(div,artUrls);
- // Aguarda todas as sete artes oficiais antes de abrir a impressão no celular.
- try{
-  await Promise.all([...div.querySelectorAll('img')].map(img=>img.decode()));
- }catch{
-  throw Error('Nao foi possivel carregar as imagens CIVOLTEN para o PDF. Atualize a pagina e tente novamente.');
+ const div=$('#printArea');div.innerHTML=html;
+ try{await Promise.all([...div.querySelectorAll('img')].map(img=>img.decode()))}
+ catch{throw Error('Não foi possível carregar a logo CIVOLTEN. Atualize a página e tente novamente.')}
+ window.print();
+}
+async function printArtBudget(){
+ const b=state.draft;
+ if(!budgetValidation(true,true))return;
+ const r=calculateBudget(b);
+ if(!(r.price_cents>0)){
+  validateArea(document.querySelector('.budget-simple-editor'),{checkRequired:false,issues:[{selector:'[data-draft="manual_price"]',message:'A proposta precisa ter preço final acima de R$ 0,00.'}]});
+  return;
  }
+ const artUrls=await officialProposalArtUrls();
+ const html=buildArtProposalHtml(b,{priceCents:r.price_cents,id:state.draftId,date:new Date()});
+ const div=$('#printArea');div.innerHTML=html;
+ applyOfficialArtUrls(div,artUrls);
+ try{await Promise.all([...div.querySelectorAll('img')].map(img=>img.decode()))}
+ catch{throw Error('Não foi possível carregar as sete artes originais. Importe o ZIP novamente.')}
  window.print();
 }
 document.addEventListener('submit',async ev=>{
@@ -698,6 +703,7 @@ document.addEventListener('click',async ev=>{
   else if(action==='remove-expense'){b.expenses.splice(Number(el.dataset.index),1);render()}
   else if(action==='save-budget')await saveBudget();
   else if(action==='print-budget')await printBudget();
+  else if(action==='print-art-budget')await printArtBudget();
  }catch(error){flash(error.message)}
 });
 async function logout(){
@@ -712,7 +718,7 @@ startVoiceFields({notify:flash});
 // Validação delegada: cobre também os formulários que são criados ao mudar de aba.
 attachFormValidation();
 function activeValidationIssues(){
- if(state.view==='editor'&&state.draft)return budgetIssues(state.draft,{forPdf:lastValidationMode==='budget-pdf'});
+ if(state.view==='editor'&&state.draft)return budgetIssues(state.draft,{forPdf:lastValidationMode==='budget-pdf'||lastValidationMode==='budget-art-pdf',forArtPdf:lastValidationMode==='budget-art-pdf'});
  if(state.view==='contract-editor'&&state.contractDraft)return contractIssues(state.contractDraft,{forExport:lastValidationMode==='contract-pdf'||['emitido','assinado'].includes(state.contractDraft.status)});
  if(state.view==='home'){
   const f=document.querySelector('#dashboardMarginForm');
