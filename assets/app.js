@@ -212,7 +212,11 @@ function settings(){
  '<div><small>Custo fixo total por mês</small><strong>'+brl(rates.monthly_cents)+'</strong></div></div>'+
  '<p class="hint">Impostos, margem e dias faturáveis são editados acima. Diárias e encargos individuais são definidos no cadastro de Funcionários; despesas operacionais são editadas em Custos fixos. Esses valores já alimentam os novos orçamentos automaticamente.</p>'+
  '<div class="buttons"><button type="button" class="subtle" data-view="workers">Ajustar funcionários e encargos</button>'+
- '<button type="button" class="subtle" data-view="fixed">Ajustar despesas fixas</button></div></section>'+notice();
+ '<button type="button" class="subtle" data-view="fixed">Ajustar despesas fixas</button></div></section>'+
+ '<section class="card account-settings"><h2>Minha conta</h2>'+
+ '<p>Seu acesso é individual. Nenhuma aprovação administrativa é necessária para utilizar seus próprios dados.</p>'+
+ '<p class="hint">E-mail da conta: <strong>'+esc(state.accountEmail||'Conta autenticada')+'</strong></p>'+
+ '<button type="button" class="subtle" data-action="account-reset-password">Receber link para alterar senha</button></section>'+notice();
 }
 function budgetList(){
  const rows=state.data.budgets;
@@ -228,8 +232,9 @@ function defaultPricing(){
 }
 function startBudget(row){
  state.draftId=row?.id||null;
- state.draft=row?structuredClone(row.content):{title:'',customer:'',address:'',services:'',notes:'',days:1,status:'rascunho',staff:[],expenses:[],scope_items:[],manual_price_cents:null,pricing:defaultPricing()};
+ state.draft=row?structuredClone(row.content):{title:'',customer:'',address:'',services:'',notes:'',days:1,status:'rascunho',staff:[],expenses:[],scope_items:[],manual_price_cents:null,discount_pct:0,pricing:defaultPricing()};
  if(!Array.isArray(state.draft.scope_items))state.draft.scope_items=[];
+ if(state.draft.discount_pct==null)state.draft.discount_pct=0;
  state.view='editor';render();
 }
 function editor(){
@@ -284,7 +289,14 @@ function editor(){
  '<details class="budget-price-details" '+(b.manual_price_cents!=null?'open':'')+'><summary>Ajustar preço final desta obra (opcional)</summary>'+
  '<label>Preço de venda manual (R$)<input data-draft="manual_price" type="number" min="0" step=".01" value="'+(b.manual_price_cents==null?'':dec(b.manual_price_cents))+'" placeholder="Vazio = preço sugerido automaticamente"></label>'+
  '<p class="hint">Caso informe um preço manual, confira o lucro no resumo antes de salvar.</p></details></div></section></div>'+
- '<aside class="summary"><h2>Resumo automático da obra</h2><div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button><button class="subtle" data-action="print-budget">Gerar PDF / imprimir proposta</button></div><p class="hint">A impressão mostra somente o escopo e o preço final. Custos, impostos, diárias e lucro são sigilosos.</p></aside></div>';
+ '<aside class="summary"><h2>Fechamento da obra</h2>'+
+ '<div class="discount-simulator"><div class="discount-head"><h3>Simulação de desconto</h3><span>Antes de fechar</span></div>'+
+ '<p class="hint">Veja como o desconto muda o preço, o lucro e a margem líquida. Só será aplicado à proposta quando ela for salva.</p>'+
+ '<div class="discount-controls"><input type="range" min="0" max="50" step="0.5" data-discount-range value="'+esc(b.discount_pct??0)+'" aria-label="Desconto percentual">'+
+ '<label>Desconto (%)<input type="number" min="0" max="100" step="0.5" data-discount-number value="'+esc(b.discount_pct??0)+'"></label></div></div>'+
+ '<div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button>'+
+ '<button class="subtle" data-action="print-budget">Exportar Proposta Comercial (PDF)</button></div>'+
+ '<p class="hint">O PDF contém somente o escopo, prazos e preço global. Custos, impostos, diárias e lucro continuam sigilosos.</p></aside></div>';
 }
 function summary(){
  const el=$('#budgetSummary');if(!el||!state.draft)return;
@@ -295,10 +307,12 @@ function summary(){
    '<div class="sumrow"><span>Rateio mensal (despesas fixas + folha)</span><strong>'+brl(r.fixed_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Subtotal de custos (fixos rateados + equipe + variáveis)</span><strong>'+brl(r.cost_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Impostos estimados sobre o preço final</span><strong>'+brl(r.tax_cents)+'</strong></div>'+
-   '<div class="sumrow"><span>Preço sugerido</span><strong>'+brl(r.calculated_price_cents)+'</strong></div>'+
-   '<div class="sumrow sumtotal"><span>Venda final</span><strong>'+brl(r.price_cents)+'</strong></div>'+
+   '<div class="sumrow"><span>Preço antes do desconto</span><strong>'+brl(r.price_before_discount_cents)+'</strong></div>'+
+   '<div class="sumrow"><span>Desconto ('+r.discount_pct.toFixed(1)+'%)</span><strong>− '+brl(r.discount_cents)+'</strong></div>'+
+   '<div class="sumrow sumtotal"><span>Preço final ao cliente</span><strong>'+brl(r.price_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Resultado estimado</span><strong class="'+(r.profit_cents<0?'bad':'good')+'">'+brl(r.profit_cents)+'</strong></div>'+
-   '<div class="sumrow"><span>Margem real sobre venda</span><strong class="'+(r.margin_pct_real<0?'bad':'good')+'">'+r.margin_pct_real.toFixed(2)+'%</strong></div>'+
+   '<div class="sumrow"><span>Margem líquida estimada</span><strong class="'+(r.margin_pct_real<0?'bad':'good')+'">'+r.margin_pct_real.toFixed(2)+'%</strong></div>'+
+   '<div class="discount-margin-impact"><span>Margem sem desconto</span><strong>'+calculateBudget({...b,discount_pct:0}).margin_pct_real.toFixed(2)+'%</strong><span>Impacto do desconto</span><strong class="'+(r.discount_pct>0?'bad':'')+'">'+(r.margin_pct_real-calculateBudget({...b,discount_pct:0}).margin_pct_real).toFixed(2)+' pontos percentuais</strong></div>'+
    ((num(b.pricing?.tax_pct)===0||num(b.pricing?.margin_pct)===0)?'<div class="warning">Revise impostos e margem: pelo menos um está em 0%. Não assuma que a tributação é zero sem confirmação.</div>':'')+
    (r.profit_cents<0?'<div class="warning">Atenção: o preço escolhido resulta em prejuízo estimado.</div>':'')+
    '<p class="hint">Estimativa interna baseada nos seus lançamentos. Custos imprevistos e tributos reais podem alterar o resultado.</p>';
@@ -413,6 +427,16 @@ document.addEventListener('input',ev=>{
  if(e.id==='workerProfession'){showProfessionOptions(e);return}
  if(e.id==='workerSearch'){updateWorkerChoices();return}
  if(e.id==='dashboardProjectSearch'){state.dashboardSearch=e.value;refreshDashboardProjects();return}
+ if(e.dataset.discountRange!==undefined||e.dataset.discountNumber!==undefined){
+  if(!state.draft)return;
+  const val=Number(e.value);
+  if(!Number.isFinite(val)||val<0||val>100){flash('Desconto deve estar entre 0% e 100%.');return}
+  state.draft.discount_pct=val;
+  const mirror=document.querySelector(e.dataset.discountRange!==undefined?'[data-discount-number]':'[data-discount-range]');
+  if(mirror)mirror.value=String(Math.min(50,val));
+  if(e.dataset.discountRange!==undefined&&mirror)mirror.value=String(val);
+  summary();return;
+ }
  const b=state.draft;if(!b)return;
  if(e.dataset.draft){
   const k=e.dataset.draft;
@@ -472,7 +496,12 @@ document.addEventListener('click',async ev=>{
  const el=ev.target.closest('[data-action]');if(!el)return;
  const action=el.dataset.action,id=el.dataset.id,b=state.draft;
  try{
-  if(action==='delete-cash'){
+  if(action==='account-reset-password'){
+   if(!state.accountEmail)throw Error('Entre novamente na conta antes de solicitar a alteração de senha.');
+   await request('/api/recovery','POST',{action:'request',email:state.accountEmail});
+   flash('Verifique seu e-mail para alterar sua senha.');
+  }
+  else if(action==='delete-cash'){
    if(!window.confirm('Excluir esta movimentação do caixa?'))return;
    await request(route('cash',id),'DELETE');
    await reload();render();flash('Movimentação excluída.');
