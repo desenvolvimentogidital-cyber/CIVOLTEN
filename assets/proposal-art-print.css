@@ -1,0 +1,86 @@
+/* CIVOLTEN — fidelidade visual: fundos são as SETE ARTES ORIGINAIS, não CSS recriado.
+   Imprimir sempre imagens (evita depender de "imprimir gráficos de fundo").
+   NÃO ativar até publicar os sete PNGs em assets/proposal-art/. */
+@page cvOriginalArt {size:A4;margin:0}
+@media print{
+ #printArea .cv-art-proposal {width:210mm;margin:0!important;padding:0!important;color:#10283d}
+ #printArea .cv-art-proposal *{box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ #printArea .cv-art-page{
+  page:cvOriginalArt;position:relative;display:block;overflow:hidden;
+  width:210mm;height:297mm;min-height:297mm;max-height:297mm;
+  margin:0!important;padding:0!important;break-after:page;page-break-after:always;
+  font-family:Arial,"Helvetica Neue",sans-serif;font-size:9pt;color:#142a40
+ }
+ #printArea .cv-art-page:last-child{break-after:auto;page-break-after:auto}
+ #printArea .cv-art-back{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:fill}
+ #printArea .cv-art-over{position:absolute;z-index:2;overflow:hidden;overflow-wrap:anywhere}
+ #printArea .cv-art-field{padding:1.2mm 0 1.4mm;border-bottom:.2mm solid #d4a247;min-width:0}
+ #printArea .cv-art-field small{display:block;color:#f3cc81;font-size:6.3pt;letter-spacing:.2pt}
+ #printArea .cv-art-field strong{display:block;color:#fff;font-size:8pt;line-height:1.33;overflow-wrap:anywhere}
+ #printArea .cv-art-cover-values{
+  left:28.05%;top:47.55%;width:23%;height:15.40%;
+  background:#071a31;padding:.4% .8%
+ }
+ #printArea .cv-art-cover-values .cv-art-field{
+  border:0;height:25%;display:flex;flex-direction:column;justify-content:center;padding:0
+ }
+ #printArea .cv-art-cover-values small{display:none}
+ #printArea .cv-art-cover-values strong{font-size:9pt}
+ #printArea .cv-art-proposal-values{
+  left:65.9%;top:71.76%;width:30.5%;height:17%;
+  background:#071c31;padding:0 1.8%
+ }
+ #printArea .cv-art-proposal-values .cv-art-field{height:25%;padding:1mm 0}
+ #printArea .cv-art-proposal-values .cv-art-field strong{font-size:7pt}
+ #printArea .cv-art-scope-fields{
+  left:4.95%;top:27.10%;width:49.10%;height:47.6%;
+  background:#f8f8f8;padding:3mm 2.2mm;color:#12243a
+ }
+ #printArea .cv-art-scope-fields h3{
+  font-family:Arial,sans-serif;font-size:11.6pt;color:#081d33;
+  border:0!important;border-bottom:.75mm solid #d8a340!important;
+  margin:0 0 3mm!important;padding:0 0 2mm!important;
+ }
+ #printArea .cv-art-scope-fields>p{font-size:8pt;line-height:1.4;margin:0 0 4mm}
+ #printArea .cv-art-table-head,.cv-art-table-row{
+  display:grid;grid-template-columns:1fr 13% 13%;gap:1mm;align-items:start
+ }
+ #printArea .cv-art-table-head{
+  padding:2.2mm 1.5mm;background:#071b31;color:#f0c06a;font-size:6.9pt;font-weight:bold;
+ }
+ #printArea .cv-art-table-row{
+  padding:2.3mm 1.2mm;border-bottom:.25mm solid #d6dde5;
+  font-size:7.5pt;line-height:1.25;color:#152f49
+ }
+ #printArea .cv-art-table-row strong{text-align:right}
+ #printArea .cv-art-duration{
+  left:6.6%;top:80.62%;width:55%;height:4.1%;
+  background:#061a30;border:1px solid #d8a640;border-radius:1mm;
+  padding:2.2mm 3mm
+ }
+ #printArea .cv-art-duration .cv-art-field{display:flex;gap:3mm;align-items:center;border:0;padding:0}
+ #printArea .cv-art-duration .cv-art-field small{font-size:7pt;white-space:nowrap}
+ #printArea .cv-art-duration .cv-art-field strong{font-size:8.6pt;white-space:nowrap}
+ #printArea .cv-art-pricing{
+  left:4.83%;top:37.55%;width:58.2%;height:28.7%;
+  background:#fafafa;padding:4mm 3mm
+ }
+ #printArea .cv-art-pricing h3{
+  font-family:Arial,sans-serif;font-size:11pt;color:#081b31;
+  margin:0 0 3mm!important;border:0!important;
+  border-bottom:.8mm solid #dca62a!important;
+  padding:0 0 2mm!important
+ }
+ #printArea .cv-art-pricing p{color:#35495b;font-size:8.5pt;line-height:1.5;margin:1mm 0 4mm}
+ #printArea .cv-art-pricing .cv-art-price{
+  display:block;background:#e9ba61;color:#112238;
+  padding:4mm 2.5mm;font-size:17pt;font-weight:900;text-align:right
+ }
+ #printArea .cv-art-terms{
+  left:70.10%;top:66.87%;width:26.5%;height:19%;
+  background:#071b31;padding:1.5mm 2mm
+ }
+ #printArea .cv-art-terms .cv-art-field{padding:2mm 0}
+ #printArea .cv-art-terms small{font-size:6.5pt}
+ #printArea .cv-art-terms strong{font-size:7.3pt;white-space:pre-wrap}
+}
