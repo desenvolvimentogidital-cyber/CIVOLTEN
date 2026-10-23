@@ -60,10 +60,10 @@ test('configuracao geral governa margem e tributos sem formulario duplicado em o
  assert.match(settings,/name="hours_day"/);
  assert.match(app,/pricing:defaultPricing\(\)/);
 });
-test('fluxo em quatro passos e materiais opcionais preservam memorial, PDF e legado',()=>{
+test('fluxo em cinco etapas preserva memorial, materiais opcionais, PDF e legado',()=>{
  const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
  const editor=app.slice(app.indexOf('function editor(){'),app.indexOf('function summary(){'));
- const positions=['Dados da obra','Escolha os profissionais da obra','Serviços e quantidades','Materiais e outras despesas'];
+ const positions=['Dados da obra','Serviços e quantidades','Escolha os profissionais da obra','Materiais e outras despesas','Condições da proposta'];
  const indices=positions.map(x=>editor.indexOf(x));
  assert.ok(indices.every((x,i)=>x>=0&&(i===0||x>indices[i-1])));
  assert.match(editor,/data-action="add-scope"/);
