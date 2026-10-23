@@ -615,3 +615,22 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
 .account-settings>p{line-height:1.65}
 @media(max-width:520px){.discount-controls{grid-template-columns:1fr 110px;gap:10px}.discount-simulator{padding:11px}}
 :root[data-theme="dark"] .discount-simulator,:root[data-theme="dark"] .discount-margin-impact{background:#13283f}
+
+.contract-intro{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:18px;border:1px solid var(--border);border-radius:14px;background:var(--bg);margin-bottom:18px}
+.contract-intro strong{font-size:16px}.contract-intro p{font-size:12px;line-height:1.6;color:var(--muted)}
+.contract-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,330px);gap:20px;align-items:start}
+.contract-editor>.stack{min-width:0}.contract-editor-card{min-width:0}
+.contract-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.contract-form-grid label{font-size:12px;min-width:0}.contract-form-grid input,.contract-form-grid textarea,.contract-form-grid select{display:block;width:100%;min-width:0;margin-top:6px}
+.contract-form-grid textarea{min-height:88px;resize:vertical;line-height:1.5}
+.contract-field-wide{grid-column:1/-1}
+.contract-advanced{margin-top:6px;border:1px solid var(--border);border-radius:12px;padding:13px}
+.contract-advanced summary{font-size:13px;font-weight:700;cursor:pointer}
+.contract-advanced .contract-form-grid{margin-top:16px}
+.contract-company-review{margin-top:16px;border:1px solid var(--border);border-radius:12px;padding:15px;background:var(--bg)}
+.contract-company-review h3{font-size:14px;margin:0 0 9px}.contract-company-review p{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.contract-summary{position:sticky;top:20px;min-width:0}.contract-summary .sumrow strong{text-align:right;overflow-wrap:anywhere;max-width:60%}
+.contract-summary .buttons{display:grid;grid-template-columns:1fr;gap:9px}.contract-summary .buttons button{width:100%}
+.contract-profile-settings{margin-top:20px}
+@media(max-width:1040px){.contract-editor{grid-template-columns:1fr}.contract-summary{position:static}}
+@media(max-width:560px){.contract-form-grid{grid-template-columns:1fr}.contract-field-wide{grid-column:auto}.contract-intro{flex-wrap:wrap}}
