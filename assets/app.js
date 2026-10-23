@@ -474,6 +474,11 @@ document.addEventListener('input',ev=>{
   const key=e.dataset.contract;
   if(key==='value_reais')state.contractDraft.value_cents=money(e.value);
   else state.contractDraft[key]=e.value;
+  const c=state.contractDraft;
+  const party=$('#contractSummaryParty'),value=$('#contractSummaryValue'),dates=$('#contractSummaryDates');
+  if(party)party.textContent=c.counterparty_name||'A preencher';
+  if(value)value.textContent=brl(c.value_cents);
+  if(dates)dates.textContent=(c.start_on||'—')+' até '+(c.end_on||'—');
   return;
  }
  if(e.dataset.discountRange!==undefined||e.dataset.discountNumber!==undefined){
