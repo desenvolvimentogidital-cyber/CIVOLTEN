@@ -14,13 +14,13 @@ test('apresentacao institucional tem quatro funcionalidades reais',()=>{
  assert.match(page,/Como funciona\?/);
 });
 test('formulários de autenticação e aviso de privacidade são preservados',()=>{
- for(const id of ['login','signupForm','recoverForm','passwordForm','authNotice','pendingCard']){
+ for(const id of ['login','signupForm','recoverForm','passwordForm','authNotice']){
   assert.ok(page.includes('id="'+id+'"'),id);
  }
  assert.ok(page.includes('data-auth-mode="signup"'));
- assert.ok(page.includes('aprovação administrativa'));
- assert.equal((page.match(/class="brand-logo"/g)||[]).length,3);
- assert.equal((page.match(/class="brand-wordmark"/g)||[]).length,3);
+ assert.doesNotMatch(page,/pendingCard|Solicitar aprovação|data-view="access"/);
+ assert.equal((page.match(/class="brand-logo"/g)||[]).length,2);
+ assert.equal((page.match(/class="brand-wordmark"/g)||[]).length,2);
 });
 test('apresentação é responsiva e mantém o PDF sem fundo',()=>{
  assert.match(css,/#loginCard\.auth-card\{/);
