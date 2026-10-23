@@ -4,6 +4,7 @@ on:
     types: [opened, synchronize]
     paths:
       - .github/workflows/import-proposal-art.yml
+      - .github/scripts/import-proposal-art.mjs
 permissions:
   contents: write
 jobs:
