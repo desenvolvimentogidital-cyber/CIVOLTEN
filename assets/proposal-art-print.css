@@ -151,3 +151,113 @@
  #printArea .cv-art-signatures .cv-art-field small {color:#90651c;font-size:7pt}
  #printArea .cv-art-signatures .cv-art-field strong {color:#142739;font-size:8pt}
 }
+
+/* CIVOLTEN | v3 — máscara só nas letras editáveis, preservando
+   desenhos, fotografias, formas geométricas, molduras e ícones originais. */
+@media print {
+ #printArea .cv-art-page {background:white;isolation:isolate}
+ #printArea .cv-art-back {z-index:0;object-fit:fill}
+ #printArea .cv-art-over {z-index:2;box-sizing:border-box;overflow:hidden;overflow-wrap:anywhere}
+ #printArea .cv-art-cover-values {
+   left:28.2%;top:46.4%;width:24.8%;height:15.6%;
+   background:#061729;padding:0 1.4%;
+ }
+ #printArea .cv-art-cover-values .cv-art-field {
+   height:25%;display:flex;justify-content:center;flex-direction:column;
+   padding:0;border:0;
+ }
+ #printArea .cv-art-cover-values .cv-art-field small {display:none}
+ #printArea .cv-art-cover-values .cv-art-field strong {font-size:9pt;font-weight:600;line-height:1.23;color:white}
+ #printArea .cv-art-about {
+   left:5.3%;top:26.1%;width:49%;height:14.2%;background:#fff;
+   font-size:9.2pt;line-height:1.42;color:#1f2b38;padding:2mm .5mm;
+ }
+ #printArea .cv-art-proposal-values {
+   left:67%;top:72.3%;width:28%;height:18%;padding:0 2%;
+   background:#051b31;
+ }
+ #printArea .cv-art-proposal-values .cv-art-field {height:25%;padding:0 0 1mm;border-bottom:.15mm solid #b59a65}
+ #printArea .cv-art-proposal-values .cv-art-field small {color:#e6b450;font-size:6pt;line-height:1.15}
+ #printArea .cv-art-proposal-values .cv-art-field strong {font-size:7.7pt;line-height:1.19;color:white}
+ /* A máscara do escopo começa À DIREITA dos círculos ilustrados;
+    a coluna de seis ícones amarelos fica intacta. */
+ #printArea .cv-art-scope-intro {
+   left:5.1%;top:21.8%;width:49.5%;height:5.4%;
+   padding:1.2mm 1mm 0;background:#fff;
+   font-size:8.5pt;line-height:1.35;color:#243548
+ }
+ #printArea .cv-art-scope-fields {
+   left:15.9%;top:27.2%;width:42%;height:49.8%;
+   padding:0 1.6mm 0 2mm;background:#fff;
+ }
+ #printArea .cv-art-service-list {display:flex;flex-direction:column;height:100%;min-height:0}
+ #printArea .cv-art-service-row {
+   height:16.666%;min-height:0;display:flex;flex-direction:column;
+   justify-content:center;padding:1.2mm 1.4mm;
+   border-bottom:.18mm solid #d1dbe5;gap:1mm;
+ }
+ #printArea .cv-art-service-row strong {
+   color:#101c36;font-size:9.7pt;font-weight:750;line-height:1.2;
+   overflow-wrap:anywhere;
+ }
+ #printArea .cv-art-service-row span {
+   color:#536170;font-size:8pt;line-height:1.25;overflow-wrap:anywhere;
+ }
+ #printArea .cv-art-empty-row {border-bottom-color:#eef1f3}
+ #printArea .cv-art-notes {
+   left:68.7%;top:76.4%;width:24.6%;height:14.5%;
+   background:#06192c;color:white;font-size:8pt;
+   line-height:1.33;padding:2mm;overflow-wrap:anywhere;
+ }
+ #printArea .cv-art-process-note {
+   left:11.4%;top:80.1%;width:50%;height:5.1%;
+   background:#06192d;color:#f4f4f1;padding:.7mm 1.8mm;
+   font-size:8pt;line-height:1.18;display:flex;
+   flex-direction:column;gap:.6mm;justify-content:center
+ }
+ #printArea .cv-art-process-note strong{color:#f4c778;font-size:8.6pt}
+ #printArea .cv-art-process-note span{color:#f0f4f7;font-size:7.5pt}
+ #printArea .cv-art-pricing {
+   left:5.2%;top:37.6%;width:58.3%;height:22.6%;
+   padding:1mm 1mm 0;background:#fff;
+   color:#0b1d32;
+ }
+ #printArea .cv-art-pricing h3 {font-size:13pt;border:0!important;
+   border-bottom:.7mm solid #d7a348!important;margin:0 0 3mm!important;
+   padding:0 0 2mm!important;color:#091e31}
+ #printArea .cv-art-price-table{border:.2mm solid #d6dbe1}
+ #printArea .cv-art-price-table>div{
+   display:flex;align-items:center;justify-content:space-between;
+   gap:2mm;padding:3mm 2mm;font-size:8pt;color:#11253c
+ }
+ #printArea .cv-art-price-table>div:first-child{background:#eef0f2}
+ #printArea .cv-art-price-table>div.cv-art-price-total{
+   background:linear-gradient(95deg,#c58c28,#f5ca70);font-weight:800
+ }
+ #printArea .cv-art-price-table strong{font-size:10pt;white-space:nowrap}
+ #printArea .cv-art-pricing p{font-size:7.5pt;color:#47576a;margin:2.5mm 0}
+ #printArea .cv-art-price-note {
+   left:16.2%;top:60.2%;width:43%;height:5.3%;
+   padding:1mm;background:#fff1d5;color:#33485e;
+   font-size:7.8pt;line-height:1.3;
+ }
+ #printArea .cv-art-terms {
+   left:72.0%;top:69.2%;width:24.8%;height:20%;
+   background:#06192c;padding:1.2mm 1.6mm;
+ }
+ #printArea .cv-art-terms .cv-art-field {padding:.8mm 0 1.3mm;border-bottom:.14mm solid #8b7c66}
+ #printArea .cv-art-terms .cv-art-field small {font-size:6.5pt;color:#f0c476}
+ #printArea .cv-art-terms .cv-art-field strong {font-size:7.2pt;color:#fff;line-height:1.22}
+ #printArea .cv-art-warranty {
+   left:14%;top:29%;width:41%;height:14%;background:white;
+   padding:2mm 1mm;font-size:8.8pt;line-height:1.38;color:#18273a
+ }
+ #printArea .cv-art-signature-customer {
+   left:15.4%;top:76.4%;width:29%;height:1.8%;background:white;
+   color:#172e46;font-size:8pt;padding:0
+ }
+ #printArea .cv-art-signature-date {
+   left:14.5%;top:81.4%;width:26%;height:1.7%;background:white;
+   color:#172e46;font-size:8pt;padding:0
+ }
+}
