@@ -4,6 +4,7 @@ import {startVoiceFields} from '/assets/voice.js';
 import {createBudgetStaff,staffAlreadyAdded} from '/lib/civolten-team.mjs';
 import {financialDashboard,projectResults} from '/assets/dashboard.js';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
+import {electricalProposalPreset} from '/lib/civolten-proposal-text.mjs';
 import {contractDefaults,defaultContractCompany,contractFromBudget,buildContractHtml} from '/lib/civolten-contract.mjs';
 import {contractList,contractEditor,contractProfilePanel} from '/assets/contracts.js';
 import {validBrazilDocument} from '/lib/civolten-contract.mjs';
@@ -284,7 +285,9 @@ function editor(){
  '<label>Situação<select data-draft="status">'+['rascunho','enviado','aprovado','recusado'].map(x=>'<option value="'+x+'" '+(b.status===x?'selected':'')+'>'+x+'</option>').join('')+'</select></label>'+
  '<label class="wide">Serviços que serão executados<textarea data-draft="services" placeholder="Descreva os serviços e quantidades reais, sem preços externos">'+esc(b.services)+'</textarea></label>'+
  '</div><details class="budget-more-details" '+(b.notes?'open':'')+'><summary>Condições, observações e prazo (opcional)</summary>'+
- '<label>Informações para a proposta<textarea data-draft="notes">'+esc(b.notes)+'</textarea></label></details></section>'+
+ '<label>Informações para a proposta<textarea data-draft="notes">'+esc(b.notes)+'</textarea></label></details>'+
+ '<div class="buttons"><button type="button" class="subtle" data-action="apply-electrical-proposal">Inserir texto técnico de elétrica (editável)</button></div>'+
+ '<p class="hint">Preenche os campos de texto e a lista de serviços nesta tela, sem mudar o modelo visual do PDF. Confira as quantidades e comprove TRT, seguro e treinamentos antes de afirmar que estão incluídos.</p></section>'+
  '<section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">2</span><div><h2>Escolha os profissionais da obra</h2><p>Todos os funcionários ativos aparecem, inclusive os fixos.</p></div></div>'+
  '<label class="worker-search-label">Buscar profissional ou profissão<input id="workerSearch" type="search" placeholder="Ex.: eletricista, pedreiro, nome" autocomplete="off"></label>'+
  '<div class="pick"><select id="workerSelect" aria-label="Lista de todos os profissionais cadastrados"><option value="">Selecione um profissional</option>'+workerOptions(workers.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')))+'</select>'+
@@ -608,6 +611,14 @@ document.addEventListener('click',async ev=>{
   else if(action==='save-contract')await saveContract();
   else if(action==='print-contract')await printContract();
   else if(action==='new-budget')startBudget();
+  else if(action==='apply-electrical-proposal'){
+   if(!b)return;
+   const filled=Boolean(String(b.services||'').trim()||String(b.notes||'').trim()||b.scope_items?.length);
+   if(filled&&!window.confirm('O modelo substituirá o texto, as observações e os serviços já digitados. Deseja continuar?'))return;
+   const preset=electricalProposalPreset();
+   b.services=preset.services;b.notes=preset.notes;b.scope_items=preset.scope_items;
+   render();flash('Modelo técnico inserido. Confira cada campo e edite as quantidades conforme a obra.');
+  }
   else if(action==='add-scope'){
    if(!b||b.scope_items.length>=100)throw Error('Limite de 100 serviços por proposta');
    b.scope_items.push({description:'',unit:'m²',quantity:1});render();
