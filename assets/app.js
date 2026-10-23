@@ -260,26 +260,27 @@ function editor(){
   '<label>Unidade <select data-scope-unit="'+i+'">'+scopeUnits.map(u=>'<option value="'+esc(u)+'" '+((item.unit||'m²')===u?'selected':'')+'>'+esc(u)+'</option>').join('')+'</select></label>'+
   '<label>Quantidade <input data-scope-quantity="'+i+'" type="number" min="0.01" max="1000000" step="0.01" value="'+esc(item.quantity??1)+'"></label>'+
   '<button type="button" class="danger scope-remove" data-action="remove-scope" data-index="'+i+'" aria-label="Remover serviço '+(i+1)+'">Remover</button></div>').join('');
- return title(state.draftId?'Editar orçamento':'Novo orçamento','A formação do preço acontece somente com os custos informados neste orçamento.','<button class="subtle" data-view="budgets">← Voltar</button>')+
- '<div class="editor"><div class="stack"><section class="card"><h2>Dados da proposta</h2><div class="grid">'+
+ return title(state.draftId?'Editar orçamento':'Novo orçamento','Selecione a equipe, descreva o serviço e inclua materiais só quando necessário. Os custos e percentuais vêm das configurações.','<button class="subtle" data-view="budgets">← Voltar</button>')+
+ '<div class="editor budget-simple-editor"><div class="stack"><section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">1</span><div><h2>Dados da obra</h2><p>Informe o serviço e a duração prevista.</p></div></div><div class="grid">'+
  '<label>Nome da obra / orçamento<input data-draft="title" maxlength="150" value="'+esc(b.title)+'" placeholder="Ex.: Reforma de banheiro"></label>'+
  '<label>Cliente<input data-draft="customer" maxlength="150" value="'+esc(b.customer)+'" placeholder="Nome do cliente"></label>'+
  '<label>Local da obra<input data-draft="address" maxlength="250" value="'+esc(b.address)+'"></label>'+
  '<label>Dias previstos de execução<input data-draft="days" type="number" min=".5" step=".5" value="'+esc(b.days)+'"></label>'+
  '<label>Situação<select data-draft="status">'+['rascunho','enviado','aprovado','recusado'].map(x=>'<option value="'+x+'" '+(b.status===x?'selected':'')+'>'+x+'</option>').join('')+'</select></label>'+
  '<label class="wide">Serviços que serão executados<textarea data-draft="services" placeholder="Descreva os serviços e quantidades reais, sem preços externos">'+esc(b.services)+'</textarea></label>'+
- '<label class="wide">Condições, observações e prazo<textarea data-draft="notes">'+esc(b.notes)+'</textarea></label></div></section>'+
- '<section class="card"><h2>Memorial descritivo / quantitativos</h2>'+
- '<p class="caption">Liste o que será executado para o cliente: metragem de parede, piso, forro, drywall, pontos elétricos e outros. Estes itens serão apresentados no PDF sem preço unitário ou custos internos.</p>'+
- '<div class="scope-list">'+(scopeLines||empty('Adicione os serviços e suas quantidades para detalhar a proposta.'))+'</div>'+
- '<div class="buttons"><button type="button" class="secondary" data-action="add-scope">+ Adicionar serviço</button></div></section>'+
+ '</div><details class="budget-more-details" '+(b.notes?'open':'')+'><summary>Condições, observações e prazo (opcional)</summary>'+
+ '<label>Informações para a proposta<textarea data-draft="notes">'+esc(b.notes)+'</textarea></label></details></section>'+
  '<section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">2</span><div><h2>Escolha os profissionais da obra</h2><p>Todos os funcionários ativos aparecem, inclusive os fixos.</p></div></div>'+
  '<label class="worker-search-label">Buscar profissional ou profissão<input id="workerSearch" type="search" placeholder="Ex.: eletricista, pedreiro, nome" autocomplete="off"></label>'+
  '<div class="pick"><select id="workerSelect" aria-label="Lista de todos os profissionais cadastrados"><option value="">Selecione um profissional</option>'+workerOptions(workers.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')))+'</select>'+
  '<button type="button" class="secondary" data-action="add-worker">+ Adicionar</button></div>'+
  '<p class="caption">Equipe fixa: a diária já faz parte da folha mensal rateada, sem cobrança em duplicidade. Profissionais por obra: o valor da diária e os encargos cadastrados entram conforme os dias utilizados. Altere diárias e encargos em Funcionários.</p>'+
  '<div class="budget-team-list">'+(staffLines||empty('Selecione acima os profissionais que executarão este serviço.'))+'</div></section>'+
- '<section class="card"><h2>2. Custos variáveis — somente se fornecidos nesta obra</h2><div class="pick"><select id="variableSelect"><option value="">Escolha uma despesa cadastrada</option>'+variables.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+brl(x.unit_cents)+'/'+esc(x.unit)+'</option>').join('')+'</select><button class="secondary" data-action="add-variable">Adicionar</button></div>'+
+ '<section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">3</span><div><h2>Serviços e quantidades</h2><p>Itens que serão apresentados ao cliente no PDF.</p></div></div>'+
+ '<p class="caption">Liste o que será executado para o cliente: metragem de parede, piso, forro, drywall, pontos elétricos e outros. Estes itens serão apresentados no PDF sem preço unitário ou custos internos.</p>'+
+ '<div class="scope-list">'+(scopeLines||empty('Adicione os serviços e suas quantidades para detalhar a proposta.'))+'</div>'+
+ '<div class="buttons"><button type="button" class="secondary" data-action="add-scope">+ Adicionar serviço</button></div></section>'+
+ '<section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">4</span><div><h2>Materiais e outras despesas (opcional)</h2><p>Adicione somente o que a CIVOLTEN vai fornecer.</p></div></div><div class="pick"><select id="variableSelect"><option value="">Escolha uma despesa cadastrada</option>'+variables.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+brl(x.unit_cents)+'/'+esc(x.unit)+'</option>').join('')+'</select><button class="secondary" data-action="add-variable">Adicionar</button></div>'+
  '<p class="caption">Esses itens não entram automaticamente no orçamento. Se o cliente fornecer materiais, não os adicione. Quando a CIVOLTEN fornecer materiais ou assumir transporte/locação, adicione os itens e quantidades efetivos abaixo.</p>'+
  '<div class="grid" style="margin:15px 0"><label>Nova despesa<input id="customExpenseName" maxlength="120" placeholder="Ex.: Material de acabamento"></label><label>Valor total (R$)<input id="customExpenseValue" type="number" min="0" step=".01"></label></div><button class="subtle" data-action="add-expense">+ Despesa avulsa</button>'+
  '<div style="margin-top:15px">'+(expenseLines||empty('Nenhuma despesa variável.'))+'</div></section>'+
@@ -288,13 +289,13 @@ function editor(){
  '<details class="budget-price-details" '+(b.manual_price_cents!=null?'open':'')+'><summary>Ajustar preço final desta obra (opcional)</summary>'+
  '<label>Preço de venda manual (R$)<input data-draft="manual_price" type="number" min="0" step=".01" value="'+(b.manual_price_cents==null?'':dec(b.manual_price_cents))+'" placeholder="Vazio = preço sugerido automaticamente"></label>'+
  '<p class="hint">Caso informe um preço manual, confira o lucro no resumo antes de salvar.</p></details></div></section></div>'+
- '<aside class="summary"><h2>Análise interna da obra</h2><div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button><button class="subtle" data-action="print-budget">Gerar PDF / imprimir proposta</button></div><p class="hint">A impressão mostra somente o escopo e o preço final. Custos, impostos, diárias e lucro são sigilosos.</p></aside></div>';
+ '<aside class="summary"><h2>Resumo automático da obra</h2><div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button><button class="subtle" data-action="print-budget">Gerar PDF / imprimir proposta</button></div><p class="hint">A impressão mostra somente o escopo e o preço final. Custos, impostos, diárias e lucro são sigilosos.</p></aside></div>';
 }
 function summary(){
  const el=$('#budgetSummary');if(!el||!state.draft)return;
  try{
   const b=state.draft,r=calculateBudget(b);
-  el.innerHTML='<div class="sumrow"><span>Mão de obra + encargos</span><strong>'+brl(r.labor_cents)+'</strong></div>'+
+  el.innerHTML='<div class="sumrow"><span>Equipe extra por obra</span><strong>'+brl(r.labor_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Despesas variáveis</span><strong>'+brl(r.variable_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Rateio mensal (despesas fixas + folha)</span><strong>'+brl(r.fixed_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Subtotal de custos (fixos rateados + equipe + variáveis)</span><strong>'+brl(r.cost_cents)+'</strong></div>'+
