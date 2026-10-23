@@ -201,6 +201,7 @@ function generic(entity){
 }
 function settings(){
  const c=state.data.settings[0]||{workdays_month:22,billable_days_month:22,hours_day:8,tax_pct:0,margin_pct:0};
+ const rates=companyRates(state.data.fixed,c,state.data.workers);
  return title('Configurações financeiras','Defina os parâmetros reais da sua operação. Nada é imposto por uma tabela.')+
  '<section class="card" style="max-width:810px"><form id="settingsForm"><div class="grid">'+
  '<label>Dias úteis do mês<input name="workdays_month" type="number" min="1" max="31" step="1" value="'+esc(c.workdays_month)+'" required></label>'+
@@ -209,7 +210,14 @@ function settings(){
  '<label>Impostos estimados sobre venda (%)<input name="tax_pct" type="number" min="0" max="99" step=".01" value="'+esc(c.tax_pct)+'" required></label>'+
  '<label>Margem de lucro desejada sobre venda (%)<input name="margin_pct" type="number" min="0" max="99" step=".01" value="'+esc(c.margin_pct)+'" required></label></div>'+
  '<p class="hint">Os custos fixos do mês são divididos pelos dias-equipe faturáveis para obter o custo/dia, e depois pelas horas/dia para obter o custo/hora. 22 dias e 8 horas são valores iniciais editáveis. Se houver várias equipes simultâneas, informe a capacidade faturável total. Impostos e margem são adicionados na formação do preço de venda; confirme a tributação com seu contador.</p>'+
- '<div class="buttons"><button class="primary">Salvar parâmetros</button></div></form></section>'+notice();
+ '<div class="buttons"><button class="primary">Salvar parâmetros</button></div></form></section>'+
+ '<section class="card budget-settings-overview"><h2>Custos aplicados automaticamente nos novos orçamentos</h2>'+
+ '<div class="financial-rate-grid"><div><small>Despesas fixas da empresa</small><strong>'+brl(rates.fixed_expenses_cents)+'</strong></div>'+
+ '<div><small>Folha mensal dos funcionários</small><strong>'+brl(rates.payroll_cents)+'</strong></div>'+
+ '<div><small>Custo fixo total por mês</small><strong>'+brl(rates.monthly_cents)+'</strong></div></div>'+
+ '<p class="hint">Impostos, margem e dias faturáveis são editados acima. Diárias e encargos individuais são definidos no cadastro de Funcionários; despesas operacionais são editadas em Custos fixos. Esses valores já alimentam os novos orçamentos automaticamente.</p>'+
+ '<div class="buttons"><button type="button" class="subtle" data-view="workers">Ajustar funcionários e encargos</button>'+
+ '<button type="button" class="subtle" data-view="fixed">Ajustar despesas fixas</button></div></section>'+notice();
 }
 function accessList(){
  const rows=state.access||[];
@@ -250,7 +258,7 @@ function editor(){
    (monthly?'Equipe fixa · já coberta pela folha mensal':(x.cost_mode==='project'?'Por obra':'Cadastro anterior')+' · '+brl(dailyRef)+'/dia')+'</span>'+
    (!monthly&&num(x.charges_pct)>0?'<small>Encargos do cadastro: '+num(x.charges_pct)+'%</small>':'')+
    '</div><label>Dia(s) na obra<input data-staff-days="'+i+'" type="number" min=".5" max="10000" step=".5" value="'+esc(x.days)+'"></label>'+
-   '<div class="budget-team-cost"><small>'+ (monthly?'Incluso no custo mensal':'Custo adicional') +'</small><strong data-staff-cost="'+i+'">'+brl(amount)+'</strong></div>'+
+   '<div class="budget-team-cost"><small>'+ (monthly?'Incluso no custo mensal':'Custo adicional') +'</small><strong data-staff-cost="'+i+'">'+(monthly?'Já considerado':brl(amount))+'</strong></div>'+
    '<button type="button" class="danger small" data-action="remove-staff" data-index="'+i+'" aria-label="Remover '+esc(x.name)+' da obra">Remover</button></div>';
  }).join('');
  const expenseLines=(b.expenses||[]).map((x,i)=>'<div class="line"><div><strong>'+esc(x.name)+'</strong><small>'+brl(x.unit_cents)+' / '+esc(x.unit||'un')+'</small></div><label class="line-label">Qtd.<input data-expense-qty="'+i+'" type="number" min="0" step=".01" value="'+esc(x.qty)+'"></label><span class="price">'+brl(Math.round(x.unit_cents*x.qty))+'</span><button class="danger" data-action="remove-expense" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
@@ -439,7 +447,7 @@ document.addEventListener('input',ev=>{
   const i=Number(e.dataset.staffDays);
   b.staff[i].days=num(e.value);
   const cost=document.querySelector('[data-staff-cost="'+i+'"]');
-  if(cost)cost.textContent=brl(Math.round(b.staff[i].daily_cents*b.staff[i].days*(1+num(b.staff[i].charges_pct)/100)));
+  if(cost)cost.textContent=b.staff[i].cost_mode==='monthly'?'Já considerado':brl(Math.round(b.staff[i].daily_cents*b.staff[i].days*(1+num(b.staff[i].charges_pct)/100)));
   summary()
  }
  if(e.dataset.staffCharges!==undefined){
