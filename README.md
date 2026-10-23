@@ -134,3 +134,13 @@ O orçamento agora funciona em **quatro passos**: dados da obra, profissionais, 
 - **Orçamentos anteriores** conservam suas informações e parâmetros históricos. Nunca recalcular valores antigos apenas por ter alterado configuração, funcionário ou despesas da empresa. Ao abrir uma proposta existente, seus dados continuam disponíveis.
 
 Essa divisão evita duplicidade entre folha fixa e mão de obra por obra e preserva o cálculo de impostos sobre preço de venda. O painel não utiliza tabelas externas de preços.
+
+## Ditado por voz em campos de texto
+
+Os campos de **texto livre** do sistema (nome, função, categoria, descrição da obra, itens e quantitativos descritivos, observações, buscas e lançamentos de caixa) mostram um ícone de **microfone** ao lado direito. Toque no microfone, autorize o acesso quando o navegador solicitar e fale em **português do Brasil**. O texto reconhecido é inserido no campo e passa pelo mesmo evento `input` dos campos digitados: pesquisas e resumos são atualizados automaticamente. Toque novamente para parar. A gravação não é salva pelo CIVOLTEN.
+
+A transcrição **não substitui o texto anterior**: o trecho novo é inserido na posição do cursor, preservando o resto. Pode corrigir ou completar a frase com o teclado normalmente. Ao falar em um campo com limite de caracteres, o texto respeita o limite do próprio campo.
+
+**Privacidade:** o CIVOLTEN não armazena áudio, não envia gravações a suas próprias APIs e não utiliza serviços pagos de voz. O reconhecimento depende da API de voz oferecida pelo navegador: alguns navegadores **podem enviar o áudio ao provedor externo de reconhecimento**. Use somente quando concordar com essa operação e **revise o texto reconhecido antes de salvar ou emitir o PDF**, especialmente nomes, números, endereços e termos técnicos.
+
+**Compatibilidade:** o ditado depende do navegador, HTTPS, internet quando exigida pelo provedor e autorização do microfone. Pode não estar disponível em navegadores embutidos, versões antigas ou configurações restritivas. Se o navegador não expuser a API, o botão orienta usar o **microfone do teclado do celular**. Os campos continuam funcionando normalmente pelo teclado. Por segurança, não há ditado em senhas, e-mails, telefones, números, datas ou valores financeiros.

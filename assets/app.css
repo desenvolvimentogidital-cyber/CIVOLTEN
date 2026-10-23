@@ -562,3 +562,38 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
  .budget-step-card .pick{display:grid;grid-template-columns:1fr;gap:9px}
  .budget-step-card .pick select,.budget-step-card .pick button{min-width:0;width:100%}
 }
+
+
+/* Ditado por voz: botão embutido em todo texto livre, inclusive textareas e buscas.
+   Não altera a identidade visual CIVOLTEN nem campos de dinheiro ou senhas. */
+.voice-field-wrap{display:block;position:relative;width:100%;min-width:0}
+.voice-field-wrap>input,.voice-field-wrap>textarea{
+ display:block;width:100%;min-width:0;padding-right:58px
+}
+.voice-mic-button{
+ position:absolute;right:7px;top:50%;transform:translateY(-50%);
+ display:grid;place-items:center;width:39px;height:39px;min-width:39px;
+ padding:0;border-radius:10px;border:1px solid var(--border);
+ background:#f3f6fb;color:var(--navy);z-index:2;
+ box-shadow:0 1px 3px #08182b12;cursor:pointer;
+ touch-action:manipulation;
+}
+.voice-multiline .voice-mic-button{top:8px;transform:none}
+.voice-mic-button:hover{background:#e6edf7;border-color:var(--gold)}
+.voice-mic-button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.voice-mic-button.voice-listening{
+ background:#b32739;border-color:#b32739;color:#fff;
+ box-shadow:0 0 0 4px rgba(179,39,57,.12);
+ animation:civolten-voice-pulse 1.35s ease-in-out infinite
+}
+@keyframes civolten-voice-pulse{
+ 0%,100%{box-shadow:0 0 0 3px rgba(179,39,57,.13)}
+ 50%{box-shadow:0 0 0 8px rgba(179,39,57,.20)}
+}
+:root[data-theme="dark"] .voice-mic-button{background:#203954;color:#f2c759;border-color:#43617a}
+:root[data-theme="dark"] .voice-mic-button.voice-listening{background:#be3346;color:#fff;border-color:#be3346}
+@media(prefers-reduced-motion:reduce){.voice-mic-button.voice-listening{animation:none}}
+@media(max-width:680px){
+ .voice-mic-button{width:43px;height:43px;min-width:43px;right:5px}
+ .voice-field-wrap>input,.voice-field-wrap>textarea{padding-right:57px}
+}
