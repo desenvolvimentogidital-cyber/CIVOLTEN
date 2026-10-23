@@ -14,7 +14,9 @@ const html=buildProposalHtml({
  logoDataUrl:'/assets/civolten-logo.png',
  headerArtUrl:'/assets/civolten-proposal-header.png'});
 test('acabamento novo afeta apenas folhas de proposta e impressão',()=>{
- const section=css.slice(css.indexOf('CIVOLTEN | Acabamento visual premium do PDF'));
+ const from=css.indexOf('CIVOLTEN | Acabamento visual premium do PDF');
+ const next=css.indexOf('/* CIVOLTEN | Contratos completos v2.',from);
+ const section=css.slice(from,next>from?next:undefined);
  assert.ok(section.includes('@media print'));
  assert.ok(section.includes('#printArea .cv-proposal'));
  assert.ok(!section.includes('.contract-document'));
