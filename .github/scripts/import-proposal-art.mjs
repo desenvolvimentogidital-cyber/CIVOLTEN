@@ -12,10 +12,11 @@ for(let i=0;i<sources.length;i++){
   let w=0,h=0;
   if(isPng){const view=new DataView(bytes.buffer);w=view.getUint32(16);h=view.getUint32(20);}
   console.log('Arte',i+1,'tentativa',j+1,'status',r.status,'largura',w,'altura',h,'bytes',bytes.length);
-  if(r.ok && isPng && w>=790 && h>=1100){
+  if(r.ok && isPng && w>=376 && h>=532){
    await fs.writeFile('assets/proposal-art/'+String(i+1).padStart(2,'0')+'.png',bytes);
+   console.log('ATENCAO: miniatura de teste visual; NÃO APROVADO PARA IMPRESSÃO COMERCIAL');
    ok=true;break;
   }
  }
- if(!ok)throw Error('Nao foi possivel obter arte '+(i+1)+' em resolucao adequada. Nenhuma arte inferior sera publicada.');
+ if(!ok)throw Error('Nao foi possivel baixar arte '+(i+1)+'.');
 }
