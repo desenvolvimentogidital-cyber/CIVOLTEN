@@ -179,3 +179,15 @@ A aba **Contratos** permite criar, editar, salvar, acompanhar e imprimir contrat
 - **Proteção adicional no banco:** a migração `20261023184500_cv_contracts_lifecycle_guard.sql` cria um trigger que impede alterações e exclusões indevidas depois da emissão, inclusive por escrita direta no banco. Aplicar na produção antes de usar o bloqueio de versões.
 
 **Testes de homologação manual:** após fazer login, salvar perfil, criar rascunho, emitir, gerar PDF no Chrome/Android e em desktop, conferir que quebra de páginas e assinaturas ficaram corretas e que o documento emitido só oferece atualização de situação ou criação de revisão. Nunca use dados reais de clientes nos testes de visualização públicos.
+
+## Validação visual em todos os formulários
+
+Todas as abas editáveis utilizam o mesmo padrão de erros: quando um campo obrigatório está vazio ou um valor digitado é inválido, ele recebe **borda vermelha**, mensagem junto ao campo e indicação acessível (`aria-invalid`). Ao corrigir, o alerta é removido. Os campos opcionais não são tratados como obrigatórios.
+
+- **Cadastros, caixa, parâmetros, conta e perfil contratual:** valida antes de enviar dados ao servidor, incluindo formato de e-mail, números, limites e CPF/CNPJ do perfil.
+- **Orçamentos:** salva rascunhos comerciais sem cliente/endereço/escopo completos; para **Exportar Proposta Comercial (PDF)**, exige nome da obra, cliente, local, prazo, descrição livre ou itens de serviço válidos e preço final maior que zero. Itens dinâmicos (quantidades, equipe e despesas) também destacam suas linhas inválidas.
+- **Contratos:** rascunho aceita informações parciais. Emissão e PDF exigem os campos essenciais e documentos das partes válidos, indicando o campo específico; dados da empresa são ajustados em Configurações.
+- **Texto técnico elétrico:** na aba Orçamentos, o botão **Inserir texto técnico de elétrica (editável)** preenche o descritivo, os três itens de serviço e as observações no editor existente. Confira as quantidades e atualize os termos conforme a obra. Antes de substituir dados já digitados, há confirmação.
+- **PDF e logomarcas:** esta alteração **não troca nem modifica** o layout do PDF existente, o CSS de impressão ou a arte institucional. O texto editado utiliza os mesmos campos já impressos pelo modelo comercial atual.
+
+Os testes automáticos verificam campos obrigatórios, opcionais, documentos, cálculos de datas e descontos, preços e a preservação da identidade do PDF. A conferência visual em navegador autenticado e impressão no Android continuam recomendadas.

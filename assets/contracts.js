@@ -103,7 +103,7 @@ export function contractProfilePanel(profile,esc){
  return '<section class="card contract-profile-settings"><h2>Dados para contratos</h2>'+
  '<p class="hint">Cadastre uma vez. Seus próximos contratos utilizarão esses dados automaticamente; contratos já salvos preservam as informações originais.</p>'+
  '<form id="contractProfileForm"><div class="contract-form-grid">'+fields.map(([key,label])=>
- '<label>'+label+'<input name="'+key+'" type="'+(key==='company_email'?'email':'text')+'" maxlength="250" value="'+esc(p[key]||'')+'"></label>').join('')+
+ '<label>'+label+'<input name="'+key+'" type="'+(key==='company_email'?'email':'text')+'" maxlength="250" value="'+esc(p[key]||'')+'" '+(['company_name','company_document'].includes(key)?'required':'')+'></label>').join('')+
  '</div><div class="buttons"><button type="submit" class="primary">Salvar dados dos contratos</button></div></form>'+
  '</section>';
 }

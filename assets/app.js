@@ -4,8 +4,12 @@ import {startVoiceFields} from '/assets/voice.js';
 import {createBudgetStaff,staffAlreadyAdded} from '/lib/civolten-team.mjs';
 import {financialDashboard,projectResults} from '/assets/dashboard.js';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
+import {electricalProposalPreset} from '/lib/civolten-proposal-text.mjs';
 import {contractDefaults,defaultContractCompany,contractFromBudget,buildContractHtml} from '/lib/civolten-contract.mjs';
 import {contractList,contractEditor,contractProfilePanel} from '/assets/contracts.js';
+import {validBrazilDocument} from '/lib/civolten-contract.mjs';
+import {budgetIssues,contractIssues,taxMarginIssues} from '/lib/civolten-validation.mjs';
+import {attachFormValidation,validateArea,revalidateField} from '/assets/field-validation.js';
 
 const $=q=>document.querySelector(q);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -29,6 +33,15 @@ async function request(path,method='GET',record){
 }
 const route=(entity,id)=>'/api/data?entity='+entity+(id?'&id='+encodeURIComponent(id):'');
 let timer;
+let lastValidationMode='';
+function budgetValidation(forPdf=false){
+ lastValidationMode=forPdf?'budget-pdf':'budget-save';
+ return validateArea(document.querySelector('.budget-simple-editor'),{issues:budgetIssues(state.draft,{forPdf}),checkRequired:false});
+}
+function contractValidation(forExport=false){
+ lastValidationMode=forExport?'contract-pdf':'contract-save';
+ return validateArea(document.querySelector('.contract-editor'),{issues:contractIssues(state.contractDraft,{forExport}),checkRequired:false});
+}
 function flash(message){const el=$('#flash');el.textContent=message;el.hidden=false;clearTimeout(timer);timer=setTimeout(()=>el.hidden=true,4500)}
 async function loadBrand(){
  // A logo oficial enviada pelo administrador e local e nao pode ser substituida
@@ -252,27 +265,29 @@ function editor(){
    '<span class="budget-team-tag '+(monthly?'budget-team-monthly':'budget-team-project')+'">'+
    (monthly?'Equipe fixa · já coberta pela folha mensal':(x.cost_mode==='project'?'Por obra':'Cadastro anterior')+' · '+brl(dailyRef)+'/dia')+'</span>'+
    (!monthly&&num(x.charges_pct)>0?'<small>Encargos do cadastro: '+num(x.charges_pct)+'%</small>':'')+
-   '</div><label>Dia(s) na obra<input data-staff-days="'+i+'" type="number" min=".5" max="10000" step=".5" value="'+esc(x.days)+'"></label>'+
+   '</div><label>Dia(s) na obra<input data-staff-days="'+i+'" required type="number" min=".5" max="10000" step=".5" value="'+esc(x.days)+'"></label>'+
    '<div class="budget-team-cost"><small>'+ (monthly?'Incluso no custo mensal':'Custo adicional') +'</small><strong data-staff-cost="'+i+'">'+(monthly?'Já considerado':brl(amount))+'</strong></div>'+
    '<button type="button" class="danger small" data-action="remove-staff" data-index="'+i+'" aria-label="Remover '+esc(x.name)+' da obra">Remover</button></div>';
  }).join('');
- const expenseLines=(b.expenses||[]).map((x,i)=>'<div class="line"><div><strong>'+esc(x.name)+'</strong><small>'+brl(x.unit_cents)+' / '+esc(x.unit||'un')+'</small></div><label class="line-label">Qtd.<input data-expense-qty="'+i+'" type="number" min="0" step=".01" value="'+esc(x.qty)+'"></label><span class="price">'+brl(Math.round(x.unit_cents*x.qty))+'</span><button class="danger" data-action="remove-expense" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
+ const expenseLines=(b.expenses||[]).map((x,i)=>'<div class="line"><div><strong>'+esc(x.name)+'</strong><small>'+brl(x.unit_cents)+' / '+esc(x.unit||'un')+'</small></div><label class="line-label">Qtd.<input data-expense-qty="'+i+'" required type="number" min="0" step=".01" value="'+esc(x.qty)+'"></label><span class="price">'+brl(Math.round(x.unit_cents*x.qty))+'</span><button class="danger" data-action="remove-expense" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
  const scopeUnits=['m²','m','m³','un','ponto','serviço'];
  const scopeLines=(b.scope_items||[]).map((item,i)=>'<div class="scope-entry">'+
-  '<label>Serviço <input data-scope-description="'+i+'" maxlength="180" value="'+esc(item.description||'')+'" placeholder="Ex.: Execução de parede em drywall"></label>'+
+  '<label>Serviço <input data-scope-description="'+i+'" required maxlength="180" value="'+esc(item.description||'')+'" placeholder="Ex.: Execução de parede em drywall"></label>'+
   '<label>Unidade <select data-scope-unit="'+i+'">'+scopeUnits.map(u=>'<option value="'+esc(u)+'" '+((item.unit||'m²')===u?'selected':'')+'>'+esc(u)+'</option>').join('')+'</select></label>'+
-  '<label>Quantidade <input data-scope-quantity="'+i+'" type="number" min="0.01" max="1000000" step="0.01" value="'+esc(item.quantity??1)+'"></label>'+
+  '<label>Quantidade <input data-scope-quantity="'+i+'" required type="number" min="0.01" max="1000000" step="0.01" value="'+esc(item.quantity??1)+'"></label>'+
   '<button type="button" class="danger scope-remove" data-action="remove-scope" data-index="'+i+'" aria-label="Remover serviço '+(i+1)+'">Remover</button></div>').join('');
  return title(state.draftId?'Editar orçamento':'Novo orçamento','Selecione a equipe, descreva o serviço e inclua materiais só quando necessário. Os custos e percentuais vêm das configurações.','<button class="subtle" data-view="budgets">← Voltar</button>')+
  '<div class="editor budget-simple-editor"><div class="stack"><section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">1</span><div><h2>Dados da obra</h2><p>Informe o serviço e a duração prevista.</p></div></div><div class="grid">'+
- '<label>Nome da obra / orçamento<input data-draft="title" maxlength="150" value="'+esc(b.title)+'" placeholder="Ex.: Reforma de banheiro"></label>'+
- '<label>Cliente<input data-draft="customer" maxlength="150" value="'+esc(b.customer)+'" placeholder="Nome do cliente"></label>'+
- '<label>Local da obra<input data-draft="address" maxlength="250" value="'+esc(b.address)+'"></label>'+
- '<label>Dias previstos de execução<input data-draft="days" type="number" min=".5" step=".5" value="'+esc(b.days)+'"></label>'+
+ '<label>Nome da obra / orçamento<input data-draft="title" required maxlength="150" value="'+esc(b.title)+'" placeholder="Ex.: Reforma de banheiro"></label>'+
+ '<label>Cliente<input data-draft="customer" required maxlength="150" value="'+esc(b.customer)+'" placeholder="Nome do cliente"></label>'+
+ '<label>Local da obra<input data-draft="address" required maxlength="250" value="'+esc(b.address)+'"></label>'+
+ '<label>Dias previstos de execução<input data-draft="days" required type="number" min=".5" step=".5" value="'+esc(b.days)+'"></label>'+
  '<label>Situação<select data-draft="status">'+['rascunho','enviado','aprovado','recusado'].map(x=>'<option value="'+x+'" '+(b.status===x?'selected':'')+'>'+x+'</option>').join('')+'</select></label>'+
  '<label class="wide">Serviços que serão executados<textarea data-draft="services" placeholder="Descreva os serviços e quantidades reais, sem preços externos">'+esc(b.services)+'</textarea></label>'+
  '</div><details class="budget-more-details" '+(b.notes?'open':'')+'><summary>Condições, observações e prazo (opcional)</summary>'+
- '<label>Informações para a proposta<textarea data-draft="notes">'+esc(b.notes)+'</textarea></label></details></section>'+
+ '<label>Informações para a proposta<textarea data-draft="notes">'+esc(b.notes)+'</textarea></label></details>'+
+ '<div class="buttons"><button type="button" class="subtle" data-action="apply-electrical-proposal">Inserir texto técnico de elétrica (editável)</button></div>'+
+ '<p class="hint">Preenche os campos de texto e a lista de serviços nesta tela, sem mudar o modelo visual do PDF. Confira as quantidades e comprove TRT, seguro e treinamentos antes de afirmar que estão incluídos.</p></section>'+
  '<section class="card budget-step-card"><div class="budget-step-title"><span class="budget-step-number">2</span><div><h2>Escolha os profissionais da obra</h2><p>Todos os funcionários ativos aparecem, inclusive os fixos.</p></div></div>'+
  '<label class="worker-search-label">Buscar profissional ou profissão<input id="workerSearch" type="search" placeholder="Ex.: eletricista, pedreiro, nome" autocomplete="off"></label>'+
  '<div class="pick"><select id="workerSelect" aria-label="Lista de todos os profissionais cadastrados"><option value="">Selecione um profissional</option>'+workerOptions(workers.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')))+'</select>'+
@@ -338,6 +353,7 @@ function reviseContract(row){
 async function saveContract(){
  const c=state.contractDraft;
  if(!c)throw Error('Abra um contrato para salvar.');
+ if(!contractValidation(c.status==='emitido'||c.status==='assinado'))return;
  const record={title:String(c.title||'').trim(),counterparty:String(c.counterparty_name||'').trim(),
   status:c.status||'rascunho',content:c,budget_id:c.budget_id||null};
  const reply=await request(route('contracts',state.contractId),state.contractId?'PATCH':'POST',{record});
@@ -348,6 +364,7 @@ async function saveContract(){
 }
 async function printContract(){
  const c=state.contractDraft;if(!c)throw Error('Abra um contrato antes de imprimir.');
+ if(!contractValidation(true))return;
  const div=$('#printArea');div.innerHTML=buildContractHtml(c,{id:state.contractId});
  try{await Promise.all([...div.querySelectorAll('img')].map(img=>img.decode()))}
  catch{throw Error('Não foi possível carregar a logo para o contrato. Atualize a página.')}
@@ -364,7 +381,9 @@ async function saveContractProfile(form){
 }
 function render(){
  document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===state.view));
+ lastValidationMode='';
  $('#content').innerHTML=state.view==='home'?dashboard():state.view==='settings'?settings():state.view==='budgets'?budgetList():state.view==='contracts'?contractList(state.data.contracts,esc,brl,title,state.data.budgets):state.view==='contract-editor'?contractEditor(state.contractDraft,state.contractId,state.data.contract_profiles[0],state.data.budgets,esc,brl,title):state.view==='editor'?editor():generic(state.view);
+ attachFormValidation();
  if(state.view==='editor')summary();
 }
 async function saveEntity(entity,form){
@@ -400,6 +419,7 @@ async function saveSettings(form){
 }
 async function saveBudget(){
  const b=state.draft;
+ if(!budgetValidation(false))return;
  if(!b.title?.trim())throw Error('Informe o título da obra');
  calculateBudget(b);
  normalizeScopeItems(b.scope_items||[]);
@@ -409,8 +429,12 @@ async function saveBudget(){
 }
 async function printBudget(){
  const b=state.draft;
- if(!b?.title?.trim())throw Error('Informe o nome da obra');
+ if(!budgetValidation(true))return;
  const r=calculateBudget(b);
+ if(!(r.price_cents>0)){
+  validateArea(document.querySelector('.budget-simple-editor'),{checkRequired:false,issues:[{selector:'[data-draft="manual_price"]',message:'A proposta precisa ter preço final acima de R$ 0,00. Revise os custos ou informe um preço manual.'}]});
+  return;
+ }
  // O valor e apenas comercial. As duas artes sao recursos oficiais locais e obrigatorios.
  // Nunca omitir a logo por uma condicao de carregamento da tela de login.
  const html=buildProposalHtml(b,{
@@ -433,6 +457,10 @@ async function printBudget(){
 document.addEventListener('submit',async ev=>{
  if(!['login','entityForm','settingsForm','signupForm','recoverForm','passwordForm','cashEntryForm','dashboardMarginForm','contractProfileForm'].includes(ev.target.id))return;
  ev.preventDefault();const f=ev.target,button=f.querySelector('button[type=submit],button.primary');
+ const extra=f.id==='dashboardMarginForm'||f.id==='settingsForm'?taxMarginIssues(f.elements.namedItem('tax_pct').value,f.elements.namedItem('margin_pct').value):
+  f.id==='contractProfileForm'&&!validBrazilDocument(f.elements.namedItem('company_document').value)?[{selector:'[name="company_document"]',message:'Informe um CPF ou CNPJ válido.'}]:
+  f.id==='passwordForm'&&f.elements.namedItem('password').value!==f.elements.namedItem('confirm').value?[{selector:'[name="confirm"]',message:'As duas senhas devem ser iguais.'}]:[];
+ if(!validateArea(f,{issues:extra}))return;
  const originalLabel=button?.textContent;
  if(button){button.disabled=true;if(f.id==='login')button.textContent='Verificando acesso...'}
  try{
@@ -573,7 +601,7 @@ document.addEventListener('click',async ev=>{
   else if(action==='create-contract-from-budget')startContract(null,state.data.budgets.find(x=>x.id===id));
   else if(action==='contract-from-selected-budget'){
    const budget=state.data.budgets.find(x=>x.id===$('#contractFromBudgetSelect')?.value);
-   if(!budget)throw Error('Selecione um orçamento.');
+   if(!budget){validateArea(document.querySelector('#content'),{issues:[{selector:'#contractFromBudgetSelect',message:'Selecione o orçamento de origem.'}],checkRequired:false});return}
    startContract(null,budget);
   }
   else if(action==='delete-contract'){
@@ -583,6 +611,14 @@ document.addEventListener('click',async ev=>{
   else if(action==='save-contract')await saveContract();
   else if(action==='print-contract')await printContract();
   else if(action==='new-budget')startBudget();
+  else if(action==='apply-electrical-proposal'){
+   if(!b)return;
+   const filled=Boolean(String(b.services||'').trim()||String(b.notes||'').trim()||b.scope_items?.length);
+   if(filled&&!window.confirm('O modelo substituirá o texto, as observações e os serviços já digitados. Deseja continuar?'))return;
+   const preset=electricalProposalPreset();
+   b.services=preset.services;b.notes=preset.notes;b.scope_items=preset.scope_items;
+   render();flash('Modelo técnico inserido. Confira cada campo e edite as quantidades conforme a obra.');
+  }
   else if(action==='add-scope'){
    if(!b||b.scope_items.length>=100)throw Error('Limite de 100 serviços por proposta');
    b.scope_items.push({description:'',unit:'m²',quantity:1});render();
@@ -598,18 +634,22 @@ document.addEventListener('click',async ev=>{
   }
   else if(action==='add-worker'){
    const x=state.data.workers.find(x=>x.id===$('#workerSelect').value);
-   if(!x)throw Error('Selecione um profissional cadastrado.');
+   if(!x){validateArea(document.querySelector('.budget-simple-editor'),{issues:[{selector:'#workerSelect',message:'Selecione um profissional antes de adicionar.'}],checkRequired:false});return}
    if(staffAlreadyAdded(b.staff,x.id))throw Error('Este profissional já está selecionado para a obra.');
    b.staff.push(createBudgetStaff(x,b.days));render();
   }
   else if(action==='add-variable'){
    const x=state.data.variable.find(x=>x.id===$('#variableSelect').value);
-   if(!x)throw Error('Selecione uma despesa.');
+   if(!x){validateArea(document.querySelector('.budget-simple-editor'),{issues:[{selector:'#variableSelect',message:'Selecione uma despesa antes de adicionar.'}],checkRequired:false});return}
    b.expenses.push({name:x.name,unit:x.unit,unit_cents:x.unit_cents,qty:1});render();
   }
   else if(action==='add-expense'){
    const name=$('#customExpenseName').value.trim(),value=$('#customExpenseValue').value;
-   if(!name||!value)throw Error('Informe a despesa e o valor.');
+   const amount=Number(String(value).replace(',','.'));
+   const missing=[];
+   if(!name)missing.push({selector:'#customExpenseName',message:'Informe a descrição da despesa.'});
+   if(!value||!Number.isFinite(amount)||amount<=0)missing.push({selector:'#customExpenseValue',message:'Informe um valor maior que zero.'});
+   if(missing.length){validateArea(document.querySelector('.budget-simple-editor'),{issues:missing,checkRequired:false});return}
    b.expenses.push({name,unit:'total',unit_cents:money(value),qty:1});render();
   }
   else if(action==='remove-staff'){b.staff.splice(Number(el.dataset.index),1);render()}
@@ -627,6 +667,33 @@ $('#logout').addEventListener('click',logout);
 // Microfones de ditado também acompanham campos criados dinamicamente em cada tela.
 // O texto entra pelo mesmo evento 'input' utilizado nos orçamentos e cadastros.
 startVoiceFields({notify:flash});
+// Validação delegada: cobre também os formulários que são criados ao mudar de aba.
+attachFormValidation();
+function activeValidationIssues(){
+ if(state.view==='editor'&&state.draft)return budgetIssues(state.draft,{forPdf:lastValidationMode==='budget-pdf'});
+ if(state.view==='contract-editor'&&state.contractDraft)return contractIssues(state.contractDraft,{forExport:lastValidationMode==='contract-pdf'||['emitido','assinado'].includes(state.contractDraft.status)});
+ if(state.view==='home'){
+  const f=document.querySelector('#dashboardMarginForm');
+  if(f)return taxMarginIssues(f.elements.namedItem('tax_pct').value,f.elements.namedItem('margin_pct').value);
+ }
+ if(state.view==='settings'){
+  const finance=document.querySelector('#settingsForm');
+  const financial=finance?taxMarginIssues(finance.elements.namedItem('tax_pct').value,finance.elements.namedItem('margin_pct').value):[];
+  const form=document.querySelector('#contractProfileForm');
+  if(form&&!validBrazilDocument(form.elements.namedItem('company_document').value))return [...financial,{selector:'[name="company_document"]',message:'Informe um CPF ou CNPJ válido.'}];
+  return financial;
+ }
+ return [];
+}
+function inspectEditedField(field,blur=false){
+ if(!field.matches?.('input,textarea,select'))return;
+ const draft=state.view==='editor'&&field.hasAttribute('data-draft');
+ const contractDraft=state.view==='contract-editor'&&field.hasAttribute('data-contract')&&state.contractDraft?.status==='rascunho'&&lastValidationMode!=='contract-pdf';
+ revalidateField(field,activeValidationIssues(),{checkRequired:!(draft||contractDraft),blur});
+}
+document.addEventListener('focusout',event=>inspectEditedField(event.target,true),true);
+document.addEventListener('input',event=>inspectEditedField(event.target));
+document.addEventListener('change',event=>inspectEditedField(event.target));
 // A consulta opcional de cores nao deve bloquear o inicio da sessao.
 void loadBrand();
 const fragment=new URLSearchParams(window.location.hash.replace(/^#/,''));
