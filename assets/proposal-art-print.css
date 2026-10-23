@@ -84,3 +84,70 @@
  #printArea .cv-art-terms small{font-size:6.5pt}
  #printArea .cv-art-terms strong{font-size:7.3pt;white-space:pre-wrap}
 }
+
+/* V2 — fundos exatamente iguais às sete artes aprovadas.
+   As imagens permanecem inteiras: apenas regiões destinadas a dados
+   recebem máscara opaca (não redesenhar fotografias nem molduras). */
+@media print {
+ #printArea .cv-art-proposal {background:#fff}
+ #printArea .cv-art-page {isolation:isolate;overflow:hidden}
+ #printArea .cv-art-back {z-index:0;object-fit:fill}
+ #printArea .cv-art-clean {position:absolute;z-index:1;pointer-events:none}
+ #printArea .cv-art-over {z-index:2}
+ #printArea .cv-art-cover-values {
+   left:25.4%;top:46.3%;width:29.8%;height:18.2%;
+   padding:0 1.1%;background:#07172b;
+ }
+ #printArea .cv-art-cover-values .cv-art-field {
+   display:flex;justify-content:center;border:0;height:25%;padding:0;
+ }
+ #printArea .cv-art-cover-values .cv-art-field strong {font-size:9.5pt;line-height:1.2}
+ #printArea .cv-art-proposal-values {
+   left:75.8%;top:69.3%;width:22.0%;height:19%;
+   background:#05192b;padding:1.4mm 2mm;
+ }
+ #printArea .cv-art-proposal-values .cv-art-field {height:25%;padding:0.6mm 0}
+ #printArea .cv-art-proposal-values .cv-art-field small {font-size:6pt}
+ #printArea .cv-art-proposal-values .cv-art-field strong {font-size:7.5pt}
+ #printArea .cv-art-clean-scope {
+   left:3.8%;top:21.1%;width:62%;height:57.2%;
+   background:#fbfbfb;
+   clip-path:polygon(0 0,94% 0,100% 13%,93% 41%,89% 77%,77% 100%,0 100%);
+ }
+ #printArea .cv-art-scope-fields {
+   left:5.0%;top:24.2%;width:47.5%;height:50.7%;
+   background:transparent;padding:2mm 1.3mm;
+ }
+ #printArea .cv-art-scope-fields h3 {
+   font-size:12.3pt;line-height:1.25;color:#061b2d;margin:0 0 3mm!important;
+ }
+ #printArea .cv-art-scope-fields>p {font-size:8.5pt;line-height:1.45}
+ #printArea .cv-art-scope-fields .cv-art-table-head {padding:2mm 1.7mm}
+ #printArea .cv-art-scope-fields .cv-art-table-row {padding:2.3mm 1.4mm}
+ #printArea .cv-art-clean-pricing {
+   left:4.4%;top:29%;width:56%;height:40%;
+   background:#fbfbfb;
+   clip-path:polygon(0 0,99% 0,100% 18%,94% 100%,0 100%);
+ }
+ #printArea .cv-art-pricing {
+   left:6%;top:31.2%;width:44.5%;height:34%;
+   background:transparent;padding:3mm 1mm;
+ }
+ #printArea .cv-art-pricing h3 {font-size:12pt}
+ #printArea .cv-art-pricing .cv-art-price {font-size:18pt;margin-top:6mm}
+ #printArea .cv-art-terms {
+   left:77%;top:66.5%;width:21%;height:20%;
+   background:#06192c;padding:1mm 1.8mm;
+ }
+ #printArea .cv-art-terms .cv-art-field {padding:1.7mm 0}
+ #printArea .cv-art-terms small {font-size:6.3pt}
+ #printArea .cv-art-terms strong {font-size:7.2pt}
+ #printArea .cv-art-signatures {
+   left:9.4%;top:72.6%;width:48%;height:7.3%;
+   background:#fff;padding:1mm 2mm;display:flex;gap:3mm;
+   color:#142739;
+ }
+ #printArea .cv-art-signatures .cv-art-field {flex:1;overflow:hidden;border:0}
+ #printArea .cv-art-signatures .cv-art-field small {color:#90651c;font-size:7pt}
+ #printArea .cv-art-signatures .cv-art-field strong {color:#142739;font-size:8pt}
+}
