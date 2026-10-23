@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {financeOverview,financeMonths,budgetFinancials} from '../lib/civolten-finance.mjs';
 import cashApi from '../api/data.mjs';
-import {SUPABASE,EDGE} from '../lib/civolten-security.mjs';
+import {SUPABASE} from '../lib/civolten-security.mjs';
 const budget=(status='aprovado',date='2026-10-15')=>({
  id:'b1',title:'Obra de exemplo',customer:'Cliente',status,created_at:date,
  price_cents:200000,cost_cents:120000,content:{pricing:{tax_pct:10}}
@@ -78,7 +78,8 @@ test('a API nao expõe caixa sem sessão e só aceita centavos inteiros e tipos 
  assert.match(src,/Number\.isSafeInteger\(data\.amount_cents\)/);
  assert.match(src,/Movimentações do caixa não podem ser editadas/);
  assert.match(migration,/enable row level security/);
- assert.match(migration,/cv_private\.is_admin\(\)/);
+ const tenant=fs.readFileSync(new URL('../supabase/migrations/20261023_cv_tenant_isolation_no_admin.sql',import.meta.url),'utf8');
+ assert.match(tenant,/owner_id=\(select auth\.uid\(\)\)/);
  assert.match(migration,/b\.owner_id=\(select auth\.uid\(\)\)/);
  const original=globalThis.fetch;let calls=0;
  globalThis.fetch=async()=>{calls++;throw Error('Nao pode acessar sem JWT')};
