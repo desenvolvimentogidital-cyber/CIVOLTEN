@@ -331,7 +331,7 @@ function editor(){
  '<label>Desconto (%)<input type="number" min="0" max="100" step="0.5" data-discount-number value="'+esc(b.discount_pct??0)+'"></label></div></div>'+
  '<div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button>'+
  '<button class="secondary" type="button" data-action="preview-art-budget">Ver proposta profissional (7 páginas)</button>'+
- '<button class="subtle" data-action="print-budget">Exportar PDF atual</button><button class="secondary" type="button" data-action="print-art-budget">Exportar proposta artística (teste)</button><button class="subtle" type="button" data-action="install-proposal-arts">Carregar artes originais (ZIP)</button></div>'+
+ '<button class="subtle" data-action="print-budget">Exportar Proposta Comercial (PDF)</button><button class="secondary" type="button" data-action="print-art-budget">Exportar proposta artística (teste)</button><button class="subtle" type="button" data-action="install-proposal-arts">Carregar artes originais (ZIP)</button></div>'+
  '<p class="hint">O PDF contém somente o escopo, prazos e preço global. Custos, impostos, diárias e lucro continuam sigilosos.</p></aside></div>';
 }
 function summary(){
