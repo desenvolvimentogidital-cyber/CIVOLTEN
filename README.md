@@ -144,3 +144,9 @@ A transcrição **não substitui o texto anterior**: o trecho novo é inserido n
 **Privacidade:** o CIVOLTEN não armazena áudio, não envia gravações a suas próprias APIs e não utiliza serviços pagos de voz. O reconhecimento depende da API de voz oferecida pelo navegador: alguns navegadores **podem enviar o áudio ao provedor externo de reconhecimento**. Use somente quando concordar com essa operação e **revise o texto reconhecido antes de salvar ou emitir o PDF**, especialmente nomes, números, endereços e termos técnicos.
 
 **Compatibilidade:** o ditado depende do navegador, HTTPS, internet quando exigida pelo provedor e autorização do microfone. Pode não estar disponível em navegadores embutidos, versões antigas ou configurações restritivas. Se o navegador não expuser a API, o botão orienta usar o **microfone do teclado do celular**. Os campos continuam funcionando normalmente pelo teclado. Por segurança, não há ditado em senhas, e-mails, telefones, números, datas ou valores financeiros.
+
+### Correção de repetições no ditado
+
+O reconhecimento de voz pode enviar a mesma frase várias vezes — por exemplo, um resultado parcial **“Kleber”** seguido do resultado ampliado **“Kleber Nunes”**. O CIVOLTEN agora verifica a sobreposição de palavras e frases entre os segmentos antes de preencher o campo. Assim, trechos já reconhecidos não são acrescentados novamente. A verificação também remove repetições consecutivas idênticas dentro de um único segmento, sem apagar o texto que estava no campo antes de iniciar o ditado.
+
+A gravação continua sem armazenamento no CIVOLTEN, e o reconhecimento ainda depende do navegador. Sempre confira nomes próprios e palavras técnicas antes de salvar.
