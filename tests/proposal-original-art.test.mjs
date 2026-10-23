@@ -37,3 +37,31 @@ test('identidade das sete páginas exige sete imagens instaladas antes do uso',(
  assert.match(css,/page:cvOriginalArt/);
  assert.match(css,/\.cv-art-back/);
 });
+
+
+test('sete imagens de homologação existem no repositório e são arquivos PNG válidos',()=>{
+ for(let i=1;i<=7;i++){
+  const n=String(i).padStart(2,'0');
+  const bytes=fs.readFileSync(new URL('../assets/proposal-art/'+n+'.png',import.meta.url));
+  assert.deepEqual([...bytes.subarray(0,8)],[137,80,78,71,13,10,26,10]);
+  assert.ok(bytes.readUInt32BE(16)>=376&&bytes.readUInt32BE(20)>=532,'Imagem '+n+' deve existir');
+ }
+});
+
+test('Orçamentos oferece prévia das sete páginas e exporta o gerador artístico',()=>{
+ const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
+ const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(app,/import \{buildArtProposalHtml\}/);
+ assert.match(app,/const html=buildArtProposalHtml\(b/);
+ assert.match(app,/data-action="preview-art-budget"/);
+ assert.match(app,/data-action="preview-saved-budget"/);
+ assert.match(index,/proposal-art-print\.css" media="print"/);
+ assert.ok(fs.existsSync(new URL('../assets/proposal-art-preview.js',import.meta.url)));
+});
+
+test('textos longos não são cortados silenciosamente na arte',()=>{
+ assert.throws(()=>buildArtProposalHtml({title:'Reforma',
+  civil_services:'A'.repeat(321),payment_terms:'À vista'}, {priceCents:10000}),/limite de 320 caracteres/);
+ assert.throws(()=>buildArtProposalHtml({title:'Reforma',
+  payment_terms:'P'.repeat(161)},{priceCents:10000}),/limite de 160 caracteres/);
+});
