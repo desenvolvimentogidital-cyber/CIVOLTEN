@@ -6,6 +6,9 @@ import {financialDashboard,projectResults} from '/assets/dashboard.js';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
 import {contractDefaults,defaultContractCompany,contractFromBudget,buildContractHtml} from '/lib/civolten-contract.mjs';
 import {contractList,contractEditor,contractProfilePanel} from '/assets/contracts.js';
+import {validBrazilDocument} from '/lib/civolten-contract.mjs';
+import {budgetIssues,contractIssues,taxMarginIssues} from '/lib/civolten-validation.mjs';
+import {attachFormValidation,validateArea,revalidateField} from '/assets/field-validation.js';
 
 const $=q=>document.querySelector(q);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -29,6 +32,15 @@ async function request(path,method='GET',record){
 }
 const route=(entity,id)=>'/api/data?entity='+entity+(id?'&id='+encodeURIComponent(id):'');
 let timer;
+let lastValidationMode='';
+function budgetValidation(forPdf=false){
+ lastValidationMode=forPdf?'budget-pdf':'budget-save';
+ return validateArea(document.querySelector('.budget-simple-editor'),{issues:budgetIssues(state.draft,{forPdf}),checkRequired:false});
+}
+function contractValidation(forExport=false){
+ lastValidationMode=forExport?'contract-pdf':'contract-save';
+ return validateArea(document.querySelector('.contract-editor'),{issues:contractIssues(state.contractDraft,{forExport}),checkRequired:false});
+}
 function flash(message){const el=$('#flash');el.textContent=message;el.hidden=false;clearTimeout(timer);timer=setTimeout(()=>el.hidden=true,4500)}
 async function loadBrand(){
  // A logo oficial enviada pelo administrador e local e nao pode ser substituida
@@ -338,6 +350,7 @@ function reviseContract(row){
 async function saveContract(){
  const c=state.contractDraft;
  if(!c)throw Error('Abra um contrato para salvar.');
+ if(!contractValidation(c.status==='emitido'||c.status==='assinado'))return;
  const record={title:String(c.title||'').trim(),counterparty:String(c.counterparty_name||'').trim(),
   status:c.status||'rascunho',content:c,budget_id:c.budget_id||null};
  const reply=await request(route('contracts',state.contractId),state.contractId?'PATCH':'POST',{record});
@@ -348,6 +361,7 @@ async function saveContract(){
 }
 async function printContract(){
  const c=state.contractDraft;if(!c)throw Error('Abra um contrato antes de imprimir.');
+ if(!contractValidation(true))return;
  const div=$('#printArea');div.innerHTML=buildContractHtml(c,{id:state.contractId});
  try{await Promise.all([...div.querySelectorAll('img')].map(img=>img.decode()))}
  catch{throw Error('Não foi possível carregar a logo para o contrato. Atualize a página.')}
@@ -364,7 +378,9 @@ async function saveContractProfile(form){
 }
 function render(){
  document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===state.view));
+ lastValidationMode='';
  $('#content').innerHTML=state.view==='home'?dashboard():state.view==='settings'?settings():state.view==='budgets'?budgetList():state.view==='contracts'?contractList(state.data.contracts,esc,brl,title,state.data.budgets):state.view==='contract-editor'?contractEditor(state.contractDraft,state.contractId,state.data.contract_profiles[0],state.data.budgets,esc,brl,title):state.view==='editor'?editor():generic(state.view);
+ attachFormValidation();
  if(state.view==='editor')summary();
 }
 async function saveEntity(entity,form){
@@ -400,6 +416,7 @@ async function saveSettings(form){
 }
 async function saveBudget(){
  const b=state.draft;
+ if(!budgetValidation(false))return;
  if(!b.title?.trim())throw Error('Informe o título da obra');
  calculateBudget(b);
  normalizeScopeItems(b.scope_items||[]);
@@ -409,8 +426,12 @@ async function saveBudget(){
 }
 async function printBudget(){
  const b=state.draft;
- if(!b?.title?.trim())throw Error('Informe o nome da obra');
+ if(!budgetValidation(true))return;
  const r=calculateBudget(b);
+ if(!(r.price_cents>0)){
+  validateArea(document.querySelector('.budget-simple-editor'),{checkRequired:false,issues:[{selector:'[data-draft="manual_price"]',message:'A proposta precisa ter preço final acima de R$ 0,00. Revise os custos ou informe um preço manual.'}]});
+  return;
+ }
  // O valor e apenas comercial. As duas artes sao recursos oficiais locais e obrigatorios.
  // Nunca omitir a logo por uma condicao de carregamento da tela de login.
  const html=buildProposalHtml(b,{
@@ -433,6 +454,10 @@ async function printBudget(){
 document.addEventListener('submit',async ev=>{
  if(!['login','entityForm','settingsForm','signupForm','recoverForm','passwordForm','cashEntryForm','dashboardMarginForm','contractProfileForm'].includes(ev.target.id))return;
  ev.preventDefault();const f=ev.target,button=f.querySelector('button[type=submit],button.primary');
+ const extra=f.id==='dashboardMarginForm'||f.id==='settingsForm'?taxMarginIssues(f.elements.namedItem('tax_pct').value,f.elements.namedItem('margin_pct').value):
+  f.id==='contractProfileForm'&&!validBrazilDocument(f.elements.namedItem('company_document').value)?[{selector:'[name="company_document"]',message:'Informe um CPF ou CNPJ válido.'}]:
+  f.id==='passwordForm'&&f.elements.namedItem('password').value!==f.elements.namedItem('confirm').value?[{selector:'[name="confirm"]',message:'As duas senhas devem ser iguais.'}]:[];
+ if(!validateArea(f,{issues:extra}))return;
  const originalLabel=button?.textContent;
  if(button){button.disabled=true;if(f.id==='login')button.textContent='Verificando acesso...'}
  try{
@@ -627,6 +652,26 @@ $('#logout').addEventListener('click',logout);
 // Microfones de ditado também acompanham campos criados dinamicamente em cada tela.
 // O texto entra pelo mesmo evento 'input' utilizado nos orçamentos e cadastros.
 startVoiceFields({notify:flash});
+// Validação delegada: cobre também os formulários que são criados ao mudar de aba.
+attachFormValidation();
+function activeValidationIssues(){
+ if(state.view==='editor'&&state.draft)return budgetIssues(state.draft,{forPdf:lastValidationMode==='budget-pdf'});
+ if(state.view==='contract-editor'&&state.contractDraft)return contractIssues(state.contractDraft,{forExport:lastValidationMode==='contract-pdf'||['emitido','assinado'].includes(state.contractDraft.status)});
+ if(state.view==='settings'){
+  const form=document.querySelector('#contractProfileForm');
+  if(form&&!validBrazilDocument(form.elements.namedItem('company_document').value))return [{selector:'[name="company_document"]',message:'Informe um CPF ou CNPJ válido.'}];
+ }
+ return [];
+}
+function inspectEditedField(field,blur=false){
+ if(!field.matches?.('input,textarea,select'))return;
+ const draft=state.view==='editor'&&field.hasAttribute('data-draft');
+ const contractDraft=state.view==='contract-editor'&&field.hasAttribute('data-contract')&&state.contractDraft?.status==='rascunho'&&lastValidationMode!=='contract-pdf';
+ revalidateField(field,activeValidationIssues(),{checkRequired:!(draft||contractDraft),blur});
+}
+document.addEventListener('focusout',event=>inspectEditedField(event.target,true),true);
+document.addEventListener('input',event=>inspectEditedField(event.target));
+document.addEventListener('change',event=>inspectEditedField(event.target));
 // A consulta opcional de cores nao deve bloquear o inicio da sessao.
 void loadBrand();
 const fragment=new URLSearchParams(window.location.hash.replace(/^#/,''));
