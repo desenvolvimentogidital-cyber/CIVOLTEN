@@ -107,7 +107,12 @@ export function revalidateField(field,issues=[],{checkRequired=true,blur=false}=
  if(!blur&&!field.classList.contains('cv-field-error'))return;
  const explicit=issues.find(({selector})=>field.matches(selector));
  const error=explicit?.message||nativeFieldIssue(field,{checkRequired});
- if(error)markFieldError(field,error);else clearFieldError(field);
+ if(error)markFieldError(field,error);
+ else {
+  clearFieldError(field);
+  const area=field.closest('form,.budget-simple-editor,.contract-editor')||document.querySelector('#content');
+  if(area&&!area.querySelector('.cv-field-error,.cv-validation-group-error'))clearValidationSummary(area);
+ }
 }
 export function attachFormValidation(){
  for(const form of document.querySelectorAll('form'))form.noValidate=true;
