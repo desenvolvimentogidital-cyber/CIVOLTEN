@@ -11,7 +11,9 @@ const tables={
  fixed:'cv_fixed_costs',
  variable:'cv_variable_costs',
  budgets:'cv_budgets',
- cash:'cv_cash_entries'
+ cash:'cv_cash_entries',
+ contracts:'cv_contracts',
+ contract_profiles:'cv_contract_profiles'
 };
 
 export default {async fetch(req){
