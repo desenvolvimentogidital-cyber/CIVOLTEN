@@ -634,3 +634,20 @@ input[type="checkbox"]{width:22px;height:22px}#printArea .prewrap{white-space:pr
 .contract-profile-settings{margin-top:20px}
 @media(max-width:1040px){.contract-editor{grid-template-columns:1fr}.contract-summary{position:static}}
 @media(max-width:560px){.contract-form-grid{grid-template-columns:1fr}.contract-field-wide{grid-column:auto}.contract-intro{flex-wrap:wrap}}
+
+/* Validação visual compartilhada. Não afeta o PDF ou a área de impressão. */
+#app input.cv-field-error,#app textarea.cv-field-error,#app select.cv-field-error,
+#auth input.cv-field-error,#auth textarea.cv-field-error,#auth select.cv-field-error,
+input.cv-field-error,textarea.cv-field-error,select.cv-field-error{
+ border:2px solid #cb2636!important;
+ outline-color:#cb2636!important;
+ box-shadow:0 0 0 2px rgba(203,38,54,.10)!important;
+ background-image:none!important;
+}
+.cv-field-error:focus{outline:2px solid #cb2636!important;outline-offset:2px}
+.cv-error-container{min-width:0}
+.cv-validation-message{display:block!important;color:#a81e30!important;font-size:12px!important;font-weight:700;line-height:1.45;margin:4px 0 5px}
+.cv-validation-group-error{border:2px solid #cb2636!important;border-radius:10px;padding:12px!important}
+.cv-validation-summary{border-left:4px solid #cb2636;background:#fff4f4;color:#922032;
+ padding:12px 15px;border-radius:8px;font-size:13px;font-weight:700;margin-bottom:16px}
+@media print{.cv-validation-summary,.cv-validation-message{display:none!important}}
