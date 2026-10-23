@@ -1,5 +1,6 @@
 import {calculateBudget} from '/lib/civolten-calc.mjs';
 import {companyRates,payrollSummary} from '/lib/civolten-capacity.mjs';
+import {startVoiceFields} from '/assets/voice.js';
 import {createBudgetStaff,staffAlreadyAdded} from '/lib/civolten-team.mjs';
 import {financialDashboard,projectResults} from '/assets/dashboard.js';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
@@ -555,6 +556,9 @@ $('#refreshAccess').addEventListener('click',async()=>{
  try{const r=await request('/api/session');if(r.authenticated)await showApp();else $('#pendingNotice').textContent='O acesso ainda aguarda aprovação.'}
  catch(e){$('#pendingNotice').textContent=e.message}
 });
+// Microfones de ditado também acompanham campos criados dinamicamente em cada tela.
+// O texto entra pelo mesmo evento 'input' utilizado nos orçamentos e cadastros.
+startVoiceFields({notify:flash});
 // A consulta opcional de cores nao deve bloquear o inicio da sessao.
 void loadBrand();
 const fragment=new URLSearchParams(window.location.hash.replace(/^#/,''));
