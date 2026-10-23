@@ -13,7 +13,10 @@ import {attachFormValidation,validateArea,revalidateField} from '/assets/field-v
 
 const $=q=>document.querySelector(q);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const brl=x=>(Number(x||0)/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const brl=x=>{
+ const n=Number(x??0);
+ return Number.isFinite(n)?(n/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'Valor indisponível';
+};
 const money=x=>Math.round(Math.max(0,Number(String(x??0).replace(',','.'))||0)*100);
 const dec=x=>String(Number(x||0)/100);
 const num=x=>Number(String(x??0).replace(',','.'))||0;
@@ -337,7 +340,7 @@ function editor(){
  '<p class="hint">Veja como o desconto muda o preço, o lucro e a margem líquida. Só será aplicado à proposta quando ela for salva.</p>'+
  '<div class="discount-controls"><input type="range" min="0" max="50" step="0.5" data-discount-range value="'+esc(b.discount_pct??0)+'" aria-label="Desconto percentual">'+
  '<label>Desconto (%)<input type="number" min="0" max="100" step="0.5" data-discount-number value="'+esc(b.discount_pct??0)+'"></label></div></div>'+
- '<div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button>'+
+ '<div id="budgetSummary" role="status" aria-live="polite" aria-atomic="true"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button>'+
  '<button class="subtle" data-action="print-budget">Exportar Proposta Comercial (PDF)</button></div>'+
  '<p class="hint">O PDF contém somente o escopo, prazos e preço global. Custos, impostos, diárias e lucro continuam sigilosos.</p></aside></div>';
 }
@@ -345,6 +348,10 @@ function summary(){
  const el=$('#budgetSummary');if(!el||!state.draft)return;
  try{
   const b=state.draft,r=calculateBudget(b);
+   const initial=calculateBudget({...b,discount_pct:0});
+   const fields=['labor_cents','variable_cents','fixed_cents','cost_cents','tax_cents','price_before_discount_cents','discount_pct','discount_cents','price_cents','profit_cents','margin_pct_real'];
+   if(fields.some(k=>!Number.isFinite(r[k]))||!Number.isFinite(initial.margin_pct_real))
+    throw Error('Um valor do orçamento está inválido. Confira dias, equipe, materiais e parâmetros financeiros.');
   el.innerHTML='<div class="sumrow"><span>Equipe extra por obra</span><strong>'+brl(r.labor_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Despesas variáveis</span><strong>'+brl(r.variable_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Rateio mensal (despesas fixas + folha)</span><strong>'+brl(r.fixed_cents)+'</strong></div>'+
@@ -355,11 +362,13 @@ function summary(){
    '<div class="sumrow sumtotal"><span>Preço final ao cliente</span><strong>'+brl(r.price_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Resultado estimado</span><strong class="'+(r.profit_cents<0?'bad':'good')+'">'+brl(r.profit_cents)+'</strong></div>'+
    '<div class="sumrow"><span>Margem líquida estimada</span><strong class="'+(r.margin_pct_real<0?'bad':'good')+'">'+r.margin_pct_real.toFixed(2)+'%</strong></div>'+
-   '<div class="discount-margin-impact"><span>Margem sem desconto</span><strong>'+calculateBudget({...b,discount_pct:0}).margin_pct_real.toFixed(2)+'%</strong><span>Impacto do desconto</span><strong class="'+(r.discount_pct>0?'bad':'')+'">'+(r.margin_pct_real-calculateBudget({...b,discount_pct:0}).margin_pct_real).toFixed(2)+' pontos percentuais</strong></div>'+
+   '<div class="discount-margin-impact"><span>Margem sem desconto</span><strong>'+initial.margin_pct_real.toFixed(2)+'%</strong><span>Impacto do desconto</span><strong class="'+(r.discount_pct>0?'bad':'')+'">'+(r.margin_pct_real-calculateBudget({...b,discount_pct:0}).margin_pct_real).toFixed(2)+' pontos percentuais</strong></div>'+
    ((num(b.pricing?.tax_pct)===0||num(b.pricing?.margin_pct)===0)?'<div class="warning">Revise impostos e margem: pelo menos um está em 0%. Não assuma que a tributação é zero sem confirmação.</div>':'')+
    (r.profit_cents<0?'<div class="warning">Atenção: o preço escolhido resulta em prejuízo estimado.</div>':'')+
    '<p class="hint">Estimativa interna baseada nos seus lançamentos. Custos imprevistos e tributos reais podem alterar o resultado.</p>';
- }catch(error){el.innerHTML='<div class="warning">'+esc(error.message)+'</div>'}
+  }catch(error){
+   el.innerHTML='<div class="warning" role="alert"><strong>Fechamento da obra ainda não calculado.</strong><p>Confira dias previstos, dados dos profissionais, quantidades de materiais e parâmetros em Configurações financeiras.</p><p>Detalhe: '+esc(error?.message||'Valor inválido')+'</p></div>';
+  }
 }
 function contractCompany(){return {...defaultContractCompany(),...(state.data.contract_profiles[0]||{})}}
 function startContract(row=null,budget=null){
