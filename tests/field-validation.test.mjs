@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {budgetIssues,contractIssues,taxMarginIssues} from '../lib/civolten-validation.mjs';
 import {contractDefaults} from '../lib/civolten-contract.mjs';
+import {electricalProposalPreset} from '../lib/civolten-proposal-text.mjs';
 
 const selectors=issues=>issues.map(x=>x.selector);
 const pdfBudget=()=>({title:'Instalação elétrica',customer:'Cliente de teste',address:'Rua das Flores, 100',
@@ -69,4 +70,21 @@ test('estilos de erro existem e o PDF original permanece intocado',()=>{
  assert.match(app,/if\(!contractValidation\(true\)\)return/);
  assert.match(print,/proposal-header-art/);
  assert.match(print,/@page\{size:A4/);
+});
+
+test('modelo de texto técnico elétrico permanece editável e não altera o PDF comercial',()=>{
+ const preset=electricalProposalPreset();
+ assert.match(preset.services,/NBR 5410/);
+ assert.equal(preset.scope_items.length,3);
+ assert.deepEqual(preset.scope_items.map(i=>i.quantity),[1,1500,150]);
+ assert.match(preset.notes,/40% de entrada/);
+ assert.match(preset.notes,/60% restantes/);
+ assert.match(preset.notes,/apólice vigente/);
+ assert.match(preset.notes,/quando houver trabalho em altura/);
+ const app=fs.readFileSync(new URL('../assets/app.js',import.meta.url),'utf8');
+ assert.match(app,/data-action="apply-electrical-proposal"/);
+ assert.match(app,/b\.services=preset\.services/);
+ assert.match(app,/b\.notes=preset\.notes/);
+ assert.match(app,/b\.scope_items=preset\.scope_items/);
+ assert.doesNotMatch(preset.services,/1500 m/);
 });
