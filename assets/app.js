@@ -4,6 +4,8 @@ import {startVoiceFields} from '/assets/voice.js';
 import {createBudgetStaff,staffAlreadyAdded} from '/lib/civolten-team.mjs';
 import {financialDashboard,projectResults} from '/assets/dashboard.js';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
+import {buildArtProposalHtml} from '/lib/civolten-proposal-art.mjs';
+import {openArtProposalPreview} from '/assets/proposal-art-preview.js';
 import {electricalProposalPreset} from '/lib/civolten-proposal-text.mjs';
 import {contractDefaults,defaultContractCompany,contractFromBudget,buildContractHtml} from '/lib/civolten-contract.mjs';
 import {contractList,contractEditor,contractProfilePanel} from '/assets/contracts.js';
@@ -239,7 +241,7 @@ function budgetList(){
  return title('Orçamentos','Nenhuma referência de preços. Cada proposta nasce dos custos desta obra.','<button class="primary" data-action="new-budget">+ Novo orçamento</button>')+
  '<section class="card"><h2>Histórico de propostas</h2>'+
  (rows.length?rows.map(b=>'<div class="entry"><div><strong>'+esc(b.title)+'</strong><small>'+esc(b.customer||'Cliente não informado')+' · '+new Date(b.created_at).toLocaleDateString('pt-BR')+'</small><small class="status '+esc(b.status)+'">'+esc(b.status)+'</small></div>'+
- '<div class="actions"><span class="price">'+brl(b.price_cents)+'</span><button class="subtle small" data-action="open-budget" data-id="'+esc(b.id)+'">Abrir</button><button class="subtle small" data-action="create-contract-from-budget" data-id="'+esc(b.id)+'">Gerar contrato</button><button class="danger small" data-action="delete-budget" data-id="'+esc(b.id)+'">Excluir</button></div></div>').join(''):empty('Nenhum orçamento salvo ainda.'))+'</section>';
+ '<div class="actions"><span class="price">'+brl(b.price_cents)+'</span><button class="subtle small" data-action="open-budget" data-id="'+esc(b.id)+'">Abrir</button><button class="secondary small" data-action="preview-saved-budget" data-id="'+esc(b.id)+'">Ver proposta</button><button class="subtle small" data-action="create-contract-from-budget" data-id="'+esc(b.id)+'">Gerar contrato</button><button class="danger small" data-action="delete-budget" data-id="'+esc(b.id)+'">Excluir</button></div></div>').join(''):empty('Nenhum orçamento salvo ainda.'))+'</section>';
 }
 function defaultPricing(){
  const c=state.data.settings[0]||{},rates=companyRates(state.data.fixed,c,state.data.workers);
@@ -326,6 +328,7 @@ function editor(){
  '<div class="discount-controls"><input type="range" min="0" max="50" step="0.5" data-discount-range value="'+esc(b.discount_pct??0)+'" aria-label="Desconto percentual">'+
  '<label>Desconto (%)<input type="number" min="0" max="100" step="0.5" data-discount-number value="'+esc(b.discount_pct??0)+'"></label></div></div>'+
  '<div id="budgetSummary"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button>'+
+ '<button class="secondary" type="button" data-action="preview-art-budget">Ver proposta profissional (7 páginas)</button>'+
  '<button class="subtle" data-action="print-budget">Exportar Proposta Comercial (PDF)</button></div>'+
  '<p class="hint">O PDF contém somente o escopo, prazos e preço global. Custos, impostos, diárias e lucro continuam sigilosos.</p></aside></div>';
 }
@@ -450,7 +453,7 @@ async function printBudget(){
  }
  // O valor e apenas comercial. As duas artes sao recursos oficiais locais e obrigatorios.
  // Nunca omitir a logo por uma condicao de carregamento da tela de login.
- const html=buildProposalHtml(b,{
+ const html=buildArtProposalHtml(b,{
   priceCents:r.price_cents,
   id:state.draftId,
   date:new Date(),
@@ -625,6 +628,16 @@ document.addEventListener('click',async ev=>{
   else if(action==='save-contract')await saveContract();
   else if(action==='print-contract')await printContract();
   else if(action==='new-budget')startBudget();
+  else if(action==='preview-saved-budget'){
+   const row=state.data.budgets.find(x=>x.id===id);
+   if(!row)throw Error('Orçamento não encontrado.');
+   await openArtProposalPreview({budget:row.content,priceCents:row.price_cents,id:row.id});
+  }
+  else if(action==='preview-art-budget'){
+   if(!b)throw Error('Abra um orçamento para visualizar a proposta.');
+   const r=calculateBudget(b);
+   await openArtProposalPreview({budget:b,priceCents:r.price_cents,id:state.draftId});
+  }
   else if(action==='apply-electrical-proposal'){
    if(!b)return;
    const filled=Boolean(String(b.services||'').trim()||String(b.notes||'').trim()||b.scope_items?.length);
