@@ -1,5 +1,6 @@
 import {calculateBudget} from '/lib/civolten-calc.mjs';
 import {companyRates,payrollSummary} from '/lib/civolten-capacity.mjs';
+import {createBudgetStaff,staffAlreadyAdded} from '/lib/civolten-team.mjs';
 import {financialDashboard,projectResults} from '/assets/dashboard.js';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
 
@@ -143,12 +144,21 @@ function closeProfessionOptions(){
 function updateWorkerChoices(){
  const input=$('#workerSearch'),select=$('#workerSelect');if(!input||!select)return;
  const selected=select.value,filter=normalizeProfession(input.value.trim());
- const workers=state.data.workers.filter(x=>x.active&&(x.cost_mode??'monthly')==='project')
+ const workers=state.data.workers.filter(x=>x.active)
   .filter(x=>normalizeProfession(x.name+' '+x.profession).includes(filter))
   .sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
- select.innerHTML='<option value="">'+(workers.length?'Escolha um funcionário':'Nenhum funcionário encontrado')+'</option>'+
-  workers.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</option>').join('');
+ select.innerHTML='<option value="">'+(workers.length?'Escolha um profissional':'Nenhum profissional encontrado')+'</option>'+
+  workerOptions(workers);
  if(workers.some(x=>x.id===selected))select.value=selected;
+}
+function workerOptions(workers){
+ const modes=[['monthly','Equipe fixa mensal'],['project','Profissionais por obra']];
+ return modes.map(([mode,label])=>{
+  const group=workers.filter(x=>(x.cost_mode??'monthly')===mode);
+  return group.length?'<optgroup label="'+label+'">'+group.map(x=>
+   '<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.profession)+(mode==='monthly'?' · já incluído no custo fixo':' · '+brl(x.daily_cents)+'/dia')+'</option>'
+  ).join('')+'</optgroup>':'';
+ }).join('');
 }
 
 function inputField(f,v){
@@ -229,7 +239,7 @@ function startBudget(row){
 }
 function editor(){
  const b=state.draft||{};
- const workers=state.data.workers.filter(x=>x.active&&(x.cost_mode??'monthly')==='project');
+ const workers=state.data.workers.filter(x=>x.active);
  const variables=state.data.variable;
  const staffLines=(b.staff||[]).map((x,i)=>'<div class="line staff-line"><div class="staff-info"><strong>'+esc(x.name)+'</strong><small>'+esc(x.profession)+' · '+brl(x.daily_cents)+'/dia</small></div><label class="line-label">Dias<input data-staff-days="'+i+'" type="number" min="0" max="10000" step=".5" value="'+esc(x.days)+'"></label><label class="line-label">Encargos adicionais (%) — opcional<input data-staff-charges="'+i+'" type="number" min="0" max="200" step=".01" value="'+esc(Number(x.charges_pct??0)===0?'':x.charges_pct)+'" aria-label="Encargos do profissional '+esc(x.name)+' em porcentagem"></label><span class="price staff-price" data-staff-cost="'+i+'">'+brl(Math.round(x.daily_cents*x.days*(1+num(x.charges_pct)/100)))+'</span><button class="danger" data-action="remove-staff" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
  const expenseLines=(b.expenses||[]).map((x,i)=>'<div class="line"><div><strong>'+esc(x.name)+'</strong><small>'+brl(x.unit_cents)+' / '+esc(x.unit||'un')+'</small></div><label class="line-label">Qtd.<input data-expense-qty="'+i+'" type="number" min="0" step=".01" value="'+esc(x.qty)+'"></label><span class="price">'+brl(Math.round(x.unit_cents*x.qty))+'</span><button class="danger" data-action="remove-expense" data-index="'+i+'" aria-label="Remover">×</button></div>').join('');
@@ -490,8 +500,8 @@ document.addEventListener('click',async ev=>{
   else if(action==='add-worker'){
    const x=state.data.workers.find(x=>x.id===$('#workerSelect').value);
    if(!x)throw Error('Selecione um profissional cadastrado.');
-   if((x.cost_mode??'monthly')!=='project')throw Error('Funcionário de folha fixa já está incluído automaticamente no rateio mensal.');
-   b.staff.push({worker_id:x.id,name:x.name,profession:x.profession,daily_cents:x.daily_cents,charges_pct:num(x.charges_pct),days:b.days});render();
+   if(staffAlreadyAdded(b.staff,x.id))throw Error('Este profissional já está selecionado para a obra.');
+   b.staff.push(createBudgetStaff(x,b.days));render();
   }
   else if(action==='add-variable'){
    const x=state.data.variable.find(x=>x.id===$('#variableSelect').value);
