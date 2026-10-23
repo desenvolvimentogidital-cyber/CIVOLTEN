@@ -11,10 +11,10 @@ const pdfBudget=()=>({title:'Instalação elétrica',customer:'Cliente de teste'
  services:'Montar circuitos do imóvel',days:10,discount_pct:0,scope_items:[],staff:[],expenses:[],
  manual_price_cents:null});
 const pdfContract=()=>({...contractDefaults(),title:'Instalação elétrica',counterparty_name:'Cliente de teste',
- counterparty_document:'123.456.789-09',location:'Rua das Flores, 100',
+ counterparty_document:'123.456.789-09',counterparty_address:'Rua das Flores, 100',location:'Rua das Flores, 100',
  scope:'Instalar quadro e tomadas',start_on:'2026-11-01',end_on:'2026-11-30',
  value_cents:100000,payment_terms:'40% de entrada',payment_schedule:'R$400 sinal e R$600 entrega',
- company:{company_name:'CIVOLTEN Testes',company_document:'11.222.333/0001-81'}});
+ company:{company_name:'CIVOLTEN Testes',company_document:'11.222.333/0001-81',company_address:'Rua da Empresa, 30'}});
 test('rascunho do orçamento aceita campos comerciais ainda não preenchidos',()=>{
  const b={...pdfBudget(),customer:'',address:'',services:''};
  assert.equal(budgetIssues(b).length,0);
