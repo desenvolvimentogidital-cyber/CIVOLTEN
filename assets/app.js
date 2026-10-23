@@ -4,6 +4,8 @@ import {startVoiceFields} from '/assets/voice.js';
 import {createBudgetStaff,staffAlreadyAdded} from '/lib/civolten-team.mjs';
 import {financialDashboard,projectResults} from '/assets/dashboard.js';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
+import {contractDefaults,defaultContractCompany,contractFromBudget,buildContractHtml} from '/lib/civolten-contract.mjs';
+import {contractList,contractEditor,contractProfilePanel} from '/assets/contracts.js';
 
 const $=q=>document.querySelector(q);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -12,8 +14,8 @@ const money=x=>Math.round(Math.max(0,Number(String(x??0).replace(',','.'))||0)*1
 const dec=x=>String(Number(x||0)/100);
 const num=x=>Number(String(x??0).replace(',','.'))||0;
 const total=xs=>xs.reduce((n,x)=>n+Number(x||0),0);
-const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[],cash:[]},accountEmail:'',edit:null,draft:null,draftId:null,dashboardSearch:'',dashboardStatus:'todos'};
-const sections={home:'Visão geral',budgets:'Orçamentos',workers:'Funcionários',fixed:'Custos fixos',variable:'Custos variáveis',settings:'Configurações'};
+const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[],cash:[],contracts:[],contract_profiles:[]},accountEmail:'',edit:null,draft:null,draftId:null,contractDraft:null,contractId:null,dashboardSearch:'',dashboardStatus:'todos'};
+const sections={home:'Visão geral',budgets:'Orçamentos',contracts:'Contratos',workers:'Funcionários',fixed:'Custos fixos',variable:'Custos variáveis',settings:'Configurações'};
 const fields={
  workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos adicionais (%) — opcional','number'],['days_month','Dias trabalhados previstos no mês','number'],['cost_mode','Forma de custo','select'],['active','Profissional ativo','checkbox']],
  fixed:[['name','Despesa fixa','text'],['category','Categoria','text'],['monthly_cents','Valor mensal (R$)','money'],['active','Despesa ativa','checkbox']],
@@ -213,6 +215,7 @@ function settings(){
  '<p class="hint">Impostos, margem e dias faturáveis são editados acima. Diárias e encargos individuais são definidos no cadastro de Funcionários; despesas operacionais são editadas em Custos fixos. Esses valores já alimentam os novos orçamentos automaticamente.</p>'+
  '<div class="buttons"><button type="button" class="subtle" data-view="workers">Ajustar funcionários e encargos</button>'+
  '<button type="button" class="subtle" data-view="fixed">Ajustar despesas fixas</button></div></section>'+
+ contractProfilePanel(state.data.contract_profiles[0],esc)+
  '<section class="card account-settings"><h2>Minha conta</h2>'+
  '<p>Seu acesso é individual. Nenhuma aprovação administrativa é necessária para utilizar seus próprios dados.</p>'+
  '<p class="hint">E-mail da conta: <strong>'+esc(state.accountEmail||'Conta autenticada')+'</strong></p>'+
@@ -223,7 +226,7 @@ function budgetList(){
  return title('Orçamentos','Nenhuma referência de preços. Cada proposta nasce dos custos desta obra.','<button class="primary" data-action="new-budget">+ Novo orçamento</button>')+
  '<section class="card"><h2>Histórico de propostas</h2>'+
  (rows.length?rows.map(b=>'<div class="entry"><div><strong>'+esc(b.title)+'</strong><small>'+esc(b.customer||'Cliente não informado')+' · '+new Date(b.created_at).toLocaleDateString('pt-BR')+'</small><small class="status '+esc(b.status)+'">'+esc(b.status)+'</small></div>'+
- '<div class="actions"><span class="price">'+brl(b.price_cents)+'</span><button class="subtle small" data-action="open-budget" data-id="'+esc(b.id)+'">Abrir</button><button class="danger small" data-action="delete-budget" data-id="'+esc(b.id)+'">Excluir</button></div></div>').join(''):empty('Nenhum orçamento salvo ainda.'))+'</section>';
+ '<div class="actions"><span class="price">'+brl(b.price_cents)+'</span><button class="subtle small" data-action="open-budget" data-id="'+esc(b.id)+'">Abrir</button><button class="subtle small" data-action="create-contract-from-budget" data-id="'+esc(b.id)+'">Gerar contrato</button><button class="danger small" data-action="delete-budget" data-id="'+esc(b.id)+'">Excluir</button></div></div>').join(''):empty('Nenhum orçamento salvo ainda.'))+'</section>';
 }
 function defaultPricing(){
  const c=state.data.settings[0]||{},rates=companyRates(state.data.fixed,c,state.data.workers);
@@ -318,9 +321,44 @@ function summary(){
    '<p class="hint">Estimativa interna baseada nos seus lançamentos. Custos imprevistos e tributos reais podem alterar o resultado.</p>';
  }catch(error){el.innerHTML='<div class="warning">'+esc(error.message)+'</div>'}
 }
+function contractCompany(){return {...defaultContractCompany(),...(state.data.contract_profiles[0]||{})}}
+function startContract(row=null,budget=null){
+ state.contractId=row?.id||null;
+ state.contractDraft=row?{...structuredClone(row.content),status:row.status,budget_id:row.budget_id}:
+  budget?{...contractFromBudget(budget,contractCompany()),status:'rascunho'}:
+  {...contractDefaults(),company:contractCompany(),status:'rascunho',budget_id:null};
+ state.view='contract-editor';render();
+}
+async function saveContract(){
+ const c=state.contractDraft;
+ if(!c)throw Error('Abra um contrato para salvar.');
+ const record={title:String(c.title||'').trim(),counterparty:String(c.counterparty_name||'').trim(),
+  status:c.status||'rascunho',content:c,budget_id:c.budget_id||null};
+ const reply=await request(route('contracts',state.contractId),state.contractId?'PATCH':'POST',{record});
+ const saved=reply.rows?.[0];if(!saved?.id)throw Error('O banco não confirmou o contrato.');
+ state.contractId=saved.id;
+ state.contractDraft={...structuredClone(saved.content),status:saved.status,budget_id:saved.budget_id};
+ await reload();render();flash('Contrato salvo com segurança.');
+}
+async function printContract(){
+ const c=state.contractDraft;if(!c)throw Error('Abra um contrato antes de imprimir.');
+ const div=$('#printArea');div.innerHTML=buildContractHtml(c,{id:state.contractId});
+ try{await Promise.all([...div.querySelectorAll('img')].map(img=>img.decode()))}
+ catch{throw Error('Não foi possível carregar a logo para o contrato. Atualize a página.')}
+ window.print();
+}
+async function saveContractProfile(form){
+ const record={};
+ for(const key of ['company_name','company_document','company_address','company_representative','company_phone','company_email','city'])
+  record[key]=String(form.elements.namedItem(key)?.value||'').trim();
+ if(!record.company_name||!record.company_document)throw Error('Informe nome legal e CPF/CNPJ da empresa.');
+ const current=state.data.contract_profiles[0];
+ await request(route('contract_profiles',current?.id),current?'PATCH':'POST',{record});
+ await reload();render();flash('Dados da empresa salvos para os próximos contratos.');
+}
 function render(){
  document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===state.view));
- $('#content').innerHTML=state.view==='home'?dashboard():state.view==='settings'?settings():state.view==='budgets'?budgetList():state.view==='editor'?editor():generic(state.view);
+ $('#content').innerHTML=state.view==='home'?dashboard():state.view==='settings'?settings():state.view==='budgets'?budgetList():state.view==='contracts'?contractList(state.data.contracts,esc,brl,title,state.data.budgets):state.view==='contract-editor'?contractEditor(state.contractDraft,state.contractId,state.data.contract_profiles[0],state.data.budgets,esc,brl,title):state.view==='editor'?editor():generic(state.view);
  if(state.view==='editor')summary();
 }
 async function saveEntity(entity,form){
@@ -387,7 +425,7 @@ async function printBudget(){
  window.print();
 }
 document.addEventListener('submit',async ev=>{
- if(!['login','entityForm','settingsForm','signupForm','recoverForm','passwordForm','cashEntryForm','dashboardMarginForm'].includes(ev.target.id))return;
+ if(!['login','entityForm','settingsForm','signupForm','recoverForm','passwordForm','cashEntryForm','dashboardMarginForm','contractProfileForm'].includes(ev.target.id))return;
  ev.preventDefault();const f=ev.target,button=f.querySelector('button[type=submit],button.primary');
  const originalLabel=button?.textContent;
  if(button){button.disabled=true;if(f.id==='login')button.textContent='Verificando acesso...'}
@@ -413,8 +451,12 @@ document.addEventListener('submit',async ev=>{
   }else if(f.id==='entityForm')await saveEntity(f.dataset.entity,f);
   else if(f.id==='cashEntryForm')await saveCashMovement(f);
   else if(f.id==='dashboardMarginForm')await saveDashboardMargin(f);
+  else if(f.id==='contractProfileForm')await saveContractProfile(f);
   else await saveSettings(f);
  }catch(error){flash(error.message)}finally{if(button){button.disabled=false;button.textContent=originalLabel}}
+});
+document.addEventListener('change',ev=>{
+ if(ev.target.id==='contractStatus'&&state.contractDraft)state.contractDraft.status=ev.target.value;
 });
 document.addEventListener('focusin',ev=>{
  if(ev.target.id==='workerProfession')showProfessionOptions(ev.target);
@@ -427,6 +469,13 @@ document.addEventListener('input',ev=>{
  if(e.id==='workerProfession'){showProfessionOptions(e);return}
  if(e.id==='workerSearch'){updateWorkerChoices();return}
  if(e.id==='dashboardProjectSearch'){state.dashboardSearch=e.value;refreshDashboardProjects();return}
+ if(e.dataset.contract!==undefined){
+  if(!state.contractDraft)return;
+  const key=e.dataset.contract;
+  if(key==='value_reais')state.contractDraft.value_cents=money(e.value);
+  else state.contractDraft[key]=e.value;
+  return;
+ }
  if(e.dataset.discountRange!==undefined||e.dataset.discountNumber!==undefined){
   if(!state.draft)return;
   const val=Number(e.value);
@@ -490,7 +539,7 @@ document.addEventListener('click',async ev=>{
  if(mode){authMode(mode.dataset.authMode);return}
  const tab=ev.target.closest('[data-view]');
  if(tab){
-  state.view=tab.dataset.view;state.edit=null;state.draft=null;
+  state.view=tab.dataset.view;state.edit=null;state.draft=null;state.contractDraft=null;state.contractId=null;
   render();return
  }
  const el=ev.target.closest('[data-action]');if(!el)return;
@@ -506,6 +555,20 @@ document.addEventListener('click',async ev=>{
    await request(route('cash',id),'DELETE');
    await reload();render();flash('Movimentação excluída.');
   }
+  else if(action==='new-contract')startContract();
+  else if(action==='open-contract')startContract(state.data.contracts.find(x=>x.id===id));
+  else if(action==='create-contract-from-budget')startContract(null,state.data.budgets.find(x=>x.id===id));
+  else if(action==='contract-from-selected-budget'){
+   const budget=state.data.budgets.find(x=>x.id===$('#contractFromBudgetSelect')?.value);
+   if(!budget)throw Error('Selecione um orçamento.');
+   startContract(null,budget);
+  }
+  else if(action==='delete-contract'){
+   if(!window.confirm('Excluir este contrato? A operação não pode ser desfeita.'))return;
+   await request(route('contracts',id),'DELETE');await reload();render();flash('Contrato excluído.');
+  }
+  else if(action==='save-contract')await saveContract();
+  else if(action==='print-contract')await printContract();
   else if(action==='new-budget')startBudget();
   else if(action==='add-scope'){
    if(!b||b.scope_items.length>=100)throw Error('Limite de 100 serviços por proposta');
