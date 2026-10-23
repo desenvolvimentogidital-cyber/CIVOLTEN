@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import bootstrap from '../api/bootstrap.mjs';
-import {SUPABASE,EDGE} from '../lib/civolten-security.mjs';
+import {SUPABASE} from '../lib/civolten-security.mjs';
 
 const root='https://civolten.example.test';
 const jwt='A'.repeat(100);
@@ -34,7 +34,7 @@ test('bootstrap exige autenticação antes de consultar qualquer dado financeiro
   const res=await bootstrap.fetch(request());
   assert.equal(res.status,401);
   assert.equal(calls.length,1);
-  assert.ok(calls[0].startsWith(EDGE));
+  assert.ok(calls[0].startsWith(SUPABASE+'/auth/v1/user'));
   assert.equal(res.headers.get('cache-control'),'no-store, private');
  }finally{restore()}
 });
@@ -48,13 +48,13 @@ test('bootstrap exige cookie valido e rejeita requisições cross-site',async()=
  }finally{globalThis.fetch=original}
 });
 
-test('bootstrap verifica admin uma vez e faz sete consultas RLS em paralelo',async()=>{
+test('bootstrap verifica identidade uma vez e faz sete consultas RLS em paralelo',async()=>{
  const calls=[],restCalls=[];
  const restore=mockFetch(async (url,opts={})=>{
   const endpoint=String(url);calls.push(endpoint);
-  if(endpoint.startsWith(EDGE)){
+  if(endpoint.startsWith(SUPABASE+'/auth/v1/user')){
    assert.equal(opts.headers.Authorization,'Bearer '+jwt);
-   return Response.json({authenticated:true});
+   return Response.json({id:'550e8400-e29b-41d4-a716-446655440000'});
   }
   assert.ok(endpoint.startsWith(SUPABASE+'/rest/v1/'));
   const u=new URL(endpoint),table=u.pathname.split('/').pop();
@@ -78,8 +78,8 @@ test('bootstrap verifica admin uma vez e faz sete consultas RLS em paralelo',asy
   const payload=await res.json();
   assert.deepEqual(Object.keys(payload.data).sort(),Object.keys(tables).sort());
   for(const name of Object.keys(tables))assert.deepEqual(payload.data[name],[{name}]);
-  assert.equal(calls.length,8,'uma autorização e sete consultas em paralelo');
-  assert.equal(calls.filter(x=>x.startsWith(EDGE)).length,1);
+  assert.equal(calls.length,8,'uma identidade validada e sete consultas em paralelo');
+  assert.equal(calls.filter(x=>x.startsWith(SUPABASE+'/auth/v1/user')).length,1);
   assert.equal(restCalls.length,7);
  }finally{restore()}
 });
@@ -87,7 +87,7 @@ test('bootstrap verifica admin uma vez e faz sete consultas RLS em paralelo',asy
 test('falhas parciais retornam erro seguro sem expor dados incompletos',async()=>{
  const restore=mockFetch(async url=>{
   const endpoint=String(url);
-  if(endpoint.startsWith(EDGE))return Response.json({authenticated:true});
+  if(endpoint.startsWith(SUPABASE+'/auth/v1/user'))return Response.json({id:'550e8400-e29b-41d4-a716-446655440000'});
   if(endpoint.includes('/cv_budgets?'))return Response.json({error:'erro privado interno'}, {status:500});
   return Response.json([]);
  });
@@ -106,12 +106,12 @@ test('painel não bloqueia pela paleta e a lista de acesso carrega sob demanda',
  assert.match(app,/void loadBrand\(\);/);
  assert.doesNotMatch(app,/await loadBrand\(\)/);
  assert.match(app,/request\('\/api\/bootstrap'\)/);
- const showApp=app.slice(app.indexOf('async function showApp()'),app.indexOf('async function showPending()'));
+ const showApp=app.slice(app.indexOf('async function showApp()'),app.indexOf('function authMode(mode)'));
  assert.match(showApp,/await reload\(\)/);
  assert.doesNotMatch(showApp,/api\/access/);
  assert.match(showApp,/app\.inert=true/);
  assert.match(showApp,/app\.hidden=true;auth\.hidden=false/);
- assert.match(app,/if\(state\.view==='access'\)\{/);
- assert.match(app,/await request\('\/api\/access\?action=list'\)/);
+ assert.doesNotMatch(app,/if\(state\.view==='access'\)/);
+ assert.doesNotMatch(app,/\/api\/access\?action=list/);
  assert.match(app,/Verificando acesso\.\.\./);
 });
