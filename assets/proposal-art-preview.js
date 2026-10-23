@@ -15,8 +15,8 @@ export async function openArtProposalPreview({budget,priceCents,id}={}){
   {title:budget.title||'Prévia de proposta',customer:budget.customer,address:budget.address,
    technical_responsible:budget.technical_responsible,scope_items:budget.scope_items,
    civil_services:budget.civil_services,services:budget.services,electrical_services:budget.electrical_services,
-   days:budget.days,validity_days:budget.validity_days,payment_terms:budget.payment_terms},
-  {priceCents:Number.isSafeInteger(priceCents)&&priceCents>=0?priceCents:0,id});
+   days:budget.days,validity_days:budget.validity_days,payment_terms:budget.payment_terms||'A confirmar'},
+  {priceCents:Number.isSafeInteger(priceCents)&&priceCents>=0?priceCents:0,id,preview:true});
  const images=await Promise.all(proposalArtPaths.map(async path=>{
   const response=await fetch(path,{method:'HEAD',cache:'no-store'});
   if(!response.ok)throw Error('Uma das sete artes da CIVOLTEN não carregou. Atualize a página.');
