@@ -29,6 +29,61 @@ export function insertDictation(original,spoken,start,end,maxLength=-1){
  return {value:result,cursor:(left+lead+content).length};
 }
 
+// Resultados do Web Speech podem trazer vários segmentos cumulativos:
+// um segmento com "Kleber" e o próximo já com "Kleber Nunes".
+// Juntar tudo sem conferir a sobreposição produz "Kleber Kleber Nunes".
+const speechKey=word=>String(word).normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+ .toLocaleLowerCase('pt-BR').replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,'');
+
+// Alguns provedores também repetem fragmentos completos no MESMO segmento.
+// Remove apenas repetições imediatamente adjacentes (uma palavra ou expressão),
+// sem remover ocorrências separadas por conteúdo diferente.
+export function cleanSpeechSegment(value){
+ const words=String(value??'').trim().replace(/\s+/g,' ').split(' ').filter(Boolean);
+ const out=[];
+ for(let i=0;i<words.length;){
+  let repeated=0;
+  const max=Math.min(8,out.length,words.length-i);
+  for(let size=max;size>=1;size--){
+   let same=true;
+   for(let j=0;j<size;j++){
+    const a=speechKey(out[out.length-size+j]),b=speechKey(words[i+j]);
+    if(!a||a!==b){same=false;break}
+   }
+   if(same){repeated=size;break}
+  }
+  if(repeated){i+=repeated;continue}
+  out.push(words[i]);i++;
+ }
+ return out.join(' ');
+}
+
+// Usa cada segmento reconhecido uma única vez, mesmo quando o navegador
+// devolve uma frase parcial e depois sua versão mais completa em outra posição.
+// Mantém correções do reconhecimento ("Kleber" => "Kleber Nunes") e frases longas.
+export function mergeSpeechResults(results){
+ let combined='';
+ if(!results)return combined;
+ for(let i=0;i<results.length;i++){
+  const segment=cleanSpeechSegment(results[i]?.[0]?.transcript);
+  if(!segment)continue;
+  if(!combined){combined=segment;continue}
+  const previous=combined.split(/\s+/),next=segment.split(/\s+/);
+  let overlap=0;
+  for(let size=Math.min(previous.length,next.length);size>0;size--){
+   let matches=true;
+   for(let j=0;j<size;j++){
+    const before=speechKey(previous[previous.length-size+j]),after=speechKey(next[j]);
+    if(!before||before!==after){matches=false;break}
+   }
+   if(matches){overlap=size;break}
+  }
+  if(overlap===previous.length)combined=segment;
+  else if(overlap<next.length)combined+=' '+next.slice(overlap).join(' ');
+ }
+ return combined.trim();
+}
+
 export function dictationErrorMessage(code){
  const messages={
   'not-allowed':'Microfone bloqueado. Autorize o acesso nas configurações do navegador e tente novamente.',
@@ -114,11 +169,7 @@ export function startVoiceFields({root=document,notify=()=>{}}={}){
     active=session;
     recognition.onresult=e=>{
      if(active!==session||!field.isConnected)return;
-     let words='';
-     for(let i=0;i<e.results.length;i++){
-      const result=e.results[i];
-      if(result?.[0]?.transcript)words+=(words?' ':'')+result[0].transcript.trim();
-     }
+     const words=mergeSpeechResults(e.results);
      if(!words.trim())return;
      session.heard=true;
      const next=insertDictation(session.base,words,session.start,session.end,field.maxLength);
