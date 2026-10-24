@@ -36,13 +36,13 @@ test('manifesto é instalável e preserva nome/domínio CIVOLTEN',()=>{
  assert.equal(manifest.name,'CIVOLTEN — Gestão de Obras');
  assert.equal(manifest.prefer_related_applications,false);
  assert.equal(vercel.cleanUrls,true);
- assert.match(html,/rel="manifest" href="\/manifest.json"/);
- assert.match(html,/rel="apple-touch-icon" sizes="192x192" href="\/assets\/civolten-app-logo-192.png"/);
+ assert.match(html,/rel="manifest" href="\/manifest.json\?v=logo-oficial-v2"/);
+ assert.match(html,/rel="apple-touch-icon" sizes="192x192" href="\/assets\/civolten-oficial-v2-192.png"/);
 });
 
 test('ícones instaláveis possuem tamanhos reais de 192 e 512 pixels',()=>{
  for(const size of [192,512]){
-  const file='/assets/civolten-app-logo-'+size+'.png';
+  const file='/assets/civolten-oficial-v2-'+size+'.png';
   const entry=manifest.icons.find(icon=>icon.src===file);
   assert.equal(entry?.sizes,size+'x'+size);
   assert.equal(entry?.type,'image/png');
@@ -52,7 +52,9 @@ test('ícones instaláveis possuem tamanhos reais de 192 e 512 pixels',()=>{
   assert.equal(dimensions.depth,8);
   assert.equal(dimensions.type,6);
  }
- assert.ok(manifest.icons.some(icon=>icon.src==='/assets/civolten-logo.png'));
+ assert.ok(manifest.icons.some(icon=>icon.src==='/assets/civolten-oficial-original.png'));
+ assert.deepEqual(read('assets/civolten-oficial-original.png'),read('assets/civolten-logo.png'));
+ assert.doesNotMatch(html,/href="\/assets\/civolten-app-logo-192.png"/);
 });
 
 
@@ -98,7 +100,7 @@ test('ícones instaláveis são redimensionamentos da logo oficial, não um dese
  assert.equal(original.width,1254);
  assert.equal(original.height,1254);
  for(const size of [192,512]){
-  const scaled=pixelsPNG(read('assets/civolten-app-logo-'+size+'.png'));
+  const scaled=pixelsPNG(read('assets/civolten-oficial-v2-'+size+'.png'));
   assert.equal(scaled.width,size);
   assert.equal(scaled.height,size);
   const coordinates=[[0.10,0.10],[0.25,0.25],[0.5,0.5],[0.65,0.4],[0.72,0.7],[0.89,0.88]];
