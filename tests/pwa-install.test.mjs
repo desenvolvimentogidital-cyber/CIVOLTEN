@@ -63,7 +63,7 @@ test('instalação tem ação visível dentro e fora da conta',()=>{
  assert.match(html,/id="installHelpText"/);
  assert.match(html,/src="\/assets\/install-app.js"/);
  assert.match(script,/beforeinstallprompt/);
- assert.match(script,/deferredInstallPrompt\.prompt\(\)/);
+ assert.match(script,/await prompt\.prompt\(\)/);
  assert.match(script,/event\.preventDefault\(\)/);
  assert.match(script,/\/iPad\|iPhone\|iPod\//);
  assert.match(script,/Adicionar à Tela de Início/);
