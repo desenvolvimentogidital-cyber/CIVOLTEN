@@ -23,7 +23,7 @@ const money=x=>Math.round(Math.max(0,Number(String(x??0).replace(',','.'))||0)*1
 const dec=x=>String(Number(x||0)/100);
 const num=x=>Number(String(x??0).replace(',','.'))||0;
 const total=xs=>xs.reduce((n,x)=>n+Number(x||0),0);
-const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[],cash:[],contracts:[],contract_profiles:[]},accountEmail:'',edit:null,draft:null,draftId:null,contractDraft:null,contractId:null,dashboardSearch:'',dashboardStatus:'todos',budgetStep:0,contractStep:0};
+const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[],cash:[],contracts:[],contract_profiles:[]},accountEmail:'',edit:null,draft:null,draftId:null,contractDraft:null,contractId:null,dashboardSearch:'',dashboardStatus:'todos',budgetStep:0,contractStep:0,budgetSavedSnapshot:null,contractSavedSnapshot:null};
 const sections={home:'Visão geral',budgets:'Orçamentos',contracts:'Contratos',workers:'Funcionários',fixed:'Custos fixos',variable:'Custos variáveis',settings:'Configurações'};
 const fields={
  workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos adicionais (%) — opcional','number'],['days_month','Dias trabalhados previstos no mês','number'],['cost_mode','Forma de custo','select'],['active','Profissional ativo','checkbox']],
@@ -41,6 +41,16 @@ let timer;
 let lastValidationMode='';
 let budgetWizard=null;
 let contractWizard=null;
+function hasUnsavedEditor(){
+ if(state.view==='editor'&&state.draft&&state.budgetSavedSnapshot!==null)
+  return JSON.stringify(state.draft)!==state.budgetSavedSnapshot;
+ if(state.view==='contract-editor'&&state.contractDraft&&state.contractSavedSnapshot!==null)
+  return JSON.stringify(state.contractDraft)!==state.contractSavedSnapshot;
+ return false;
+}
+function confirmLeaveEditor(){
+ return !hasUnsavedEditor()||window.confirm('Você tem alterações não salvas. Deseja sair e perder essas alterações? Escolha Cancelar para continuar e salvar o rascunho.');
+}
 function budgetValidation(forPdf=false){
  lastValidationMode=forPdf?'budget-pdf':'budget-save';
  // Os demais passos ficam recolhidos: revele o campo com erro antes de focar.
@@ -266,6 +276,7 @@ function startBudget(row){
  state.draft=row?structuredClone(row.content):{title:'',customer:'',address:'',services:'',notes:'',days:1,status:'rascunho',staff:[],expenses:[],scope_items:[],manual_price_cents:null,discount_pct:0,pricing:defaultPricing()};
  if(!Array.isArray(state.draft.scope_items))state.draft.scope_items=[];
  if(state.draft.discount_pct==null)state.draft.discount_pct=0;
+ state.budgetSavedSnapshot=JSON.stringify(state.draft);
  state.view='editor';render();
 }
 function editor(){
@@ -389,6 +400,7 @@ function startContract(row=null,budget=null){
  state.contractDraft=row?{...contractDefaults(),...structuredClone(row.content),contract_template_version:row.status==='rascunho'?'2':(row.content?.contract_template_version||'1'),status:row.status,budget_id:row.budget_id,_locked:row.status!=='rascunho'}:
   budget?{...contractFromBudget(budget,contractCompany()),status:'rascunho'}:
   {...contractDefaults(),company:contractCompany(),status:'rascunho',budget_id:null};
+ state.contractSavedSnapshot=JSON.stringify(state.contractDraft);
  state.view='contract-editor';render();
 }
 function reviseContract(row){
@@ -396,6 +408,7 @@ function reviseContract(row){
  state.contractStep=0;
  state.contractId=null;
  state.contractDraft={...contractDefaults(),...structuredClone(row.content),contract_template_version:'2',status:'rascunho',revision_of:row.id,revision_reason:'',_locked:false};
+ state.contractSavedSnapshot=JSON.stringify(state.contractDraft);
  state.view='contract-editor';render();flash('Nova revisão iniciada como rascunho; o contrato original foi preservado.');
 }
 async function saveContract(){
@@ -408,6 +421,7 @@ async function saveContract(){
  const saved=reply.rows?.[0];if(!saved?.id)throw Error('O banco não confirmou o contrato.');
  state.contractId=saved.id;
  state.contractDraft={...contractDefaults(),...structuredClone(saved.content),contract_template_version:saved.content?.contract_template_version||'1',status:saved.status,budget_id:saved.budget_id,_locked:saved.status!=='rascunho'};
+ state.contractSavedSnapshot=JSON.stringify(state.contractDraft);
  await reload();render();flash('Contrato salvo com segurança.');
 }
 async function printContract(){
@@ -479,7 +493,7 @@ async function saveBudget(){
  normalizeScopeItems(b.scope_items||[]);
  const record={title:b.title.trim(),customer:(b.customer||'').trim(),status:b.status||'rascunho',content:b};
  await request(route('budgets',state.draftId),state.draftId?'PATCH':'POST',{record});
- state.draft=null;state.draftId=null;state.view='budgets';await reload();render();flash('Orçamento salvo com análise de custos.');
+ state.draft=null;state.draftId=null;state.budgetSavedSnapshot=null;state.view='budgets';await reload();render();flash('Orçamento salvo com análise de custos.');
 }
 async function printBudget(){
  const b=state.draft;
@@ -634,6 +648,7 @@ document.addEventListener('click',async ev=>{
  if(mode){authMode(mode.dataset.authMode);return}
  const tab=ev.target.closest('[data-view]');
  if(tab){
+  if(tab.dataset.view!==state.view&&!confirmLeaveEditor())return;
   setMobileMenu(false);
   state.view=tab.dataset.view;state.edit=null;state.draft=null;state.contractDraft=null;state.contractId=null;
   render();return
@@ -716,9 +731,10 @@ document.addEventListener('click',async ev=>{
  }catch(error){flash(error.message)}
 });
 async function logout(){
+ if(!confirmLeaveEditor())return;
  try{await request('/api/session','DELETE')}catch{}
  state.accountEmail='';
- state.view='home';state.draft=null;$('#app').hidden=true;$('#auth').hidden=false;authMode('login');$('#login').reset();
+ state.view='home';state.draft=null;state.contractDraft=null;state.budgetSavedSnapshot=null;state.contractSavedSnapshot=null;$('#app').hidden=true;$('#auth').hidden=false;authMode('login');$('#login').reset();
 }
 function setMobileMenu(open){
  const sidebar=document.querySelector('#app .sidebar');
