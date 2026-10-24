@@ -5,6 +5,6 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check assets/app.js && node --check assets/budget-wizard.js && node --check assets/contracts.js && node --check lib/civolten-contract.mjs && node --check assets/voice.js && node --check assets/dashboard.js && node --check lib/civolten-finance.mjs && node --check api/data.mjs && node --check api/session.mjs && node --check api/bootstrap.mjs && node --check lib/civolten-pages.mjs && node --check lib/civolten-calc.mjs && node --check lib/civolten-capacity.mjs && node --check lib/civolten-team.mjs && node --check lib/civolten-security.mjs && npm test"
+    "check": "node --check assets/app.js && node --check assets/budget-wizard.js && node --check assets/contract-wizard.js && node --check assets/contracts.js && node --check lib/civolten-contract.mjs && node --check assets/voice.js && node --check assets/dashboard.js && node --check lib/civolten-finance.mjs && node --check api/data.mjs && node --check api/session.mjs && node --check api/bootstrap.mjs && node --check lib/civolten-pages.mjs && node --check lib/civolten-calc.mjs && node --check lib/civolten-capacity.mjs && node --check lib/civolten-team.mjs && node --check lib/civolten-security.mjs && npm test"
   }
 }
