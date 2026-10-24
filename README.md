@@ -2,7 +2,7 @@
 
 ## Instalar CIVOLTEN como aplicativo no celular (PWA)
 
-A aplicação principal pode ser instalada diretamente do navegador, **sem APK e sem loja de aplicativos**, em `https://civolten.vercel.app`. Este recurso **não envolve o site institucional**. O manifesto `manifest.json` utiliza a **logo oficial do CIVOLTEN**, preservada proporcionalmente nos ícones PNG de 192 e 512 px, `display: standalone`, nome próprio e escopo no mesmo domínio. O instalador é carregado separadamente da lógica de orçamentos e contratos.
+A aplicação principal pode ser instalada diretamente do navegador, **sem APK e sem loja de aplicativos**, em `https://civolten.vercel.app`. Este recurso **não envolve o site institucional**. O manifesto `manifest.json` utiliza a **logo oficial do CIVOLTEN**, preservada proporcionalmente nos ícones oficiais versionados de 192 e 512 px, `display: standalone`, nome próprio e escopo no mesmo domínio. O instalador é carregado separadamente da lógica de orçamentos e contratos.
 
 - **Android (Chrome):** abra o endereço oficial, toque em **Instalar CIVOLTEN no celular** na tela de login ou **Instalar app** no painel, e confirme quando o navegador oferecer a instalação. Se o aviso nativo não estiver disponível, abra o menu **⋮** do Chrome e escolha **Instalar aplicativo** ou **Adicionar à tela inicial**.
 - **iPhone / iPad (Safari):** abra o mesmo endereço no Safari, toque em **Compartilhar** → **Adicionar à Tela de Início** e confirme. O navegador pode não oferecer uma janela de instalação automática, por isso o aplicativo orienta o usuário.
