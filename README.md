@@ -119,9 +119,20 @@ A Visão geral agora tem indicadores do custo mensal da estrutura (despesas fixa
 
 **Limites financeiros:** valores de orçamentos são estimativas e custos fixos são rateados pelo prazo da obra, não saídas de caixa automaticamente pagas. A saúde financeira só pode ser avaliada de forma completa quando os pagamentos e recebimentos reais, obrigações, tributos e extratos forem conciliados. Não contabilize uma proposta aprovada como recebimento sem lançar o pagamento.
 
+## Facilidade de uso no celular e primeiro acesso (23/10/2026)
+
+- **Menu no celular:** toque em **Abrir menu** para ver as áreas do painel; **Sair da conta** fica visível. Ao escolher uma área, o menu fecha.
+- **Primeira utilização:** a Visão geral exibe um guia de três ações: configurar valores da empresa, cadastrar a equipe e criar o primeiro orçamento. O guia não bloqueia nenhum recurso e, após o primeiro orçamento, fica recolhido em **Precisa de ajuda?**.
+- **Orçamento guiado:** somente uma etapa de cada vez aparece no editor. O resumo financeiro continua disponível após as etapas. É possível navegar livremente e salvar rascunhos incompletos.
+- **Validação:** ao salvar ou exportar com problemas, a etapa do campo errado é aberta e o campo recebe foco para correção.
+- **Custos:** a tela Configurações explica dias-equipe faturáveis e margem sobre venda em linguagem simples, sem trocar fórmulas ou valores cadastrados.
+- **PDF:** toque em Exportar Proposta Comercial e, na janela de impressão do celular ou computador, selecione **Salvar como PDF**.
+
+Estas mudanças abrangem apenas o painel privado **CIVOLTEN**, sem alterar o site institucional, autenticação, cálculos, contratos, banco ou modelo de impressão. Após o CI, validar manualmente menu, login, preenchimento, retorno das etapas, campos com erro e impressão em Android.
+
 ## Orçamento simples: equipe selecionável e configuração centralizada
 
-O orçamento agora funciona em **quatro passos**: dados da obra, profissionais, serviços/quantitativos e materiais/despesas opcionais. Na etapa de profissionais, a busca e a lista exibem **todos os funcionários ativos**, agrupados como **Equipe fixa mensal** e **Profissionais por obra**. Basta selecionar e adicionar. Um mesmo profissional não pode ser incluído duas vezes na mesma obra.
+O orçamento agora funciona em **cinco etapas exibidas uma de cada vez**: dados da obra, serviços e quantidades, escolha dos profissionais, materiais/despesas opcionais e condições da proposta. Use **Voltar**, **Continuar** ou os atalhos numerados no topo. O que já foi digitado permanece no rascunho durante a navegação; ao tentar exportar com dados inválidos, o sistema abre a etapa do primeiro erro. Na etapa de profissionais, a busca e a lista exibem **todos os funcionários ativos**, agrupados como **Equipe fixa mensal** e **Profissionais por obra**. Basta selecionar e adicionar. Um mesmo profissional não pode ser incluído duas vezes na mesma obra.
 
 - **Funcionário fixo mensal**: seu salário já faz parte da folha registrada em Custos fixos e rateada no preço da obra. Pode ser selecionado para indicar quem executará o serviço, **sem acrescentar uma segunda diária**. Na lista aparece *Já considerado*.
 - **Profissional contratado por obra**: sua diária, dias da obra e encargos informados no cadastro são utilizados como custo adicional, sem entrar no rateio mensal.
