@@ -38,6 +38,31 @@ export function projectResults(data,search,status,esc,brl){
   }).join('')+'</tbody></table></div>'+
   '<p class="fin-hint">'+selected.length+' orçamento(s) encontrados · valores estimados, não necessariamente recebidos.</p>';
 }
+// Orientação de primeiro acesso sem bloquear quem já usa a plataforma.
+export function quickStartGuide(data){
+ const configDone=data.settings.length>0;
+ const teamDone=data.workers.length>0;
+ const budgetDone=data.budgets.length>0;
+ const steps=[
+  {done:configDone,label:'Defina os valores da empresa',help:'Informe impostos e margem nas configurações.',view:'settings',action:null,button:'Configurar'},
+  {done:teamDone,label:'Cadastre sua equipe',help:'Inclua os profissionais e suas diárias reais.',view:'workers',action:null,button:'Cadastrar equipe'},
+  {done:budgetDone,label:'Monte o primeiro orçamento',help:'Descreva a obra; o preço será calculado com seus custos.',view:null,action:'new-budget',button:'Criar orçamento'}
+ ];
+ const lines=steps.map((item,index)=>
+  '<li class="'+(item.done?'is-complete':'')+'"><span class="quick-start-check" aria-hidden="true">'+
+  (item.done?'✓':index+1)+'</span><div class="quick-start-copy"><strong>'+item.label+'</strong><small>'+item.help+'</small></div>'+
+  (item.done?'<span class="caption">Concluído</span>':'<button type="button" class="subtle" '+
+   (item.view?'data-view="'+item.view+'"':'data-action="'+item.action+'"')+'>'+item.button+'</button>')+'</li>'
+ ).join('');
+ const content='<div class="quick-start-heading"><h2 id="quickStartTitle">Comece em 3 passos</h2>'+
+  '<p>Não precisa saber fazer contas ou entender termos técnicos. Os campos podem ser corrigidos depois.</p></div>'+
+  '<ol class="quick-start-list">'+lines+'</ol>'+
+  '<p class="hint">Tem aluguel, internet ou outras despesas mensais? Cadastre-as em Custos fixos. Não invente valores que a empresa não paga.</p>';
+ return budgetDone?
+  '<details class="quick-start-help"><summary>Precisa de ajuda? Relembre os primeiros passos</summary>'+content+'</details>':
+  '<section class="card quick-start" aria-labelledby="quickStartTitle">'+content+'</section>';
+}
+
 export function financialDashboard({data,search,status,esc,brl,title,companyRates,notice}){
  const cfg=data.settings[0],rates=companyRates(data.fixed,cfg||{},data.workers);
  const all=financeOverview(data.budgets,data.cash),months=financeMonths(data.budgets,data.cash);
@@ -60,7 +85,7 @@ export function financialDashboard({data,search,status,esc,brl,title,companyRate
  const card=(label,value,sub,klass='')=>'<article class="fin-kpi '+klass+'"><small>'+label+'</small><strong>'+value+'</strong><span>'+sub+'</span></article>';
  return title('Visão geral','Indicadores financeiros da CIVOLTEN com análise de orçamentos e movimentações reais de caixa.',
  '<button type="button" class="primary" data-action="new-budget">+ Novo orçamento</button>')+
- settingsWarning+duplicateWarning+
+ quickStartGuide(data)+settingsWarning+duplicateWarning+
  '<div class="fin-section-head"><h2>Visão financeira da empresa</h2><span>Custos mensais e projeções</span></div>'+
  '<div class="fin-kpis">'+
  card('Custo mensal da empresa',brl(rates.monthly_cents),'Despesas fixas '+brl(rates.fixed_expenses_cents)+' + folha '+brl(rates.payroll_cents),'fin-kpi-gold')+
