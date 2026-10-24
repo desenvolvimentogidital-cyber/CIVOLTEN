@@ -649,7 +649,6 @@ document.addEventListener('click',async ev=>{
  const tab=ev.target.closest('[data-view]');
  if(tab){
   if(tab.dataset.view!==state.view&&!confirmLeaveEditor())return;
-  setMobileMenu(false);
   state.view=tab.dataset.view;state.edit=null;state.draft=null;state.contractDraft=null;state.contractId=null;
   render();return
  }
@@ -736,17 +735,6 @@ async function logout(){
  state.accountEmail='';
  state.view='home';state.draft=null;state.contractDraft=null;state.budgetSavedSnapshot=null;state.contractSavedSnapshot=null;$('#app').hidden=true;$('#auth').hidden=false;authMode('login');$('#login').reset();
 }
-function setMobileMenu(open){
- const sidebar=document.querySelector('#app .sidebar');
- const toggle=$('#mobileMenuToggle');
- if(!sidebar||!toggle)return;
- sidebar.classList.toggle('mobile-menu-open',Boolean(open));
- toggle.setAttribute('aria-expanded',String(Boolean(open)));
- toggle.textContent=open?'✕ Fechar menu':'☰ Abrir menu';
-}
-$('#mobileMenuToggle').addEventListener('click',()=>{
- setMobileMenu(!document.querySelector('#app .sidebar')?.classList.contains('mobile-menu-open'));
-});
 $('#logout').addEventListener('click',logout);
 // Microfones de ditado também acompanham campos criados dinamicamente em cada tela.
 // O texto entra pelo mesmo evento 'input' utilizado nos orçamentos e cadastros.
