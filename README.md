@@ -119,6 +119,10 @@ A Visão geral agora tem indicadores do custo mensal da estrutura (despesas fixa
 
 **Limites financeiros:** valores de orçamentos são estimativas e custos fixos são rateados pelo prazo da obra, não saídas de caixa automaticamente pagas. A saúde financeira só pode ser avaliada de forma completa quando os pagamentos e recebimentos reais, obrigações, tributos e extratos forem conciliados. Não contabilize uma proposta aprovada como recebimento sem lançar o pagamento.
 
+## Proteção contra perda de edição
+
+Ao trocar de área ou sair da conta com modificações não salvas em orçamentos ou contratos, o painel avisa claramente que o conteúdo será perdido. **Cancelar** mantém os campos na tela. Um rascunho já salvo não apresenta alerta quando não houve novas mudanças. Esse controle é local à sessão: não grava orçamentos ou contratos em `localStorage` e não altera a API.
+
 ## Facilidade de uso no celular e primeiro acesso (23/10/2026)
 
 - **Menu no celular:** toque em **Abrir menu** para ver as áreas do painel; **Sair da conta** fica visível. Ao escolher uma área, o menu fecha.
