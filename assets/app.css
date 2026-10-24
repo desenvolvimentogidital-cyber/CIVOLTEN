@@ -925,3 +925,51 @@ input.cv-field-error,textarea.cv-field-error,select.cv-field-error{
  #content .quick-start-list li{align-items:flex-start}
  #content .quick-start-list button{width:100%}
 }
+
+
+/* CIVOLTEN: edição de contratos em quatro etapas sem mudar documentos. */
+#content .contract-editor-card[hidden]{display:none!important}
+#content .contract-wizard-head{
+ background:linear-gradient(110deg,#081e33,#153952);color:#fff;
+ padding:16px 19px;border-radius:15px;margin-bottom:12px;
+ border:1px solid rgba(217,167,68,.45);
+}
+#content .contract-wizard-head strong{display:block;font-size:18px}
+#content .contract-wizard-head small{display:block;color:#d3e3f0;margin-top:5px}
+#content .contract-jump-nav{
+ display:flex;align-items:stretch;gap:8px;overflow-x:auto;
+ margin-bottom:18px;padding:2px 0 8px;
+ -webkit-overflow-scrolling:touch;
+}
+#content .contract-jump-nav a{
+ display:flex;flex:1 0 auto;justify-content:center;align-items:center;gap:8px;
+ min-height:44px;padding:10px 13px;border:1px solid var(--border);
+ border-radius:12px;background:var(--bg);color:var(--ink);
+ text-decoration:none;font-weight:750;font-size:13px;
+}
+#content .contract-jump-nav a span{
+ display:grid;place-items:center;width:27px;height:27px;flex:0 0 27px;
+ background:#0c2946;color:#f3d188;border-radius:8px;font-size:12px;
+}
+#content .contract-jump-nav a[aria-current="step"]{
+ background:#102f4d;color:#fff;border-color:#d8a849;
+}
+#content .contract-jump-nav a[aria-current="step"] span{background:#e1b655;color:#122438}
+#content .contract-step-actions{
+ display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;
+ border-top:1px solid var(--border);gap:12px;margin-top:24px;padding-top:16px;
+}
+#content .contract-step-count{font-size:13px;color:var(--muted);font-weight:700;margin-right:auto}
+#content .contract-step-actions button{min-height:44px;padding:11px 17px}
+@media(max-width:680px){
+ #content .contract-jump-nav{gap:7px;scroll-snap-type:x proximity}
+ #content .contract-jump-nav a{flex:0 0 auto;scroll-snap-align:start;padding:9px 11px;font-size:12px}
+ #content .contract-wizard-head{padding:13px 15px}
+ #content .contract-step-actions{flex-direction:column;align-items:stretch;gap:9px}
+ #content .contract-step-count{width:100%}
+ #content .contract-step-actions button{width:100%;min-height:46px}
+}
+@media print{
+ #content .contract-wizard-head,#content .contract-jump-nav,
+ #content .contract-step-actions{display:none!important}
+}

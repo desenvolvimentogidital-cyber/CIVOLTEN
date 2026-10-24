@@ -182,6 +182,12 @@ A aba **Contratos** permite criar, editar, salvar, acompanhar e imprimir contrat
 
 **Revisão jurídica:** trata-se de minuta genérica de prestação de serviços. O texto deve ser revisado para o serviço concreto, natureza da contratação, normas aplicáveis, responsáveis técnicos, tributação, materiais, garantia, rescisão e forma de assinatura. O sistema não substitui advogado, contador ou responsáveis habilitados.
 
+## Preenchimento guiado de contratos (23/10/2026)
+
+O editor privado mostra **quatro etapas**, uma de cada vez: **Participantes**, **Serviço e prazo**, **Pagamento** e **Cláusulas**. O usuário pode tocar nos números das etapas, voltar ou continuar, sem perder os campos ainda não salvos durante a navegação. A última etapa permite ver o resumo e salvar rascunho ou emitir conforme as validações existentes. Campos inválidos localizados em outra etapa abrem a tela correta para correção; detalhes recolhidos são expandidos se contiverem erros.
+
+Nenhuma cláusula foi excluída, nem mudaram as regras de preço, validação jurídica, revisão de versões, autenticação, PDF ou banco de dados. Emissão e impressão continuam exigindo identificação das partes, endereços, escopo, datas, preço, condições e dados da empresa. Contratos emitidos permanecem protegidos; “assinado” continua sendo marcação manual e não assinatura eletrônica. O site institucional não participa desta mudança.
+
 ## Melhorias de segurança contratual (23/10/2026)
 
 - **Antes do primeiro contrato:** em Configurações → Dados para contratos, cadastre o nome legal e um CPF/CNPJ válido. O validador aceita CNPJ numérico e CNPJ alfanumérico vigente a partir de 2026.

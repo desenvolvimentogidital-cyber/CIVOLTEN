@@ -67,8 +67,14 @@ export function contractEditor(c,id,profile,budgets,esc,brl,title){
  'Preencha as informações da contratação. A versão completa inclui cláusulas de construção civil e elétrica, todas revisáveis antes da emissão.',
  '<button class="subtle" data-view="contracts">← Todos os contratos</button>')+
  (locked?'<div class="warning">Documento '+esc(c.status)+' protegido contra edição. Crie uma revisão para alterar cláusulas ou valores, preservando a versão anterior.</div>':'')+
+ '<div class="contract-wizard-head"><div><strong>Contrato em 4 etapas</strong><small>Preencha com calma. Você pode salvar como rascunho antes de emitir.</small></div></div>'+
+ '<nav class="contract-jump-nav" aria-label="Etapas do contrato">'+
+ '<a href="#contract-step-parties"><span>1</span> Participantes</a>'+
+ '<a href="#contract-step-work"><span>2</span> Serviço e prazo</a>'+
+ '<a href="#contract-step-payment"><span>3</span> Pagamento</a>'+
+ '<a href="#contract-step-terms"><span>4</span> Cláusulas</a></nav>'+
  '<div class="contract-editor"><div class="stack">'+
- '<section class="card contract-editor-card"><div class="budget-step-title"><span class="budget-step-number">1</span><div><h2>Tipo e participantes</h2>'+
+ '<section id="contract-step-parties" class="card contract-editor-card"><div class="budget-step-title"><span class="budget-step-number">1</span><div><h2>Tipo e participantes</h2>'+
  '<p>Selecione se a CIVOLTEN vai executar ou contratar o serviço.</p></div></div>'+
  '<div class="contract-form-grid">'+
  editorEntry('role','Papel da sua empresa',c.role,{type:'select',items:[['prestadora','CIVOLTEN presta o serviço'],['contratante','CIVOLTEN contrata o serviço']]})+
@@ -79,21 +85,21 @@ export function contractEditor(c,id,profile,budgets,esc,brl,title){
  editorEntry('counterparty_representative','Representante (se empresa)',c.counterparty_representative)+
  editorEntry('counterparty_contact','Telefone / e-mail',c.counterparty_contact)+
  '</div></section>'+
- '<section class="card contract-editor-card"><div class="budget-step-title"><span class="budget-step-number">2</span><div><h2>Serviço, local e prazo</h2>'+
+ '<section id="contract-step-work" class="card contract-editor-card"><div class="budget-step-title"><span class="budget-step-number">2</span><div><h2>Serviço, local e prazo</h2>'+
  '<p>Descreva exatamente o que será realizado.</p></div></div>'+
  '<div class="contract-form-grid">'+editorEntry('scope','Descrição do serviço e escopo',c.scope,{type:'textarea',wide:true,max:12000,rows:6,required:true})+
  editorEntry('location','Endereço / local da execução',c.location,{required:true,wide:true,max:500})+
  editorEntry('start_on','Início previsto',c.start_on,{type:'date',required:true})+
  editorEntry('end_on','Término previsto',c.end_on,{type:'date',required:true})+
  '</div></section>'+
- '<section class="card contract-editor-card"><div class="budget-step-title"><span class="budget-step-number">3</span><div><h2>Valor e pagamento</h2>'+
+ '<section id="contract-step-payment" class="card contract-editor-card"><div class="budget-step-title"><span class="budget-step-number">3</span><div><h2>Valor e pagamento</h2>'+
  '<p>Informe o valor global e como o pagamento será realizado.</p></div></div>'+
  '<div class="contract-form-grid">'+
  editorEntry('value_reais','Valor total do contrato (R$)',(c.value_cents/100).toFixed(2),{type:'number',required:true})+
  editorEntry('payment_terms','Condições gerais de pagamento',c.payment_terms,{type:'textarea',wide:true,rows:4,required:true,max:2000})+
  editorEntry('payment_schedule','Parcelas, valores, vencimentos ou medições',c.payment_schedule,{type:'textarea',wide:true,rows:4,required:true,max:2000})+
  '</div></section>'+
- '<section class="card contract-editor-card"><div class="budget-step-title"><span class="budget-step-number">4</span><div><h2>Revisão das cláusulas</h2><p>O modelo vem preenchido. Abra para alterar quando necessário.</p></div></div>'+
+ '<section id="contract-step-terms" class="card contract-editor-card"><div class="budget-step-title"><span class="budget-step-number">4</span><div><h2>Revisão das cláusulas</h2><p>O modelo vem preenchido. Abra para alterar quando necessário.</p></div></div>'+
  '<details class="contract-advanced"><summary>Editar materiais, atrasos, aceite, responsável técnico, rescisão e garantias</summary>'+
  '<p class="hint">Revise cada cláusula e adapte às condições reais. As garantias e responsabilidades legais não podem ser excluídas pelo texto contratual.</p>'+
  '<div class="contract-form-grid">'+editTerms.map(([key,label])=>editorEntry(key,label,c[key]??standard[key],{type:'textarea',wide:true,max:4000,rows:key==='special_terms'?4:3})).join('')+'</div></details>'+
@@ -117,7 +123,7 @@ export function contractEditor(c,id,profile,budgets,esc,brl,title){
  (budgetId?'<p class="hint">Vinculado ao orçamento '+esc(budgets.find(x=>x.id===budgetId)?.title||'selecionado')+'</p>':'')+
  '<div class="buttons">'+(locked&&c.status!=='emitido'?'':'<button type="button" class="primary" data-action="save-contract">'+(locked?'Atualizar situação':'Salvar contrato')+'</button>')+(locked?'<button type="button" class="secondary" data-action="revise-open-contract">Criar nova revisão</button>':'')+
  '<button type="button" class="secondary" data-action="print-contract">Gerar contrato / salvar em PDF</button></div>'+
- '<p class="hint">Revise CPF/CNPJ, endereços, escopo, unidades, fornecimento, parcelas, licenças e condições específicas. A marcação “Assinado” não equivale a assinatura eletrônica. Recomenda-se revisão jurídica antes da assinatura.</p></aside></div>';
+ '<p class="hint">Para criar o arquivo PDF, toque em Gerar contrato e selecione Salvar como PDF na janela de impressão. Revise os documentos das partes, datas, escopo, pagamentos e obrigações com apoio jurídico antes da assinatura. Marcar “Assinado” não gera assinatura eletrônica.</p></aside></div>';
 }
 export function contractProfilePanel(profile,esc){
  const p=profile||defaultCompanyProfile();

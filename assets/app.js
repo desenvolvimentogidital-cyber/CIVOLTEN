@@ -2,6 +2,7 @@ import {calculateBudget} from '/lib/civolten-calc.mjs';
 import {companyRates,payrollSummary} from '/lib/civolten-capacity.mjs';
 import {startVoiceFields} from '/assets/voice.js';
 import {mountBudgetWizard} from '/assets/budget-wizard.js';
+import {mountContractWizard} from '/assets/contract-wizard.js';
 import {createBudgetStaff,staffAlreadyAdded} from '/lib/civolten-team.mjs';
 import {financialDashboard,projectResults} from '/assets/dashboard.js';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
@@ -22,7 +23,7 @@ const money=x=>Math.round(Math.max(0,Number(String(x??0).replace(',','.'))||0)*1
 const dec=x=>String(Number(x||0)/100);
 const num=x=>Number(String(x??0).replace(',','.'))||0;
 const total=xs=>xs.reduce((n,x)=>n+Number(x||0),0);
-const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[],cash:[],contracts:[],contract_profiles:[]},accountEmail:'',edit:null,draft:null,draftId:null,contractDraft:null,contractId:null,dashboardSearch:'',dashboardStatus:'todos',budgetStep:0};
+const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[],cash:[],contracts:[],contract_profiles:[]},accountEmail:'',edit:null,draft:null,draftId:null,contractDraft:null,contractId:null,dashboardSearch:'',dashboardStatus:'todos',budgetStep:0,contractStep:0};
 const sections={home:'Visão geral',budgets:'Orçamentos',contracts:'Contratos',workers:'Funcionários',fixed:'Custos fixos',variable:'Custos variáveis',settings:'Configurações'};
 const fields={
  workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos adicionais (%) — opcional','number'],['days_month','Dias trabalhados previstos no mês','number'],['cost_mode','Forma de custo','select'],['active','Profissional ativo','checkbox']],
@@ -39,6 +40,7 @@ const route=(entity,id)=>'/api/data?entity='+entity+(id?'&id='+encodeURIComponen
 let timer;
 let lastValidationMode='';
 let budgetWizard=null;
+let contractWizard=null;
 function budgetValidation(forPdf=false){
  lastValidationMode=forPdf?'budget-pdf':'budget-save';
  // Os demais passos ficam recolhidos: revele o campo com erro antes de focar.
@@ -49,7 +51,10 @@ function budgetValidation(forPdf=false){
 }
 function contractValidation(forExport=false){
  lastValidationMode=forExport?'contract-pdf':'contract-save';
- return validateArea(document.querySelector('.contract-editor'),{issues:contractIssues(state.contractDraft,{forExport}),checkRequired:false});
+ const valid=validateArea(document.querySelector('.contract-editor'),
+  {issues:contractIssues(state.contractDraft,{forExport}),checkRequired:false,focus:false});
+ if(!valid)contractWizard?.focusFirstError();
+ return valid;
 }
 function flash(message){const el=$('#flash');el.textContent=message;el.hidden=false;clearTimeout(timer);timer=setTimeout(()=>el.hidden=true,4500)}
 async function loadBrand(){
@@ -379,6 +384,7 @@ function summary(){
 }
 function contractCompany(){return {...defaultContractCompany(),...(state.data.contract_profiles[0]||{})}}
 function startContract(row=null,budget=null){
+ state.contractStep=0;
  state.contractId=row?.id||null;
  state.contractDraft=row?{...contractDefaults(),...structuredClone(row.content),contract_template_version:row.status==='rascunho'?'2':(row.content?.contract_template_version||'1'),status:row.status,budget_id:row.budget_id,_locked:row.status!=='rascunho'}:
   budget?{...contractFromBudget(budget,contractCompany()),status:'rascunho'}:
@@ -387,6 +393,7 @@ function startContract(row=null,budget=null){
 }
 function reviseContract(row){
  if(!row)throw Error('Contrato original não encontrado.');
+ state.contractStep=0;
  state.contractId=null;
  state.contractDraft={...contractDefaults(),...structuredClone(row.content),contract_template_version:'2',status:'rascunho',revision_of:row.id,revision_reason:'',_locked:false};
  state.view='contract-editor';render();flash('Nova revisão iniciada como rascunho; o contrato original foi preservado.');
@@ -427,6 +434,9 @@ function render(){
  attachFormValidation();
  budgetWizard=state.view==='editor'?mountBudgetWizard($('#content'),{
   step:state.budgetStep,onStep:index=>{state.budgetStep=index}
+ }):null;
+ contractWizard=state.view==='contract-editor'?mountContractWizard($('#content'),{
+  step:state.contractStep,onStep:index=>{state.contractStep=index}
  }):null;
  if(state.view==='editor')summary();
 }
