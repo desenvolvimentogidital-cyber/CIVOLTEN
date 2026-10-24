@@ -963,3 +963,45 @@ input.cv-field-error,textarea.cv-field-error,select.cv-field-error{
  #content .contract-wizard-head,#content .contract-jump-nav,
  #content .contract-step-actions{display:none!important}
 }
+
+
+/* Instalação opcional do aplicativo CIVOLTEN. Menu clássico preservado. */
+.install-app-btn{
+ display:inline-flex;align-items:center;justify-content:center;gap:6px;
+ min-height:40px;padding:8px 13px;border:1px solid #d4a640;
+ border-radius:10px;background:#e0b64d;color:#122842;
+ font-size:12px;font-weight:800;white-space:nowrap;
+}
+.install-app-btn:hover{background:#f0c767}
+.install-app-btn:focus-visible,[data-close-install]:focus-visible{
+ outline:3px solid #f0c767;outline-offset:3px;
+}
+.install-app-entry{
+ margin:16px 0;padding:13px;border:1px solid rgba(223,182,76,.5);
+ border-radius:12px;background:rgba(6,20,36,.27);
+}
+.install-app-entry .install-app-btn{max-width:100%;white-space:normal}
+.install-app-entry p{margin:7px 0 0;font-size:12px;line-height:1.5;color:#e1eaf4}
+.header-actions .install-header{min-height:36px;font-size:12px}
+#installHelp{
+ max-width:min(470px,calc(100% - 26px));padding:24px;
+ border:1px solid #e0b64d;border-radius:17px;background:#fff;
+ color:#122842;box-shadow:0 18px 60px #0005;
+}
+#installHelp::backdrop{background:rgba(0,13,27,.72)}
+#installHelp h2{font-size:22px}
+#installHelp p{line-height:1.6}
+#installHelp .primary{margin-top:8px}
+@media(max-width:520px){
+ .header-actions .install-header{
+  font-size:11px;min-height:36px;padding:7px 8px;
+ }
+ .install-app-entry{padding:11px}
+ #installHelp{padding:19px}
+}
+@media all and (display-mode:standalone){
+ [data-install-app],.install-app-entry{display:none!important}
+}
+@media print{
+ [data-install-app],.install-app-entry,#installHelp{display:none!important}
+}

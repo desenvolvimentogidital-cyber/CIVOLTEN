@@ -2,8 +2,12 @@
 <html lang="pt-BR">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#08182b">
+<meta name="application-name" content="CIVOLTEN">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="CIVOLTEN">
+<link rel="manifest" href="/manifest.json"><link rel="apple-touch-icon" href="/assets/civolten-logo.png">
 <title>CIVOLTEN — Orçamentos por custos reais</title><link rel="icon" type="image/png" href="/assets/civolten-logo.png">
-<script src="/assets/theme.js"></script><link rel="stylesheet" href="/assets/app.css"><link rel="stylesheet" href="/assets/proposal-print.css" media="print"><script type="module" src="/assets/app.js"></script></head>
+<script src="/assets/theme.js"></script><script type="module" src="/assets/install-app.js"></script><link rel="stylesheet" href="/assets/app.css"><link rel="stylesheet" href="/assets/proposal-print.css" media="print"><script type="module" src="/assets/app.js"></script></head>
 <body>
 <section id="auth" class="auth-wrap"><button type="button" class="theme-toggle theme-toggle-auth" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false"><span class="theme-icon" aria-hidden="true">☾</span><span class="theme-label">Modo escuro</span></button><div class="auth-card" id="loginCard">
  <div class="auth-main">
@@ -27,6 +31,7 @@
  <label>Repita a nova senha<input name="confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
  <button class="primary" type="submit">Salvar nova senha</button></form>
  <p id="authNotice" class="hint" role="status" aria-live="polite"></p>
+ <div class="install-app-entry"><button type="button" class="install-app-btn" data-install-app>↧ Instalar CIVOLTEN no celular</button><p>Use como aplicativo na tela inicial. Precisa de internet para proteger seus dados.</p></div>
  <p class="hint">Área privada: seus custos e lucro não são compartilhados com outros usuários nem com clientes.</p>
  </div>
  <section class="auth-overview" id="authFeatures" aria-labelledby="authFeaturesTitle">
@@ -57,8 +62,14 @@
  <button data-view="settings" class="nav">⚙ Configurações</button></nav>
  <button id="logout" class="logout">Sair da conta ↗</button>
  </aside>
- <div class="workspace"><header><strong>Painel interno</strong><div class="header-actions"><span class="pill">● Privado</span><button type="button" class="theme-toggle" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false"><span class="theme-icon" aria-hidden="true">☾</span><span class="theme-label">Modo escuro</span></button></div></header>
+ <div class="workspace"><header><strong>Painel interno</strong><div class="header-actions"><span class="pill">● Privado</span><button type="button" class="install-app-btn install-header" data-install-app>↧ Instalar app</button><button type="button" class="theme-toggle" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false"><span class="theme-icon" aria-hidden="true">☾</span><span class="theme-label">Modo escuro</span></button></div></header>
  <main id="content" tabindex="-1"></main></div>
 </div>
 <img id="proposalHeaderArt" hidden src="/assets/civolten-proposal-header.png" alt="" aria-hidden="true"><div id="printArea"></div><div id="flash" role="status" aria-live="polite" hidden></div>
+<dialog id="installHelp" aria-labelledby="installHelpTitle">
+ <h2 id="installHelpTitle">Instalar CIVOLTEN</h2>
+ <p id="installHelpText">No navegador do celular, escolha a opção de instalação na tela inicial.</p>
+ <p class="hint">Não é necessário baixar um arquivo APK. O aplicativo se conecta ao CIVOLTEN com o mesmo login e proteção.</p>
+ <button type="button" class="primary" data-close-install>Entendi</button>
+</dialog>
 </body></html>
