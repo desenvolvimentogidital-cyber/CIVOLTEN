@@ -1,6 +1,7 @@
 import {calculateBudget} from '/lib/civolten-calc.mjs';
 import {companyRates,payrollSummary} from '/lib/civolten-capacity.mjs';
 import {startVoiceFields} from '/assets/voice.js';
+import {mountBudgetWizard} from '/assets/budget-wizard.js';
 import {createBudgetStaff,staffAlreadyAdded} from '/lib/civolten-team.mjs';
 import {financialDashboard,projectResults} from '/assets/dashboard.js';
 import {buildProposalHtml,normalizeScopeItems} from '/lib/civolten-proposal.mjs';
@@ -21,7 +22,7 @@ const money=x=>Math.round(Math.max(0,Number(String(x??0).replace(',','.'))||0)*1
 const dec=x=>String(Number(x||0)/100);
 const num=x=>Number(String(x??0).replace(',','.'))||0;
 const total=xs=>xs.reduce((n,x)=>n+Number(x||0),0);
-const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[],cash:[],contracts:[],contract_profiles:[]},accountEmail:'',edit:null,draft:null,draftId:null,contractDraft:null,contractId:null,dashboardSearch:'',dashboardStatus:'todos'};
+const state={view:'home',data:{settings:[],workers:[],professions:[],fixed:[],variable:[],budgets:[],cash:[],contracts:[],contract_profiles:[]},accountEmail:'',edit:null,draft:null,draftId:null,contractDraft:null,contractId:null,dashboardSearch:'',dashboardStatus:'todos',budgetStep:0};
 const sections={home:'Visão geral',budgets:'Orçamentos',contracts:'Contratos',workers:'Funcionários',fixed:'Custos fixos',variable:'Custos variáveis',settings:'Configurações'};
 const fields={
  workers:[['name','Nome completo','text'],['profession','Profissão / função','text'],['daily_cents','Valor da diária (R$)','money'],['charges_pct','Encargos adicionais (%) — opcional','number'],['days_month','Dias trabalhados previstos no mês','number'],['cost_mode','Forma de custo','select'],['active','Profissional ativo','checkbox']],
@@ -37,9 +38,14 @@ async function request(path,method='GET',record){
 const route=(entity,id)=>'/api/data?entity='+entity+(id?'&id='+encodeURIComponent(id):'');
 let timer;
 let lastValidationMode='';
+let budgetWizard=null;
 function budgetValidation(forPdf=false){
  lastValidationMode=forPdf?'budget-pdf':'budget-save';
- return validateArea(document.querySelector('.budget-simple-editor'),{issues:budgetIssues(state.draft,{forPdf}),checkRequired:false});
+ // Os demais passos ficam recolhidos: revele o campo com erro antes de focar.
+ const valid=validateArea(document.querySelector('.budget-simple-editor'),
+  {issues:budgetIssues(state.draft,{forPdf}),checkRequired:false,focus:false});
+ if(!valid)budgetWizard?.focusFirstError();
+ return valid;
 }
 function contractValidation(forExport=false){
  lastValidationMode=forExport?'contract-pdf':'contract-save';
@@ -222,7 +228,7 @@ function settings(){
  '<label>Horas de trabalho por dia<input name="hours_day" type="number" min=".25" max="24" step=".25" value="'+esc(c.hours_day??8)+'" required></label>'+
  '<label>Impostos estimados sobre venda (%)<input name="tax_pct" type="number" min="0" max="99" step=".01" value="'+esc(c.tax_pct)+'" required></label>'+
  '<label>Margem de lucro desejada sobre venda (%)<input name="margin_pct" type="number" min="0" max="99" step=".01" value="'+esc(c.margin_pct)+'" required></label></div>'+
- '<p class="hint">Os custos fixos do mês são divididos pelos dias-equipe faturáveis para obter o custo/dia, e depois pelas horas/dia para obter o custo/hora. 22 dias e 8 horas são valores iniciais editáveis. Se houver várias equipes simultâneas, informe a capacidade faturável total. Impostos e margem são adicionados na formação do preço de venda; confirme a tributação com seu contador.</p>'+
+ '<p class="hint"><strong>Entenda os campos:</strong> dias úteis são os dias de trabalho no calendário. Dias-equipe faturáveis representam os dias que todas as equipes, somadas, podem trabalhar em serviços pagos no mês. Ex.: duas equipes com 20 dias cada = 40 dias-equipe. Margem é o lucro desejado como porcentagem do preço cobrado, não do custo. Impostos são uma estimativa: confirme o valor correto com seu contador.</p>'+ '<p class="hint">22 dias e 8 horas são apenas exemplos editáveis. Ajuste os números à sua operação antes de usar o preço sugerido.</p>'+
  '<div class="buttons"><button class="primary">Salvar parâmetros</button></div></form></section>'+
  '<section class="card budget-settings-overview"><h2>Custos aplicados automaticamente nos novos orçamentos</h2>'+
  '<div class="financial-rate-grid"><div><small>Despesas fixas da empresa</small><strong>'+brl(rates.fixed_expenses_cents)+'</strong></div>'+
@@ -250,6 +256,7 @@ function defaultPricing(){
   fixed_monthly_cents:rates.monthly_cents,fixed_expenses_cents:rates.fixed_expenses_cents,payroll_cents:rates.payroll_cents};
 }
 function startBudget(row){
+ state.budgetStep=0;
  state.draftId=row?.id||null;
  state.draft=row?structuredClone(row.content):{title:'',customer:'',address:'',services:'',notes:'',days:1,status:'rascunho',staff:[],expenses:[],scope_items:[],manual_price_cents:null,discount_pct:0,pricing:defaultPricing()};
  if(!Array.isArray(state.draft.scope_items))state.draft.scope_items=[];
@@ -342,7 +349,7 @@ function editor(){
  '<label>Desconto (%)<input type="number" min="0" max="100" step="0.5" data-discount-number value="'+esc(b.discount_pct??0)+'"></label></div></div>'+
  '<div id="budgetSummary" role="status" aria-live="polite" aria-atomic="true"></div><div class="buttons"><button class="primary" data-action="save-budget">Salvar orçamento</button>'+
  '<button class="subtle" data-action="print-budget">Exportar Proposta Comercial (PDF)</button></div>'+
- '<p class="hint">O PDF contém somente o escopo, prazos e preço global. Custos, impostos, diárias e lucro continuam sigilosos.</p></aside></div>';
+ '<p class="hint">Para baixar o PDF: toque em Exportar, abra o menu de impressão e escolha Salvar como PDF. Depois, compartilhe o arquivo pelo WhatsApp ou e-mail. Os valores internos permanecem sigilosos.</p></aside></div>';
 }
 function summary(){
  const el=$('#budgetSummary');if(!el||!state.draft)return;
@@ -418,6 +425,9 @@ function render(){
  lastValidationMode='';
  $('#content').innerHTML=state.view==='home'?dashboard():state.view==='settings'?settings():state.view==='budgets'?budgetList():state.view==='contracts'?contractList(state.data.contracts,esc,brl,title,state.data.budgets):state.view==='contract-editor'?contractEditor(state.contractDraft,state.contractId,state.data.contract_profiles[0],state.data.budgets,esc,brl,title):state.view==='editor'?editor():generic(state.view);
  attachFormValidation();
+ budgetWizard=state.view==='editor'?mountBudgetWizard($('#content'),{
+  step:state.budgetStep,onStep:index=>{state.budgetStep=index}
+ }):null;
  if(state.view==='editor')summary();
 }
 async function saveEntity(entity,form){
@@ -466,7 +476,8 @@ async function printBudget(){
  if(!budgetValidation(true))return;
  const r=calculateBudget(b);
  if(!(r.price_cents>0)){
-  validateArea(document.querySelector('.budget-simple-editor'),{checkRequired:false,issues:[{selector:'[data-draft="manual_price"]',message:'A proposta precisa ter preço final acima de R$ 0,00. Revise os custos ou informe um preço manual.'}]});
+  validateArea(document.querySelector('.budget-simple-editor'),{checkRequired:false,focus:false,issues:[{selector:'[data-draft="manual_price"]',message:'A proposta precisa ter preço final acima de R$ 0,00. Revise os custos ou informe um preço manual.'}]});
+  budgetWizard?.focusFirstError();
   return;
  }
  // O valor e apenas comercial. As duas artes sao recursos oficiais locais e obrigatorios.
@@ -613,6 +624,7 @@ document.addEventListener('click',async ev=>{
  if(mode){authMode(mode.dataset.authMode);return}
  const tab=ev.target.closest('[data-view]');
  if(tab){
+  setMobileMenu(false);
   state.view=tab.dataset.view;state.edit=null;state.draft=null;state.contractDraft=null;state.contractId=null;
   render();return
  }
@@ -698,6 +710,17 @@ async function logout(){
  state.accountEmail='';
  state.view='home';state.draft=null;$('#app').hidden=true;$('#auth').hidden=false;authMode('login');$('#login').reset();
 }
+function setMobileMenu(open){
+ const sidebar=document.querySelector('#app .sidebar');
+ const toggle=$('#mobileMenuToggle');
+ if(!sidebar||!toggle)return;
+ sidebar.classList.toggle('mobile-menu-open',Boolean(open));
+ toggle.setAttribute('aria-expanded',String(Boolean(open)));
+ toggle.textContent=open?'✕ Fechar menu':'☰ Abrir menu';
+}
+$('#mobileMenuToggle').addEventListener('click',()=>{
+ setMobileMenu(!document.querySelector('#app .sidebar')?.classList.contains('mobile-menu-open'));
+});
 $('#logout').addEventListener('click',logout);
 // Microfones de ditado também acompanham campos criados dinamicamente em cada tela.
 // O texto entra pelo mesmo evento 'input' utilizado nos orçamentos e cadastros.
