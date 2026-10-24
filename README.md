@@ -1,5 +1,17 @@
 # CIVOLTEN — Gestão interna por custos reais
 
+## Instalar CIVOLTEN como aplicativo no celular (PWA)
+
+A aplicação principal pode ser instalada diretamente do navegador, **sem APK e sem loja de aplicativos**, em `https://civolten.vercel.app`. Este recurso **não envolve o site institucional**. O manifesto `manifest.json` utiliza identidade CIVOLTEN, ícones PNG de 192 e 512 px, `display: standalone`, nome próprio e escopo no mesmo domínio. O instalador é carregado separadamente da lógica de orçamentos e contratos.
+
+- **Android (Chrome):** abra o endereço oficial, toque em **Instalar CIVOLTEN no celular** na tela de login ou **Instalar app** no painel, e confirme quando o navegador oferecer a instalação. Se o aviso nativo não estiver disponível, abra o menu **⋮** do Chrome e escolha **Instalar aplicativo** ou **Adicionar à tela inicial**.
+- **iPhone / iPad (Safari):** abra o mesmo endereço no Safari, toque em **Compartilhar** → **Adicionar à Tela de Início** e confirme. O navegador pode não oferecer uma janela de instalação automática, por isso o aplicativo orienta o usuário.
+- **Atualizações:** a versão instalada carrega o mesmo sistema HTTPS da produção; alterações no servidor são aplicadas quando o usuário acessa ou atualiza o aplicativo com internet.
+- **Segurança e limites:** o service worker **não cria cache de respostas, informações de sessão, API, orçamentos, contratos ou custos**. O aplicativo requer internet e login para usar os dados privados. Sem conexão, apenas exibe um aviso estático. **Não é APK nativo**, nem significa publicação na Play Store ou App Store.
+
+Execute `npm run check` para verificar sintaxe, manifesto, formato real dos ícones, regras de privacidade e testes da aplicação. Teste manual da instalação e abertura a partir do ícone deve ser feito em Android e iOS reais.
+
+
 Reconstrução independente do OrçaPro e sem nenhuma tabela pública de preços para formar orçamentos.
 
 Sistema privado para cadastrar funcionários, profissões, diárias, encargos, custos fixos mensais, despesas variáveis, dias faturáveis da empresa e parâmetros editáveis de imposto e lucro.
