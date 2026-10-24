@@ -36,13 +36,13 @@ test('manifesto é instalável e preserva nome/domínio CIVOLTEN',()=>{
  assert.equal(manifest.name,'CIVOLTEN — Gestão de Obras');
  assert.equal(manifest.prefer_related_applications,false);
  assert.equal(vercel.cleanUrls,true);
- assert.match(html,/rel="manifest" href="\/manifest.json\?v=logo-oficial-v2"/);
- assert.match(html,/rel="apple-touch-icon" sizes="192x192" href="\/assets\/civolten-oficial-v2-192.png"/);
+ assert.match(html,/rel="manifest" href="\/manifest.json\?v=logo-escuro-v3"/);
+ assert.match(html,/rel="apple-touch-icon" sizes="192x192" href="\/assets\/civolten-escuro-v3-192.png"/);
 });
 
 test('ícones instaláveis possuem tamanhos reais de 192 e 512 pixels',()=>{
  for(const size of [192,512]){
-  const file='/assets/civolten-oficial-v2-'+size+'.png';
+  const file='/assets/civolten-escuro-v3-'+size+'.png';
   const entry=manifest.icons.find(icon=>icon.src===file);
   assert.equal(entry?.sizes,size+'x'+size);
   assert.equal(entry?.type,'image/png');
@@ -52,8 +52,7 @@ test('ícones instaláveis possuem tamanhos reais de 192 e 512 pixels',()=>{
   assert.equal(dimensions.depth,8);
   assert.equal(dimensions.type,6);
  }
- assert.ok(manifest.icons.some(icon=>icon.src==='/assets/civolten-oficial-original.png'));
- assert.deepEqual(read('assets/civolten-oficial-original.png'),read('assets/civolten-logo.png'));
+ assert.ok(manifest.icons.some(icon=>icon.src==='/assets/civolten-escuro-v3-maskable-512.png'&&icon.purpose==='maskable'));
  assert.doesNotMatch(html,/href="\/assets\/civolten-app-logo-192.png"/);
 });
 
@@ -95,36 +94,43 @@ function pixelsPNG(bytes){
  return {width,height,data:out};
 }
 
-test('ícones instaláveis são redimensionamentos da logo oficial, não um desenho substituto',()=>{
+test('ícones usam fundo azul-marinho opaco com a logo original centralizada',()=>{
  const original=pixelsPNG(read('assets/civolten-logo.png'));
  assert.equal(original.width,1254);
  assert.equal(original.height,1254);
- for(const size of [192,512]){
-  const scaled=pixelsPNG(read('assets/civolten-oficial-v2-'+size+'.png'));
-  assert.equal(scaled.width,size);
-  assert.equal(scaled.height,size);
-  const coordinates=[[0.10,0.10],[0.25,0.25],[0.5,0.5],[0.65,0.4],[0.72,0.7],[0.89,0.88]];
-  for(const [px,py] of coordinates){
-   const x=Math.floor(size*px),y=Math.floor(size*py);
-   const fx=(x+0.5)*original.width/size-0.5,fy=(y+0.5)*original.height/size-0.5;
-   const ix=Math.max(0,Math.min(original.width-1,Math.floor(fx)));
-   const iy=Math.max(0,Math.min(original.height-1,Math.floor(fy)));
-   const jx=Math.min(original.width-1,ix+1),jy=Math.min(original.height-1,iy+1);
-   const wx=Math.max(0,Math.min(1,fx-ix)),wy=Math.max(0,Math.min(1,fy-iy));
-   const locations=[[ix,iy,(1-wx)*(1-wy)],[jx,iy,wx*(1-wy)],[ix,jy,(1-wx)*wy],[jx,jy,wx*wy]];
-   const components=locations.map(([ix,iy,w])=>{
-    const pos=(iy*original.width+ix)*4;
-    return [original.data[pos],original.data[pos+1],original.data[pos+2],original.data[pos+3],w];
-   });
-   const alpha=components.reduce((acc,c)=>acc+c[3]*c[4],0);
-   const offset=(y*size+x)*4;
-   assert.ok(Math.abs(scaled.data[offset+3]-Math.round(alpha))<=2,'official logo alpha mismatch '+size+' '+x+','+y);
-   if(alpha>8){
-    for(let c=0;c<3;c++){
-     const expected=components.reduce((acc,p)=>acc+p[c]*p[3]*p[4],0)/alpha;
-     assert.ok(Math.abs(scaled.data[offset+c]-Math.round(expected))<=2,'official logo color mismatch '+size+' '+x+','+y);
-    }
+ for(const [size,scale,file] of [
+  [192,.82,'assets/civolten-escuro-v3-192.png'],
+  [512,.82,'assets/civolten-escuro-v3-512.png'],
+  [512,.69,'assets/civolten-escuro-v3-maskable-512.png']
+ ]){
+  const icon=pixelsPNG(read(file));
+  assert.equal(icon.width,size);
+  assert.equal(icon.height,size);
+  assert.deepEqual([...icon.data.subarray(0,4)],[8,24,43,255]);
+  const coords=[[.25,.25],[.5,.5],[.6,.35],[.72,.72]];
+  for(const [x,y] of coords){
+   const px=Math.floor(size*x),py=Math.floor(size*y);
+   const ox=(px+.5-size/2)*original.width/(size*scale)+original.width/2-.5;
+   const oy=(py+.5-size/2)*original.height/(size*scale)+original.height/2-.5;
+   const ix=Math.floor(ox),iy=Math.floor(oy),jx=Math.min(original.width-1,ix+1),jy=Math.min(original.height-1,iy+1);
+   const wx=ox-ix,wy=oy-iy;
+   let alpha=0,rgb=[0,0,0];
+   for(const [cx,cy,weight] of [
+    [ix,iy,(1-wx)*(1-wy)],[jx,iy,wx*(1-wy)],
+    [ix,jy,(1-wx)*wy],[jx,jy,wx*wy]
+   ]){
+    if(cx<0||cy<0||cx>=original.width||cy>=original.height)continue;
+    const off=(cy*original.width+cx)*4, opacity=original.data[off+3]/255;
+    alpha+=opacity*weight;
+    for(let c=0;c<3;c++)rgb[c]+=original.data[off+c]*opacity*weight;
    }
+   const got=(py*size+px)*4;
+   for(let c=0;c<3;c++){
+    const expect=Math.round(rgb[c]+[8,24,43][c]*(1-alpha));
+    assert.ok(Math.abs(icon.data[got+c]-expect)<=2,
+     'color should retain official logo over dark background: '+size+' '+file+' '+px+','+py+' channel '+c);
+   }
+   assert.equal(icon.data[got+3],255);
   }
  }
 });

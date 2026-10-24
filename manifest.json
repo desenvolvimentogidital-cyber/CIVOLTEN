@@ -21,22 +21,22 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/assets/civolten-oficial-v2-192.png",
+      "src": "/assets/civolten-escuro-v3-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/civolten-oficial-v2-512.png",
+      "src": "/assets/civolten-escuro-v3-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/civolten-oficial-original.png",
-      "sizes": "1254x1254",
+      "src": "/assets/civolten-escuro-v3-maskable-512.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "maskable"
     }
   ]
 }
