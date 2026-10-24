@@ -125,7 +125,7 @@ Ao trocar de área ou sair da conta com modificações não salvas em orçamento
 
 ## Facilidade de uso no celular e primeiro acesso (23/10/2026)
 
-- **Menu no celular:** toque em **Abrir menu** para ver as áreas do painel; **Sair da conta** fica visível. Ao escolher uma área, o menu fecha.
+- **Menu no celular:** o menu original foi restaurado: as áreas ficam visíveis em uma faixa horizontal, que pode ser deslizada para os lados. O botão **Sair da conta** permanece acessível. Não há botão de menu recolhível.
 - **Primeira utilização:** a Visão geral exibe um guia de três ações: configurar valores da empresa, cadastrar a equipe e criar o primeiro orçamento. O guia não bloqueia nenhum recurso e, após o primeiro orçamento, fica recolhido em **Precisa de ajuda?**.
 - **Orçamento guiado:** somente uma etapa de cada vez aparece no editor. O resumo financeiro continua disponível após as etapas. É possível navegar livremente e salvar rascunhos incompletos.
 - **Validação:** ao salvar ou exportar com problemas, a etapa do campo errado é aberta e o campo recebe foco para correção.
