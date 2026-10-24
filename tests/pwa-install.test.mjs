@@ -24,7 +24,7 @@ function parsePNG(bytes){
  }
  assert.ok(ihdr);
  const data=inflateSync(Buffer.concat(bytesIDAT));
- assert.equal(data.length,(ihdr.width+1)*ihdr.height);
+ assert.equal(data.length,(ihdr.width*(ihdr.type===6?4:1)+1)*ihdr.height);
  return ihdr;
 }
 
