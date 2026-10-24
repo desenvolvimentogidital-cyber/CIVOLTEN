@@ -103,10 +103,13 @@ test('integração mantém validação do PDF e rascunhos em etapa segura',()=>{
  assert.match(app,/state\.budgetStep=0/);
  assert.match(app,/Salvar como PDF/);
  assert.match(css,/budget-step-card\[hidden\]\{display:none!important\}/);
- assert.match(index,/id="mobileMenuToggle"/);
- assert.match(index,/aria-controls="civoltenMainNav"/);
- assert.match(app,/setMobileMenu\(false\)/);
- assert.match(css,/\.sidebar \.logout\{\s*display:block!important/);
+ assert.match(index,/<nav aria-label="Navegação">/);
+ assert.doesNotMatch(index,/mobileMenuToggle|civoltenMainNav/);
+ assert.doesNotMatch(app,/setMobileMenu|mobileMenuToggle/);
+ assert.doesNotMatch(css,/mobile-menu-open|mobile-menu-toggle/);
+ assert.match(css,/#app \.sidebar nav\{display:flex;overflow-x:auto/);
+ assert.match(css,/#app \.sidebar \.nav\{flex:none;white-space:nowrap/);
+ assert.match(css,/#app \.sidebar \.logout\{\s*display:block!important/);
  assert.match(dashboard,/quickStartGuide\(data\)\+settingsWarning/);
  assert.match(dashboard,/Comece em 3 passos/);
 });
