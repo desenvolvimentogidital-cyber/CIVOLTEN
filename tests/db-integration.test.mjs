@@ -86,6 +86,9 @@ test('end-to-end PostgreSQL: identity, CRUD, roles, version control, archive, pa
     reference_month:'2026-07',regime:'Sem desoneração',bdi_pct:25
   }}),201);
   assert.match(budget.code,/ORC-/);
+  const outsider=expectStatus(await makeRequest('clients',{method:'POST',session:adminCookie,payload:{name:'QA - Cliente secundário fictício'}}),201);
+  expectStatus(await makeRequest('projects/'+project.id,{method:'PUT',session:adminCookie,payload:{client_id:outsider.id,title:'Transferência inválida',address:'Endereço QA'}}),400);
+  expectStatus(await makeRequest('budgets',{method:'POST',session:adminCookie,payload:{client_id:outsider.id,project_id:project.id,title:'Orçamento incompatível',bdi_pct:25}}),400);
   const item=expectStatus(await makeRequest('budgets/'+budget.id+'/items',{method:'POST',session:adminCookie,payload:{
     position:1,source_name:'Serviço fictício testado',source_code:'QA-1',unit:'m²',quantity:10,direct_unit_cost:30.25
   }}),201);
@@ -144,7 +147,7 @@ test('end-to-end PostgreSQL: identity, CRUD, roles, version control, archive, pa
   const audit=await pool.query("SELECT entity_type, action FROM audit_events WHERE entity_type IN ('clients','projects','budgets','budget_items','app_users') ORDER BY created_at");
   assert.ok(audit.rows.length>=13,'Expected write audit trail');
   const counts=await pool.query("SELECT (SELECT count(*)::int FROM clients) clients,(SELECT count(*)::int FROM projects) projects,(SELECT count(*)::int FROM budgets) budgets,(SELECT count(*)::int FROM budget_items) items");
-  assert.deepEqual(counts.rows[0],{clients:1,projects:1,budgets:1,items:1});
+  assert.deepEqual(counts.rows[0],{clients:2,projects:1,budgets:1,items:1});
  }finally{
   await pool.end();
  }
