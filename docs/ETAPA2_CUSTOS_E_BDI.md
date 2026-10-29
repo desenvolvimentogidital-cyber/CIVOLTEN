@@ -62,3 +62,26 @@ As taxas e custos de serviço não são automaticamente sinônimos de preço de 
 - Banco exclusivo de desenvolvimento: Neon `civolten-orcamentos-dev` (`main` original). Nenhum banco de outro projeto deve ser utilizado.
 
 **Regra de liberação:** nunca garantir preço final sem conferência de escopo, quantidades, cotação local, tributação e revisão técnica humana.
+
+## Auditoria de composições e bloqueio conservador — 29/10/2026
+
+- O endpoint privado de composição agora entrega `inspection` com cadeia de componentes,
+  detecção de ciclos, conferência de unidade e coeficiente e travas de profundidade/nós.
+- Relações são buscadas exclusivamente na **mesma versão** da tabela de preço;
+  componentes sem custo oficial carregado ficam classificados como **não precificados**.
+- O painel privado apresenta os componentes e as pendências de preço.
+- A estimativa bloqueia `ready=true` para itens SIURB com insumos ou auxiliares
+  não precificados, ainda que o operador tenha marcado BDI e conferência técnica.
+- Nenhuma hora de máquina é convertida em hora-homem; valores de insumos, encargos
+  e mão de obra não são preenchidos por suposição.
+- Testes de regressão em `tests/siurb-composition-audit.test.mjs` e
+  `tests/estimate-engine.test.mjs` cobrem travas e não certificação.
+
+**Importante:** estes controles corrigem a sinalização de aprovação, mas não suprem as
+planilhas SIURB oficiais de **Insumos**, **Mão de Obra Horista**, **Equipamentos** e
+**Composições Auxiliares** publicadas à parte. O fechamento técnico da etapa 2 depende
+da extração e conciliação destas planilhas, comparação de orçamento histórico,
+revisão tributária e teste real no navegador por responsável habilitado.
+
+O banco de desenvolvimento e as tabelas existentes permanecem preservados.
+Não foi autorizada liberação comercial automática; `commercial_release=false` continua.
