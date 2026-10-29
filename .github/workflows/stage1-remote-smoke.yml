@@ -1,6 +1,8 @@
 name: Etapa 1 - Verificacao remota Vercel e Neon
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '23 9 * * *'
   push:
     branches: [main]
     paths:
