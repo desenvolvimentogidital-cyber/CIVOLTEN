@@ -52,11 +52,15 @@ if(process.argv.includes('--dry-run')){
 const url=process.env.DATABASE_URL||'';
 let parsed;
 try{parsed=new URL(url)}catch{throw Error('DATABASE_URL indisponível. Configure somente no ambiente seguro.')}
-if(!['postgres:','postgresql:'].includes(parsed.protocol) ||
-   !parsed.hostname.endsWith('.neon.tech') ||
-   parsed.pathname!=='/civolten' ||
-   process.env.CIVOLTEN_SUPPLEMENTS_IMPORT_CONFIRM!=='importar-civolten-dev')
- throw new Error('Importação bloqueada: exija Neon CIVOLTEN de desenvolvimento e confirmação de ambiente.');
+const neonDevelopment=parsed.hostname.endsWith('.neon.tech') &&
+   parsed.pathname==='/civolten' &&
+   process.env.CIVOLTEN_SUPPLEMENTS_IMPORT_CONFIRM==='importar-civolten-dev';
+const isolatedCi=process.env.CI==='true' &&
+   ['127.0.0.1','localhost'].includes(parsed.hostname) &&
+   parsed.pathname==='/civolten_test' &&
+   process.env.CIVOLTEN_SUPPLEMENTS_IMPORT_CONFIRM==='importar-civolten-qa';
+if(!['postgres:','postgresql:'].includes(parsed.protocol) || (!neonDevelopment && !isolatedCi))
+ throw new Error('Importação bloqueada: exija Neon CIVOLTEN de desenvolvimento ou PostgreSQL descartável de CI.');
 const pool=new Pool({connectionString:url,max:1,connectionTimeoutMillis:15000});
 const client=await pool.connect();
 try{
