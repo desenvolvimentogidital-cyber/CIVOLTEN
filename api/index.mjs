@@ -96,6 +96,18 @@ export function createApi(sql,opts={}){
    const user=await who(req,sql);
    if(!user)return response(res,401,{error:'Sessão necessária'});
    if(resource==='me'&&method==='GET')return response(res,200,user);
+   if(resource==='auth'&&id==='change-password'&&method==='POST'){
+     const b=await readBody(req);
+     const match=await sql.query('SELECT password_hash FROM app_users WHERE id=$1 AND is_active=true LIMIT 1',[user.id]);
+     if(!match.length||!matches(b.current_password,match[0].password_hash))return response(res,403,{error:'Senha atual incorreta'});
+     if(String(b.new_password||'')===String(b.current_password||''))return response(res,400,{error:'Defina uma senha nova'});
+     const replacement=hashPassword(b.new_password);
+     await sql.query('UPDATE app_users SET password_hash=$2 WHERE id=$1',[user.id,replacement]);
+     await sql.query('UPDATE app_sessions SET revoked_at=now() WHERE user_id=$1 AND token_hash<>$2 AND revoked_at IS NULL',[user.id,hexhash(sessionToken(req))]);
+     await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'app_users',$1,'password_changed')",[user.id]);
+     return response(res,200,{ok:true});
+   }
+
    // Gravações editáveis são restritas a usuários autenticados e autorizados.
    if(resource==='clients'&&method==='PUT'&&id){
      if(!writable(user))return noAccess(res);
