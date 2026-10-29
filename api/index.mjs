@@ -1,6 +1,7 @@
 /* CIVOLTEN: API privada de homologação. Vercel + Neon.
    A interface pública permanece em demonstração até a autenticação ser homologada. */
 import { neon } from '@neondatabase/serverless';
+import {validTaxId,normalizeTaxId} from '../src/documents.mjs';
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
 
 const sessionName='civolten_dev_session';
@@ -11,6 +12,7 @@ const cookie=(value,seconds)=>sessionName+'='+value+'; Path=/api/v1; HttpOnly; S
 const sessionToken=req=>String(req.headers.cookie||'').split(';').map(v=>v.trim()).find(x=>x.startsWith(sessionName+'='))?.slice(sessionName.length+1)||'';
 const requireField=(v,key,max=250)=>{if(typeof v!=='string'||!v.trim()||v.trim().length>max)throw Object.assign(new Error(key+' inválido'),{status:400});return v.trim()};
 const opt=(v,max=250)=>v==null||v===''?null:requireField(String(v),'Campo',max);
+const taxId=v=>{if(v==null||String(v).trim()==='')return null;const normalized=normalizeTaxId(v);if(!validTaxId(normalized))throw Object.assign(new Error('CPF/CNPJ inválido; aceita CNPJ alfanumérico de 2026'),{status:400});return normalized};
 const number=(v,name,zero=false)=>{const n=Number(v);if(!Number.isFinite(n)||(zero?n<0:n<=0)||n>1e9)throw Object.assign(new Error(name+' inválido'),{status:400});return n};
 async function readBody(req){
  if(!String(req.headers['content-type']||'').startsWith('application/json'))throw Object.assign(new Error('Exige application/json'),{status:415});
@@ -100,9 +102,9 @@ export function createApi(sql,opts={}){
      if(!uuid(id))return response(res,400,{error:'Cliente inválido'});
      const b=await readBody(req);
      const name=requireField(b.name,'Nome',250);
-     const taxId=opt(b.tax_id,18),email=opt(b.email,254),phone=opt(b.phone,40),address=opt(b.address,800);
+     const taxNumber=taxId(b.tax_id),email=opt(b.email,254),phone=opt(b.phone,40),address=opt(b.address,800);
      const updated=await sql.query("UPDATE clients SET name=$2,tax_id=$3,email=$4,phone=$5,address=$6,updated_at=now() WHERE id=$1 RETURNING *",
-       [id,name,taxId,email,phone,address]);
+       [id,name,taxNumber,email,phone,address]);
      if(!updated.length)return notFound(res);
      await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'clients',$2,'update')",[user.id,id]);
      return response(res,200,updated[0]);
@@ -186,7 +188,7 @@ export function createApi(sql,opts={}){
        if(!writable(user))return noAccess(res);
        const b=await readBody(req),id=randomUUID(),name=requireField(b.name,'Nome');
        const row=await sql.query('INSERT INTO clients(id,name,tax_id,email,phone,address,created_by) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *',
-         [id,name,opt(b.tax_id,18),opt(b.email,254),opt(b.phone,40),opt(b.address,800),user.id]);
+         [id,name,taxId(b.tax_id),opt(b.email,254),opt(b.phone,40),opt(b.address,800),user.id]);
        await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'clients',$2,'create')",[user.id,id]);
        return response(res,201,row[0]);
      }
