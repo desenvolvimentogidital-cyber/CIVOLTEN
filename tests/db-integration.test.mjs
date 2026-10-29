@@ -98,6 +98,8 @@ test('end-to-end PostgreSQL: identity, CRUD, roles, version control, archive, pa
   detail=expectStatus(await makeRequest('budgets/'+budget.id,{session:adminCookie}),200);
   const archivedDatabaseState=await pool.query('SELECT id,deleted_at IS NOT NULL AS archived FROM budget_items');
   assert.equal(detail.items.length,0,JSON.stringify({rows:detail.items.map(x=>({id:x.id,deleted_at:x.deleted_at})),db:archivedDatabaseState.rows}));
+  assert.equal(detail.status,'rascunho','Remover item não deve cancelar orçamento');
+  assert.equal(archivedDatabaseState.rows[0]?.archived,true);
   const staff=expectStatus(await makeRequest('users',{method:'POST',session:adminCookie,payload:{
     login:'ci.viewer@civolten.test',role:'consulta',password:originalPassword
   }}),201);
