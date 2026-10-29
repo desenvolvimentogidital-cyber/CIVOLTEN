@@ -108,6 +108,41 @@ export function createApi(sql,opts={}){
      return response(res,200,{ok:true});
    }
 
+   // Usuários de desenvolvimento: somente o administrador gerencia acesso e funções.
+   if(resource==='users'){
+     if(user.role!=='administrador')return noAccess(res);
+     if(method==='GET'&&!id){
+       return response(res,200,await sql.query("SELECT id,login,role,is_active,created_at,last_login_at FROM app_users ORDER BY created_at ASC LIMIT 100",[]));
+     }
+     if(method==='POST'&&!id){
+       const b=await readBody(req);
+       const login=requireField(b.login,'Usuário',120).toLowerCase();
+       if(!/^[a-z0-9][a-z0-9._@-]{3,119}$/.test(login))return response(res,400,{error:'Usuário precisa ter 4 a 120 caracteres alfanuméricos'});
+       const role=String(b.role||'orcamentista');
+       if(!['orcamentista','revisor','consulta'].includes(role))return response(res,400,{error:'Perfil inválido para novo usuário'});
+       const password=hashPassword(b.password),userId=randomUUID();
+       const result=await sql.query(
+         "WITH added AS (INSERT INTO app_users(id,login,password_hash,role) VALUES($1,$2,$3,$4) RETURNING id,login,role,is_active,created_at) SELECT * FROM added",
+         [userId,login,password,role]
+       );
+       await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action,metadata) VALUES($1,'app_users',$2,'create',jsonb_build_object('role',$3::text))",[user.id,userId,role]);
+       return response(res,201,result[0]);
+     }
+     if(method==='PUT'&&id){
+       if(!uuid(id))return response(res,400,{error:'Identificador inválido'});
+       if(id===user.id)return response(res,409,{error:'Não é possível mudar seu próprio perfil ou desativar sua conta'});
+       const b=await readBody(req),role=String(b.role||'');
+       if(!['orcamentista','revisor','consulta'].includes(role))return response(res,400,{error:'Perfil inválido'});
+       if(typeof b.is_active!=='boolean')return response(res,400,{error:'Ativação deve ser verdadeiro ou falso'});
+       const updated=await sql.query("UPDATE app_users SET role=$2,is_active=$3 WHERE id=$1 AND role<>'administrador' RETURNING id,login,role,is_active,created_at,last_login_at",
+          [id,role,b.is_active]);
+       if(!updated.length)return response(res,404,{error:'Usuário inexistente ou administrador protegido'});
+       if(!b.is_active)await sql.query("UPDATE app_sessions SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL",[id]);
+       await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action,metadata) VALUES($1,'app_users',$2,'update',jsonb_build_object('role',$3::text,'active',$4::boolean))",[user.id,id,role,b.is_active]);
+       return response(res,200,updated[0]);
+     }
+     return response(res,405,{error:'Método não permitido'});
+   }
    // Exclusão lógica: preserva integridade e histórico para auditorias.
    if(method==='DELETE'&&id&&['clients','projects','budgets'].includes(resource)){
      if(!writable(user))return noAccess(res);
