@@ -1,0 +1,55 @@
+name: Backup criptografado CIVOLTEN (configuração necessária)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 5 * * *"
+permissions:
+  contents: read
+jobs:
+  backup:
+    if: ${{ vars.CIVOLTEN_BACKUP_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CIVOLTEN_BACKUP_DATABASE_URL: ${{ secrets.CIVOLTEN_BACKUP_DATABASE_URL }}
+      CIVOLTEN_BACKUP_PUBLIC_KEY: ${{ vars.CIVOLTEN_BACKUP_PUBLIC_KEY }}
+    steps:
+      - name: Validar configuração sem exibir segredos
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${CIVOLTEN_BACKUP_DATABASE_URL:-}" || -z "${CIVOLTEN_BACKUP_PUBLIC_KEY:-}" ]]; then
+            echo "::error::Variáveis de backup ausentes. Consulte docs/BACKUP_OPERACIONAL.md."
+            exit 1
+          fi
+          if [[ ! "$CIVOLTEN_BACKUP_PUBLIC_KEY" =~ ^age1[a-z0-9]+$ ]]; then
+            echo "::error::Destinatário age inválido."
+            exit 1
+          fi
+      - name: Instalar ferramenta de criptografia
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age
+      - name: Fazer dump com PostgreSQL 17 e criptografar antes de salvar
+        id: export
+        shell: bash
+        run: |
+          set -euo pipefail
+          timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          backup_name="civolten-${timestamp}.dump.age"
+          echo "name=${backup_name}" >> "$GITHUB_OUTPUT"
+          docker run --rm --network host \
+            --env CIVOLTEN_BACKUP_DATABASE_URL \
+            postgres:17 sh -c 'pg_dump --dbname="$CIVOLTEN_BACKUP_DATABASE_URL" --format=custom --no-owner --no-privileges --no-comments' \
+            | age -r "$CIVOLTEN_BACKUP_PUBLIC_KEY" -o "$backup_name"
+          test -s "$backup_name"
+          chmod 600 "$backup_name"
+          echo "Backup cifrado gerado. Nenhum dump em texto puro foi salvo."
+      - name: Guardar somente o arquivo criptografado por até 14 dias
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ steps.export.outputs.name }}
+          path: ${{ steps.export.outputs.name }}
+          retention-days: 14
+          if-no-files-found: error
+          compression-level: 0
