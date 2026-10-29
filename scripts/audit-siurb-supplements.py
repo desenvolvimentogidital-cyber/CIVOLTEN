@@ -15,7 +15,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
 
-HOST = "https://prefeitura.sp.gov.br/documents/d/obras/"
+HOST = "https://smartsampa.prefeitura.sp.gov.br/documents/d/obras/"
 SOURCES = [
     ("sem", "horista", "onerada-sem-des-mobra-horista-julho-2026-1-xlsx", "xlsx"),
     ("sem", "equipamentos", "onerada-sem-des-equip-custos-unit-julho-2026-1-xlsx", "xlsx"),
@@ -34,7 +34,8 @@ LIMIT_BYTES = 25_000_000
 def download(url):
     if not url.startswith(HOST) or not re.match(r"^[a-z0-9./:_-]+$", url):
         raise ValueError("Origem não permitida")
-    req = Request(url, headers={"User-Agent": "CIVOLTEN-QA-SIURB/1.0",
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36",
+                                "Referer": "https://smartsampa.prefeitura.sp.gov.br/web/obras/w/tabelas_de_custos/355179",
                                 "Accept": "application/octet-stream,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,*/*"})
     with urlopen(req, timeout=45) as response:
         actual = response.geturl()
