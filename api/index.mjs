@@ -68,7 +68,7 @@ export function createApi(sql,opts={}){
      if(got.length!==secret.length||!timingSafeEqual(Buffer.from(got),Buffer.from(secret)))return response(res,403,{error:'Token de configuração inválido'});
      const userId=randomUUID(),username=requireField(b.login,'Login',120).toLowerCase(),passwordHash=hashPassword(b.password);
      // Um único statement cria a trava permanente e o usuário. Concorrência não duplica administradores iniciais.
-     const inserted=await sql.query("WITH guard AS (INSERT INTO app_bootstrap_lock(singleton) VALUES(1) ON CONFLICT DO NOTHING RETURNING singleton), bootstrap_user AS (INSERT INTO app_users(id,login,password_hash,role) SELECT $1,$2,$3,'administrador' FROM guard RETURNING id) SELECT id FROM bootstrap_user",
+     const inserted=await sql.query("WITH guard AS (INSERT INTO app_bootstrap_lock(singleton) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM app_users) ON CONFLICT DO NOTHING RETURNING singleton), bootstrap_user AS (INSERT INTO app_users(id,login,password_hash,role) SELECT $1,$2,$3,'administrador' FROM guard RETURNING id) SELECT id FROM bootstrap_user",
        [userId,username,passwordHash]);
      if(!inserted.length)return response(res,409,{error:'Administrador inicial já foi configurado'});
      await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'app_users',$2,'bootstrap')",[userId,userId]);
@@ -160,10 +160,9 @@ export function createApi(sql,opts={}){
      if(!uuid(id)||!uuid(parts[3]))return response(res,400,{error:'Identificador inválido'});
      const draft=await sql.query("SELECT id FROM budgets WHERE id=$1 AND status='rascunho'",[id]);
      if(!draft.length)return response(res,409,{error:'Só é possível remover itens de orçamentos em rascunho'});
-     const rows=await sql.query("UPDATE budget_items SET deleted_at=now() WHERE id=$1 AND budget_id=$2 AND deleted_at IS NULL RETURNING id",[parts[3],id]);
-     if(!rows.length)return notFound(res);
-     await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'budget_items',$2,'archive')",[user.id,parts[3]]);
-     await sql.query("UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$1",[id]);
+     const rows=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND status='rascunho' AND EXISTS (SELECT 1 FROM budget_items WHERE id=$1 AND budget_id=$2 AND deleted_at IS NULL) RETURNING id), archived AS (UPDATE budget_items SET deleted_at=now() WHERE id=$1 AND budget_id=$2 AND deleted_at IS NULL AND EXISTS (SELECT 1 FROM guard) RETURNING id), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $3,'budget_items',archived.id,'archive' FROM archived RETURNING id) SELECT archived.id FROM archived JOIN logged ON true",
+       [parts[3],id,user.id]);
+     if(!rows.length)return response(res,409,{error:'Serviço indisponível ou orçamento não editável'});
      return response(res,200,{ok:true});
    }
    // Gravações editáveis são restritas a usuários autenticados e autorizados.
@@ -173,10 +172,9 @@ export function createApi(sql,opts={}){
      const b=await readBody(req);
      const name=requireField(b.name,'Nome',250);
      const taxNumber=taxId(b.tax_id),email=opt(b.email,254),phone=opt(b.phone,40),address=opt(b.address,800);
-     const updated=await sql.query("UPDATE clients SET name=$2,tax_id=$3,email=$4,phone=$5,address=$6,updated_at=now() WHERE id=$1 RETURNING *",
-       [id,name,taxNumber,email,phone,address]);
+     const updated=await sql.query("WITH revised AS (UPDATE clients SET name=$2,tax_id=$3,email=$4,phone=$5,address=$6,updated_at=now() WHERE id=$1 RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $7,'clients',revised.id,'update' FROM revised RETURNING id) SELECT revised.* FROM revised JOIN logged ON true",
+       [id,name,taxNumber,email,phone,address,user.id]);
      if(!updated.length)return notFound(res);
-     await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'clients',$2,'update')",[user.id,id]);
      return response(res,200,updated[0]);
    }
    if(resource==='projects'&&method==='PUT'&&id){
@@ -184,10 +182,9 @@ export function createApi(sql,opts={}){
      if(!uuid(id))return response(res,400,{error:'Obra inválida'});
      const b=await readBody(req),title=requireField(b.title,'Obra',250);
      if(!uuid(b.client_id))return response(res,400,{error:'Cliente inválido'});
-     const updated=await sql.query("UPDATE projects SET title=$2,client_id=$3,address=$4,updated_at=now() WHERE id=$1 RETURNING *",
-       [id,title,b.client_id,opt(b.address,800)]);
+     const updated=await sql.query("WITH revised AS (UPDATE projects SET title=$2,client_id=$3,address=$4,updated_at=now() WHERE id=$1 RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $5,'projects',revised.id,'update' FROM revised RETURNING id) SELECT revised.* FROM revised JOIN logged ON true",
+       [id,title,b.client_id,opt(b.address,800),user.id]);
      if(!updated.length)return notFound(res);
-     await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'projects',$2,'update')",[user.id,id]);
      return response(res,200,updated[0]);
    }
    if(resource==='budgets'&&method==='PUT'&&id&&!sub){
