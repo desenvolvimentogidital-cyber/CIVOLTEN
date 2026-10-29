@@ -24,6 +24,7 @@ export function costPage({state,esc,writeable}){
  const ready=est.ready;
  return '<div class="row"><div><h1>Engenharia de custos</h1><p class="muted">'+esc(state.detail?.code||'')+' · Data-base '+esc(data.budget.reference_month)+' · '+esc(data.budget.regime)+'</p></div><button class="btn" data-action="cost-back">Voltar ao orçamento</button></div>'+
  '<div class="notice"><strong>Prévia para conferência — não é proposta comercial.</strong> '+esc(data.disclaimer)+'</div>'+
+ '<div class="notice tiny"><strong>Como precificar:</strong> a SIURB serve como referência. Composição sem insumos comprovados fica bloqueada para aprovação. Para serviços próprios, informe uma cotação identificada, data, fornecedor, quantidades medidas e revise o BDI. Preços, tributos e premissas de teste não autorizam emissão contratual.</div>'+
  '<div class="grid"><div class="card"><div class="muted">Custo direto (serviços + extras)</div><div class="metric">'+fmt(est.direct_cost_reais)+'</div></div>'+
  '<div class="card"><div class="muted">BDI discriminado</div><div class="metric">'+fmt(est.bdi_amount_reais)+'</div><div class="muted tiny">'+esc(est.bdi_effective_pct)+'%</div></div>'+
  '<div class="card"><div class="muted">Contingência financeira</div><div class="metric">'+fmt(est.contingency_reais)+'</div></div>'+
