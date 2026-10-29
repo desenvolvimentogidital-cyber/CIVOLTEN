@@ -21,7 +21,7 @@ async function readBody(req){
 function validateRequest(req){
  const origin=String(req.headers.origin||'');
  const host=String(req.headers['x-forwarded-host']||req.headers.host||'');
- if(origin&&new URL(origin).host!==host)throw Object.assign(new Error('Origem bloqueada'),{status:403});
+ if(origin){let caller='';try{caller=new URL(origin).host}catch{}if(caller!==host)throw Object.assign(new Error('Origem bloqueada'),{status:403});}
  if(String(req.headers['sec-fetch-site']||'').toLowerCase()==='cross-site')throw Object.assign(new Error('Origem bloqueada'),{status:403});
  if(req.headers['x-civolten-request']!=='1')throw Object.assign(new Error('Cabeçalho anti-CSRF obrigatório'),{status:403});
 }
@@ -73,8 +73,14 @@ export function createApi(sql,opts={}){
    }
    if(resource==='auth'&&id==='login'&&method==='POST'){
      const b=await readBody(req),login=String(b.login||'').trim().toLowerCase();
+     const fingerprint=hexhash(login+'|'+String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'').split(',')[0].trim());
+     const recent=await sql.query("SELECT count(*)::int AS failures FROM audit_events WHERE entity_type='auth' AND action='login_failed' AND created_at>now()-interval '15 minutes' AND metadata->>'fingerprint'=$1",[fingerprint]);
+     if(Number(recent[0].failures)>=6)return response(res,429,{error:'Muitas tentativas. Tente mais tarde.'},{'Retry-After':'900'});
      const data=await sql.query('SELECT id,login,password_hash,role FROM app_users WHERE login=$1 AND is_active=true LIMIT 1',[login]);
-     if(!data[0]||!matches(b.password,data[0].password_hash))return response(res,401,{error:'Credenciais inválidas'});
+     if(!data[0]||!matches(b.password,data[0].password_hash)){
+       await sql.query("INSERT INTO audit_events(entity_type,action,metadata) VALUES('auth','login_failed',jsonb_build_object('fingerprint',$1::text))",[fingerprint]);
+       return response(res,401,{error:'Credenciais inválidas'});
+     }
      const token=randomBytes(32).toString('hex'),expires=new Date(Date.now()+8*3600000).toISOString();
      await sql.query('INSERT INTO app_sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)',[hexhash(token),data[0].id,expires]);
      return response(res,200,{ok:true,user:{id:data[0].id,login:data[0].login,role:data[0].role}},{'Set-Cookie':cookie(token,28800)});
