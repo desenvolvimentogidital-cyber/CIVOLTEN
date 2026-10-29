@@ -31,20 +31,21 @@ async function sourceItem(sql,referenceId,budget){
 const scopeMatch=(budget,b)=>budget.status==='rascunho'&&budget.lock_version===Number(b.lock_version)&&Number.isSafeInteger(Number(b.lock_version))&&Number(b.lock_version)>=0;
 export async function handleStage2(ctx){
  const {req,res,sql,user,parts,method,send,readBody}=ctx;
+ const done=(response,status,payload)=>{send(response,status,payload);return true;};
  const [resource,id,sub,fourth]=parts;
  if(resource==='siurb'&&id==='search'&&method==='GET'){
    const q=parseQuery(req),term=String(q.get('q')||'').trim().slice(0,80);
    const regime=q.get('regime'),category=q.get('category');
-   if(term.length<2)return send(res,200,[]);
-   if(regime&&!['Com desoneração','Sem desoneração'].includes(regime))return send(res,400,{error:'Regime inválido'});
-   if(category&&!['Edificações','Infraestrutura'].includes(category))return send(res,400,{error:'Categoria inválida'});
+   if(term.length<2)return done(res,200,[]);
+   if(regime&&!['Com desoneração','Sem desoneração'].includes(regime))return done(res,400,{error:'Regime inválido'});
+   if(category&&!['Edificações','Infraestrutura'].includes(category))return done(res,400,{error:'Categoria inválida'});
    const rows=await sql.query("SELECT p.id,p.code,p.description,p.unit,p.unit_cost,v.reference_month,v.regime,v.scope AS category,v.source_url,v.sha256 FROM reference_prices p JOIN reference_price_versions v ON v.id=p.version_id WHERE v.source='SIURB' AND v.reference_month='2026-07' AND ($1::text IS NULL OR v.regime=$1) AND ($2::text IS NULL OR v.scope=$2) AND (p.code ILIKE $3 OR p.description ILIKE $3) ORDER BY CASE WHEN p.code=$4 THEN 0 ELSE 1 END,p.code LIMIT 40",
      [regime||null,category||null,'%'+term.replace(/[\\%_]/g,'')+'%',term]);
-   return send(res,200,rows);
+   return done(res,200,rows);
  }
  if(resource!=='budgets'||!id||!validUUID(id)||!['costs','cost-settings','cost-review','extra-costs','siurb-items'].includes(sub))return false;
  const bRows=await sql.query("SELECT id,status,client_id,reference_month,regime,lock_version,bdi_pct FROM budgets WHERE id=$1",[id]);
- if(!bRows.length)return send(res,404,{error:'Orçamento não encontrado'});
+ if(!bRows.length)return done(res,404,{error:'Orçamento não encontrado'});
  const budget=bRows[0],draft=budget.status==='rascunho';
  if(sub==='costs'&&method==='GET'){
   const [items,profile,extra]=await Promise.all([
@@ -76,96 +77,102 @@ export async function handleStage2(ctx){
   });
   if(mapped.some(x=>x.quote_mismatch))estimate.errors.push({code:'QUOTE_PRICE_MISMATCH',message:'Um custo unitário difere da cotação confirmada.'});
   estimate.ready=estimate.errors.length===0;
-  return send(res,200,{budget:{id:budget.id,status:budget.status,reference_month:budget.reference_month,regime:budget.regime,lock_version:budget.lock_version},config,items,extra,estimate,
+  return done(res,200,{budget:{id:budget.id,status:budget.status,reference_month:budget.reference_month,regime:budget.regime,lock_version:budget.lock_version},config,items,extra,estimate,
     commercial_release:false,disclaimer:'Cálculo em homologação; emissão comercial exige revisão dos tributos, quantidades, composições auxiliares, cronograma e backups.'});
  }
  if(sub==='siurb-items'&&method==='POST'){
-   if(!canWrite(user))return send(res,403,{error:'Sem permissão de orçamento'});
-   if(!draft)return send(res,409,{error:'Somente rascunhos'});
+   if(!canWrite(user))return done(res,403,{error:'Sem permissão de orçamento'});
+   if(!draft)return done(res,409,{error:'Somente rascunhos'});
    const body=await readBody(req);
-   if(!scopeMatch(budget,body))return send(res,409,{error:'Versão do orçamento desatualizada'});
+   if(!scopeMatch(budget,body))return done(res,409,{error:'Versão do orçamento desatualizada'});
    const price=await sourceItem(sql,body.reference_price_id,budget);
-   if(!price)return send(res,400,{error:'Preço SIURB não pertence à data-base e regime do orçamento'});
+   if(!price)return done(res,400,{error:'Preço SIURB não pertence à data-base e regime do orçamento'});
    const position=Number(body.position);
-   if(!Number.isSafeInteger(position)||position<1||position>10000)return send(res,400,{error:'Posição inválida'});
+   if(!Number.isSafeInteger(position)||position<1||position>10000)return done(res,400,{error:'Posição inválida'});
    const quantity=decimal(body.quantity,'Quantidade',1e10,6),newId=randomUUID();
    const created=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND lock_version=$9 AND status='rascunho' RETURNING id), created AS (INSERT INTO budget_items(id,budget_id,position,source_code,source_name,unit,quantity,direct_unit_cost,reference_price_id) SELECT $1,guard.id,$3,$4,$5,$6,$7,$8,$10 FROM guard RETURNING *), reviewed AS (INSERT INTO budget_item_cost_reviews(budget_item_id,source,reference_price_id,category) SELECT created.id,'SIURB',$10,$11 FROM created RETURNING budget_item_id), audited AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $12,'budget_items',created.id,'siurb_price_selected' FROM created RETURNING id) SELECT created.* FROM created JOIN reviewed ON reviewed.budget_item_id=created.id JOIN audited ON audited.id=created.id",
     [newId,id,position,price.code,price.description,price.unit,quantity,price.unit_cost,body.lock_version,price.id,price.scope,user.id]);
-   if(!created.length)return send(res,409,{error:'Orçamento modificado; recarregue'});
+   if(!created.length)return done(res,409,{error:'Orçamento modificado; recarregue'});
    await sql.query("UPDATE budget_costing_profiles SET technical_reviewed=false,commercial_reviewed=false,bdi_reviewed=false WHERE budget_id=$1",[id]);
-   return send(res,201,created[0]);
+   return done(res,201,created[0]);
  }
  if(sub==='cost-settings'&&method==='PUT'){
-   if(!canWrite(user)&&!canApprove(user))return send(res,403,{error:'Sem permissão'});
-   if(!draft)return send(res,409,{error:'Só rascunhos permitem revisão'});
+   if(!canWrite(user)&&!canApprove(user))return done(res,403,{error:'Sem permissão'});
+   if(!draft)return done(res,409,{error:'Só rascunhos permitem revisão'});
    const body=await readBody(req);
-   if(!scopeMatch(budget,body))return send(res,409,{error:'Orçamento alterado; atualize a página'});
+   if(!scopeMatch(budget,body))return done(res,409,{error:'Orçamento alterado; atualize a página'});
    const bdi={};
    for(const key of bdiKeys)bdi[key]=decimal(body.bdi?.[key],key,99.99,2);
    const contingency=decimal(body.contingency_pct??0,'Contingência',100,2);
+   const value=k=>Number(bdi[k])/100;
+   const effective=100*((1+value('administracaoCentral')+value('seguro')+value('garantia')+value('risco'))*
+     (1+value('despesasFinanceiras'))*(1+value('lucro'))/(1-value('tributosSobreReceita'))-1);
+   if(!Number.isFinite(effective)||effective<0||effective>100)return done(res,400,{error:'BDI resultante fora de 0 a 100%. Confira os componentes.'});
+   const effectiveRounded=String(Math.round(effective*10000)/10000);
+
    const approve=['bdi_reviewed','technical_reviewed','commercial_reviewed'].some(k=>body[k]===true);
-   if(approve&&!canApprove(user))return send(res,403,{error:'Somente administrador ou revisor pode aprovar custos'});
+   if(approve&&!canApprove(user))return done(res,403,{error:'Somente administrador ou revisor pode aprovar custos'});
    const notes=clean(body.review_notes,'Observações',2000,false);
    const checked=['bdi_reviewed','technical_reviewed','commercial_reviewed'].map(k=>body[k]===true);
    const result=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now(),bdi_pct=$3,contingency_pct=$4 WHERE id=$1 AND lock_version=$2 AND status='rascunho' RETURNING id), revised AS (INSERT INTO budget_costing_profiles(budget_id,bdi_components,contingency_pct,bdi_reviewed,technical_reviewed,commercial_reviewed,review_notes,reviewed_by,updated_by,updated_at) SELECT guard.id,$5::jsonb,$4,$6,$7,$8,$9,$10,$10,now() FROM guard ON CONFLICT(budget_id) DO UPDATE SET bdi_components=excluded.bdi_components,contingency_pct=excluded.contingency_pct,bdi_reviewed=excluded.bdi_reviewed,technical_reviewed=excluded.technical_reviewed,commercial_reviewed=excluded.commercial_reviewed,review_notes=excluded.review_notes,reviewed_by=excluded.reviewed_by,updated_by=excluded.updated_by,updated_at=now() RETURNING budget_id), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $10,'budgets',revised.budget_id,'cost_profile_updated' FROM revised RETURNING id) SELECT revised.budget_id FROM revised JOIN logged ON true",
-    [id,body.lock_version,String(body.bdi_effective_pct??0),contingency,JSON.stringify(bdi),...checked,notes,user.id]);
-   if(!result.length)return send(res,409,{error:'Versão alterada; atualize a página'});
-   return send(res,200,{ok:true});
+    [id,body.lock_version,effectiveRounded,contingency,JSON.stringify(bdi),...checked,notes,user.id]);
+   if(!result.length)return done(res,409,{error:'Versão alterada; atualize a página'});
+   return done(res,200,{ok:true});
  }
  if(sub==='cost-review'&&fourth&&method==='PUT'){
-   if(!canWrite(user)&&!canApprove(user))return send(res,403,{error:'Sem permissão'});
-   if(!draft)return send(res,409,{error:'Orçamento bloqueado'});
+   if(!canWrite(user)&&!canApprove(user))return done(res,403,{error:'Sem permissão'});
+   if(!draft)return done(res,409,{error:'Orçamento bloqueado'});
    const body=await readBody(req);
-   if(!scopeMatch(budget,body))return send(res,409,{error:'Versão desatualizada'});
+   if(!scopeMatch(budget,body))return done(res,409,{error:'Versão desatualizada'});
    const existing=await sql.query("SELECT id,source_code,direct_unit_cost,reference_price_id FROM budget_items WHERE id=$1 AND budget_id=$2 AND deleted_at IS NULL",[fourth,id]);
-   if(!existing.length)return send(res,404,{error:'Serviço não encontrado'});
+   if(!existing.length)return done(res,404,{error:'Serviço não encontrado'});
    const source=body.source;
-   if(!['SIURB','MANUAL','COTACAO'].includes(source))return send(res,400,{error:'Fonte inválida'});
+   if(!['SIURB','MANUAL','COTACAO'].includes(source))return done(res,400,{error:'Fonte inválida'});
    let officialId=null,category=null;
    if(source==='SIURB'){
      const price=await sourceItem(sql,body.reference_price_id,budget);
      if(!price||price.code!==existing[0].source_code||Number(price.unit_cost)!==Number(existing[0].direct_unit_cost))
-       return send(res,400,{error:'Preço SIURB deve corresponder ao código e custo do catálogo oficial'});
+       return done(res,400,{error:'Preço SIURB deve corresponder ao código e custo do catálogo oficial'});
      officialId=price.id;category=price.scope;
    }
    const quantityVerified=body.quantity_verified===true,compositionReviewed=body.composition_reviewed===true,quoteVerified=body.supplier_quote_verified===true;
    const supplierName=clean(body.supplier_name,'Fornecedor',180),quoteReference=clean(body.quote_reference,'Identificador da cotação',250);
    const quoteDate=clean(body.quote_date,'Data da cotação',10),quotePrice=body.quote_unit_cost==null?null:decimal(body.quote_unit_cost,'Preço cotado',1e9,4);
    if(source!=='SIURB'&&quoteVerified&&(!supplierName||!quoteReference||!/^\d{4}-\d{2}-\d{2}$/.test(quoteDate||'')||quotePrice===null||Number(quotePrice)!==Number(existing[0].direct_unit_cost)))
-      return send(res,400,{error:'Cotação verificada exige fornecedor, referência, data e preço igual ao lançado'});
+      return done(res,400,{error:'Cotação verificada exige fornecedor, referência, data e preço igual ao lançado'});
    const loss=decimal(body.loss_pct??0,'Perdas',100,2);
    const freight=decimal(body.freight_unit_cost??0,'Frete unitário',1e9,4);
    const other=decimal(body.other_unit_cost??0,'Outros custos unitários',1e9,4);
    const notes=clean(body.notes,'Justificativa',2000);
    const result=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND lock_version=$16 AND status='rascunho' RETURNING id), attached AS (UPDATE budget_items SET reference_price_id=$4 WHERE id=$1 AND budget_id=$2 AND EXISTS(SELECT 1 FROM guard) RETURNING id), revised AS (INSERT INTO budget_item_cost_reviews(budget_item_id,source,reference_price_id,category,quantity_verified,composition_reviewed,supplier_quote_verified,supplier_name,quote_reference,quote_date,quote_unit_cost,loss_pct,freight_unit_cost,other_unit_cost,notes,reviewed_by) SELECT attached.id,$3,$4,$5,$6,$7,$8,$9,$10,$11::date,$12,$13,$14,$15,$17,$18 FROM attached ON CONFLICT(budget_item_id) DO UPDATE SET source=excluded.source,reference_price_id=excluded.reference_price_id,category=excluded.category,quantity_verified=excluded.quantity_verified,composition_reviewed=excluded.composition_reviewed,supplier_quote_verified=excluded.supplier_quote_verified,supplier_name=excluded.supplier_name,quote_reference=excluded.quote_reference,quote_date=excluded.quote_date,quote_unit_cost=excluded.quote_unit_cost,loss_pct=excluded.loss_pct,freight_unit_cost=excluded.freight_unit_cost,other_unit_cost=excluded.other_unit_cost,notes=excluded.notes,reviewed_by=excluded.reviewed_by,updated_at=now() RETURNING budget_item_id), invalidated AS (UPDATE budget_costing_profiles SET technical_reviewed=false,commercial_reviewed=false,bdi_reviewed=false,updated_at=now() WHERE budget_id=$2 AND EXISTS (SELECT 1 FROM revised) RETURNING budget_id), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $18,'budget_items',revised.budget_item_id,'cost_evidence_updated' FROM revised RETURNING id) SELECT revised.budget_item_id FROM revised JOIN logged ON true",
     [fourth,id,source,officialId,category,quantityVerified,compositionReviewed,quoteVerified,supplierName,quoteReference,quoteDate||null,quotePrice,loss,freight,other,body.lock_version,notes,user.id]);
-   if(!result.length)return send(res,409,{error:'Versão alterada; recarregue'});
-   return send(res,200,{ok:true});
+   if(!result.length)return done(res,409,{error:'Versão alterada; recarregue'});
+   return done(res,200,{ok:true});
  }
  if(sub==='extra-costs'){
-   if(!canWrite(user))return send(res,403,{error:'Sem permissão'});
-   if(!draft)return send(res,409,{error:'Só rascunhos'});
+   if(!canWrite(user))return done(res,403,{error:'Sem permissão'});
+   if(!draft)return done(res,409,{error:'Só rascunhos'});
    if(method==='POST'){
      const body=await readBody(req);
-     if(!scopeMatch(budget,body))return send(res,409,{error:'Versão desatualizada'});
-     const category=body.category;if(!allowed.includes(category))return send(res,400,{error:'Categoria inválida'});
+     if(!scopeMatch(budget,body))return done(res,409,{error:'Versão desatualizada'});
+     const category=body.category;if(!allowed.includes(category))return done(res,400,{error:'Categoria inválida'});
      const description=clean(body.description,'Descrição',250,true),amount=decimal(body.amount,'Custo direto extra',1e9,2),newId=randomUUID();
      const supplier=clean(body.supplier_name,'Fornecedor',180),ref=clean(body.quote_reference,'Cotação',250),date=clean(body.quote_date,'Data',10);
      const result=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND lock_version=$11 AND status='rascunho' RETURNING id), created AS (INSERT INTO budget_extra_direct_costs(id,budget_id,description,category,amount,included_in_unit_prices,supplier_name,quote_reference,quote_date,created_by) SELECT $1,guard.id,$3,$4,$5,$6,$7,$8,$9::date,$10 FROM guard RETURNING *), audited AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $10,'budget_extra_direct_costs',created.id,'create' FROM created RETURNING id) SELECT created.* FROM created JOIN audited ON audited.id=created.id",
        [newId,id,description,category,amount,body.included_in_unit_prices===true,supplier,ref,date||null,user.id,body.lock_version]);
-     if(!result.length)return send(res,409,{error:'Versão desatualizada'});
+     if(!result.length)return done(res,409,{error:'Versão desatualizada'});
      await sql.query("UPDATE budget_costing_profiles SET technical_reviewed=false,commercial_reviewed=false,bdi_reviewed=false WHERE budget_id=$1",[id]);
-     return send(res,201,result[0]);
+     return done(res,201,result[0]);
    }
    if(method==='DELETE'&&fourth){
-     if(!validUUID(fourth))return send(res,400,{error:'Identificador inválido'});
+     if(!validUUID(fourth))return done(res,400,{error:'Identificador inválido'});
      const body=await readBody(req);
-     if(!scopeMatch(budget,body))return send(res,409,{error:'Versão desatualizada'});
+     if(!scopeMatch(budget,body))return done(res,409,{error:'Versão desatualizada'});
      const result=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND lock_version=$4 AND status='rascunho' AND EXISTS(SELECT 1 FROM budget_extra_direct_costs WHERE id=$1 AND budget_id=$2) RETURNING id), removed AS (DELETE FROM budget_extra_direct_costs WHERE id=$1 AND budget_id=$2 AND EXISTS(SELECT 1 FROM guard) RETURNING id), audited AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $3,'budget_extra_direct_costs',removed.id,'remove' FROM removed RETURNING id) SELECT removed.id FROM removed JOIN audited ON audited.id=removed.id",
        [fourth,id,user.id,body.lock_version]);
-     if(!result.length)return send(res,409,{error:'Custo extra indisponível ou versão alterada'});
+     if(!result.length)return done(res,409,{error:'Custo extra indisponível ou versão alterada'});
      await sql.query("UPDATE budget_costing_profiles SET technical_reviewed=false,commercial_reviewed=false,bdi_reviewed=false WHERE budget_id=$1",[id]);
-     return send(res,200,{ok:true});
+     return done(res,200,{ok:true});
    }
  }
  return false;
