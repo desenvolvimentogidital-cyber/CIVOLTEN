@@ -6,6 +6,7 @@ on:
       - 'scripts/inspect_siurb_2026.py'
       - '.github/workflows/inspect-siurb.yml'
       - 'scripts/inspect_siurb_compositions_2026.py'
+      - 'scripts/inspect_siurb_labor_2026.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,3 +25,5 @@ jobs:
         run: python scripts/inspect_siurb_2026.py
       - name: Inspecionar coeficientes das composições sem publicar dados
         run: python scripts/inspect_siurb_compositions_2026.py
+      - name: Verificar registro de profissionais horistas
+        run: python scripts/inspect_siurb_labor_2026.py
