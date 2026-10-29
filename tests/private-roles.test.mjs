@@ -14,7 +14,7 @@ function request(route,{method='GET',user=null,body=null,headers={}}={}){
  const sql={async query(statement,args){
    statements.push({statement,args});
    if(statement.includes('FROM app_sessions s'))return [user];
-   if(statement.includes('SELECT id,login,role,is_active,created_at,last_login_at FROM app_users'))return [];
+   if(statement.includes('SELECT id,login,role,is_active,must_change_password,created_at,last_login_at FROM app_users'))return [];
    throw Error('Unexpected query in isolated route test: '+statement);
  }};
  return createApi(sql)(stream,res).then(()=>({status:res.statusCode,json:res.json,statements}));
