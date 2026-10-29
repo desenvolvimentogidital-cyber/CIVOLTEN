@@ -17,7 +17,7 @@ export function costPage({state,esc,writeable}){
    const rev=x.source||'MANUAL';
    return '<tr><td><strong>'+esc(x.source_code||'Próprio')+'</strong> '+esc(x.source_name)+'</td><td>'+esc(rev)+'</td>'+
    '<td>'+esc(x.quantity)+' '+esc(x.unit)+'</td><td>'+fmt(x.direct_unit_cost)+'</td>'+
-   '<td>'+esc(x.quantity_verified?'Conferido':'Medição pendente')+'</td><td>'+ (writeable()||canApprove?'<button class="btn" data-action="cost-evidence" data-id="'+esc(x.id)+'">Evidências</button>':'—')+'</td></tr>'
+   '<td>'+esc(x.quantity_verified?'Conferido':'Medição pendente')+'</td><td>'+ (x.reference_price_id?'<button class="btn" data-action="cost-composition" data-id="'+esc(x.reference_price_id)+'">Ver insumos</button> ':'')+ (writeable()||canApprove?'<button class="btn" data-action="cost-evidence" data-id="'+esc(x.id)+'">Evidências</button>':'—')+'</td></tr>'
  }).join('');
  const rowsExtra=extra.map(x=>'<tr><td>'+esc(categories[x.category]||x.category)+' — '+esc(x.description)+'</td><td>'+fmt(x.amount)+'</td><td>'+ (x.included_in_unit_prices?'Possível duplicação':'Separado')+'</td><td>'+(writeable()?'<button class="btn danger" data-action="cost-remove-extra" data-id="'+esc(x.id)+'">Remover</button>':'—')+'</td></tr>').join('');
  const ready=est.ready;
@@ -139,6 +139,19 @@ export async function costHandleForm(form,{state,api,esc,refresh,toast}){
 }
 export async function costHandleClick(btn,{state,api,dialog,field,esc,refresh,toast}){
  const act=btn.dataset.action;
+ if(act==='cost-composition'){
+   const x=await api('siurb/'+btn.dataset.id+'/composition');
+   const labor=(x.labor||[]).map(z=>'<tr><td>'+esc(z.code||'')+'</td><td>'+esc(z.name||'')+'</td><td>'+esc(z.unit||'')+'</td><td>'+esc(z.coef||'')+'</td></tr>').join('');
+   const other=(x.other||[]).map(z=>'<tr><td>'+esc(z.code||'')+'</td><td>'+esc(z.name||'')+'</td><td>'+esc(z.unit||'')+'</td><td>'+esc(z.coef||'')+'</td></tr>').join('');
+   const table=rows=>'<div class="table-wrap"><table><thead><tr><th>Código</th><th>Descrição</th><th>Unidade</th><th>Coeficiente</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4">Nenhum item direto listado</td></tr>')+'</tbody></table></div>';
+   dialog('Composição SIURB '+x.code,'<p><strong>'+esc(x.description)+'</strong></p>'+
+      '<p class="notice">'+esc(x.notice)+'</p>'+
+      '<p><strong>Hora-homem direta:</strong> '+esc(x.direct_hh_per_unit??'não informada')+' h-h/'+esc(x.unit)+'</p>'+
+      '<h2>Profissionais</h2>'+table(labor)+'<h2>Materiais, equipamentos e auxiliares</h2>'+table(other)+
+      '<p class="tiny muted">Horas de equipamentos não são horas-homem. Verifique complementos e critérios de medição antes de aprovar.</p>'+
+      '<button class="btn" type="button" data-action="close-dialog">Fechar</button>');
+   return true;
+ }
  if(act==='cost-select-siurb'){
    const row=state.costCatalog?.find(x=>x.id===btn.dataset.id);
    if(!row)throw Error('Seleção expirada; pesquise novamente.');
