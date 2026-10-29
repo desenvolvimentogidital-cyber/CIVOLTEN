@@ -6,12 +6,20 @@ on:
     branches: [main]
     paths:
       - scripts/audit-siurb-supplements.py
+      - scripts/build-siurb-supplements.py
+      - scripts/import-siurb-supplements-neon.mjs
+      - scripts/test-siurb-supplements-db.mjs
+      - db/migrations/0009_siurb_supplements.sql
       - .github/workflows/audit-siurb-supplements.yml
   push:
     branches:
       - fix/stage2-composition-audit-20261029
     paths:
       - scripts/audit-siurb-supplements.py
+      - scripts/build-siurb-supplements.py
+      - scripts/import-siurb-supplements-neon.mjs
+      - scripts/test-siurb-supplements-db.mjs
+      - db/migrations/0009_siurb_supplements.sql
       - .github/workflows/audit-siurb-supplements.yml
 
 permissions:
@@ -25,6 +33,18 @@ jobs:
   official-sources:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: civolten-qa-only
+          POSTGRES_DB: civolten_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d civolten_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -38,6 +58,15 @@ jobs:
         run: python scripts/audit-siurb-supplements.py --output artifacts/siurb-supplements-audit.json
       - name: Normalizar custos unitários e auxiliares com manifestos verificados
         run: python scripts/build-siurb-supplements.py
+      - name: Instalar dependências Node do projeto
+        run: npm ci --ignore-scripts
+      - name: Validar registros sem escrever no banco
+        run: node scripts/import-siurb-supplements-neon.mjs --dry-run
+      - name: Importar e repetir em PostgreSQL descartável
+        env:
+          CI: 'true'
+          DATABASE_URL: 'postgresql://postgres:civolten-qa-only@127.0.0.1:5432/civolten_test'
+        run: node scripts/test-siurb-supplements-db.mjs
       - name: Salvar relatório técnico mesmo se houver origem indisponível
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
