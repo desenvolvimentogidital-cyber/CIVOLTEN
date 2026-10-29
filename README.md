@@ -1,5 +1,13 @@
 # CIVOLTEN — Sistema interno de orçamentos e obras
 
+## Situação atual da etapa 1 — verificação concluída em 29/10/2026
+
+- **Vercel:** painel privado e API do commit `ae45e57e` publicados e verificados; [10 testes HTTP externos passaram](https://github.com/desenvolvimentogidital-cyber/CIVOLTEN/actions/runs/40938872838).
+- **PostgreSQL:** migrações 0001–0006 aplicadas, integração de clientes/obras/orçamentos e políticas de acesso testadas. [48 testes, integração e restauração criptografada passaram](https://github.com/desenvolvimentogidital-cyber/CIVOLTEN/actions/runs/40939093170).
+- **Pendências obrigatórias para concluir a homologação operacional:** primeiro login e troca da senha temporária pelo responsável, confirmar que um cadastro fictício aparece em dois dispositivos e ativar/validar o backup criptografado real. Não armazenar clientes reais antes disso.
+- A rotina de backup já está implementada, mas **não está ativa** sem os Secrets/Variables do GitHub, que precisam ser configurados pelo responsável em sua conta. Instruções em `docs/BACKUP_OPERACIONAL.md`.
+
+
 ## Etapa 1 — API publicada e conta administrativa (29/10/2026)
 
 - O GitHub Actions confirmou externamente `/api/v1/health = 200`, `/api/v1/auth/status = 200`, acesso anônimo a clientes `401` e gravações/origens indevidas `403`: [smoke remoto aprovado](https://github.com/desenvolvimentogidital-cyber/CIVOLTEN/actions/runs/40930448073).
