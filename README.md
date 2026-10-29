@@ -1,5 +1,21 @@
 # CIVOLTEN — Sistema interno de orçamentos e obras
 
+## Atualização técnica — 29/10/2026 (etapas 1–5 em implementação)
+
+**Status: homologação de desenvolvimento, NÃO apto a dados de clientes ou propostas comerciais reais.**
+
+- Etapa 1: PostgreSQL Neon com migrações 0001–0004, branch principal original verificada, cópia de QA isolada; painel autenticado `public/secure.html` e API `api/index.mjs` implementados, ainda sem administrador ativo e sem homologação online.
+- Etapa 2: motor `src/estimate-engine.mjs` calcula custos em centavos, BDI detalhado, contingência explícita e cenários de risco. Ainda não integrado ao orçamento persistido.
+- Etapa 3: motor `src/schedule-engine.mjs` modela equipes, feriados, dependências e simultaneidade, bloqueando falta de produtividade. Ainda não integrado ao Gantt do banco.
+- Etapa 4: `src/proposal-pdf.mjs` gera PDF A4 em servidor com revisão obrigatória, paginação e checagem do total. Ainda sem endpoint de emissão operacional.
+- Etapa 5: suíte de testes `npm test`, incluindo cenário sintético da SIURB ao PDF; não substitui homologação real, segurança e backup recorrente.
+- **Vercel:** limite gratuito de mais de 100 deploys em 24h retornou 402 `api-deployments-free-per-day`. O deploy READY mostrado atualmente é anterior ao commit mais recente; sem upgrade automático.
+- **Segurança:** o segredo temporário `CIVOLTEN_BOOTSTRAP_SECRET` continua ausente. Não ativar administrador até a publicação do código atualizado e aprovação do procedimento.
+
+Acompanhar o restante da homologação: [Issue #1](https://github.com/desenvolvimentogidital-cyber/CIVOLTEN/issues/1). Documentos: `docs/BACKEND_NEON_DEV.md` e `docs/CRITERIOS_DE_LIBERACAO_COMERCIAL.md`.
+
+Para executar apenas o servidor SQLite local da primeira versão, ainda é possível usar `node server.mjs`. Para executar **a suíte atual de testes**, que inclui dependências do Neon e geração de PDF: `npm install` e depois `npm test`.
+
 ## Auditoria obrigatória e fichas de composições — atualização 29/10/2026
 
 **Esta versão ainda não está liberada para propostas reais na Vercel.**
@@ -48,7 +64,7 @@ node server.mjs
 5. No primeiro acesso, crie usuário e senha. Não existe credencial padrão pré-configurada.
 6. Cadastre um cliente, uma obra, um orçamento e os itens do orçamento.
 
-**Não precisa rodar `npm install`** nesta versão. Também pode usar `npm start` ou `npm test`.
+**Para usar apenas o servidor local legado:** não é necessário instalar dependências. **Para executar a API Neon, PDF e testes atuais:** execute `npm install` primeiro; depois `npm test`. Também é possível usar `npm start` para o modo local.
 
 O servidor local escuta apenas em `127.0.0.1` por padrão. Para testes em outros dispositivos da mesma rede, `HOST=0.0.0.0` torna a API acessível na rede, mas isso expõe o servidor sem HTTPS; não use com dados reais sem uma configuração de rede e segurança adequada. Em PowerShell: `$env:HOST='0.0.0.0'; node server.mjs`.
 
