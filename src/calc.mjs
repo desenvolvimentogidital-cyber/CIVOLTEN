@@ -41,23 +41,24 @@ export function calculatePlan(items, budget={}) {
   const workDays = numeric(budget.work_days_week,5)===6?6:5;
   const capacityDay = workers*hoursDay*efficiency;
   const segments = budgetSummary.rows.map((item,idx)=>{
-    const durationDays = Math.max(1,Math.ceil(item.laborHours / capacityDay));
+    const durationDays = item.hh_unit>0?Math.max(1,Math.ceil(item.laborHours / capacityDay)):0;
     // Sequenciamento conservador e seguro; ajustes de precedência são manuais
     // até a validação das equipes e atividades simultâneas.
     return {id:item.id,name:item.description,code:item.code,unit:item.unit,qty:item.qty,
       hours:item.laborHours,cost:item.subtotal,durationDays,step:idx+1};
   });
+  const missingProductivity=budgetSummary.rows.filter(item=>!(item.hh_unit>0)).length;
   const baseDays=segments.reduce((s,x)=>s+x.durationDays,0);
-  const safetyDays=Math.ceil(baseDays*safetyPct/100);
-  const totalDays=baseDays+safetyDays;
+  const safetyDays=missingProductivity?0:Math.ceil(baseDays*safetyPct/100);
+  const totalDays=missingProductivity?0:baseDays+safetyDays;
   const start=budget.start_date||new Date().toISOString().slice(0,10);
   let offset=0;
   const tasks=segments.map(x=>{
-    const begin=addWorkingDays(start, offset+1,workDays);
-    const end=addWorkingDays(start,offset+x.durationDays,workDays);
+    const begin=x.durationDays?addWorkingDays(start,offset+1,workDays):null;
+    const end=x.durationDays?addWorkingDays(start,offset+x.durationDays,workDays):null;
     offset+=x.durationDays;
     return {...x,start:begin,end};
   });
-  return {tasks,baseDays,safetyDays,totalDays,start,finish:totalDays?addWorkingDays(start,totalDays,workDays):start, capacityDay,
+  return {tasks,baseDays,safetyDays,totalDays,missingProductivity,start,finish:totalDays?addWorkingDays(start,totalDays,workDays):null, capacityDay,
     workDays, workers,hoursDay,efficiency,safetyPct, summary:budgetSummary, methodology:'Sequencial conservador. Antes da contratação, valide equipe por profissão, restrições e atividades paralelas.'};
 }
