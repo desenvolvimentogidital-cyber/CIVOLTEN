@@ -31,6 +31,14 @@ function authView(){
  '<button class="btn block" type="button" data-action="'+(setup?'login-view':'setup-view')+'">'+(setup?'Voltar ao login':'Primeira configuração do administrador')+'</button>'+
  '<p class="fallback"><a href="/">Voltar à demonstração</a></p></div></section>';
 }
+function forcedPasswordView(){
+ app.innerHTML='<section class="login"><div class="login-card">'+brand()+
+ '<h1>Troca de senha obrigatória</h1><p class="muted">Sua senha inicial é temporária. Antes de acessar os clientes e orçamentos, defina uma senha exclusiva, com pelo menos 12 caracteres.</p>'+
+ '<form id="password-form">'+field('Senha temporária atual','current_password','password',true)+
+ field('Nova senha (mínimo 12 caracteres)','new_password','password',true,'','minlength="12" maxlength="128"')+
+ '<button class="btn primary block" type="submit">Salvar nova senha e acessar</button></form>'+
+ '<button class="btn block" data-action="logout">Sair</button><p class="tiny muted">Não compartilhe sua senha por mensagens.</p></div></section>';
+}
 function field(label,name,type='text',required=false,value='',extra=''){
  return '<div class="field"><label for="f_'+esc(name)+'">'+esc(label)+'</label><input id="f_'+esc(name)+'" name="'+esc(name)+'" type="'+esc(type)+'" '+(required?'required':'')+' value="'+esc(value)+'" '+extra+'></div>';
 }
@@ -135,6 +143,7 @@ function budgetDetail(){
 }
 function render(){
  if(!state.user){authView();return}
+ if(state.user.must_change_password){forcedPasswordView();return}
  shell();const body=document.querySelector('#private-content');
  body.innerHTML=state.view==='clientes'?clientPage():state.view==='obras'?projectPage():state.view==='orcamentos'?budgetPage():state.view==='usuarios'?usersPage():state.view==='detalhe'?budgetDetail():dashboard();
 }
@@ -192,7 +201,7 @@ document.addEventListener('submit',async e=>{
   if(form.id==='authForm'){
    const setup=state.mode==='setup';
    const result=await api('auth/'+(setup?'bootstrap':'login'),'POST',setup?{bootstrap_secret:b.bootstrap_secret,login:b.login,password:b.password}:{login:b.login,password:b.password});
-   form.reset();if(setup){state.mode='login';toast('Administrador criado. Faça login.');authView()}else{state.user=result.user;await loadLists();state.view='inicio';render()}return;
+   form.reset();if(setup){state.mode='login';toast('Administrador criado. Faça login.');authView()}else{state.user=result.user;if(!state.user.must_change_password)await loadLists();state.view='inicio';render()}return;
   }
   const id=form.dataset.id;
   if(form.id==='user-form'){
@@ -201,7 +210,10 @@ document.addEventListener('submit',async e=>{
     document.querySelector('#secure-dialog')?.remove();await loadLists();render();toast('Usuário salvo. Compartilhe senha temporária fora do sistema e solicite alteração no primeiro acesso.');return;
   }
   if(form.id==='password-form'){
-    await api('auth/change-password','POST',b);document.querySelector('#secure-dialog')?.remove();toast('Senha alterada. Outras sessões foram encerradas.');return;
+    await api('auth/change-password','POST',b);
+    if(state.user?.must_change_password){state.user.must_change_password=false;await loadLists();state.view='inicio';render()}
+    else document.querySelector('#secure-dialog')?.remove();
+    toast('Senha alterada. Outras sessões foram encerradas.');return;
   }
   if(form.id==='client-form')await api('clients'+(id?'/'+id:''),id?'PUT':'POST',b);
   else if(form.id==='project-form')await api('projects'+(id?'/'+id:''),id?'PUT':'POST',b);
@@ -250,7 +262,7 @@ document.addEventListener('click',async e=>{
 });
 async function init(){
  theme();
- try{const status=await api('auth/status');if(status.authenticated){state.user=status.user;await loadLists()}}
+ try{const status=await api('auth/status');if(status.authenticated){state.user=status.user;if(!state.user.must_change_password)await loadLists()}}
  catch(err){console.warn('[CIVOLTEN] Painel seguro indisponível:',err.message);app.innerHTML='<section class="login"><div class="login-card">'+brand()+'<h1>API indisponível</h1><p class="error">'+esc(err.message)+'</p><button class="btn primary" data-action="retry">Tentar novamente</button></div></section>';return}
  render();
 }
