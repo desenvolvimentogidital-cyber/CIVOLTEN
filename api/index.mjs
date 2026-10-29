@@ -144,7 +144,7 @@ export function createApi(sql,opts={}){
      return response(res,405,{error:'Método não permitido'});
    }
    // Exclusão lógica: preserva integridade e histórico para auditorias.
-   if(method==='DELETE'&&id&&['clients','projects','budgets'].includes(resource)){
+   if(method==='DELETE'&&id&&!sub&&['clients','projects','budgets'].includes(resource)){
      if(!writable(user))return noAccess(res);
      if(!uuid(id))return response(res,400,{error:'Identificador inválido'});
      let changed;
