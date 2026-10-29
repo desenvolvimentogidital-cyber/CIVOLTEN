@@ -213,10 +213,9 @@ export function createApi(sql,opts={}){
      // Controle otimista evita sobrescrever alterações de outro dispositivo.
      const expected=Number(b.lock_version);
      if(!Number.isSafeInteger(expected)||expected<0)return response(res,400,{error:'Versão do orçamento obrigatória'});
-     const updated=await sql.query("UPDATE budgets SET client_id=$2,project_id=$3,title=$4,reference_month=$5,regime=$6,bdi_pct=$7,lock_version=lock_version+1,updated_at=now() WHERE id=$1 AND lock_version=$8 AND status='rascunho' RETURNING *",
-       [id,b.client_id,projectId,title,month,regime,bdi,expected]);
+     const updated=await sql.query("WITH revised AS (UPDATE budgets SET client_id=$2,project_id=$3,title=$4,reference_month=$5,regime=$6,bdi_pct=$7,lock_version=lock_version+1,updated_at=now() WHERE id=$1 AND lock_version=$8 AND status='rascunho' RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $9,'budgets',revised.id,'update' FROM revised RETURNING id) SELECT revised.* FROM revised JOIN logged ON true",
+       [id,b.client_id,projectId,title,month,regime,bdi,expected,user.id]);
      if(!updated.length)return response(res,409,{error:'Orçamento alterado em outro dispositivo. Atualize antes de salvar.'});
-     await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'budgets',$2,'update')",[user.id,id]);
      return response(res,200,updated[0]);
    }
    if(resource==='budgets'&&id&&sub==='items'){
@@ -235,17 +234,14 @@ export function createApi(sql,opts={}){
        let row;
        if(method==='POST'){
          const itemId=randomUUID();
-         row=await sql.query("INSERT INTO budget_items(id,budget_id,position,source_name,source_code,unit,quantity,direct_unit_cost) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
-           [itemId,id,position,description,sourceCode,unit,qty,unitCost]);
-         await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'budget_items',$2,'create')",[user.id,itemId]);
+         row=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND status='rascunho' RETURNING id), created AS (INSERT INTO budget_items(id,budget_id,position,source_name,source_code,unit,quantity,direct_unit_cost) SELECT $1,guard.id,$3,$4,$5,$6,$7,$8 FROM guard RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $9,'budget_items',created.id,'create' FROM created RETURNING id) SELECT created.* FROM created JOIN logged ON true",
+           [itemId,id,position,description,sourceCode,unit,qty,unitCost,user.id]);
        }else{
          if(!uuid(parts[3]))return response(res,400,{error:'Serviço inválido'});
-         row=await sql.query("UPDATE budget_items SET position=$3,source_name=$4,source_code=$5,unit=$6,quantity=$7,direct_unit_cost=$8 WHERE id=$1 AND budget_id=$2 RETURNING *",
-           [parts[3],id,position,description,sourceCode,unit,qty,unitCost]);
-         if(!row.length)return notFound(res);
-         await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'budget_items',$2,'update')",[user.id,parts[3]]);
+         row=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND status='rascunho' AND EXISTS (SELECT 1 FROM budget_items WHERE id=$1 AND budget_id=$2 AND deleted_at IS NULL) RETURNING id), changed AS (UPDATE budget_items SET position=$3,source_name=$4,source_code=$5,unit=$6,quantity=$7,direct_unit_cost=$8 WHERE id=$1 AND budget_id=$2 AND deleted_at IS NULL AND EXISTS (SELECT 1 FROM guard) RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $9,'budget_items',changed.id,'update' FROM changed RETURNING id) SELECT changed.* FROM changed JOIN logged ON true",
+           [parts[3],id,position,description,sourceCode,unit,qty,unitCost,user.id]);
        }
-       await sql.query("UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$1",[id]);
+       if(!row.length)return response(res,409,{error:'Orçamento não editável ou item indisponível. Recarregue o orçamento.'});
        return response(res,method==='POST'?201:200,row[0]);
      }
    }
