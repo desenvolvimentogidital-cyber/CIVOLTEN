@@ -9,9 +9,29 @@
     const rows=Array.isArray(b?.summary?.rows)?b.summary.rows:(Array.isArray(b?.items)?b.items:[]);
     const num=x=>x!==null&&x!==''&&Number.isFinite(Number(x))?Number(x):NaN;
     const meaningful=s=>typeof s==='string'&&s.trim().length>=3;
+    const digits=value=>String(value??'').replace(/\D/g,'');
+    const checkCpf=value=>{
+      const n=digits(value);
+      if(n.length!==11||/^(\d)\1{10}$/.test(n))return false;
+      const verify=count=>{
+        let sum=0;for(let i=0;i<count;i++)sum+=Number(n[i])*(count+1-i);
+        const result=(sum*10)%11;return result===10?0:result;
+      };
+      return verify(9)===Number(n[9])&&verify(10)===Number(n[10]);
+    };
+    const checkCnpj=value=>{
+      const n=digits(value);
+      if(n.length!==14||/^(\d)\1{13}$/.test(n))return false;
+      const check=(size,weights)=>{
+        let sum=0;for(let i=0;i<size;i++)sum+=Number(n[i])*weights[i];
+        const rest=sum%11;return rest<2?0:11-rest;
+      };
+      return check(12,[5,4,3,2,9,8,7,6,5,4,3,2])===Number(n[12])
+        &&check(13,[6,5,4,3,2,9,8,7,6,5,4,3,2])===Number(n[13]);
+    };
     if(!meaningful(b?.client_name))err('client','Selecione um cliente identificado.');
-    if(!meaningful(b?.client_doc)||String(b.client_doc).replace(/\D/g,'').length<11)
-      err('client_doc','Informe CPF/CNPJ do cliente e confira os dados cadastrais.');
+    if(!checkCpf(b?.client_doc)&&!checkCnpj(b?.client_doc))
+      err('client_doc','Informe um CPF ou CNPJ válido do cliente e confira os dados cadastrais.');
     if(!meaningful(b?.project_name)&&!meaningful(b?.title))
       err('work','Informe a obra e seu objeto contratual.');
     if(!meaningful(b?.project_address))
@@ -37,7 +57,7 @@
     if(!meaningful(b?.notes)||String(b.notes).trim().length<20)
       err('scope','Descreva condições de execução, premissas, exclusões e responsabilidades em Observações e restrições (mín. 20 caracteres).');
     if(!meaningful(company?.company))err('company','Identifique a empresa emitente.');
-    if(String(company?.cnpj||'').replace(/\D/g,'').length!==14)err('company_cnpj','Preencha o CNPJ da empresa nas Configurações.');
+    if(!checkCnpj(company?.cnpj))err('company_cnpj','Preencha um CNPJ válido da empresa nas Configurações.');
     if(!meaningful(company?.email)||!String(company.email).includes('@'))err('company_contact','Preencha um e-mail comercial válido nas Configurações.');
     if(!meaningful(company?.phone))warn('company_phone','Confira o telefone comercial da empresa.');
     if(b?.reference_month!=='2026-07')warn('reference','Verifique se a data-base selecionada é compatível com os serviços importados da SIURB.');
