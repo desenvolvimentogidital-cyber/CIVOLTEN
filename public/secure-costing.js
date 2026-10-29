@@ -24,6 +24,7 @@ export function costPage({state,esc,writeable}){
  const ready=est.ready;
  return '<div class="row"><div><h1>Engenharia de custos</h1><p class="muted">'+esc(state.detail?.code||'')+' · Data-base '+esc(data.budget.reference_month)+' · '+esc(data.budget.regime)+'</p></div><button class="btn" data-action="cost-back">Voltar ao orçamento</button></div>'+
  '<div class="notice"><strong>Prévia para conferência — não é proposta comercial.</strong> '+esc(data.disclaimer)+'</div>'+
+ '<div class="notice tiny"><strong>Como precificar:</strong> a SIURB serve como referência. Composição sem insumos comprovados fica bloqueada para aprovação. Para serviços próprios, informe uma cotação identificada, data, fornecedor, quantidades medidas e revise o BDI. Preços, tributos e premissas de teste não autorizam emissão contratual.</div>'+
  '<div class="grid"><div class="card"><div class="muted">Custo direto (serviços + extras)</div><div class="metric">'+fmt(est.direct_cost_reais)+'</div></div>'+
  '<div class="card"><div class="muted">BDI discriminado</div><div class="metric">'+fmt(est.bdi_amount_reais)+'</div><div class="muted tiny">'+esc(est.bdi_effective_pct)+'%</div></div>'+
  '<div class="card"><div class="muted">Contingência financeira</div><div class="metric">'+fmt(est.contingency_reais)+'</div></div>'+
@@ -145,11 +146,16 @@ export async function costHandleClick(btn,{state,api,dialog,field,esc,refresh,to
    const labor=(x.labor||[]).map(z=>'<tr><td>'+esc(z.code||'')+'</td><td>'+esc(z.name||'')+'</td><td>'+esc(z.unit||'')+'</td><td>'+esc(z.coef||'')+'</td></tr>').join('');
    const other=(x.other||[]).map(z=>'<tr><td>'+esc(z.code||'')+'</td><td>'+esc(z.name||'')+'</td><td>'+esc(z.unit||'')+'</td><td>'+esc(z.coef||'')+'</td></tr>').join('');
    const table=rows=>'<div class="table-wrap"><table><thead><tr><th>Código</th><th>Descrição</th><th>Unidade</th><th>Coeficiente</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4">Nenhum item direto listado</td></tr>')+'</tbody></table></div>';
+   const audit=x.inspection||{};
+   const audited=(audit.nodes||[]).map(z=>'<tr><td>'+esc(z.path||z.code)+'</td><td>'+esc(z.kind)+'</td><td>'+esc(z.unit)+'</td><td>'+esc(z.coefficient)+'</td><td>'+esc(z.status)+'</td></tr>').join('');
+   const auditTable='<h2>Auditoria de auxiliares e insumos</h2><p class="notice"><strong>Não homologada para custo comercial.</strong> Componentes sem preço reconciliado: '+esc(audit.unpriced_components??'não apurado')+'. Esta lista não substitui a planilha oficial de insumos e mão de obra.</p>'+
+     '<div class="table-wrap"><table><thead><tr><th>Cadeia</th><th>Grupo</th><th>Unidade</th><th>Coeficiente</th><th>Verificação</th></tr></thead><tbody>'+ (audited||'<tr><td colspan="5">Composição sem componentes verificáveis</td></tr>')+'</tbody></table></div>';
    dialog('Composição SIURB '+x.code,'<p><strong>'+esc(x.description)+'</strong></p>'+
       '<p class="notice">'+esc(x.notice)+'</p>'+
       '<p><strong>Hora-homem direta:</strong> '+esc(x.direct_hh_per_unit??'não informada')+' h-h/'+esc(x.unit)+'</p>'+
       '<h2>Profissionais</h2>'+table(labor)+'<h2>Materiais, equipamentos e auxiliares</h2>'+table(other)+
       '<p class="tiny muted">Horas de equipamentos não são horas-homem. Verifique complementos e critérios de medição antes de aprovar.</p>'+
+      auditTable+
       '<button class="btn" type="button" data-action="close-dialog">Fechar</button>');
    return true;
  }
