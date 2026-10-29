@@ -7,6 +7,7 @@ on:
     paths:
       - scripts/audit-siurb-supplements.py
       - scripts/build-siurb-supplements.py
+      - scripts/reconcile-siurb-services.mjs
       - scripts/import-siurb-supplements-neon.mjs
       - scripts/test-siurb-supplements-db.mjs
       - db/migrations/0009_siurb_supplements.sql
@@ -17,6 +18,7 @@ on:
     paths:
       - scripts/audit-siurb-supplements.py
       - scripts/build-siurb-supplements.py
+      - scripts/reconcile-siurb-services.mjs
       - scripts/import-siurb-supplements-neon.mjs
       - scripts/test-siurb-supplements-db.mjs
       - db/migrations/0009_siurb_supplements.sql
@@ -58,6 +60,8 @@ jobs:
         run: python scripts/audit-siurb-supplements.py --output artifacts/siurb-supplements-audit.json
       - name: Normalizar custos unitários e auxiliares com manifestos verificados
         run: python scripts/build-siurb-supplements.py
+      - name: Conciliar composições de serviços e custos oficiais em centavos
+        run: node scripts/reconcile-siurb-services.mjs
       - name: Instalar dependências Node do projeto
         run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
       - name: Validar registros sem escrever no banco
@@ -75,6 +79,7 @@ jobs:
           path: |
             artifacts/siurb-supplements-audit.json
             artifacts/siurb-supplements-normalized.json
+            artifacts/siurb-services-reconciliation.json
             artifacts/siurb-source-files/
           retention-days: 7
           if-no-files-found: warn
