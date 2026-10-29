@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import {computeBudget,calculatePlan} from './src/calc.mjs';
+import './public/audit.js';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
 const webRoot=path.join(root,'public');
@@ -116,7 +117,7 @@ const route=async (req,res,url)=>{
    if(method==='GET'&&p3)return json(res,sel('proposals',idNum(p3)));
    if(method==='POST'){
      const b=await body(req),id=idNum(b.budget_id),content=budgetDetails(id),code=`PROP-${new Date().getFullYear()}-${String((db.prepare('SELECT MAX(id) mx FROM proposals').get().mx||0)+1).padStart(4,'0')}`;
-     if(!content.items.length || content.summary.total<=0)throw Error('Inclua itens e valores válidos antes de emitir a proposta.');const snapshot={...content,company:getSettings(),issued_at:new Date().toISOString()};const inserted=Number(db.prepare('INSERT INTO proposals(budget_id,code,content) VALUES(?,?,?)').run(id,code,JSON.stringify(snapshot)).lastInsertRowid);
+     const report=globalThis.CIVOLTEN_AUDIT(content,getSettings());if(!report.ready)throw Error('Proposta bloqueada pela auditoria: '+report.errors.map(x=>x.message).join(' | '));const snapshot={...content,company:getSettings(),issued_at:new Date().toISOString()};const inserted=Number(db.prepare('INSERT INTO proposals(budget_id,code,content) VALUES(?,?,?)').run(id,code,JSON.stringify(snapshot)).lastInsertRowid);
      return json(res,{id:inserted,code,content:JSON.stringify(snapshot)},201);
    }
  }
