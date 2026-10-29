@@ -90,3 +90,15 @@ test('Alíquota agregada de 100% é rejeitada sem cálculos infinitos',()=>{
  assert.equal(r.ready,false);
  assert.ok(r.errors.some(e=>e.code==='BDI_TAX'));
 });
+
+test('SIURB: custo não conciliado dos insumos bloqueia liberação mesmo com assinatura de BDI',()=>{
+ const input=base();
+ input.items=[{code:'1001001',source:'SIURB',description:'Serviço oficial',unit:'M2',
+  quantity:'10',unit_cost:'1.8100',reference_month:'2026-07',regime:'Sem desoneração',
+  composition_reviewed:true,composition_available:true,quantity_verified:true,
+  reference_price_id:'00000000-0000-4000-8000-000000000001',auxiliaries_unexpanded:true}];
+ const r=estimateBudget(input);
+ assert.equal(r.ready,false);
+ assert.ok(r.errors.some(e=>e.code==='SIURB_INPUTS_UNPRICED'));
+ assert.equal(r.direct_cost_reais,18.10);
+});
