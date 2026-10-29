@@ -63,7 +63,15 @@ jobs:
         run: |
           set -euo pipefail
           createdb civolten_restored
-          pg_dump --no-owner --no-privileges --format=custom civolten_test | pg_restore --no-owner --no-privileges --exit-on-error --dbname=civolten_restored
+          # Use pg_dump/pg_restore 17 within the disposable Postgres service,
+          # not the older PostgreSQL client preinstalled on the GitHub runner.
+          postgres_container="$(docker ps --filter 'ancestor=postgres:17' --format '{{.ID}}' | head -n 1)"
+          test -n "$postgres_container"
+          backup="$(mktemp)"
+          trap 'rm -f "$backup"' EXIT
+          docker exec -e PGPASSWORD="$PGPASSWORD" "$postgres_container" pg_dump -h 127.0.0.1 -U postgres --no-owner --no-privileges --format=custom civolten_test > "$backup"
+          test -s "$backup"
+          docker exec -i -e PGPASSWORD="$PGPASSWORD" "$postgres_container" pg_restore -h 127.0.0.1 -U postgres --no-owner --no-privileges --exit-on-error --dbname=civolten_restored < "$backup"
           before="$(psql -At -d civolten_test -c 'SELECT count(*) FROM clients')"
           after="$(psql -At -d civolten_restored -c 'SELECT count(*) FROM clients')"
           test "$before" -gt 0
