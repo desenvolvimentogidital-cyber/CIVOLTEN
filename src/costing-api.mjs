@@ -90,10 +90,9 @@ export async function handleStage2(ctx){
    const position=Number(body.position);
    if(!Number.isSafeInteger(position)||position<1||position>10000)return done(res,400,{error:'Posição inválida'});
    const quantity=decimal(body.quantity,'Quantidade',1e10,6),newId=randomUUID();
-   const created=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND lock_version=$9 AND status='rascunho' RETURNING id), created AS (INSERT INTO budget_items(id,budget_id,position,source_code,source_name,unit,quantity,direct_unit_cost,reference_price_id) SELECT $1,guard.id,$3,$4,$5,$6,$7,$8,$10 FROM guard RETURNING *), reviewed AS (INSERT INTO budget_item_cost_reviews(budget_item_id,source,reference_price_id,category) SELECT created.id,'SIURB',$10,$11 FROM created RETURNING budget_item_id), audited AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $12,'budget_items',created.id,'siurb_price_selected' FROM created RETURNING id) SELECT created.* FROM created JOIN reviewed ON reviewed.budget_item_id=created.id JOIN audited ON true",
+   const created=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND lock_version=$9 AND status='rascunho' RETURNING id), created AS (INSERT INTO budget_items(id,budget_id,position,source_code,source_name,unit,quantity,direct_unit_cost,reference_price_id) SELECT $1,guard.id,$3,$4,$5,$6,$7,$8,$10 FROM guard RETURNING *), reviewed AS (INSERT INTO budget_item_cost_reviews(budget_item_id,source,reference_price_id,category) SELECT created.id,'SIURB',$10,$11 FROM created RETURNING budget_item_id), audited AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $12,'budget_items',created.id,'siurb_price_selected' FROM created RETURNING id), invalidated AS (UPDATE budget_costing_profiles SET technical_reviewed=false,commercial_reviewed=false,bdi_reviewed=false,updated_at=now() WHERE budget_id=$2 AND EXISTS(SELECT 1 FROM created) RETURNING budget_id) SELECT created.* FROM created JOIN reviewed ON reviewed.budget_item_id=created.id JOIN audited ON true",
     [newId,id,position,price.code,price.description,price.unit,quantity,price.unit_cost,body.lock_version,price.id,price.scope,user.id]);
    if(!created.length)return done(res,409,{error:'Orçamento modificado; recarregue'});
-   await sql.query("UPDATE budget_costing_profiles SET technical_reviewed=false,commercial_reviewed=false,bdi_reviewed=false WHERE budget_id=$1",[id]);
    return done(res,201,created[0]);
  }
  if(sub==='cost-settings'&&method==='PUT'){
@@ -158,20 +157,19 @@ export async function handleStage2(ctx){
      const category=body.category;if(!allowed.includes(category))return done(res,400,{error:'Categoria inválida'});
      const description=clean(body.description,'Descrição',250,true),amount=decimal(body.amount,'Custo direto extra',1e9,2),newId=randomUUID();
      const supplier=clean(body.supplier_name,'Fornecedor',180),ref=clean(body.quote_reference,'Cotação',250),date=clean(body.quote_date,'Data',10);
-     const result=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND lock_version=$11 AND status='rascunho' RETURNING id), created AS (INSERT INTO budget_extra_direct_costs(id,budget_id,description,category,amount,included_in_unit_prices,supplier_name,quote_reference,quote_date,created_by) SELECT $1,guard.id,$3,$4,$5,$6,$7,$8,$9::date,$10 FROM guard RETURNING *), audited AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $10,'budget_extra_direct_costs',created.id,'create' FROM created RETURNING id) SELECT created.* FROM created JOIN audited ON true",
+     if(!ref)return done(res,400,{error:'Informe memória de cálculo ou identificação da cotação para o custo adicional'});
+     const result=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND lock_version=$11 AND status='rascunho' RETURNING id), created AS (INSERT INTO budget_extra_direct_costs(id,budget_id,description,category,amount,included_in_unit_prices,supplier_name,quote_reference,quote_date,created_by) SELECT $1,guard.id,$3,$4,$5,$6,$7,$8,$9::date,$10 FROM guard RETURNING *), audited AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $10,'budget_extra_direct_costs',created.id,'create' FROM created RETURNING id), invalidated AS (UPDATE budget_costing_profiles SET technical_reviewed=false,commercial_reviewed=false,bdi_reviewed=false,updated_at=now() WHERE budget_id=$2 AND EXISTS(SELECT 1 FROM created) RETURNING budget_id) SELECT created.* FROM created JOIN audited ON true",
        [newId,id,description,category,amount,body.included_in_unit_prices===true,supplier,ref,date||null,user.id,body.lock_version]);
      if(!result.length)return done(res,409,{error:'Versão desatualizada'});
-     await sql.query("UPDATE budget_costing_profiles SET technical_reviewed=false,commercial_reviewed=false,bdi_reviewed=false WHERE budget_id=$1",[id]);
      return done(res,201,result[0]);
    }
    if(method==='DELETE'&&fourth){
      if(!validUUID(fourth))return done(res,400,{error:'Identificador inválido'});
      const body=await readBody(req);
      if(!scopeMatch(budget,body))return done(res,409,{error:'Versão desatualizada'});
-     const result=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND lock_version=$4 AND status='rascunho' AND EXISTS(SELECT 1 FROM budget_extra_direct_costs WHERE id=$1 AND budget_id=$2) RETURNING id), removed AS (DELETE FROM budget_extra_direct_costs WHERE id=$1 AND budget_id=$2 AND EXISTS(SELECT 1 FROM guard) RETURNING id), audited AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $3,'budget_extra_direct_costs',removed.id,'remove' FROM removed RETURNING id) SELECT removed.id FROM removed JOIN audited ON true",
+     const result=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND lock_version=$4 AND status='rascunho' AND EXISTS(SELECT 1 FROM budget_extra_direct_costs WHERE id=$1 AND budget_id=$2) RETURNING id), removed AS (DELETE FROM budget_extra_direct_costs WHERE id=$1 AND budget_id=$2 AND EXISTS(SELECT 1 FROM guard) RETURNING id), audited AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $3,'budget_extra_direct_costs',removed.id,'remove' FROM removed RETURNING id), invalidated AS (UPDATE budget_costing_profiles SET technical_reviewed=false,commercial_reviewed=false,bdi_reviewed=false,updated_at=now() WHERE budget_id=$2 AND EXISTS(SELECT 1 FROM removed) RETURNING budget_id) SELECT removed.id FROM removed JOIN audited ON true",
        [fourth,id,user.id,body.lock_version]);
      if(!result.length)return done(res,409,{error:'Custo extra indisponível ou versão alterada'});
-     await sql.query("UPDATE budget_costing_profiles SET technical_reviewed=false,commercial_reviewed=false,bdi_reviewed=false WHERE budget_id=$1",[id]);
      return done(res,200,{ok:true});
    }
  }
