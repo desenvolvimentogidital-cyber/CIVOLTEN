@@ -152,7 +152,7 @@ function modalBudget(x={}){
  field('Título do orçamento','title','text',true,x.title)+
  field('Data-base (AAAA-MM)','reference_month','month',true,x.reference_month||'2026-07')+
  '<div class="field"><label>Regime</label><select name="regime"><option '+(x.regime==='Sem desoneração'?'selected':'')+'>Sem desoneração</option><option '+(x.regime==='Com desoneração'?'selected':'')+'>Com desoneração</option></select></div>'+
- field('BDI preliminar (%)','bdi_pct','number',true,x.bdi_pct??25,'step="0.01" min="0" max="100"')+submitButtons;
+ field('BDI preliminar (%)','bdi_pct','number',true,x.bdi_pct??25,'step="0.01" min="0" max="100"')+(x.id?'<input type="hidden" name="lock_version" value="'+esc(x.lock_version)+'">':'')+submitButtons;
  dialog(x.id?'Editar orçamento':'Novo orçamento','<form id="budget-form" data-id="'+esc(x.id||'')+'">'+form+'</form>');
 }
 function modalItem(x={}){
@@ -177,7 +177,7 @@ document.addEventListener('submit',async e=>{
   const id=form.dataset.id;
   if(form.id==='client-form')await api('clients'+(id?'/'+id:''),id?'PUT':'POST',b);
   else if(form.id==='project-form')await api('projects'+(id?'/'+id:''),id?'PUT':'POST',b);
-  else if(form.id==='budget-form')await api('budgets'+(id?'/'+id:''),id?'PUT':'POST',b);
+  else if(form.id==='budget-form'){if(id)b.lock_version=Number(b.lock_version);await api('budgets'+(id?'/'+id:''),id?'PUT':'POST',b);}
   else if(form.id==='item-form'){
    b.position=Number(b.position);b.quantity=Number(b.quantity);b.direct_unit_cost=Number(b.direct_unit_cost);
    await api('budgets/'+state.detail.id+'/items'+(id?'/'+id:''),id?'PUT':'POST',b);
@@ -191,6 +191,7 @@ document.addEventListener('click',async e=>{
  const btn=e.target.closest('[data-action]');if(!btn)return;
  const act=btn.dataset.action;
  try{
+  if(act==='retry'){await init();return}
   if(act==='login-view'||act==='setup-view'){state.mode=act==='setup-view'?'setup':'login';render();return}
   if(act==='theme'){const order=['auto','light','dark'],next=order[(order.indexOf(localStorage.getItem('civolten-theme')||'auto')+1)%3];localStorage.setItem('civolten-theme',next);theme();toast('Aparência: '+(next==='auto'?'automático':next==='light'?'claro':'escuro'));return}
   if(act==='close-dialog'){document.querySelector('#secure-dialog')?.remove();return}
@@ -211,7 +212,7 @@ document.addEventListener('click',async e=>{
 async function init(){
  theme();
  try{const status=await api('auth/status');if(status.authenticated){state.user=status.user;await loadLists()}}
- catch(err){console.warn('[CIVOLTEN] Painel seguro indisponível:',err.message);app.innerHTML='<section class="login"><div class="login-card">'+brand()+'<h1>API indisponível</h1><p class="error">'+esc(err.message)+'</p><button class="btn primary" onclick="location.reload()">Tentar novamente</button></div></section>';return}
+ catch(err){console.warn('[CIVOLTEN] Painel seguro indisponível:',err.message);app.innerHTML='<section class="login"><div class="login-card">'+brand()+'<h1>API indisponível</h1><p class="error">'+esc(err.message)+'</p><button class="btn primary" data-action="retry">Tentar novamente</button></div></section>';return}
  render();
 }
 init();
