@@ -74,7 +74,7 @@ def parse(data,grupo,regime):
             unit=str(raw[2] or "").strip()
             price=custo(raw[3])
             if price is None:continue  # exclui cabeçalhos de grupos e serviços sem preço
-            if not code or len(code)!=7 or not description or not unit or unit==".":
+            if not code or not (6<=len(code)<=9) or not description or not unit or unit==".":
                 raise RuntimeError(f"Linha {index+1} com preço e dados inconsistentes: {raw[:4]}")
             if code in seen:raise RuntimeError(f"Código duplicado na mesma planilha: {code}")
             seen.add(code)
