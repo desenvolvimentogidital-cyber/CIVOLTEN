@@ -1,7 +1,8 @@
+import {costPage,costDialog,costEvidenceDialog,costHandleForm,costHandleClick} from './secure-costing.js';
 /* Painel privado CIVOLTEN — desenvolvimento/homologação
  * Jamais usar localStorage para informações comerciais ou tokens de sessão.
  */
-const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],mode:'login',busy:false};
+const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],mode:'login',busy:false};
 const app=document.querySelector('#secure-app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const BRL=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
@@ -127,7 +128,7 @@ function budgetDetail(){
  const b=state.detail;if(!b)return empty('Orçamento não encontrado.');
  const sum=(b.items||[]).reduce((a,x)=>a+Number(x.quantity)*Number(x.direct_unit_cost),0);
  return heading(b.title,b.code+' • '+(b.client_name||'Cliente')+' • orçamento de desenvolvimento')+
- '<div class="actions"><button class="btn" data-action="back-budget">Voltar</button>'+ (writeable()?'<button class="btn primary" data-action="new-item">+ Serviço</button>':'')+'</div>'+
+ '<div class="actions"><button class="btn" data-action="back-budget">Voltar</button><button class="btn primary" data-action="open-costing">Conferir custos e BDI</button>'+ (writeable()?'<button class="btn" data-action="new-item">+ Serviço</button>':'')+'</div>'+
  '<div class="grid"><div class="card"><div class="muted">Custo direto preliminar</div><div class="metric">'+BRL(sum)+'</div></div>'+
  '<div class="card"><div class="muted">BDI configurado</div><div class="metric">'+esc(b.bdi_pct)+'%</div></div>'+
  '<div class="card"><div class="muted">Prévia aritmética (não validada)</div><div class="metric">'+BRL(sum*(1+Number(b.bdi_pct)/100))+'</div></div></div>'+
@@ -145,7 +146,7 @@ function render(){
  if(!state.user){authView();return}
  if(state.user.must_change_password){forcedPasswordView();return}
  shell();const body=document.querySelector('#private-content');
- body.innerHTML=state.view==='clientes'?clientPage():state.view==='obras'?projectPage():state.view==='orcamentos'?budgetPage():state.view==='usuarios'?usersPage():state.view==='detalhe'?budgetDetail():dashboard();
+ body.innerHTML=state.view==='clientes'?clientPage():state.view==='obras'?projectPage():state.view==='orcamentos'?budgetPage():state.view==='usuarios'?usersPage():state.view==='detalhe'?budgetDetail():state.view==='custos'?costPage({state,esc,writeable}):dashboard();
 }
 function dialog(title,contents){
  const pop=document.createElement('div');pop.className='dialog';pop.id='secure-dialog';pop.innerHTML='<section class="dialog-panel" role="dialog" aria-modal="true"><div class="row"><h2>'+esc(title)+'</h2><button class="btn" data-action="close-dialog" aria-label="Fechar">✕</button></div>'+contents+'</section>';
@@ -203,6 +204,14 @@ document.addEventListener('submit',async e=>{
    const result=await api('auth/'+(setup?'bootstrap':'login'),'POST',setup?{bootstrap_secret:b.bootstrap_secret,login:b.login,password:b.password}:{login:b.login,password:b.password});
    form.reset();if(setup){state.mode='login';toast('Administrador criado. Faça login.');authView()}else{state.user=result.user;if(!state.user.must_change_password)await loadLists();state.view='inicio';render()}return;
   }
+  if(form.id.startsWith('cost-')){
+    await costHandleForm(form,{state,api,esc,toast,refresh:async()=>{
+      state.detail=await api('budgets/'+state.detail.id);
+      state.costs=await api('budgets/'+state.detail.id+'/costs');
+      render();
+    }});
+    return;
+  }
   const id=form.dataset.id;
   if(form.id==='user-form'){
     if(id)b.is_active=b.is_active==='true';
@@ -247,6 +256,27 @@ document.addEventListener('click',async e=>{
     await api(target,'DELETE');
     if(act==='remove-item')state.detail=await api('budgets/'+state.detail.id);
     await loadLists();render();toast('Ação registrada na auditoria.');return;
+  }
+  if(act==='open-costing'){
+    state.costs=await api('budgets/'+state.detail.id+'/costs');
+    state.view='custos';render();return;
+  }
+  if(act==='cost-back'){
+    state.view='detalhe';state.detail=await api('budgets/'+state.detail.id);render();return;
+  }
+  if(act==='cost-evidence'){
+    costEvidenceDialog(btn.dataset.id,{state,dialog,field,esc});return;
+  }
+  if(['cost-bdi-form','cost-add-extra','cost-add-siurb'].includes(act)){
+    costDialog(act,{state,dialog,field,esc,writeable,toast});return;
+  }
+  if(act.startsWith('cost-')){
+    await costHandleClick(btn,{state,api,dialog,field,esc,toast,refresh:async()=>{
+       state.detail=await api('budgets/'+state.detail.id);
+       state.costs=await api('budgets/'+state.detail.id+'/costs');
+       render();
+    }});
+    return;
   }
   if(act==='new-client'){modalClient();return}
   if(act==='new-project'){modalProject();return}
