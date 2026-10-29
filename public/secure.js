@@ -66,7 +66,7 @@ function statusPill(x){return '<span class="tag">'+esc(x||'rascunho')+'</span>'}
 function actions(x,kind){
  let btn='<button class="btn" data-action="edit-'+kind+'" data-id="'+esc(x.id)+'">Editar</button>';
  if(kind==='budget')btn='<button class="btn" data-action="detail-budget" data-id="'+esc(x.id)+'">Abrir</button> '+btn;
- return writeable()?btn:kind==='budget'?'<button class="btn" data-action="detail-budget" data-id="'+esc(x.id)+'">Abrir</button>':'—';
+ return writeable()?btn+' <button class="btn danger" data-action="archive-'+kind+'" data-id="'+esc(x.id)+'">'+(kind==='budget'?'Cancelar':'Arquivar')+'</button>':kind==='budget'?'<button class="btn" data-action="detail-budget" data-id="'+esc(x.id)+'">Abrir</button>':'—';
 }
 function dashboard(){
  return heading('Painel administrativo','Informações salvas no PostgreSQL, acessíveis com sua conta.')+
@@ -80,7 +80,7 @@ function clientPage(){
  return heading('Clientes','Cadastro persistente com histórico no banco de desenvolvimento.','Novo cliente','new-client')+
  (state.clients.length?listRows(state.clients,[
  {title:'Cliente',render:x=>'<strong>'+esc(x.name)+'</strong>'},
- {title:'Documento',render:x=>esc(x.tax_id||'—')},
+ {title:'Documento',render:x=>esc(x.tax_id||'—')+'<div>'+statusPill(x.status)+'</div>'},
  {title:'Contato',render:x=>esc(x.email||x.phone||'—')},
  {title:'Ações',render:x=>actions(x,'client')}
  ]):empty('Nenhum cliente cadastrado neste banco.'));
@@ -120,7 +120,7 @@ function budgetDetail(){
  {title:'Quantidade',render:x=>esc(x.quantity)+' '+esc(x.unit)},
  {title:'Unitário',render:x=>BRL(x.direct_unit_cost)},
  {title:'Custo direto',render:x=>BRL(Number(x.quantity)*Number(x.direct_unit_cost))},
- {title:'Ações',render:x=>writeable()?'<button class="btn" data-action="edit-item" data-id="'+esc(x.id)+'">Editar</button>':'—'}
+ {title:'Ações',render:x=>writeable()?'<button class="btn" data-action="edit-item" data-id="'+esc(x.id)+'">Editar</button> <button class="btn danger" data-action="remove-item" data-id="'+esc(x.id)+'">Remover</button>':'—'}
  ]):empty('Sem serviços cadastrados.'));
 }
 function render(){
@@ -202,6 +202,14 @@ document.addEventListener('click',async e=>{
   if(act==='logout'){await api('auth/logout','POST',{});state.user=null;state.mode='login';render();return}
   if(act==='view'){await changeView(btn.dataset.view);return}
   if(act==='password-modal'){passwordModal();return}
+  if(['archive-client','archive-project','archive-budget','remove-item'].includes(act)){
+    const label=act==='remove-item'?'Este serviço será retirado do orçamento, mantendo a auditoria.':act==='archive-budget'?'O orçamento será cancelado, sem excluir seu histórico.':'O cadastro será arquivado, preservando vínculos e histórico.';
+    if(!window.confirm(label+' Confirma?'))return;
+    const target=act==='archive-client'?'clients/'+btn.dataset.id:act==='archive-project'?'projects/'+btn.dataset.id:act==='archive-budget'?'budgets/'+btn.dataset.id:'budgets/'+state.detail.id+'/items/'+btn.dataset.id;
+    await api(target,'DELETE');
+    if(act==='remove-item')state.detail=await api('budgets/'+state.detail.id);
+    await loadLists();render();toast('Ação registrada na auditoria.');return;
+  }
   if(act==='new-client'){modalClient();return}
   if(act==='new-project'){modalProject();return}
   if(act==='new-budget'){modalBudget();return}
