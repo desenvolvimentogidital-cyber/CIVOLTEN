@@ -1,3 +1,13 @@
+## Auditoria de etapa 1 — 29/10/2026 (atualização de homologação)
+
+- **Validação PostgreSQL real:** [GitHub Actions 40936938669](https://github.com/desenvolvimentogidital-cyber/CIVOLTEN/actions/runs/40936938669): 48 testes unitários, integração real com Postgres 17 e restauração de backup com dados criados previamente. Inclui login, permissões, edição de cliente e obra, orçamento e serviços, arquivos lógicos, concorrência e auditoria.
+- **Correção crítica:** rota `DELETE /budgets/:id/items/:itemId` não cancela mais o orçamento inteiro. O teste valida que o item fica arquivado e o orçamento permanece rascunho.
+- **Migração 0005:** coluna `must_change_password` aplicada com teste em branch temporária. A conta administrativa inicial está marcada para trocar senha, sem acesso aos cadastros até a rotação (na nova API).
+- **Migração 0006:** chave estrangeira composta protege `(project_id, client_id)` em orçamentos, impedindo que uma obra seja associada a cliente diferente. Teste SQL/CI aprovado.
+- **Backup sem custos:** `.github/workflows/backup-civolten.yml` preparado para exportar e criptografar dumps PostgreSQL 17 diariamente; **não ativado**, pois exige configurar secret de conexão de backup de leitura e chave pública de criptografia. Instruções em [BACKUP_OPERACIONAL.md](BACKUP_OPERACIONAL.md). O plano Neon gratuito não permite agendamento de snapshots nativo.
+- **Bloqueio Vercel:** tentativa de publicar o commit `930f2fa1` retornou **HTTP 402, limite `api-deployments-free-per-day`, retryAfter 86400**. Nenhum upgrade pago foi realizado. A versão pública ainda é anterior às correções finais de autenticação.
+- **Pendência operacional:** homologar login e alteração de senha no deploy atual depois da liberação da cota, validar clientes fictícios em desktop e celular, e testar um backup criptografado efetivamente gerado pelo agendamento. **Não liberar dados reais ainda**.
+
 # Backend PostgreSQL CIVOLTEN — desenvolvimento (29/10/2026)
 
 ## Estado real
