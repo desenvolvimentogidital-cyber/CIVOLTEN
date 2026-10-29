@@ -58,6 +58,7 @@ As taxas e custos de serviço não são automaticamente sinônimos de preço de 
 - Prefeitura de São Paulo — tabelas oficiais SIURB: https://prefeitura.sp.gov.br/web/obras/w/tabelas_de_custos/355179
 - Dados locais com catálogo e SHA por origem: `public/data/siurb-2026-07.json`; composições: `public/data/siurb-compositions-2026-07.json`.
 - Scripts e testes: `src/costing-api.mjs`, `src/estimate-engine.mjs`, `tests/costing-integration.test.mjs`, `tests/estimate-engine.test.mjs`, `tests/complete-flow.test.mjs`.
+- Importação reproduzível e protegida: `scripts/import-siurb-neon.mjs`; execute `npm run validate:siurb` para conferir fonte e contagens sem acessar o banco. Para importar de forma controlada em desenvolvimento, exige `DATABASE_URL` de `civolten` e `CIVOLTEN_IMPORT_CONFIRM=importar-civolten-dev`; nunca divulgue esses valores em commits ou logs.
 - Banco exclusivo de desenvolvimento: Neon `civolten-orcamentos-dev` (`main` original). Nenhum banco de outro projeto deve ser utilizado.
 
 **Regra de liberação:** nunca garantir preço final sem conferência de escopo, quantidades, cotação local, tributação e revisão técnica humana.
