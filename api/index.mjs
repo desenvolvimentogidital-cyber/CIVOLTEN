@@ -29,7 +29,7 @@ function validateRequest(req){
 }
 async function who(req,sql){
  const token=sessionToken(req);if(!/^[a-f0-9]{64}$/.test(token))return null;
- const data=await sql.query("SELECT u.id,u.login,u.role FROM app_sessions s JOIN app_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_active=true LIMIT 1",[hexhash(token)]);
+ const data=await sql.query("SELECT u.id,u.login,u.role,u.must_change_password FROM app_sessions s JOIN app_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_active=true LIMIT 1",[hexhash(token)]);
  return data[0]||null;
 }
 const writable=user=>user.role==='administrador'||user.role==='orcamentista';
@@ -68,7 +68,7 @@ export function createApi(sql,opts={}){
      if(got.length!==secret.length||!timingSafeEqual(Buffer.from(got),Buffer.from(secret)))return response(res,403,{error:'Token de configuração inválido'});
      const userId=randomUUID(),username=requireField(b.login,'Login',120).toLowerCase(),passwordHash=hashPassword(b.password);
      // Um único statement cria a trava permanente e o usuário. Concorrência não duplica administradores iniciais.
-     const inserted=await sql.query("WITH guard AS (INSERT INTO app_bootstrap_lock(singleton) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM app_users) ON CONFLICT DO NOTHING RETURNING singleton), bootstrap_user AS (INSERT INTO app_users(id,login,password_hash,role) SELECT $1,$2,$3,'administrador' FROM guard RETURNING id) SELECT id FROM bootstrap_user",
+     const inserted=await sql.query("WITH guard AS (INSERT INTO app_bootstrap_lock(singleton) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM app_users) ON CONFLICT DO NOTHING RETURNING singleton), bootstrap_user AS (INSERT INTO app_users(id,login,password_hash,role,must_change_password) SELECT $1,$2,$3,'administrador',true FROM guard RETURNING id) SELECT id FROM bootstrap_user",
        [userId,username,passwordHash]);
      if(!inserted.length)return response(res,409,{error:'Administrador inicial já foi configurado'});
      await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'app_users',$2,'bootstrap')",[userId,userId]);
@@ -79,14 +79,14 @@ export function createApi(sql,opts={}){
      const fingerprint=hexhash(login+'|'+String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'').split(',')[0].trim());
      const recent=await sql.query("SELECT count(*)::int AS failures FROM audit_events WHERE entity_type='auth' AND action='login_failed' AND created_at>now()-interval '15 minutes' AND metadata->>'fingerprint'=$1",[fingerprint]);
      if(Number(recent[0].failures)>=6)return response(res,429,{error:'Muitas tentativas. Tente mais tarde.'},{'Retry-After':'900'});
-     const data=await sql.query('SELECT id,login,password_hash,role FROM app_users WHERE login=$1 AND is_active=true LIMIT 1',[login]);
+     const data=await sql.query('SELECT id,login,password_hash,role,must_change_password FROM app_users WHERE login=$1 AND is_active=true LIMIT 1',[login]);
      if(!data[0]||!matches(b.password,data[0].password_hash)){
        await sql.query("INSERT INTO audit_events(entity_type,action,metadata) VALUES('auth','login_failed',jsonb_build_object('fingerprint',$1::text))",[fingerprint]);
        return response(res,401,{error:'Credenciais inválidas'});
      }
      const token=randomBytes(32).toString('hex'),expires=new Date(Date.now()+8*3600000).toISOString();
      await sql.query('INSERT INTO app_sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)',[hexhash(token),data[0].id,expires]);
-     return response(res,200,{ok:true,user:{id:data[0].id,login:data[0].login,role:data[0].role}},{'Set-Cookie':cookie(token,28800)});
+     return response(res,200,{ok:true,user:{id:data[0].id,login:data[0].login,role:data[0].role,must_change_password:data[0].must_change_password}},{'Set-Cookie':cookie(token,28800)});
    }
    if(resource==='auth'&&id==='logout'&&method==='POST'){
      const token=sessionToken(req);
@@ -95,6 +95,7 @@ export function createApi(sql,opts={}){
    }
    const user=await who(req,sql);
    if(!user)return response(res,401,{error:'Sessão necessária'});
+   if(user.must_change_password && !(resource==='auth'&&id==='change-password'))return response(res,403,{error:'Altere a senha temporária antes de acessar dados do CIVOLTEN',password_change_required:true});
    if(resource==='me'&&method==='GET')return response(res,200,user);
    if(resource==='auth'&&id==='change-password'&&method==='POST'){
      const b=await readBody(req);
@@ -102,7 +103,7 @@ export function createApi(sql,opts={}){
      if(!match.length||!matches(b.current_password,match[0].password_hash))return response(res,403,{error:'Senha atual incorreta'});
      if(String(b.new_password||'')===String(b.current_password||''))return response(res,400,{error:'Defina uma senha nova'});
      const replacement=hashPassword(b.new_password);
-     await sql.query('UPDATE app_users SET password_hash=$2 WHERE id=$1',[user.id,replacement]);
+     await sql.query('UPDATE app_users SET password_hash=$2,must_change_password=false WHERE id=$1',[user.id,replacement]);
      await sql.query('UPDATE app_sessions SET revoked_at=now() WHERE user_id=$1 AND token_hash<>$2 AND revoked_at IS NULL',[user.id,hexhash(sessionToken(req))]);
      await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'app_users',$1,'password_changed')",[user.id]);
      return response(res,200,{ok:true});
@@ -112,7 +113,7 @@ export function createApi(sql,opts={}){
    if(resource==='users'){
      if(user.role!=='administrador')return noAccess(res);
      if(method==='GET'&&!id){
-       return response(res,200,await sql.query("SELECT id,login,role,is_active,created_at,last_login_at FROM app_users ORDER BY created_at ASC LIMIT 100",[]));
+       return response(res,200,await sql.query("SELECT id,login,role,is_active,must_change_password,created_at,last_login_at FROM app_users ORDER BY created_at ASC LIMIT 100",[]));
      }
      if(method==='POST'&&!id){
        const b=await readBody(req);
@@ -122,7 +123,7 @@ export function createApi(sql,opts={}){
        if(!['orcamentista','revisor','consulta'].includes(role))return response(res,400,{error:'Perfil inválido para novo usuário'});
        const password=hashPassword(b.password),userId=randomUUID();
        const result=await sql.query(
-         "WITH added AS (INSERT INTO app_users(id,login,password_hash,role) VALUES($1,$2,$3,$4) RETURNING id,login,role,is_active,created_at) SELECT * FROM added",
+         "WITH added AS (INSERT INTO app_users(id,login,password_hash,role,must_change_password) VALUES($1,$2,$3,$4,true) RETURNING id,login,role,is_active,must_change_password,created_at) SELECT * FROM added",
          [userId,login,password,role]
        );
        await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action,metadata) VALUES($1,'app_users',$2,'create',jsonb_build_object('role',$3::text))",[user.id,userId,role]);
