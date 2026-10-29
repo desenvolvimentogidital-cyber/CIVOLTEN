@@ -17,7 +17,7 @@ export function costPage({state,esc,writeable}){
    const rev=x.source||'MANUAL';
    return '<tr><td><strong>'+esc(x.source_code||'Próprio')+'</strong> '+esc(x.source_name)+'</td><td>'+esc(rev)+'</td>'+
    '<td>'+esc(x.quantity)+' '+esc(x.unit)+'</td><td>'+fmt(x.direct_unit_cost)+'</td>'+
-   '<td>'+fmt(est.lines?.[index]?.cost_reais||0)+'</td>'+\
+   '<td>'+fmt(est.lines?.[index]?.cost_reais||0)+'</td>'+
    '<td>'+esc(x.quantity_verified?'Conferido':'Medição pendente')+'</td><td>'+ (x.reference_price_id?'<button class="btn" data-action="cost-composition" data-id="'+esc(x.reference_price_id)+'">Ver insumos</button> ':'')+ (writeable()||canApprove?'<button class="btn" data-action="cost-evidence" data-id="'+esc(x.id)+'">Evidências</button>':'—')+'</td></tr>'
  }).join('');
  const rowsExtra=extra.map(x=>'<tr><td>'+esc(categories[x.category]||x.category)+' — '+esc(x.description)+'</td><td>'+fmt(x.amount)+'</td><td>'+ (x.included_in_unit_prices?'Possível duplicação':'Separado')+'</td><td>'+(writeable()?'<button class="btn danger" data-action="cost-remove-extra" data-id="'+esc(x.id)+'">Remover</button>':'—')+'</td></tr>').join('');
