@@ -63,6 +63,27 @@ test('Duplicação explícita de insumos diretos é bloqueada',()=>{
  assert.equal(r.ready,false);
  assert.ok(r.errors.some(e=>e.code==='DUPLICATION'));
 });
+test('Perdas, frete e serviços extras são aplicados uma vez com centavos exatos',()=> {
+ const input=base();input.items[0].quantity='3';input.items[0].unit_cost='100.0000';
+ input.items[0].loss_pct='10';input.items[0].freight_unit_cost='2.5000';
+ input.items[0].other_unit_cost='1.2500';
+ const result=estimateBudget(input);
+ assert.equal(result.direct_cost_reais,341.25);
+ assert.equal(result.ready,true);
+});
+test('Cotação manual sem comprovante bloqueia orçamento',()=>{
+ const x=base();x.items[0].supplier_quote_verified=false;
+ const r=estimateBudget(x);
+ assert.equal(r.ready,false);
+ assert.ok(r.errors.some(e=>e.code==='UNQUOTED'));
+});
+test('Preço declarado como SIURB sem identificação oficial bloqueia',()=>{
+ const x=base();x.items[0].source='SIURB';
+ x.items[0].reference_month='2026-07';x.items[0].regime='Sem desoneração';x.items[0].composition_reviewed=true;
+ const r=estimateBudget(x);
+ assert.equal(r.ready,false);
+ assert.ok(r.errors.some(e=>e.code==='NO_OFFICIAL_PRICE'));
+});
 test('Alíquota agregada de 100% é rejeitada sem cálculos infinitos',()=>{
  const x=base();x.bdi.tributosSobreReceita=100;
  const r=estimateBudget(x);
