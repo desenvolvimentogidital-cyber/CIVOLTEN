@@ -3,6 +3,7 @@
  */
 import {randomUUID} from 'node:crypto';
 import {estimateBudget} from './estimate-engine.mjs';
+import {inspectSiurbComposition} from './siurb-composition-audit.mjs';
 
 const bdiKeys=['administracaoCentral','seguro','garantia','risco','despesasFinanceiras','lucro','tributosSobreReceita'];
 const validUUID=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(x);
@@ -34,10 +35,19 @@ export async function handleStage2(ctx){
  const done=(response,status,payload)=>{send(response,status,payload);return true;};
  const [resource,id,sub,fourth]=parts;
  if(resource==='siurb'&&validUUID(id)&&sub==='composition'&&method==='GET'){
-   const rows=await sql.query("SELECT p.id,p.code,p.description,p.unit,p.unit_cost,p.productivity_status,v.scope AS category,v.regime,v.reference_month,v.source_url,v.sha256,d.labor,d.other,d.direct_hh_per_unit,d.validation FROM reference_prices p JOIN reference_price_versions v ON v.id=p.version_id LEFT JOIN reference_composition_details d ON d.reference_price_id=p.id WHERE p.id=$1 AND v.source='SIURB'",[id]);
+   const rows=await sql.query("SELECT p.id,p.version_id,p.code,p.description,p.unit,p.unit_cost,p.productivity_status,v.scope AS category,v.regime,v.reference_month,v.source_url,v.sha256,d.labor,d.other,d.direct_hh_per_unit,d.validation FROM reference_prices p JOIN reference_price_versions v ON v.id=p.version_id LEFT JOIN reference_composition_details d ON d.reference_price_id=p.id WHERE p.id=$1 AND v.source='SIURB'",[id]);
    if(!rows.length)return done(res,404,{error:'Preço de referência não encontrado'});
-   return done(res,200,{...rows[0],composition_available:rows[0].labor!==null,
-     notice:'Detalhamento direto da SIURB. Auxiliares não totalmente expandidos; a lista não é uma composição de custo certificada.'});
+   const root=rows[0];
+   const inspection=await inspectSiurbComposition({
+     root,maxNodes:80,maxDepth:6,
+     lookup:async(code,version)=>{
+       const found=await sql.query("SELECT p.id,p.code,p.unit,p.unit_cost,d.labor,d.other FROM reference_prices p LEFT JOIN reference_composition_details d ON d.reference_price_id=p.id WHERE p.version_id=$1 AND p.code=$2 LIMIT 1",[version,code]);
+       return found[0]||null;
+     }
+   });
+   return done(res,200,{...root,composition_available:root.labor!==null,
+     inspection,
+     notice:'Fichas oficiais parciais. A expansão não atesta custos nem homologa insumos sem preços de referência.'});
  }
  if(resource==='siurb'&&id==='search'&&method==='GET'){
    const q=parseQuery(req),term=String(q.get('q')||'').trim().slice(0,80);
