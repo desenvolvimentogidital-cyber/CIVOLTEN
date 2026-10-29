@@ -85,3 +85,55 @@ revisão tributária e teste real no navegador por responsável habilitado.
 
 O banco de desenvolvimento e as tabelas existentes permanecem preservados.
 Não foi autorizada liberação comercial automática; `commercial_release=false` continua.
+
+## Auditoria suplementar com fontes oficiais, sem orçamentos históricos — 29/10/2026
+
+Como o produto CIVOLTEN é construído do zero, **não há orçamentos antigos da empresa**.
+A homologação de engenharia foi adaptada para bases oficiais SIURB (jul/2026),
+cenários sintéticos reproduzíveis e PostgreSQL **descartável**, sem necessidade
+de inventar custos de fornecedor ou registrar dados pessoais.
+
+### Fontes oficiais e normalização confirmada
+- O GitHub Actions baixou oito planilhas da Prefeitura de São Paulo, quatro
+  por regime (horista, equipamentos, insumos e auxiliares), validando a assinatura,
+  SHA-256 e o arquivo de origem. O domínio alternativo oficial SmartSampa funcionou;
+  downloads podem sofrer bloqueio HTTP 403, portanto o CI utiliza a cópia pública
+  previamente auditada com SHA revalidado, quando disponível.
+- A normalização gerou **5.828 registros de preço** (cada variante horista/equipamento
+  separada) e **232 composições auxiliares**. Destas, **222** fecharam as parcelas
+  nos critérios automáticos e **10** têm dados ausentes ou diferenças. Nem as 222
+  são automaticamente aprovadas comercialmente.
+- A migração `0009_siurb_supplements.sql` e o importador transacional
+  `scripts/import-siurb-supplements-neon.mjs` preservam versão, categoria,
+  regime, origem e SHA, sem alterar os 6.988 custos de serviços já existentes.
+- A importação repetida em PostgreSQL descartável foi aprovada sem duplicar linhas:
+  **8 fontes, 5.828 preços, 232 auxiliares, 222 conciliações aritméticas, zero
+  aprovações comerciais**. O banco Neon principal não foi alterado.
+- Relatório de QA: [GitHub Actions — Etapa 2](https://github.com/desenvolvimentogidital-cyber/CIVOLTEN/actions/runs/40962262492).
+
+### Resultado da comparação dos 6.926 serviços com composições
+- **2.864** custo unitário idêntico à soma calculada das parcelas;
+- **2.377** com diferença entre 1 e 2 centavos;
+- **740** com componentes não localizados ou unidade incompatível;
+- **945** com diferenças acima de 2 centavos, exigindo conciliação;
+- Os **62 serviços sem ficha** permanecem sinalizados separadamente.
+- A apuração inicial usa taxa de equipamentos **em operação** quando não há
+  escolha operacional registrada; isso não substitui decisão técnica sobre
+  equipamento à disposição, hora-homem, encargos ou regras de medição.
+- A fonte oficial publica também **mão de obra mensalista**, não carregada nesta
+  rodada; não converter remuneração mensal em custo-hora sem metodologia validada.
+
+**Conclusão de QA**: a infraestrutura de ingestão está implementada e testada,
+mas a Etapa 2 **não está homologada** enquanto os 740 casos sem base completa e
+os 945 casos divergentes não forem triados e não houver revisão técnica de
+tributos/encargos e teste autenticado final. Não iniciar liberação comercial,
+não alterar `commercial_release=false` e não declarar M2 concluído.
+
+Para reproduzir sem segredos: execute o workflow
+`.github/workflows/audit-siurb-supplements.yml`, que baixa/usa fontes
+públicas, gera `artifacts/siurb-supplements-normalized.json`, executa
+`scripts/reconcile-siurb-services.mjs` e testa banco descartável.
+Para importar de forma controlada em banco Neon exclusivamente CIVOLTEN,
+é necessário o `DATABASE_URL` seguro e a confirmação
+`CIVOLTEN_SUPPLEMENTS_IMPORT_CONFIRM=importar-civolten-dev`; jamais colocar
+a URL ou senha em commits, relatórios ou conversas.
