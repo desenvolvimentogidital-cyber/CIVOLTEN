@@ -1,7 +1,7 @@
 /* Painel privado CIVOLTEN — desenvolvimento/homologação
  * Jamais usar localStorage para informações comerciais ou tokens de sessão.
  */
-const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,mode:'login',busy:false};
+const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],mode:'login',busy:false};
 const app=document.querySelector('#secure-app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const BRL=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
@@ -39,9 +39,9 @@ function selectField(label,name,items,value='',placeholder='Selecione'){
  items.map(x=>'<option value="'+esc(x.id)+'" '+(String(x.id)===String(value)?'selected':'')+'>'+esc(x.title||x.name||x.code)+'</option>').join('')+'</select></div>';
 }
 function textareaField(label,name,value='',required=false){return '<div class="field"><label for="f_'+esc(name)+'">'+esc(label)+'</label><textarea name="'+esc(name)+'" '+(required?'required':'')+'>'+esc(value)+'</textarea></div>'}
-const nav=[['inicio','Painel'],['clientes','Clientes'],['obras','Obras'],['orcamentos','Orçamentos']];
+const nav=[['inicio','Painel'],['clientes','Clientes'],['obras','Obras'],['orcamentos','Orçamentos'],['usuarios','Usuários']];
 function navHTML(){
- return nav.map(([id,text])=>'<button class="nav '+(state.view===id?'active':'')+'" data-action="view" data-view="'+id+'">'+esc(text)+'</button>').join('');
+ return nav.filter(([id])=>id!=='usuarios'||state.user?.role==='administrador').map(([id,text])=>'<button class="nav '+(state.view===id?'active':'')+'" data-action="view" data-view="'+id+'">'+esc(text)+'</button>').join('');
 }
 function shell(){
  app.innerHTML='<div class="layout"><aside class="sidebar">'+brand()+'<div class="muted tiny">GESTÃO SEGURA · DESENVOLVIMENTO</div>'+navHTML()+
@@ -52,6 +52,7 @@ function shell(){
 async function loadLists(){
  const [a,b,c]=await Promise.all([api('clients'),api('projects'),api('budgets')]);
  state.clients=a;state.projects=b;state.budgets=c;
+ state.users=state.user?.role==='administrador'?await api('users'):[];
 }
 function heading(title,subtitle,button='',action=''){
  return '<div class="row"><div><h1>'+esc(title)+'</h1><p class="muted">'+esc(subtitle)+'</p></div>'+
@@ -95,6 +96,15 @@ function projectPage(){
  {title:'Ações',render:x=>actions(x,'project')}
  ]):empty('Nenhuma obra cadastrada. Cadastre um cliente primeiro.'));
 }
+function usersPage(){
+ return heading('Usuários','Contas protegidas com perfis de acesso; criação somente pelo administrador.','Novo usuário','new-user')+
+ (state.users.length?listRows(state.users,[
+ {title:'Usuário',render:x=>'<strong>'+esc(x.login)+'</strong>'},
+ {title:'Perfil',render:x=>statusPill(x.role)},
+ {title:'Situação',render:x=>x.is_active?'<span class="ok">Ativo</span>':'<span class="danger">Desativado</span>'},
+ {title:'Ações',render:x=>x.id===state.user.id?'Minha conta':'<button class="btn" data-action="edit-user" data-id="'+esc(x.id)+'">Permissões</button>'}
+ ]):empty('Apenas a conta atual foi cadastrada.'));
+}
 function budgetPage(){
  return heading('Orçamentos','Minutas persistentes, ainda sem emissão contratual.','Novo orçamento','new-budget')+
  (state.budgets.length?listRows(state.budgets,[
@@ -126,13 +136,22 @@ function budgetDetail(){
 function render(){
  if(!state.user){authView();return}
  shell();const body=document.querySelector('#private-content');
- body.innerHTML=state.view==='clientes'?clientPage():state.view==='obras'?projectPage():state.view==='orcamentos'?budgetPage():state.view==='detalhe'?budgetDetail():dashboard();
+ body.innerHTML=state.view==='clientes'?clientPage():state.view==='obras'?projectPage():state.view==='orcamentos'?budgetPage():state.view==='usuarios'?usersPage():state.view==='detalhe'?budgetDetail():dashboard();
 }
 function dialog(title,contents){
  const pop=document.createElement('div');pop.className='dialog';pop.id='secure-dialog';pop.innerHTML='<section class="dialog-panel" role="dialog" aria-modal="true"><div class="row"><h2>'+esc(title)+'</h2><button class="btn" data-action="close-dialog" aria-label="Fechar">✕</button></div>'+contents+'</section>';
  document.body.append(pop);
 }
 const submitButtons='<div class="actions" style="margin-top:16px"><button type="submit" class="btn primary">Salvar</button><button type="button" class="btn" data-action="close-dialog">Cancelar</button></div>';
+function userModal(x={}){
+ const role=x.role||'orcamentista';
+ const profiles=['orcamentista','revisor','consulta'];
+ const form=x.id?'':field('Identificador de acesso','login','text',true,'','minlength="4" maxlength="120"')+
+ field('Senha temporária (mínimo 12 caracteres)','password','password',true,'','minlength="12"');
+ const select='<div class="field"><label>Perfil</label><select name="role">'+profiles.map(p=>'<option '+(p===role?'selected':'')+'>'+p+'</option>').join('')+'</select></div>';
+ const enabled=x.id?'<div class="field"><label>Conta</label><select name="is_active"><option value="true" '+(x.is_active?'selected':'')+'>Ativa</option><option value="false" '+(!x.is_active?'selected':'')+'>Desativada</option></select></div>':'';
+ dialog(x.id?'Permissões do usuário':'Novo usuário','<form id="user-form" data-id="'+esc(x.id||'')+'">'+form+select+enabled+submitButtons+'</form>');
+}
 function passwordModal(){dialog('Alterar senha','<form id="password-form">'+field('Senha atual','current_password','password',true)+field('Nova senha (mín. 12 caracteres)','new_password','password',true,'','minlength="12"')+submitButtons+'</form>')}
 function modalClient(x={}){
  const form=field('Nome / razão social','name','text',true,x.name)+field('CPF/CNPJ (apenas teste)','tax_id','text',false,x.tax_id)+
@@ -176,6 +195,11 @@ document.addEventListener('submit',async e=>{
    form.reset();if(setup){state.mode='login';toast('Administrador criado. Faça login.');authView()}else{state.user=result.user;await loadLists();state.view='inicio';render()}return;
   }
   const id=form.dataset.id;
+  if(form.id==='user-form'){
+    if(id)b.is_active=b.is_active==='true';
+    await api('users'+(id?'/'+id:''),id?'PUT':'POST',b);
+    document.querySelector('#secure-dialog')?.remove();await loadLists();render();toast('Usuário salvo. Compartilhe senha temporária fora do sistema e solicite alteração no primeiro acesso.');return;
+  }
   if(form.id==='password-form'){
     await api('auth/change-password','POST',b);document.querySelector('#secure-dialog')?.remove();toast('Senha alterada. Outras sessões foram encerradas.');return;
   }
@@ -202,6 +226,8 @@ document.addEventListener('click',async e=>{
   if(act==='logout'){await api('auth/logout','POST',{});state.user=null;state.mode='login';render();return}
   if(act==='view'){await changeView(btn.dataset.view);return}
   if(act==='password-modal'){passwordModal();return}
+  if(act==='new-user'){userModal();return}
+  if(act==='edit-user'){const found=state.users.find(u=>u.id===btn.dataset.id);if(found)userModal(found);return}
   if(['archive-client','archive-project','archive-budget','remove-item'].includes(act)){
     const label=act==='remove-item'?'Este serviço será retirado do orçamento, mantendo a auditoria.':act==='archive-budget'?'O orçamento será cancelado, sem excluir seu histórico.':'O cadastro será arquivado, preservando vínculos e histórico.';
     if(!window.confirm(label+' Confirma?'))return;
