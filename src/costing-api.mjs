@@ -33,13 +33,19 @@ export async function handleStage2(ctx){
  const {req,res,sql,user,parts,method,send,readBody}=ctx;
  const done=(response,status,payload)=>{send(response,status,payload);return true;};
  const [resource,id,sub,fourth]=parts;
+ if(resource==='siurb'&&validUUID(id)&&sub==='composition'&&method==='GET'){
+   const rows=await sql.query("SELECT p.id,p.code,p.description,p.unit,p.unit_cost,p.productivity_status,v.scope AS category,v.regime,v.reference_month,v.source_url,v.sha256,d.labor,d.other,d.direct_hh_per_unit,d.validation FROM reference_prices p JOIN reference_price_versions v ON v.id=p.version_id LEFT JOIN reference_composition_details d ON d.reference_price_id=p.id WHERE p.id=$1 AND v.source='SIURB'",[id]);
+   if(!rows.length)return done(res,404,{error:'Preço de referência não encontrado'});
+   return done(res,200,{...rows[0],composition_available:rows[0].labor!==null,
+     notice:'Detalhamento direto da SIURB. Auxiliares não totalmente expandidos; a lista não é uma composição de custo certificada.'});
+ }
  if(resource==='siurb'&&id==='search'&&method==='GET'){
    const q=parseQuery(req),term=String(q.get('q')||'').trim().slice(0,80);
    const regime=q.get('regime'),category=q.get('category');
    if(term.length<2)return done(res,200,[]);
    if(regime&&!['Com desoneração','Sem desoneração'].includes(regime))return done(res,400,{error:'Regime inválido'});
    if(category&&!['Edificações','Infraestrutura'].includes(category))return done(res,400,{error:'Categoria inválida'});
-   const rows=await sql.query("SELECT p.id,p.code,p.description,p.unit,p.unit_cost,v.reference_month,v.regime,v.scope AS category,v.source_url,v.sha256 FROM reference_prices p JOIN reference_price_versions v ON v.id=p.version_id WHERE v.source='SIURB' AND v.reference_month='2026-07' AND ($1::text IS NULL OR v.regime=$1) AND ($2::text IS NULL OR v.scope=$2) AND (p.code ILIKE $3 OR p.description ILIKE $3) ORDER BY CASE WHEN p.code=$4 THEN 0 ELSE 1 END,p.code LIMIT 40",
+   const rows=await sql.query("SELECT p.id,p.code,p.description,p.unit,p.unit_cost,p.workforce_hh_direct,p.productivity_status,(d.reference_price_id IS NOT NULL) AS composition_available,v.reference_month,v.regime,v.scope AS category,v.source_url,v.sha256 FROM reference_prices p LEFT JOIN reference_composition_details d ON d.reference_price_id=p.id JOIN reference_price_versions v ON v.id=p.version_id WHERE v.source='SIURB' AND v.reference_month='2026-07' AND ($1::text IS NULL OR v.regime=$1) AND ($2::text IS NULL OR v.scope=$2) AND (p.code ILIKE $3 OR p.description ILIKE $3) ORDER BY CASE WHEN p.code=$4 THEN 0 ELSE 1 END,p.code LIMIT 40",
      [regime||null,category||null,'%'+term.replace(/[\\%_]/g,'')+'%',term]);
    return done(res,200,rows);
  }
@@ -49,7 +55,7 @@ export async function handleStage2(ctx){
  const budget=bRows[0],draft=budget.status==='rascunho';
  if(sub==='costs'&&method==='GET'){
   const [items,profile,extra]=await Promise.all([
-   sql.query("SELECT i.id,i.position,i.source_code,i.source_name,i.unit,i.quantity,i.direct_unit_cost,i.reference_price_id,r.source,r.category,r.quantity_verified,r.composition_reviewed,r.supplier_quote_verified,r.supplier_name,r.quote_reference,r.quote_date,r.quote_unit_cost,r.loss_pct,r.freight_unit_cost,r.other_unit_cost,r.notes,p.unit_cost AS official_unit_cost,v.reference_month AS official_month,v.regime AS official_regime,v.scope AS official_category FROM budget_items i LEFT JOIN budget_item_cost_reviews r ON r.budget_item_id=i.id LEFT JOIN reference_prices p ON p.id=i.reference_price_id LEFT JOIN reference_price_versions v ON v.id=p.version_id WHERE i.budget_id=$1 AND i.deleted_at IS NULL ORDER BY i.position",
+   sql.query("SELECT i.id,i.position,i.source_code,i.source_name,i.unit,i.quantity,i.direct_unit_cost,i.reference_price_id,r.source,r.category,r.quantity_verified,r.composition_reviewed,r.supplier_quote_verified,r.supplier_name,r.quote_reference,r.quote_date,r.quote_unit_cost,r.loss_pct,r.freight_unit_cost,r.other_unit_cost,r.notes,p.unit_cost AS official_unit_cost,p.code AS official_code,p.unit AS official_unit,(d.reference_price_id IS NOT NULL) AS official_composition_available,v.reference_month AS official_month,v.regime AS official_regime,v.scope AS official_category FROM budget_items i LEFT JOIN budget_item_cost_reviews r ON r.budget_item_id=i.id LEFT JOIN reference_prices p ON p.id=i.reference_price_id LEFT JOIN reference_composition_details d ON d.reference_price_id=p.id LEFT JOIN reference_price_versions v ON v.id=p.version_id WHERE i.budget_id=$1 AND i.deleted_at IS NULL ORDER BY i.position",
      [id]),
    sql.query("SELECT bdi_components,contingency_pct,bdi_reviewed,technical_reviewed,commercial_reviewed,review_notes,updated_at FROM budget_costing_profiles WHERE budget_id=$1",[id]),
    sql.query("SELECT id,category,description,amount,included_in_unit_prices,supplier_name,quote_reference,quote_date FROM budget_extra_direct_costs WHERE budget_id=$1 ORDER BY created_at,id",[id])
@@ -57,7 +63,7 @@ export async function handleStage2(ctx){
   const config=profile[0]||{bdi_components:{},contingency_pct:0,bdi_reviewed:false,technical_reviewed:false,commercial_reviewed:false};
   const mapped=items.map(x=>{
     const from=x.source||'MANUAL';
-    const officialMismatch=from==='SIURB'&&(!x.reference_price_id||x.official_month!==budget.reference_month||x.official_regime!==budget.regime||Number(x.official_unit_cost)!==Number(x.direct_unit_cost));
+    const officialMismatch=from==='SIURB'&&(!x.reference_price_id||x.official_month!==budget.reference_month||x.official_regime!==budget.regime||Number(x.official_unit_cost)!==Number(x.direct_unit_cost)||x.official_code!==x.source_code||x.official_unit!==x.unit);
     const quoteMismatch=from!=='SIURB'&&x.supplier_quote_verified&&x.quote_unit_cost!=null&&Number(x.quote_unit_cost)!==Number(x.direct_unit_cost);
     return {code:x.source_code,description:x.source_name,unit:x.unit,quantity:String(x.quantity),unit_cost:String(x.direct_unit_cost),
      source:from,reference_price_id:x.reference_price_id,reference_month:x.official_month||null,regime:x.official_regime||null,
@@ -65,6 +71,7 @@ export async function handleStage2(ctx){
      supplier_quote_verified:!!x.supplier_quote_verified,supplier_name:x.supplier_name,quote_reference:x.quote_reference,
      quote_date:x.quote_date,source_price_mismatch:officialMismatch,quote_mismatch:quoteMismatch,
      loss_pct:String(x.loss_pct||0),freight_unit_cost:String(x.freight_unit_cost||0),other_unit_cost:String(x.other_unit_cost||0),
+     composition_available:!!x.official_composition_available,
      auxiliaries_unexpanded:from==='SIURB',
     };
   });
