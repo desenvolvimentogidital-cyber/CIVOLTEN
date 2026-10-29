@@ -2,6 +2,11 @@ name: Verificar fontes SIURB complementares (Etapa 2)
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - scripts/audit-siurb-supplements.py
+      - .github/workflows/audit-siurb-supplements.yml
   push:
     branches:
       - fix/stage2-composition-audit-20261029
