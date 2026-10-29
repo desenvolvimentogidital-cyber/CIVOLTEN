@@ -108,6 +108,29 @@ export function createApi(sql,opts={}){
      return response(res,200,{ok:true});
    }
 
+   // Exclusão lógica: preserva integridade e histórico para auditorias.
+   if(method==='DELETE'&&id&&['clients','projects','budgets'].includes(resource)){
+     if(!writable(user))return noAccess(res);
+     if(!uuid(id))return response(res,400,{error:'Identificador inválido'});
+     let changed;
+     if(resource==='clients')changed=await sql.query("UPDATE clients SET status='inativo',updated_at=now() WHERE id=$1 AND status<>'inativo' RETURNING id,status",[id]);
+     else if(resource==='projects')changed=await sql.query("UPDATE projects SET status='arquivada',updated_at=now() WHERE id=$1 AND status<>'arquivada' RETURNING id,status",[id]);
+     else changed=await sql.query("UPDATE budgets SET status='cancelado',lock_version=lock_version+1,updated_at=now() WHERE id=$1 AND status='rascunho' RETURNING id,status",[id]);
+     if(!changed.length)return response(res,409,{error:'Registro não encontrado ou não pode ser arquivado neste estado'});
+     await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,$2,$3,'archive')",[user.id,resource,id]);
+     return response(res,200,{ok:true,...changed[0]});
+   }
+   if(resource==='budgets'&&id&&sub==='items'&&parts[3]&&method==='DELETE'){
+     if(!writable(user))return noAccess(res);
+     if(!uuid(id)||!uuid(parts[3]))return response(res,400,{error:'Identificador inválido'});
+     const draft=await sql.query("SELECT id FROM budgets WHERE id=$1 AND status='rascunho'",[id]);
+     if(!draft.length)return response(res,409,{error:'Só é possível remover itens de orçamentos em rascunho'});
+     const rows=await sql.query("UPDATE budget_items SET deleted_at=now() WHERE id=$1 AND budget_id=$2 AND deleted_at IS NULL RETURNING id",[parts[3],id]);
+     if(!rows.length)return notFound(res);
+     await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'budget_items',$2,'archive')",[user.id,parts[3]]);
+     await sql.query("UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$1",[id]);
+     return response(res,200,{ok:true});
+   }
    // Gravações editáveis são restritas a usuários autenticados e autorizados.
    if(resource==='clients'&&method==='PUT'&&id){
      if(!writable(user))return noAccess(res);
@@ -221,7 +244,7 @@ export function createApi(sql,opts={}){
      if(method==='GET'&&id&&uuid(id)){
        const b=await sql.query('SELECT b.*,c.name AS client_name FROM budgets b JOIN clients c ON c.id=b.client_id WHERE b.id=$1',[id]);
        if(!b.length)return notFound(res);
-       const items=await sql.query('SELECT * FROM budget_items WHERE budget_id=$1 ORDER BY position',[id]);
+       const items=await sql.query('SELECT * FROM budget_items WHERE budget_id=$1 AND deleted_at IS NULL ORDER BY position',[id]);
        return response(res,200,{...b[0],items});
      }
      if(method==='POST'&&!id){
