@@ -250,9 +250,8 @@ export function createApi(sql,opts={}){
      if(method==='POST'){
        if(!writable(user))return noAccess(res);
        const b=await readBody(req),id=randomUUID(),name=requireField(b.name,'Nome');
-       const row=await sql.query('INSERT INTO clients(id,name,tax_id,email,phone,address,created_by) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *',
+       const row=await sql.query("WITH created AS (INSERT INTO clients(id,name,tax_id,email,phone,address,created_by) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $7,'clients',created.id,'create' FROM created RETURNING id) SELECT created.* FROM created JOIN logged ON true",
          [id,name,taxId(b.tax_id),opt(b.email,254),opt(b.phone,40),opt(b.address,800),user.id]);
-       await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'clients',$2,'create')",[user.id,id]);
        return response(res,201,row[0]);
      }
    }
@@ -262,8 +261,8 @@ export function createApi(sql,opts={}){
        if(!writable(user))return noAccess(res);
        const b=await readBody(req);if(!uuid(b.client_id))return response(res,400,{error:'Cliente inválido'});
        const id=randomUUID(),title=requireField(b.title,'Obra');
-       const row=await sql.query('INSERT INTO projects(id,client_id,title,address) VALUES($1,$2,$3,$4) RETURNING *',[id,b.client_id,title,opt(b.address,800)]);
-       await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'projects',$2,'create')",[user.id,id]);
+       const row=await sql.query("WITH created AS (INSERT INTO projects(id,client_id,title,address) VALUES($1,$2,$3,$4) RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $5,'projects',created.id,'create' FROM created RETURNING id) SELECT created.* FROM created JOIN logged ON true",
+         [id,b.client_id,title,opt(b.address,800),user.id]);
        return response(res,201,row[0]);
      }
    }
@@ -291,9 +290,8 @@ export function createApi(sql,opts={}){
          if(!p.length)return response(res,400,{error:'Obra não pertence ao cliente'});
          projectId=b.project_id;
        }
-       const r=await sql.query('INSERT INTO budgets(id,code,client_id,project_id,title,reference_month,regime,bdi_pct,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
+       const r=await sql.query("WITH created AS (INSERT INTO budgets(id,code,client_id,project_id,title,reference_month,regime,bdi_pct,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $9,'budgets',created.id,'create' FROM created RETURNING id) SELECT created.* FROM created JOIN logged ON true",
          [id,code,b.client_id,projectId,title,month,regime,bdi,user.id]);
-       await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'budgets',$2,'create')",[user.id,id]);
        return response(res,201,r[0]);
      }
    }
