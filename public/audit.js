@@ -20,10 +20,10 @@
       return verify(9)===Number(n[9])&&verify(10)===Number(n[10]);
     };
     const checkCnpj=value=>{
-      const n=digits(value);
-      if(n.length!==14||/^(\d)\1{13}$/.test(n))return false;
+      const n=String(value??'').toUpperCase().replace(/[\s.\/-]/g,'');
+      if(!/^[0-9A-Z]{12}[0-9]{2}$/.test(n)||/^(\d)\1{13}$/.test(n))return false;
       const check=(size,weights)=>{
-        let sum=0;for(let i=0;i<size;i++)sum+=Number(n[i])*weights[i];
+        let sum=0;for(let i=0;i<size;i++)sum+=(n.charCodeAt(i)-48)*weights[i];
         const rest=sum%11;return rest<2?0:11-rest;
       };
       return check(12,[5,4,3,2,9,8,7,6,5,4,3,2])===Number(n[12])
