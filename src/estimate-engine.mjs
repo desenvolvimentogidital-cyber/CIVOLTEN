@@ -54,6 +54,7 @@ export function estimateBudget(input){
      auditText(report,'REFERENCE_MISMATCH','Item '+id+' com data-base ou regime divergente.',true);
    if(!entry.reference_price_id)auditText(report,'NO_OFFICIAL_PRICE','Preço SIURB '+id+' não foi vinculado ao catálogo verificado.',true);
    if(entry.source_price_mismatch)auditText(report,'OFFICIAL_PRICE_MISMATCH','Preço SIURB '+id+' diverge da referência oficial; registre como preço próprio e justifique.',true);
+   if(entry.composition_available===false)auditText(report,'UNAVAILABLE_COMPOSITION','Serviço SIURB '+id+' não tem ficha de composição neste catálogo; exige verificação manual documentada antes de aprovar.',true);
    if(!entry.composition_reviewed)auditText(report,'UNREVIEWED_COMPOSITION','Composição SIURB '+id+' exige revisão de insumos e coeficientes.',true);
    if(entry.auxiliaries_unexpanded)auditText(report,'AUXILIARY_REVIEW','Composição SIURB '+id+' possui auxiliares não expandidos; validar custos complementares.');
   }else{
