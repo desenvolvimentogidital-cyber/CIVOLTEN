@@ -10,7 +10,7 @@ const base=()=>({
  bdi_reviewed:true,technical_reviewed:true,commercial_reviewed:true,
  contingency_pct:0,
  items:[{code:'CIV-TEST',description:'Serviço fictício unitário',unit:'m²',quantity:'100',unit_cost:'2.50',source:'MANUAL',
- quantity_verified:true,supplier_quote_verified:true}]
+ quantity_verified:true,supplier_quote_verified:true,supplier_name:'Fornecedor QA',quote_reference:'COT-QA-001',quote_date:'2026-10-29'}]
 });
 test('BDI zero: base em centavos exatos sem juros ou custos presumidos',()=>{
  const x=estimateBudget(base());
