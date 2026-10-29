@@ -82,7 +82,7 @@
       if(method==='GET' && !key)return clone([...state.proposals].reverse().map(p=>({id:p.id,budget_id:p.budget_id,code:p.code,created_at:p.created_at,title:state.budgets.find(b=>b.id===p.budget_id)?.title||'',client_name:state.clients.find(x=>x.id===state.budgets.find(b=>b.id===p.budget_id)?.client_id)?.name||''})));
       if(method==='GET'&&key){const p=state.proposals.find(x=>x.id===which);if(!p)throw Error('Proposta não encontrada');return clone(p);}
       if(method==='POST'){
-        const budget=state.budgets.find(x=>x.id===Number(b.budget_id));if(!budget)throw Error('Orçamento não encontrado');const data=calc(budget);if(!data.items.length||data.total<=0)throw Error('Adicione itens antes de gerar proposta');const p={id:id(),budget_id:budget.id,code:`PROP-${new Date().getFullYear()}-${String(state.proposals.length+1).padStart(4,'0')}`,content:JSON.stringify({...data,company:state.settings,issued_at:new Date().toISOString()}),created_at:new Date().toISOString()};state.proposals.push(p);persist();return clone(p);
+        const budget=state.budgets.find(x=>x.id===Number(b.budget_id));if(!budget)throw Error('Orçamento não encontrado');const data=calc(budget);const report=globalThis.CIVOLTEN_AUDIT(data,state.settings,{demo:true});if(!report.ready)throw Error('Proposta bloqueada pela auditoria: '+report.errors.map(x=>x.message).join(' | '));const p={id:id(),budget_id:budget.id,code:`PROP-${new Date().getFullYear()}-${String(state.proposals.length+1).padStart(4,'0')}`,content:JSON.stringify({...data,company:state.settings,issued_at:new Date().toISOString()}),created_at:new Date().toISOString()};state.proposals.push(p);persist();return clone(p);
       }
     }
     throw Error('Rota de demonstração indisponível');
