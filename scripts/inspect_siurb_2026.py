@@ -2,7 +2,7 @@
 from urllib.request import Request, urlopen
 import os, tempfile
 import xlrd
-BASE="https://prefeitura.sp.gov.br/documents/d/obras/"
+HOSTS=["https://smartsampa.prefeitura.sp.gov.br/documents/d/obras/","https://conselhoparticipativomunicipal.prefeitura.sp.gov.br/documents/d/obras/","https://prefeitura.sp.gov.br/documents/d/obras/"]
 FILES={
  "edif_sem_des":"onerada-sem-des-custos-unit-edif-julho-2026-2-xls",
  "infra_sem_des":"onerada-sem-des-custos-unit-infra-julho-2026-2-xls",
@@ -14,10 +14,21 @@ def short(value):
 for nome, arquivo in FILES.items():
  print("=== ",nome,arquivo," ===",flush=True)
  try:
-  req=Request(BASE+arquivo,headers={"User-Agent":"Mozilla/5.0"})
-  with urlopen(req,timeout=80) as response:
-   contents=response.read()
-   print("status",response.status,"bytes",len(contents),"content-type",response.headers.get("Content-Type"),flush=True)
+  contents=None
+  for base in HOSTS:
+   try:
+    req=Request(base+arquivo,headers={"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36","Accept":"application/vnd.ms-excel,application/octet-stream,*/*","Referer":base.split("/documents")[0]+"/web/obras/w/tabelas_de_custos/355179"})
+    with urlopen(req,timeout=20) as response:
+     candidate=response.read()
+     print("from",base,"status",response.status,"bytes",len(candidate),"type",response.headers.get("Content-Type"),flush=True)
+     if candidate.startswith(bytes.fromhex("D0CF11E0A1B11AE1")):
+      contents=candidate
+      break
+   except Exception as e:
+    print("SOURCE FAILURE",base,type(e).__name__,str(e)[:80],flush=True)
+  if not contents:
+   print("NO ACCESSIBLE SOURCE",nome,flush=True)
+   continue
   if not contents.startswith(bytes.fromhex("D0CF11E0A1B11AE1")):
    print("unexpected format",repr(contents[:100]));continue
   with tempfile.NamedTemporaryFile(suffix=".xls",delete=False) as temp:
