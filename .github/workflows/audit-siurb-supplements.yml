@@ -59,7 +59,7 @@ jobs:
       - name: Normalizar custos unitários e auxiliares com manifestos verificados
         run: python scripts/build-siurb-supplements.py
       - name: Instalar dependências Node do projeto
-        run: npm ci --ignore-scripts
+        run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
       - name: Validar registros sem escrever no banco
         run: node scripts/import-siurb-supplements-neon.mjs --dry-run
       - name: Importar e repetir em PostgreSQL descartável
