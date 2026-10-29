@@ -1,24 +1,22 @@
-## Auditoria de etapa 1 — 29/10/2026 (atualização de homologação)
+## Situação verificada da etapa 1 — 29/10/2026
 
-- **Validação PostgreSQL real:** [GitHub Actions 40936938669](https://github.com/desenvolvimentogidital-cyber/CIVOLTEN/actions/runs/40936938669): 48 testes unitários, integração real com Postgres 17 e restauração de backup com dados criados previamente. Inclui login, permissões, edição de cliente e obra, orçamento e serviços, arquivos lógicos, concorrência e auditoria.
-- **Correção crítica:** rota `DELETE /budgets/:id/items/:itemId` não cancela mais o orçamento inteiro. O teste valida que o item fica arquivado e o orçamento permanece rascunho.
-- **Migração 0005:** coluna `must_change_password` aplicada com teste em branch temporária. A conta administrativa inicial está marcada para trocar senha, sem acesso aos cadastros até a rotação (na nova API).
-- **Migração 0006:** chave estrangeira composta protege `(project_id, client_id)` em orçamentos, impedindo que uma obra seja associada a cliente diferente. Teste SQL/CI aprovado.
-- **Backup sem custos:** `.github/workflows/backup-civolten.yml` preparado para exportar e criptografar dumps PostgreSQL 17 diariamente; **não ativado**, pois exige configurar secret de conexão de backup de leitura e chave pública de criptografia. Instruções em [BACKUP_OPERACIONAL.md](BACKUP_OPERACIONAL.md). O plano Neon gratuito não permite agendamento de snapshots nativo.
-- **Bloqueio Vercel:** tentativa de publicar o commit `930f2fa1` retornou **HTTP 402, limite `api-deployments-free-per-day`, retryAfter 86400**. Nenhum upgrade pago foi realizado. A versão pública ainda é anterior às correções finais de autenticação.
-- **Pendência operacional:** homologar login e alteração de senha no deploy atual depois da liberação da cota, validar clientes fictícios em desktop e celular, e testar um backup criptografado efetivamente gerado pelo agendamento. **Não liberar dados reais ainda**.
+**Código e serviços online:** a publicação Vercel do commit `ae45e57e` está `READY` e atende ao painel seguro em `/secure.html`. Verificação externa de 10 rotas/arquivos concluída no [GitHub Actions 40938872838](https://github.com/desenvolvimentogidital-cyber/CIVOLTEN/actions/runs/40938872838): Neon/health e auth/status 200, rotas privadas sem sessão 401, proteção de requisições 403, bootstrap público bloqueado e arquivos do painel acessíveis.
+
+**Segurança e integridade:** PostgreSQL de desenvolvimento com migrações 0001–0006 aplicadas; primeiro administrador exige troca de senha; chaves de integridade cliente/obra/orçamento e auditoria atômica; o ambiente principal permanece sem clientes ou orçamentos. [CI 40939093170](https://github.com/desenvolvimentogidital-cyber/CIVOLTEN/actions/runs/40939093170): 48 testes automatizados, integração de autenticação/cadastros/permissões e restauração real de banco descartável, inclusive backup **criptografado age** de registros existentes.
+
+**Ainda não liberado para clientes reais:** não foi comprovado login e troca de senha pelo responsável no site nem sincronização via dois dispositivos. A rotina diária de backup criptografado está criada no GitHub Actions, mas **ainda não está ativa** por falta de configuração protegida de `CIVOLTEN_BACKUP_DATABASE_URL`, `CIVOLTEN_BACKUP_PUBLIC_KEY` e `CIVOLTEN_BACKUP_ENABLED` pelo proprietário. Um teste com chave efêmera no CI não substitui um backup real agendado e restaurado. Consulte [BACKUP_OPERACIONAL.md](BACKUP_OPERACIONAL.md). Nenhum plano pago foi contratado.
 
 # Backend PostgreSQL CIVOLTEN — desenvolvimento (29/10/2026)
 
 ## Estado real
 
 - Banco exclusivo Neon: `civolten-orcamentos-dev`, banco `civolten`, região AWS São Paulo, plano gratuito.
-- Migrações `0001_init.sql`, `0002_bootstrap_lock.sql`, `0003_soft_delete.sql`, `0004_unique_active_position.sql` aplicadas e validadas: 16 tabelas, controle único de bootstrap e exclusão lógica de itens.
+- Migrações 0001–0006 aplicadas, incluindo controle de bootstrap, exclusão lógica de itens, troca de senha inicial obrigatória e chave composta de integridade cliente/obra/orçamento.
 - A branch **main original** tem uma conta administrativa de desenvolvimento e permanece sem clientes ou orçamentos. A branch de QA restaurada tem 1 cliente, 1 obra, 1 orçamento e 1 item fictícios, isolados.
 - Snapshot manual de desenvolvimento foi criado e a restauração da estrutura foi verificada. A restauração inicialmente promoveu a cópia; a configuração foi corrigida, `main` voltou à branch original e `DATABASE_URL` da Vercel foi reconferida apontando para esse banco. Não executar novamente restauração sem `target_branch_id` explícito e prévia sem finalização.
 - Variável `DATABASE_URL` configurada na Vercel como **encrypted**, para **production** e **preview**. O segredo não pertence ao repositório.
 - Função independente em `api/index.mjs` com rotas sob `/api/v1/*`; interface privada em `public/secure.html`, `public/secure.js` e `public/secure.css`. A aplicação demonstrativa pública não foi substituída.
-- Bloqueio confirmado: a Vercel respondeu `402 api-deployments-free-per-day` (mais de 100 deploys em 24h). Os últimos commits ainda não estão publicados; **não há homologação online** da interface privada/API. Não elevar o plano pago automaticamente.
+- O limite diário anterior da Vercel foi superado: o deploy de aplicação `ae45e57e` ficou `READY` e os testes remotos de API e arquivos passaram. Alterações posteriores em scripts/CI podem não integrar o deploy, sem afetar o runtime testado.
 
 ## Endpoints homologáveis
 
