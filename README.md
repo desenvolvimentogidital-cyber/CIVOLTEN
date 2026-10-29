@@ -1,16 +1,24 @@
 # CIVOLTEN — Sistema interno de orçamentos e obras
 
+## Etapa 1 — API publicada e conta administrativa (29/10/2026)
+
+- O GitHub Actions confirmou externamente `/api/v1/health = 200`, `/api/v1/auth/status = 200`, acesso anônimo a clientes `401` e gravações/origens indevidas `403`: [smoke remoto aprovado](https://github.com/desenvolvimentogidital-cyber/CIVOLTEN/actions/runs/40930448073).
+- Uma conta administrativa de **desenvolvimento** foi criada no banco Neon principal `civolten`, login `admin`; a senha temporária foi entregue apenas ao responsável na conversa, **nunca no repositório**. Alterar a senha no primeiro acesso.
+- Operações atômicas de criação de cliente, obra, orçamento, edição e auditoria validadas em branch QA com dados fictícios. O banco `main` permanece sem clientes e orçamentos reais.
+- O painel autenticado está em `/secure.html`; gestão de usuários, troca de senha, cadastros, edição, histórico e arquivamento.
+- **Homologação ainda pendente:** login real pelo usuário, troca de senha, criação/edição por navegador em dois dispositivos, permissões, recuperação de backup contendo dados anteriores e validação final de segurança. Não usar dados reais.
+
 ## Atualização técnica — 29/10/2026 (etapas 1–5 em implementação)
 
 **Status: homologação de desenvolvimento, NÃO apto a dados de clientes ou propostas comerciais reais.**
 
-- Etapa 1: PostgreSQL Neon com migrações 0001–0004, branch principal original verificada, cópia de QA isolada; painel autenticado `public/secure.html` e API `api/index.mjs` implementados, ainda sem administrador ativo e sem homologação online.
+- Etapa 1: PostgreSQL Neon com migrações 0001–0004, branch principal original verificada, cópia de QA isolada; painel autenticado `public/secure.html` e API `api/index.mjs` implementados, administrador de desenvolvimento criado, API online validada por smoke; homologação de login e dados em dois dispositivos pendente.
 - Etapa 2: motor `src/estimate-engine.mjs` calcula custos em centavos, BDI detalhado, contingência explícita e cenários de risco. Ainda não integrado ao orçamento persistido.
 - Etapa 3: motor `src/schedule-engine.mjs` modela equipes, feriados, dependências e simultaneidade, bloqueando falta de produtividade. Ainda não integrado ao Gantt do banco.
 - Etapa 4: `src/proposal-pdf.mjs` gera PDF A4 em servidor com revisão obrigatória, paginação e checagem do total. Ainda sem endpoint de emissão operacional.
 - Etapa 5: suíte de testes `npm test`, incluindo cenário sintético da SIURB ao PDF; não substitui homologação real, segurança e backup recorrente.
-- **Vercel:** limite gratuito de mais de 100 deploys em 24h retornou 402 `api-deployments-free-per-day`. O deploy READY mostrado atualmente é anterior ao commit mais recente; sem upgrade automático.
-- **Segurança:** o segredo temporário `CIVOLTEN_BOOTSTRAP_SECRET` continua ausente. Não ativar administrador até a publicação do código atualizado e aprovação do procedimento.
+- **Vercel:** houve cota gratuita 402, mas o deploy posterior publicado em 29/10 respondeu ao teste remoto de API. Validar cada novo commit antes de declarar produção; sem upgrade automático.
+- **Segurança:** a conta administrativa inicial foi criada diretamente na base de desenvolvimento com credencial temporária de alta entropia. Não cadastrar mais administradores via bootstrap. Trocar a senha no primeiro acesso.
 
 Acompanhar o restante da homologação: [Issue #1](https://github.com/desenvolvimentogidital-cyber/CIVOLTEN/issues/1). Documentos: `docs/BACKEND_NEON_DEV.md` e `docs/CRITERIOS_DE_LIBERACAO_COMERCIAL.md`.
 
