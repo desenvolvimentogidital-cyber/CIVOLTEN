@@ -93,6 +93,89 @@ export function createApi(sql,opts={}){
    const user=await who(req,sql);
    if(!user)return response(res,401,{error:'Sessão necessária'});
    if(resource==='me'&&method==='GET')return response(res,200,user);
+   // Gravações editáveis são restritas a usuários autenticados e autorizados.
+   if(resource==='clients'&&method==='PUT'&&id){
+     if(!writable(user))return noAccess(res);
+     if(!uuid(id))return response(res,400,{error:'Cliente inválido'});
+     const b=await readBody(req);
+     const name=requireField(b.name,'Nome',250);
+     const taxId=opt(b.tax_id,18),email=opt(b.email,254),phone=opt(b.phone,40),address=opt(b.address,800);
+     const updated=await sql.query("UPDATE clients SET name=$2,tax_id=$3,email=$4,phone=$5,address=$6,updated_at=now() WHERE id=$1 RETURNING *",
+       [id,name,taxId,email,phone,address]);
+     if(!updated.length)return notFound(res);
+     await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'clients',$2,'update')",[user.id,id]);
+     return response(res,200,updated[0]);
+   }
+   if(resource==='projects'&&method==='PUT'&&id){
+     if(!writable(user))return noAccess(res);
+     if(!uuid(id))return response(res,400,{error:'Obra inválida'});
+     const b=await readBody(req),title=requireField(b.title,'Obra',250);
+     if(!uuid(b.client_id))return response(res,400,{error:'Cliente inválido'});
+     const updated=await sql.query("UPDATE projects SET title=$2,client_id=$3,address=$4,updated_at=now() WHERE id=$1 RETURNING *",
+       [id,title,b.client_id,opt(b.address,800)]);
+     if(!updated.length)return notFound(res);
+     await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'projects',$2,'update')",[user.id,id]);
+     return response(res,200,updated[0]);
+   }
+   if(resource==='budgets'&&method==='PUT'&&id&&!sub){
+     if(!writable(user))return noAccess(res);
+     if(!uuid(id))return response(res,400,{error:'Orçamento inválido'});
+     const b=await readBody(req),title=requireField(b.title,'Título',250);
+     const current=await sql.query('SELECT client_id,project_id,status,lock_version FROM budgets WHERE id=$1',[id]);
+     if(!current.length)return notFound(res);
+     if(current[0].status!=='rascunho')return response(res,409,{error:'Orçamento não editável neste estado'});
+     if(!uuid(b.client_id))return response(res,400,{error:'Cliente inválido'});
+     let projectId=null;
+     if(b.project_id){
+       if(!uuid(b.project_id))return response(res,400,{error:'Obra inválida'});
+       const owned=await sql.query('SELECT id FROM projects WHERE id=$1 AND client_id=$2',[b.project_id,b.client_id]);
+       if(!owned.length)return response(res,400,{error:'Obra não pertence ao cliente'});
+       projectId=b.project_id;
+     }
+     const month=String(b.reference_month||current[0].reference_month);
+     if(!/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(month))return response(res,400,{error:'Data-base inválida'});
+     const regime=['Com desoneração','Sem desoneração'].includes(b.regime)?b.regime:'Sem desoneração';
+     const bdi=number(b.bdi_pct,'BDI',true);
+     if(bdi>100)return response(res,400,{error:'BDI deve ser no máximo 100%'});
+     // Controle otimista evita sobrescrever alterações de outro dispositivo.
+     const expected=Number(b.lock_version);
+     if(!Number.isSafeInteger(expected)||expected<0)return response(res,400,{error:'Versão do orçamento obrigatória'});
+     const updated=await sql.query("UPDATE budgets SET client_id=$2,project_id=$3,title=$4,reference_month=$5,regime=$6,bdi_pct=$7,lock_version=lock_version+1,updated_at=now() WHERE id=$1 AND lock_version=$8 AND status='rascunho' RETURNING *",
+       [id,b.client_id,projectId,title,month,regime,bdi,expected]);
+     if(!updated.length)return response(res,409,{error:'Orçamento alterado em outro dispositivo. Atualize antes de salvar.'});
+     await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'budgets',$2,'update')",[user.id,id]);
+     return response(res,200,updated[0]);
+   }
+   if(resource==='budgets'&&id&&sub==='items'){
+     if(!uuid(id))return response(res,400,{error:'Orçamento inválido'});
+     if(method==='POST'||(method==='PUT'&&parts[3])){
+       if(!writable(user))return noAccess(res);
+       const b=await readBody(req);
+       const original=await sql.query('SELECT id,status FROM budgets WHERE id=$1',[id]);
+       if(!original.length)return notFound(res);
+       if(original[0].status!=='rascunho')return response(res,409,{error:'Orçamento não está em rascunho'});
+       const description=requireField(b.source_name,'Descrição do serviço',500);
+       const unit=requireField(b.unit,'Unidade',30),position=Number(b.position);
+       if(!Number.isSafeInteger(position)||position<1||position>10000)return response(res,400,{error:'Ordem inválida'});
+       const qty=number(b.quantity,'Quantidade'),unitCost=number(b.direct_unit_cost,'Custo unitário',true);
+       const sourceCode=opt(b.source_code,40);
+       let row;
+       if(method==='POST'){
+         const itemId=randomUUID();
+         row=await sql.query("INSERT INTO budget_items(id,budget_id,position,source_name,source_code,unit,quantity,direct_unit_cost) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
+           [itemId,id,position,description,sourceCode,unit,qty,unitCost]);
+         await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'budget_items',$2,'create')",[user.id,itemId]);
+       }else{
+         if(!uuid(parts[3]))return response(res,400,{error:'Serviço inválido'});
+         row=await sql.query("UPDATE budget_items SET position=$3,source_name=$4,source_code=$5,unit=$6,quantity=$7,direct_unit_cost=$8 WHERE id=$1 AND budget_id=$2 RETURNING *",
+           [parts[3],id,position,description,sourceCode,unit,qty,unitCost]);
+         if(!row.length)return notFound(res);
+         await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'budget_items',$2,'update')",[user.id,parts[3]]);
+       }
+       await sql.query("UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$1",[id]);
+       return response(res,method==='POST'?201:200,row[0]);
+     }
+   }
    if(resource==='clients'){
      if(method==='GET'){
        if(id){if(!uuid(id))return response(res,400,{error:'Identificador inválido'});const r=await sql.query('SELECT * FROM clients WHERE id=$1 LIMIT 1',[id]);return r[0]?response(res,200,r[0]):notFound(res)}
@@ -119,7 +202,7 @@ export function createApi(sql,opts={}){
      }
    }
    if(resource==='budgets'){
-     if(method==='GET'&&!id)return response(res,200,await sql.query('SELECT b.id,b.code,b.title,b.status,b.reference_month,b.regime,b.bdi_pct,c.name AS client_name FROM budgets b JOIN clients c ON c.id=b.client_id ORDER BY b.created_at DESC LIMIT 200',[]));
+     if(method==='GET'&&!id)return response(res,200,await sql.query('SELECT b.id,b.code,b.title,b.client_id,b.project_id,b.status,b.lock_version,b.reference_month,b.regime,b.bdi_pct,c.name AS client_name FROM budgets b JOIN clients c ON c.id=b.client_id ORDER BY b.created_at DESC LIMIT 200',[]));
      if(method==='GET'&&id&&uuid(id)){
        const b=await sql.query('SELECT b.*,c.name AS client_name FROM budgets b JOIN clients c ON c.id=b.client_id WHERE b.id=$1',[id]);
        if(!b.length)return notFound(res);
