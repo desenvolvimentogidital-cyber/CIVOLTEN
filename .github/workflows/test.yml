@@ -58,6 +58,8 @@ jobs:
           done
       - name: Validar API real com autenticação, papéis, orçamento e auditoria
         run: node --test tests/db-integration.test.mjs
+      - name: Engenharia de custos - integração real PostgreSQL e SIURB
+        run: node --test tests/costing-integration.test.mjs
       - name: Backup e restauração com dados fictícios já gravados
         shell: bash
         run: |
