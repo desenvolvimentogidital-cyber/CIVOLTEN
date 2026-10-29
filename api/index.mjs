@@ -64,10 +64,11 @@ export function createApi(sql,opts={}){
      if(!secret)return response(res,403,{error:'Configuração administrativa desativada'});
      const b=await readBody(req),got=String(b.bootstrap_secret||'');
      if(got.length!==secret.length||!timingSafeEqual(Buffer.from(got),Buffer.from(secret)))return response(res,403,{error:'Token de configuração inválido'});
-     const count=await sql.query('SELECT count(*)::integer AS total FROM app_users',[]);
-     if(count[0].total!==0)return response(res,409,{error:'Usuário administrador já existente'});
      const userId=randomUUID(),username=requireField(b.login,'Login',120).toLowerCase(),passwordHash=hashPassword(b.password);
-     await sql.query("INSERT INTO app_users(id,login,password_hash,role) VALUES($1,$2,$3,'administrador')",[userId,username,passwordHash]);
+     // Um único statement cria a trava permanente e o usuário. Concorrência não duplica administradores iniciais.
+     const inserted=await sql.query("WITH guard AS (INSERT INTO app_bootstrap_lock(singleton) VALUES(1) ON CONFLICT DO NOTHING RETURNING singleton), bootstrap_user AS (INSERT INTO app_users(id,login,password_hash,role) SELECT $1,$2,$3,'administrador' FROM guard RETURNING id) SELECT id FROM bootstrap_user",
+       [userId,username,passwordHash]);
+     if(!inserted.length)return response(res,409,{error:'Administrador inicial já foi configurado'});
      await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action) VALUES($1,'app_users',$2,'bootstrap')",[userId,userId]);
      return response(res,201,{ok:true});
    }
