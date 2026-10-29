@@ -1,0 +1,22 @@
+name: Etapa 1 - Verificacao remota Vercel e Neon
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/stage1-remote-smoke.yml
+permissions:
+  contents: read
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Consultar API real sem alterar dados
+        env:
+          CIVOLTEN_BASE_URL: https://civolten-gj91.vercel.app/
+        run: node scripts/verify-remote-stage1.mjs
