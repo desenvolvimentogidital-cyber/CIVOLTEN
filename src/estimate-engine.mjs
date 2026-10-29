@@ -40,19 +40,27 @@ export function estimateBudget(input){
   try{
    const quantity=scaled(entry.quantity,6,'Quantidade do item '+(i+1));
    const unitCost=scaled(entry.unit_cost,4,'Preço unitário do item '+(i+1));
+   const loss=parseRate(entry.loss_pct??0,'Perda do item '+(i+1));
+   const freight=scaled(entry.freight_unit_cost??0,4,'Frete unitário do item '+(i+1));
+   const other=scaled(entry.other_unit_cost??0,4,'Outros custos unitários do item '+(i+1));
    if(quantity<=0n||unitCost<=0n)invalid('Quantidade e custo unitário devem ser positivos');
-   cost=roundDiv(quantity*unitCost,100000000n);
+   const grossUnitCost=unitCost+roundDiv(unitCost*loss,10000n)+freight+other;
+   cost=roundDiv(quantity*grossUnitCost,100000000n);
    direct+=cost;
   }catch(error){auditText(report,'INVALID_ITEM','Item '+(i+1)+' ('+id+'): '+error.message,true)}
   if(!entry.unit||!String(entry.description||'').trim())auditText(report,'SCOPE','Item '+(i+1)+' sem descrição ou unidade.',true);
   if(src==='SIURB'){
    if(!reference||!regime||entry.reference_month!==reference||entry.regime!==regime)
      auditText(report,'REFERENCE_MISMATCH','Item '+id+' com data-base ou regime divergente.',true);
-   if(!entry.composition_reviewed)auditText(report,'UNREVIEWED_COMPOSITION','Composição SIURB '+id+' exige revisão de insumos e coeficientes.');
+   if(!entry.reference_price_id)auditText(report,'NO_OFFICIAL_PRICE','Preço SIURB '+id+' não foi vinculado ao catálogo verificado.',true);
+   if(entry.source_price_mismatch)auditText(report,'OFFICIAL_PRICE_MISMATCH','Preço SIURB '+id+' diverge da referência oficial; registre como preço próprio e justifique.',true);
+   if(!entry.composition_reviewed)auditText(report,'UNREVIEWED_COMPOSITION','Composição SIURB '+id+' exige revisão de insumos e coeficientes.',true);
+   if(entry.auxiliaries_unexpanded)auditText(report,'AUXILIARY_REVIEW','Composição SIURB '+id+' possui auxiliares não expandidos; validar custos complementares.');
   }else{
-   if(!entry.supplier_quote_verified)auditText(report,'UNQUOTED','Serviço '+id+' sem cotação local validada.');
+   if(!entry.supplier_quote_verified)auditText(report,'UNQUOTED','Serviço '+id+' sem cotação local validada.',true);
+   if(entry.supplier_quote_verified&&(!entry.supplier_name||!entry.quote_date||!entry.quote_reference))auditText(report,'QUOTE_TRACEABILITY','Serviço '+id+' sem fornecedor, data ou referência comprovável.',true);
   }
-  if(!entry.quantity_verified)auditText(report,'MEASUREMENTS','Quantitativo do serviço '+id+' precisa de medição validada.');
+  if(!entry.quantity_verified)auditText(report,'MEASUREMENTS','Quantitativo do serviço '+id+' precisa de medição validada.',true);
   lines.push({code:id,description:String(entry.description||''),unit:String(entry.unit||''),cost_cents:toNumber(cost),cost_reais:reais(cost),source:src});
  });
  const extra=[];
