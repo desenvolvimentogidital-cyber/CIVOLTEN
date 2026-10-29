@@ -13,10 +13,11 @@ export function costPage({state,esc,writeable}){
  const errors=(est.errors||[]).slice(0,35).map(x=>'<li class="danger"><strong>'+esc(x.code)+'</strong> — '+esc(x.message)+'</li>').join('');
  const warnings=(est.warnings||[]).slice(0,25).map(x=>'<li>'+esc(x.message)+'</li>').join('');
  const rowButtons=writeable()?'<button class="btn primary" data-action="cost-add-siurb">+ SIURB</button> <button class="btn" data-action="cost-add-extra">+ Custo extra</button> <button class="btn" data-action="cost-bdi-form">Configurar BDI</button>':'';
- const tableRows=items.map(x=>{
+ const tableRows=items.map((x,index)=>{
    const rev=x.source||'MANUAL';
    return '<tr><td><strong>'+esc(x.source_code||'Próprio')+'</strong> '+esc(x.source_name)+'</td><td>'+esc(rev)+'</td>'+
    '<td>'+esc(x.quantity)+' '+esc(x.unit)+'</td><td>'+fmt(x.direct_unit_cost)+'</td>'+
+   '<td>'+fmt(est.lines?.[index]?.cost_reais||0)+'</td>'+\
    '<td>'+esc(x.quantity_verified?'Conferido':'Medição pendente')+'</td><td>'+ (x.reference_price_id?'<button class="btn" data-action="cost-composition" data-id="'+esc(x.reference_price_id)+'">Ver insumos</button> ':'')+ (writeable()||canApprove?'<button class="btn" data-action="cost-evidence" data-id="'+esc(x.id)+'">Evidências</button>':'—')+'</td></tr>'
  }).join('');
  const rowsExtra=extra.map(x=>'<tr><td>'+esc(categories[x.category]||x.category)+' — '+esc(x.description)+'</td><td>'+fmt(x.amount)+'</td><td>'+ (x.included_in_unit_prices?'Possível duplicação':'Separado')+'</td><td>'+(writeable()?'<button class="btn danger" data-action="cost-remove-extra" data-id="'+esc(x.id)+'">Remover</button>':'—')+'</td></tr>').join('');
@@ -31,7 +32,7 @@ export function costPage({state,esc,writeable}){
  '<div class="card"><div class="muted">Conferência do cálculo</div><div class="metric">'+(ready?'Sem bloqueios':'Pendente')+'</div></div></div>'+
  '<div class="actions" style="margin-top:18px">'+rowButtons+'</div>'+
  '<div class="card"><h2>Serviços e evidências</h2><div class="table-wrap"><table><thead><tr><th>Serviço</th><th>Fonte</th><th>Quantidade</th><th>Unitário direto</th><th>Medição</th><th>Ação</th></tr></thead><tbody>'+
- (tableRows||'<tr><td colspan="6">Adicione serviços com preço e fonte verificáveis.</td></tr>')+'</tbody></table></div></div>'+
+ (tableRows||'<tr><td colspan="7">Adicione serviços com preço e fonte verificáveis.</td></tr>')+'</tbody></table></div></div>'+
  '<div class="card"><h2>Outros custos diretos</h2><div class="table-wrap"><table><thead><tr><th>Custo</th><th>Valor</th><th>Critério</th><th>Ação</th></tr></thead><tbody>'+
  (rowsExtra||'<tr><td colspan="4">Sem custos extras registrados. Verifique frete, mobilização, descarte e equipamentos.</td></tr>')+'</tbody></table></div></div>'+
  '<div class="card"><h2>Revisões e riscos</h2><p class="muted">BDI: '+esc(profile.bdi_reviewed?'Revisado':'Pendente')+' · Técnica: '+esc(profile.technical_reviewed?'Revisada':'Pendente')+' · Comercial: '+esc(profile.commercial_reviewed?'Revisada':'Pendente')+'</p>'+
@@ -52,7 +53,7 @@ export function costDialog(action,{state,dialog,field,esc,writeable,toast}){
      checkbox('commercial_reviewed','Condições comerciais revisadas',p.commercial_reviewed,!allow);
    dialog('Composição analítica do BDI','<form id="cost-settings-form"><div class="two">'+rates+'</div>'+
       field('Contingência financeira (%)','contingency_pct','number',true,p.contingency_pct??0,'step="0.01" min="0" max="100"')+
-      field('Observações e justificativa','review_notes','text',false,p.review_notes||'')+checks+
+      field('Memória de cálculo / justificativa das aprovações','review_notes','text',false,p.review_notes||'')+checks+
       '<div class="notice tiny">O BDI é calculado pela fórmula composta, não pela simples soma das parcelas. Não declare revisão sem conferir tributos e escopo.</div>'+
       '<div class="actions"><button class="btn primary" type="submit">Salvar composição do BDI</button><button class="btn" type="button" data-action="close-dialog">Cancelar</button></div></form>');
    return true;
