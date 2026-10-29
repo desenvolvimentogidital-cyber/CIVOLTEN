@@ -25,7 +25,7 @@ function calendar(start,workingWeek,holidays){
 }
 function duration(task,team){
  if(Number.isInteger(task.duration_workdays)&&task.duration_workdays>0)
-   return task.duration_workdays;
+   return task.duration_reviewed===true?task.duration_workdays:null;
  const qty=Number(task.quantity),hh=Number(task.hh_per_unit);
  if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(hh)||hh<=0)return null;
  const people=Number(team?.workers),hours=Number(team?.hours_day),eff=Number(team?.efficiency);
@@ -93,7 +93,7 @@ export function buildWorkSchedule(options){
  const safetyPct=Number(options?.safety_pct??0);
  if(!Number.isFinite(safetyPct)||safetyPct<0||safetyPct>100)return {ready:false,errors:['Margem de segurança de prazo inválida.'],warnings,tasks:[],base_workdays:null,total_workdays:null,finish:null};
  const safety=Math.ceil(base*safetyPct/100),total=base+safety;
- if(options?.contract_deadline&&calendarDate(options.contract_deadline)<dateUTC(calendarDate(total-1)))warnings.push('Prazo calculado ultrapassa a data contratual.');
+ if(options?.contract_deadline&&dateUTC(options.contract_deadline).getTime()<dateUTC(calendarDate(total-1)).getTime())warnings.push('Prazo calculado ultrapassa a data contratual.');
  warnings.push('Cronograma preliminar: validar dimensionamento por profissão, equipamento, frentes, restrições de acesso e produtividade observada.');
  return {ready:true,errors,warnings,tasks:output,base_workdays:base,safety_workdays:safety,total_workdays:total,
   start:calendarDate(0),finish:calendarDate(total-1),parallel_tasks_possible:output.some((a,i)=>output.some((b,j)=>j>i&&a.crew_id!==b.crew_id&&overlaps(a,b)))};
