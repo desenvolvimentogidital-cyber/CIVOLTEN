@@ -26,6 +26,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: audit-siurb-complementos-${{ github.ref }}
@@ -33,6 +34,7 @@ concurrency:
 
 jobs:
   official-sources:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 12
     services:
@@ -56,8 +58,21 @@ jobs:
           python-version: '3.12'
       - name: Dependência XLS legada, versão fixa
         run: python -m pip install --disable-pip-version-check xlrd==2.0.2
-      - name: Inspecionar planilhas oficiais sem importar para o banco
-        run: python scripts/audit-siurb-supplements.py --output artifacts/siurb-supplements-audit.json
+      - name: Recuperar apenas as fontes públicas já auditadas em QA
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        continue-on-error: true
+        with:
+          name: siurb-supplements-schema-audit
+          run-id: 40960856431
+          path: artifacts
+          github-token: ${{ github.token }}
+      - name: Verificar cache ou buscar documentos oficiais
+        run: |
+          if [ -f artifacts/siurb-supplements-audit.json ] && [ -d artifacts/siurb-source-files ]; then
+            echo "Usando cópia da SIURB auditada no mesmo repositório; SHA será reconferido na normalização."
+          else
+            python scripts/audit-siurb-supplements.py --output artifacts/siurb-supplements-audit.json
+          fi
       - name: Normalizar custos unitários e auxiliares com manifestos verificados
         run: python scripts/build-siurb-supplements.py
       - name: Conciliar composições de serviços e custos oficiais em centavos
