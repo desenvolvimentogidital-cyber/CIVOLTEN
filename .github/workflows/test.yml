@@ -20,6 +20,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Testar
         run: npm test
+      - name: Validar integridade das fontes SIURB sem conectar ao banco
+        run: npm run validate:siurb
   integration:
     runs-on: ubuntu-latest
     services:
