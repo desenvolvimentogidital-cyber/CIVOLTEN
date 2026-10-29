@@ -24,7 +24,7 @@ const canApprove=user=>['administrador','revisor'].includes(user.role);
 function parseQuery(req){return new URL(req.url,'https://civolten-gj91.vercel.app').searchParams}
 async function sourceItem(sql,referenceId,budget){
  if(!validUUID(referenceId))return null;
- const rows=await sql.query("SELECT p.id,p.code,p.description,p.unit,p.unit_cost,v.scope,v.regime,v.reference_month,v.source_url,v.sha256 FROM reference_prices p JOIN reference_price_versions v ON v.id=p.version_id WHERE p.id=$1 AND v.source='SIURB' AND v.reference_month=$2 AND v.regime=$3 LIMIT 1",
+ const rows=await sql.query("SELECT p.id,p.code,p.description,p.unit,p.unit_cost,(d.reference_price_id IS NOT NULL) AS has_composition,v.scope,v.regime,v.reference_month,v.source_url,v.sha256 FROM reference_prices p LEFT JOIN reference_composition_details d ON d.reference_price_id=p.id JOIN reference_price_versions v ON v.id=p.version_id WHERE p.id=$1 AND v.source='SIURB' AND v.reference_month=$2 AND v.regime=$3 LIMIT 1",
    [referenceId,budget.reference_month,budget.regime]);
  return rows[0]||null;
 }
@@ -119,6 +119,7 @@ export async function handleStage2(ctx){
    const approve=['bdi_reviewed','technical_reviewed','commercial_reviewed'].some(k=>body[k]===true);
    if(approve&&!canApprove(user))return done(res,403,{error:'Somente administrador ou revisor pode aprovar custos'});
    const notes=clean(body.review_notes,'Observações',2000,false);
+   if(approve&&!notes)return done(res,400,{error:'Aprovações precisam de justificativa e identificação da revisão'});
    const checked=['bdi_reviewed','technical_reviewed','commercial_reviewed'].map(k=>body[k]===true);
    const result=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now(),bdi_pct=$3,contingency_pct=$4 WHERE id=$1 AND lock_version=$2 AND status='rascunho' RETURNING id), revised AS (INSERT INTO budget_costing_profiles(budget_id,bdi_components,contingency_pct,bdi_reviewed,technical_reviewed,commercial_reviewed,review_notes,reviewed_by,updated_by,updated_at) SELECT guard.id,$5::jsonb,$4,$6,$7,$8,$9,$10,$10,now() FROM guard ON CONFLICT(budget_id) DO UPDATE SET bdi_components=excluded.bdi_components,contingency_pct=excluded.contingency_pct,bdi_reviewed=excluded.bdi_reviewed,technical_reviewed=excluded.technical_reviewed,commercial_reviewed=excluded.commercial_reviewed,review_notes=excluded.review_notes,reviewed_by=excluded.reviewed_by,updated_by=excluded.updated_by,updated_at=now() RETURNING budget_id), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $10,'budgets',revised.budget_id,'cost_profile_updated' FROM revised RETURNING id) SELECT revised.budget_id FROM revised JOIN logged ON true",
     [id,body.lock_version,effectiveRounded,contingency,JSON.stringify(bdi),...checked,notes,user.id]);
@@ -139,6 +140,7 @@ export async function handleStage2(ctx){
      const price=await sourceItem(sql,body.reference_price_id,budget);
      if(!price||price.code!==existing[0].source_code||Number(price.unit_cost)!==Number(existing[0].direct_unit_cost))
        return done(res,400,{error:'Preço SIURB deve corresponder ao código e custo do catálogo oficial'});
+     if(body.composition_reviewed===true&&!price.has_composition)return done(res,400,{error:'Ficha de composição ausente na SIURB; não é possível marcar como revisada'});
      officialId=price.id;category=price.scope;
    }
    const quantityVerified=body.quantity_verified===true,compositionReviewed=body.composition_reviewed===true,quoteVerified=body.supplier_quote_verified===true;
