@@ -19,7 +19,7 @@
     if(!rows.length)err('items','Inclua serviços antes de gerar a proposta.');
     rows.forEach((r,index)=>{
       const line=index+1;
-      if(!meaningful(r.description)||!meaningful(r.unit))err('item_description','Item '+line+': descrição e unidade obrigatórias.');
+      if(!meaningful(r.description)||!String(r.unit||'').trim())err('item_description','Item '+line+': descrição e unidade obrigatórias.');
       if(!(num(r.qty)>0))err('quantity','Item '+line+': quantidade deve ser positiva.');
       if(!(num(r.unit_cost)>0))err('price','Item '+line+': preço unitário deve ser positivo.');
       if(!(num(r.hh_unit)>0))err('productivity','Item '+line+': falta coeficiente de produtividade h-h/unidade validado.');
