@@ -39,6 +39,21 @@ O servidor local escuta apenas em `127.0.0.1` por padrão. Para testes em outros
 
 Abra Configurações → Aparência, ou clique no botão com ícone de sol/lua no topo. O padrão é **Automático**. O sistema acompanha o tema do dispositivo e guarda alterações manuais no `localStorage` do navegador.
 
+## Catálogo SIURB oficial disponível na demonstração Vercel
+
+O catálogo da data-base **julho/2026**, retificada em **01/10/2026**, foi integrado ao modo de demonstração com **6.988 serviços precificados** das planilhas oficiais: 2.630 de Edificações e 864 de Infraestrutura em cada regime (com e sem desoneração).
+
+- Dados: `public/data/siurb-2026-07.json` (não ficam duplicados no localStorage).
+- Fonte oficial: `https://prefeitura.sp.gov.br/web/obras/w/tabelas_de_custos/355179`.
+- URLs exatas e SHA-256 dos quatro arquivos: `meta.origins` dentro do catálogo JSON.
+- Geração auditável: `scripts/publish_siurb_2026.py`, validada no GitHub Actions por `.github/workflows/publish-siurb.yml`.
+- Na Vercel, abra **Composições SIURB** e pesquise código, serviço, regime ou categoria.
+- Em um orçamento, **Adicionar item** permite buscar pelo código/descrição e usa **apenas a data-base e regime definidos no orçamento**. Custo do serviço selecionado é copiado para o item do orçamento, preservando o preço no snapshot.
+- **Não estão incluídos os coeficientes h-h/unidade** nessa fonte de custos unitários. Os campos permanecem sem produtividade validada, mesmo quando o serviço possui preço oficial. É necessária a leitura e conferência das planilhas oficiais de composições para calcular horas-homem e cronogramas de modo tecnicamente adequado.
+- **A demonstração online não utiliza banco central nem login verdadeiro.** Não inserir dados reais de clientes ou gerar proposta comercial definitiva.
+
+A versão **local (servidor SQLite)** não incorpora esses registros automaticamente e mantém o processo de importação manual por CSV. O catálogo público da Vercel e o servidor local são modos distintos nesta fase.
+
 ## Importar custos SIURB (tabelas oficiais de São Paulo)
 
 Fonte: https://prefeitura.sp.gov.br/web/obras/w/tabelas_de_custos/355179
@@ -130,4 +145,4 @@ A separação é intencional: arquivos SQLite gravados no disco temporário de u
 
 **Identidade visual:** as imagens otimizadas `public/assets/logo.png` e `public/assets/icone.png` são derivados dos PNGs fornecidos, não de imagens inventadas. Os originais em alta resolução estão no pacote de logos já compartilhado com o proprietário.
 
-**Limitações conhecidas:** cronograma é sequencial, BDI simplificado, produtividade agregada, tabela SIURB ainda precisa ser importada e auditada, PDF depende da impressão do navegador. São melhorias do produto futuro; a prévia não representa um orçamento técnico certificado.
+**Limitações conhecidas:** cronograma é sequencial, BDI simplificado, produtividade não certificada, custos unitários SIURB jul/2026 já publicados na demonstração mas composições/insumos e coeficientes de mão de obra ainda requerem integração e auditoria, PDF depende da impressão do navegador. São melhorias do produto futuro; a prévia não representa um orçamento técnico certificado.
