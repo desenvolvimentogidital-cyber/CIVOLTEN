@@ -84,3 +84,29 @@ jobs:
           after_items="$(psql -At -d civolten_restored -c 'SELECT count(*) FROM budget_items')"
           test "$before_items" = "$after_items"
           echo "PASS backup and restore: clients=$after budgets=$after_budget items=$after_items"
+      - name: Backup criptografado age e restauração em terceiro banco descartável
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age
+          temp_dir="$(mktemp -d)"
+          trap 'rm -rf "$temp_dir"' EXIT
+          age-keygen -o "$temp_dir/secret.key" >/dev/null 2>&1
+          public_key="$(age-keygen -y "$temp_dir/secret.key")"
+          postgres_container="$(docker ps --filter 'ancestor=postgres:17' --format '{{.ID}}' | head -n 1)"
+          test -n "$postgres_container"
+          docker exec -e PGPASSWORD="$PGPASSWORD" "$postgres_container" pg_dump -h 127.0.0.1 -U postgres --format=custom --no-owner --no-privileges civolten_test |
+            age -r "$public_key" -o "$temp_dir/civolten-qa.dump.age"
+          test -s "$temp_dir/civolten-qa.dump.age"
+          createdb civolten_encrypted_restored
+          age -d -i "$temp_dir/secret.key" "$temp_dir/civolten-qa.dump.age" |
+            docker exec -i -e PGPASSWORD="$PGPASSWORD" "$postgres_container" pg_restore -h 127.0.0.1 -U postgres --no-owner --no-privileges --exit-on-error -d civolten_encrypted_restored
+          for table in clients projects budgets budget_items audit_events; do
+            expected="$(psql -At -d civolten_test -c "SELECT count(*) FROM $table")"
+            actual="$(psql -At -d civolten_encrypted_restored -c "SELECT count(*) FROM $table")"
+            test "$expected" = "$actual"
+            echo "PASS encrypted restore $table count=$actual"
+          done
+          echo "PASS: encrypted archive can be decrypted and restored with its private key; no key persisted"
+
