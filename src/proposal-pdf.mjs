@@ -45,7 +45,7 @@ function textWrap(font,value,size,width){
    }else current=word;
  }
  if(current)out.push(current);
- return out.length?out:['—'];
+ return out.length?out:['-'];
 }
 export async function renderProposalPdf(doc,{logoPath}={}){
  assertReady(doc);
