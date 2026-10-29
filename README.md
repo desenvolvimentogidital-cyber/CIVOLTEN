@@ -1,5 +1,22 @@
 # CIVOLTEN — Sistema interno de orçamentos e obras
 
+## Auditoria obrigatória e fichas de composições — atualização 29/10/2026
+
+**Esta versão ainda não está liberada para propostas reais na Vercel.**
+
+A integração agora possui:
+
+- **6.988 custos unitários** oficiais SIURB jul/2026 com e sem desoneração;
+- **6.926 fichas de composição** oficiais, classificando insumos por profissional e demais materiais/equipamentos/auxiliares;
+- opção **Ver insumos** na tabela de Composições SIURB, com consulta sob demanda ao arquivo `public/data/siurb-compositions-2026-07.json`;
+- **62 custos sem ficha detalhada** nesses conjuntos, tratados como pendentes;
+- horas-homem diretas extraídas das fichas e **não utilizadas como prazo automaticamente** sem revisão de equipamentos, atividades auxiliares e equipes;
+- auditoria centralizada em `public/audit.js`: cliente/CPF/CNPJ, endereço da obra, escopo, quantidades, custos, h-h, prazo, BDI, validade, pagamento e dados da CIVOLTEN;
+- bloqueio de emissão de propostas incompletas no servidor local e impedimento de emissão contratual no modo demonstrativo remoto; prévia interna continua visível;
+- testes automáticos de integridade SIURB, cálculo, auditoria e API.
+
+**Atenção**: o banco da Vercel ainda é localStorage no navegador, sem login e persistência central. A documentação para homologação está em `docs/CRITERIOS_DE_LIBERACAO_COMERCIAL.md`. A produção exige PostgreSQL, autenticação real, backup testado, BDI auditado, composições auxiliares recursivas e cronograma por equipes, além de PDF versionado em servidor.
+
 Primeira versão executável local, com identidade visual da CIVOLTEN, para uso em computador e interface responsiva para celular.
 
 **Situação:** base funcional de desenvolvimento (v0.1), **não certificada para envio de orçamentos reais sem validação técnica**. O sistema ainda não tem todos os recursos de uma plataforma de gestão de obras finalizada.
