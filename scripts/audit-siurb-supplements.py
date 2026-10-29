@@ -116,6 +116,9 @@ def audit():
                 raise ValueError("Sem abas")
             record={"regime":regime,"kind":kind,"url":url,"sha256":hashlib.sha256(data).hexdigest(),
                     "bytes":len(data),"sheets":sheet_info}
+            source_dir=Path("artifacts/siurb-source-files")
+            source_dir.mkdir(parents=True,exist_ok=True)
+            (source_dir / f"{regime}-{kind}.{extension}").write_bytes(data)
             records.append(record)
             print(f"OK {regime}/{kind}: {len(data)} bytes, {len(sheet_info)} abas, sha={record['sha256'][:12]}",flush=True)
         except Exception as exc:
