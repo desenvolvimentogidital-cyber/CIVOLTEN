@@ -34,12 +34,12 @@
     const total=Math.round((cost+bdiValue)*100)/100;
     const laborHours=rows.reduce((s,x)=>s+x.laborHours,0);
     const capacityDay=Math.max(1,(Number(b.workers)||2)*(Number(b.hours_day)||8)*(Number(b.efficiency)||.8));
-    const tasks=rows.map((x,ix)=>({...x,name:x.description,hours:x.laborHours,cost:x.subtotal,durationDays:Math.max(1,Math.ceil(x.laborHours/capacityDay)),step:ix+1}));
-    const baseDays=tasks.reduce((s,x)=>s+x.durationDays,0), safetyDays=Math.ceil(baseDays*(Number(b.safety_pct)||0)/100),totalDays=baseDays+safetyDays;
+    const missingProductivity=rows.filter(x=>!(Number(x.hh_unit)>0)).length;const tasks=rows.map((x,ix)=>({...x,name:x.description,hours:x.laborHours,cost:x.subtotal,durationDays:Number(x.hh_unit)>0?Math.max(1,Math.ceil(x.laborHours/capacityDay)):0,step:ix+1}));
+    const baseDays=tasks.reduce((s,x)=>s+x.durationDays,0), safetyDays=missingProductivity?0:Math.ceil(baseDays*(Number(b.safety_pct)||0)/100),totalDays=missingProductivity?0:baseDays+safetyDays;
     const start=b.start_date||today(),daysWeek=Number(b.work_days_week)===6?6:5;
     function addDays(num){const d=new Date(start+'T12:00:00Z');let count=0;while(count<num){if(d.getUTCDay()!==0 && (daysWeek===6 || d.getUTCDay()!==6))count++;if(count<num)d.setUTCDate(d.getUTCDate()+1);}return d.toISOString().slice(0,10);}
-    let offset=0;for(const task of tasks){task.start=addDays(offset+1);offset+=task.durationDays;task.end=addDays(offset);}
-    return {...b,items,client_name:state.clients.find(x=>x.id===b.client_id)?.name||'',client_doc:state.clients.find(x=>x.id===b.client_id)?.doc||'',project_name:state.projects.find(x=>x.id===b.project_id)?.name||'',project_address:state.projects.find(x=>x.id===b.project_id)?.address||'',summary:{rows,cost,bdi:Number(b.bdi)||0,bdiValue,total,laborHours},total,baseDays,safetyDays,totalDays,capacityDay,workers:b.workers,hoursDay:b.hours_day,efficiency:b.efficiency,safetyPct:b.safety_pct,start,finish:totalDays?addDays(totalDays):start,tasks,methodology:'Demonstração com sequenciamento conservador; não substitui planejamento executivo.'};
+    let offset=0;for(const task of tasks){task.start=task.durationDays?addDays(offset+1):null;offset+=task.durationDays;task.end=task.durationDays?addDays(offset):null;}
+    return {...b,items,client_name:state.clients.find(x=>x.id===b.client_id)?.name||'',client_doc:state.clients.find(x=>x.id===b.client_id)?.doc||'',project_name:state.projects.find(x=>x.id===b.project_id)?.name||'',project_address:state.projects.find(x=>x.id===b.project_id)?.address||'',summary:{rows,cost,bdi:Number(b.bdi)||0,bdiValue,total,laborHours},total,baseDays,safetyDays,totalDays,capacityDay,workers:b.workers,hoursDay:b.hours_day,efficiency:b.efficiency,safetyPct:b.safety_pct,start,finish:totalDays?addDays(totalDays):null,tasks,missingProductivity,methodology:missingProductivity?'Prazo pendente: há serviços sem coeficiente de produtividade validado.':'Demonstração com sequenciamento conservador; não substitui planejamento executivo.'};
   }
   const withNames=(b)=>({ ...b,client_name:state.clients.find(x=>x.id===b.client_id)?.name||'',project_name:state.projects.find(x=>x.id===b.project_id)?.name||'',total:calc(b).total });
   function handle(path,method,b){
