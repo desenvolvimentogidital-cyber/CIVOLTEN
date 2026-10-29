@@ -26,7 +26,14 @@ test('fluxo completo HTTP de ponta a ponta, sem dependências externas',async()=
  let item=await request(`budgets/${b.data.id}/items`,'POST',{description:'Serviço Teste',qty:100,unit_cost:35.5,hh_unit:0.8,unit:'m²'});assert.equal(item.code,201);
  let details=await request('budgets/'+b.data.id);assert.equal(details.data.summary.cost,3550);assert.equal(details.data.summary.total,4437.5);assert.equal(details.data.summary.laborHours,80);assert.ok(details.data.totalDays>details.data.baseDays);
  item=await request(`budgets/${b.data.id}/items/${item.data.id}`,'PUT',{qty:200});assert.equal(item.data.qty,200);
- let proposal=await request('proposals','POST',{budget_id:b.data.id});assert.equal(proposal.code,201);assert.match(proposal.data.code,/PROP-\d{4}-\d{4}/);
+ let proposal=await request('proposals','POST',{budget_id:b.data.id});
+ assert.equal(proposal.code,400);assert.match(proposal.data.error,/auditoria/i);
+ // A emissão deve funcionar somente depois da revisão dos dados contratuais.
+ let updateProject=await request('projects/'+p.data.id,'PUT',{address:'Rua Exemplo 100, São Paulo/SP'});assert.equal(updateProject.code,200);
+ let updateSettings=await request('settings','PUT',{company:'CIVOLTEN',cnpj:'12345678000195',email:'comercial@example.com',phone:'11999999999'});assert.equal(updateSettings.code,200);
+ let updateBudget=await request('budgets/'+b.data.id,'PUT',{payment_terms:'30% na entrada e 70% na entrega',validity_days:30,notes:'Escopo validado; exclusões: licenças, reforço estrutural e serviços imprevistos.'});assert.equal(updateBudget.code,200);
+ item=await request(`budgets/${b.data.id}/items/${item.data.id}`,'PUT',{code:'CIV-101'});assert.equal(item.code,200);
+ proposal=await request('proposals','POST',{budget_id:b.data.id});assert.equal(proposal.code,201);assert.match(proposal.data.code,/PROP-\d{4}-\d{4}/);
  let catalog=await request('catalog/import','POST',{source:'PRÓPRIA',reference_month:'2026-07',regime:'Próprio',entries:[{code:'DEMO-1',description:'Serviço exemplo',cost:20,hh_per_unit:.2}]});assert.equal(catalog.code,200);
  let fake=await request('catalog/import','POST',{source:'SIURB',reference_month:'2026-07',regime:'Sem desoneração',entries:[{code:'DEMO-1',description:'Serviço exemplo',cost:20,hh_per_unit:.2}]});assert.equal(fake.code,400);
  const dash=await request('dashboard');assert.equal(dash.data.counts.clients,1);
