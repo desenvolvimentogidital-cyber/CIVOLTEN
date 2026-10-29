@@ -77,6 +77,27 @@ test('Etapa 2: SIURB canônica, custo auditado, BDI parametrizado, extras e risc
   expect(await call('budgets/'+budget+'/cost-settings','PUT',newSettings),200);
   costs=expect(await call('budgets/'+budget+'/costs'),200);
   assert.equal(costs.estimate.ready,true);
+  // Uma edição de quantidade deve revogar a evidência técnica e a aprovação financeira anterior.
+  expect(await call('budgets/'+budget+'/items/'+item.id,'PUT',{
+    position:1,source_code:'QA-102',source_name:'Serviço oficial fictício de validação',
+    unit:'M2',quantity:3,direct_unit_cost:100
+  }),200);
+  costs=expect(await call('budgets/'+budget+'/costs'),200);
+  assert.equal(costs.estimate.ready,false);
+  assert.equal(costs.config.technical_reviewed,false);
+  assert.ok(costs.estimate.errors.some(e=>e.code==='MEASUREMENTS'));
+  // Um preço sem composição deve permanecer bloqueado; nunca marcar verificação inexistente.
+  const priceMissing=randomUUID();
+  await sql.query("INSERT INTO reference_prices(id,version_id,code,description,unit,unit_cost) VALUES($1,$2,'QA-103','Serviço sem composição QA','UN',15.0000)",[priceMissing,version]);
+  const itemMissing=expect(await call('budgets/'+budget+'/siurb-items','POST',{
+    lock_version:costs.budget.lock_version,reference_price_id:priceMissing,position:2,quantity:1
+  }),201);
+  costs=expect(await call('budgets/'+budget+'/costs'),200);
+  assert.ok(costs.estimate.errors.some(e=>e.code==='UNAVAILABLE_COMPOSITION'));
+  expect(await call('budgets/'+budget+'/cost-review/'+itemMissing.id,'PUT',{
+    lock_version:costs.budget.lock_version,source:'SIURB',reference_price_id:priceMissing,
+    quantity_verified:true,composition_reviewed:true,loss_pct:0
+  }),400);
   const audit=await sql.query("SELECT action FROM audit_events WHERE entity_type IN ('budgets','budget_items','budget_extra_direct_costs') AND (entity_id=$1 OR entity_id=$2)",[budget,item.id]);
   assert.ok(audit.length>=2);
   const c=await sql.query('SELECT count(*)::int AS rows FROM budget_costing_profiles WHERE budget_id=$1',[budget]);
