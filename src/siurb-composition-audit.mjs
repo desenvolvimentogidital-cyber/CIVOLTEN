@@ -3,7 +3,7 @@
  * exclusivamente na mesma versão oficial. Não inventa custo de insumo,
  * não confunde horas de equipamento com hora-homem e não certifica BDI.
  */
-const positive = value => /^\\d+(?:\\.\\d+)?$/.test(String(value)) && Number(value)>0;
+const positive = value => /^\d+(?:\.\d+)?$/.test(String(value)) && Number(value)>0;
 const tidy = value => String(value??'').trim();
 export async function inspectSiurbComposition({root,lookup,maxDepth=6,maxNodes=150}={}){
  if(typeof lookup!=='function')throw new TypeError('Consulta de componentes obrigatória');
