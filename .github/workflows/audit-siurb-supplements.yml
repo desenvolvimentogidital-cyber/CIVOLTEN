@@ -41,6 +41,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: siurb-supplements-schema-audit
-          path: artifacts/siurb-supplements-audit.json
+          path: |
+            artifacts/siurb-supplements-audit.json
+            artifacts/siurb-source-files/
           retention-days: 7
           if-no-files-found: warn
