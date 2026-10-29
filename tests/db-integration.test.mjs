@@ -18,6 +18,8 @@ const handler=createApi(sql,{bootstrapSecret:bootSecret});
 const login='ci.admin@civolten.test';
 const originalPassword='ci-test-password-ONLY-use-in-ephemeral-postgres';
 const nextPassword='ci-test-ROTATED-password-not-for-real-accounts';
+const finalPassword='ci-test-FINAL-password-only';
+const viewerPassword='ci-test-viewer-personal-password';
 function makeRequest(route,{method='GET',payload,session,headers={}}={}){
  const req=Readable.from(payload===undefined?[]:[Buffer.from(JSON.stringify(payload))]);
  req.url='/api/v1/'+route;
@@ -52,9 +54,16 @@ test('end-to-end PostgreSQL: identity, CRUD, roles, version control, archive, pa
   expectStatus(await makeRequest('auth/login',{method:'POST',payload:{login,password:'bad-password'}}),401);
   const first=await makeRequest('auth/login',{method:'POST',payload:{login,password:originalPassword}});
   const adminCookie=cookieFrom(first);assert.equal(expectStatus(first,200).user.role,'administrador');
+  assert.equal(first.body.user.must_change_password,true);
   const second=await makeRequest('auth/login',{method:'POST',payload:{login,password:originalPassword}});
   const secondaryCookie=cookieFrom(second);
   assert.equal(expectStatus(await makeRequest('auth/status',{session:adminCookie}),200).authenticated,true);
+  expectStatus(await makeRequest('clients',{session:adminCookie}),403);
+  expectStatus(await makeRequest('auth/change-password',{method:'POST',session:adminCookie,payload:{
+    current_password:originalPassword,new_password:nextPassword
+  }}),200);
+  expectStatus(await makeRequest('clients',{session:secondaryCookie}),401);
+  assert.equal(expectStatus(await makeRequest('auth/status',{session:adminCookie}),200).user.must_change_password,false);
   const client=expectStatus(await makeRequest('clients',{method:'POST',session:adminCookie,payload:{
     name:'QA - Pessoa jurídica fictícia',tax_id:'11.222.333/0001-81',
     phone:'11900000000',email:'qa@example.test',address:'Rua fictícia, 100'
@@ -108,19 +117,26 @@ test('end-to-end PostgreSQL: identity, CRUD, roles, version control, archive, pa
     login:'ci.viewer@civolten.test',password:originalPassword
   }});
   const viewerCookie=cookieFrom(staffLogin);
+  assert.equal(expectStatus(staffLogin,200).user.must_change_password,true);
+  expectStatus(await makeRequest('clients',{session:viewerCookie}),403);
+  expectStatus(await makeRequest('auth/change-password',{method:'POST',session:viewerCookie,payload:{
+    current_password:originalPassword,new_password:viewerPassword
+  }}),200);
   expectStatus(await makeRequest('clients',{session:viewerCookie}),200);
   expectStatus(await makeRequest('clients',{session:viewerCookie,method:'POST',payload:{name:'blocked'}}),403);
   expectStatus(await makeRequest('users',{session:viewerCookie}),403);
   expectStatus(await makeRequest('users/'+staff.id,{session:adminCookie,method:'PUT',payload:{role:'consulta',is_active:false}}),200);
   expectStatus(await makeRequest('clients',{session:viewerCookie}),401);
+  const secondAdmin=await makeRequest('auth/login',{method:'POST',payload:{login,password:nextPassword}});
+  const activeSecondaryCookie=cookieFrom(secondAdmin);
   const changedPass=expectStatus(await makeRequest('auth/change-password',{method:'POST',session:adminCookie,payload:{
-    current_password:originalPassword,new_password:nextPassword
+    current_password:nextPassword,new_password:finalPassword
   }}),200);
   assert.equal(changedPass.ok,true);
-  expectStatus(await makeRequest('clients',{session:secondaryCookie}),401);
+  expectStatus(await makeRequest('clients',{session:activeSecondaryCookie}),401);
   expectStatus(await makeRequest('clients',{session:adminCookie}),200);
-  expectStatus(await makeRequest('auth/login',{method:'POST',payload:{login,password:originalPassword}}),401);
-  const renewed=await makeRequest('auth/login',{method:'POST',payload:{login,password:nextPassword}});
+  expectStatus(await makeRequest('auth/login',{method:'POST',payload:{login,password:nextPassword}}),401);
+  const renewed=await makeRequest('auth/login',{method:'POST',payload:{login,password:finalPassword}});
   const newCookie=cookieFrom(renewed);
   expectStatus(await makeRequest('budgets/'+budget.id,{method:'DELETE',session:newCookie}),200);
   expectStatus(await makeRequest('auth/logout',{method:'POST',session:newCookie,payload:{}}),200);
