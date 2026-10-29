@@ -12,7 +12,9 @@ const checks=[
  {route:'/api/v1/auth/status',method:'GET',code:200,expected:data=>data.authenticated===false},
  {route:'/api/v1/clients',method:'GET',code:401,expected:data=>data.error==='Sessão necessária'},
  {route:'/api/v1/clients',method:'POST',code:403,expected:data=>/CSRF/.test(data.error||'')},
- {route:'/api/v1/auth/login',method:'POST',code:403,headers:{origin:'https://unauthorized.example', 'x-civolten-request':'1'},expected:data=>/Origem/.test(data.error||'')}
+ {route:'/api/v1/auth/login',method:'POST',code:403,headers:{origin:'https://unauthorized.example', 'x-civolten-request':'1'},expected:data=>/Origem/.test(data.error||'')},
+ {route:'/api/v1/users',method:'GET',code:401,expected:data=>data.error==='Sessão necessária'},
+ {route:'/api/v1/auth/bootstrap',method:'POST',code:403,headers:{'x-civolten-request':'1'},expected:data=>/desativada/.test(data.error||'')}
 ];
 let failures=0;
 for(const check of checks){
@@ -26,6 +28,21 @@ for(const check of checks){
     (type.includes('application/json')?' (JSON)':' (não JSON)'));
   if(!passed)failures++;
  }catch(e){console.error('FAIL '+check.route+' -> '+(e?.message||'erro'));failures++}
+}
+const files=[
+ {path:'/secure.html',type:'text/html',marker:'src="/secure.js"'},
+ {path:'/secure.js',type:'javascript',marker:'must_change_password'},
+ {path:'/secure.css',type:'text/css',marker:'prefers-reduced-motion'}
+];
+for(const file of files){
+ try{
+  const res=await fetch(new URL(file.path,url),{method:'GET',signal:AbortSignal.timeout(20000),redirect:'manual'});
+  const type=res.headers.get('content-type')||'';
+  const body=res.status===200?await res.text():'';
+  const ok=res.status===200&&type.includes(file.type)&&body.includes(file.marker);
+  console.log((ok?'PASS':'FAIL')+' GET '+file.path+' -> HTTP '+res.status+' ('+type+')');
+  if(!ok)failures++;
+ }catch(err){console.error('FAIL '+file.path+' -> '+err.message);failures++}
 }
 if(failures){
  console.error(failures+' teste(s) não passaram. Não habilitar clientes reais.');
