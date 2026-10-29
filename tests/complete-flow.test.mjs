@@ -17,7 +17,7 @@ test('Fluxo integrado: SIURB → custos/BDI → produtividade → prazo → PDF 
  const quote=estimateBudget({
   reference_month:'2026-07',regime:'Sem desoneração',
   items:[{code:item.code,description:item.description,unit:item.unit,quantity:1000,unit_cost:item.cost,source:'SIURB',
-    reference_month:item.reference_month,regime:item.regime,quantity_verified:true,composition_reviewed:true}],
+    reference_month:item.reference_month,regime:item.regime,quantity_verified:true,composition_reviewed:true,reference_price_id:'00000000-0000-4000-8000-000000000001'}],
   bdi:{administracaoCentral:4,seguro:0,garantia:0,risco:1,despesasFinanceiras:1,lucro:6,tributosSobreReceita:7},
   contingency_pct:0,bdi_reviewed:true,technical_reviewed:true,commercial_reviewed:true
  });
