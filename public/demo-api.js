@@ -57,7 +57,7 @@
         for(const x of b.entries){if(!trim(x.code)||!trim(x.description))continue;const matching=state.catalog.find(c=>c.code===x.code&&c.source===b.source&&c.reference_month===b.reference_month&&c.regime===b.regime);const obj={code:trim(x.code),description:trim(x.description),unit:x.unit||'un',cost:Number(x.cost)||0,hh_per_unit:Number(x.hh_per_unit)||0,category:x.category||'Geral',source:b.source||'PRÓPRIA',reference_month:b.reference_month||'',regime:b.regime||''}; if(matching) Object.assign(matching,obj); else state.catalog.push({...obj,id:id()});}
         persist();return {inserted:b.entries.length};
       }
-      const q=(u.searchParams.get('q')||'').toLowerCase();return clone(state.catalog.filter(x=>(x.description+' '+x.code).toLowerCase().includes(q)));
+      const q=(u.searchParams.get('q')||'').toLowerCase();return clone([...state.catalog,...(officialCatalog||[])].filter(x=>(x.description+' '+x.code+' '+x.category+' '+x.regime).toLowerCase().includes(q)));
     }
     if(['clients','projects','budgets'].includes(kind)){
       const arr=state[kind];
@@ -88,10 +88,28 @@
     throw Error('Rota de demonstração indisponível');
   }
   const realFetch=window.fetch.bind(window);
+  let officialCatalog=null;
+  async function loadOfficialCatalog(){
+    if(officialCatalog!==null)return;
+    try{
+      const response=await realFetch('/data/siurb-2026-07.json',{cache:'force-cache'});
+      if(!response.ok)throw Error('HTTP '+response.status);
+      const payload=await response.json();
+      if(payload.meta?.reference_month!=='2026-07'||!Array.isArray(payload.items)||payload.items.length<5000){
+        throw Error('Catálogo SIURB incompleto ou inválido');
+      }
+      officialCatalog=payload.items;
+      window.CIVOLTEN_SIURB_META=payload.meta;
+    }catch(err){
+      officialCatalog=[];
+      window.CIVOLTEN_SIURB_META={error:String(err.message||err)};
+      console.warn('Catálogo SIURB indisponível; não serão exibidos valores oficiais.',err);
+    }
+  }
   window.fetch=async function(resource,options={}){
     const url=typeof resource==='string'?resource:resource.url;
     if(!url.startsWith('/api/'))return realFetch(resource,options);
-    try {const body=options.body?JSON.parse(options.body):{};const result=handle(url,options.method||'GET',body);return new Response(JSON.stringify(result),{status:200,headers:{'Content-Type':'application/json'}});}
+    try {if(url.startsWith('/api/catalog')&&(!options.method||options.method.toUpperCase()==='GET'))await loadOfficialCatalog();const body=options.body?JSON.parse(options.body):{};const result=handle(url,options.method||'GET',body);return new Response(JSON.stringify(result),{status:200,headers:{'Content-Type':'application/json'}});}
     catch(e){return new Response(JSON.stringify({error:e.message||'Erro de demonstração'}),{status:400,headers:{'Content-Type':'application/json'}});}
   };
   persist();
