@@ -14,6 +14,8 @@ const checks=[
  {route:'/api/v1/clients',method:'POST',code:403,expected:data=>/CSRF/.test(data.error||'')},
  {route:'/api/v1/auth/login',method:'POST',code:403,headers:{origin:'https://unauthorized.example', 'x-civolten-request':'1'},expected:data=>/Origem/.test(data.error||'')},
  {route:'/api/v1/users',method:'GET',code:401,expected:data=>data.error==='Sessão necessária'},
+ {route:'/api/v1/siurb/search?q=1001001',method:'GET',code:401,expected:data=>data.error==='Sessão necessária'},
+ {route:'/api/v1/budgets/00000000-0000-4000-8000-000000000001/costs',method:'GET',code:401,expected:data=>data.error==='Sessão necessária'},
  {route:'/api/v1/auth/bootstrap',method:'POST',code:403,headers:{'x-civolten-request':'1'},expected:data=>/desativada/.test(data.error||'')}
 ];
 let failures=0;
@@ -32,6 +34,7 @@ for(const check of checks){
 const files=[
  {path:'/secure.html',type:'text/html',marker:'src="/secure.js"'},
  {path:'/secure.js',type:'javascript',marker:'must_change_password'},
+ {path:'/secure-costing.js',type:'javascript',marker:'costPage'},
  {path:'/secure.css',type:'text/css',marker:'prefers-reduced-motion'}
 ];
 for(const file of files){
