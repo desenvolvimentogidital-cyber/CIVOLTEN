@@ -38,7 +38,7 @@ test('Contingência separada e cenários de elevação de custo',()=>{
 test('Casas decimais em serviços SIURB não geram erro de ponto flutuante',()=>{
  const x=base();
  x.items=[{code:'1001001',source:'SIURB',description:'LIMPEZA MECANIZADA GERAL',unit:'m²',quantity:'0.333333',
- unit_cost:'1.8100',reference_month:'2026-07',regime:'Sem desoneração',composition_reviewed:true,quantity_verified:true}];
+ unit_cost:'1.8100',reference_month:'2026-07',regime:'Sem desoneração',composition_reviewed:true,quantity_verified:true,reference_price_id:'00000000-0000-4000-8000-000000000001'}];
  const r=estimateBudget(x);
  assert.equal(r.direct_cost_reais,0.6);
  assert.equal(r.total_reais,0.6);
