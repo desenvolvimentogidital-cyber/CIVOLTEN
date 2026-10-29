@@ -2,6 +2,7 @@
    A interface pública permanece em demonstração até a autenticação ser homologada. */
 import { neon } from '@neondatabase/serverless';
 import {validTaxId,normalizeTaxId} from '../src/documents.mjs';
+import {handleStage2} from '../src/costing-api.mjs';
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
 
 const sessionName='civolten_dev_session';
@@ -97,6 +98,9 @@ export function createApi(sql,opts={}){
    if(!user)return response(res,401,{error:'Sessão necessária'});
    if(user.must_change_password && !(resource==='auth'&&id==='change-password'))return response(res,403,{error:'Altere a senha temporária antes de acessar dados do CIVOLTEN',password_change_required:true});
    if(resource==='me'&&method==='GET')return response(res,200,user);
+   const stage2Handled=await handleStage2({req,res,sql,user,parts,method,send:response,readBody});
+   if(stage2Handled)return;
+
    if(resource==='auth'&&id==='change-password'&&method==='POST'){
      const b=await readBody(req);
      const match=await sql.query('SELECT password_hash FROM app_users WHERE id=$1 AND is_active=true LIMIT 1',[user.id]);
