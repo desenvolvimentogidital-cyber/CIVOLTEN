@@ -45,7 +45,7 @@ function navHTML(){
 }
 function shell(){
  app.innerHTML='<div class="layout"><aside class="sidebar">'+brand()+'<div class="muted tiny">GESTÃO SEGURA · DESENVOLVIMENTO</div>'+navHTML()+
- '<div class="bottom"><button class="btn block" data-action="logout">Sair da conta</button></div></aside>'+
+ '<div class="bottom"><button class="btn block" style="margin-bottom:8px" data-action="password-modal">Alterar senha</button><button class="btn block" data-action="logout">Sair da conta</button></div></aside>'+
  '<div class="main"><header class="topbar"><div><strong>CIVOLTEN</strong><div class="muted tiny">Banco PostgreSQL • Neon</div></div><div class="actions"><span class="tag">'+esc(state.user.login)+' · '+esc(state.user.role)+'</span><button class="btn" data-action="theme">Aparência</button><button class="btn" data-action="logout">Sair</button></div></header><div class="container" id="private-content"></div></div>'+
  '<nav class="menu-mobile">'+navHTML()+'</nav></div>';
 }
@@ -133,6 +133,7 @@ function dialog(title,contents){
  document.body.append(pop);
 }
 const submitButtons='<div class="actions" style="margin-top:16px"><button type="submit" class="btn primary">Salvar</button><button type="button" class="btn" data-action="close-dialog">Cancelar</button></div>';
+function passwordModal(){dialog('Alterar senha','<form id="password-form">'+field('Senha atual','current_password','password',true)+field('Nova senha (mín. 12 caracteres)','new_password','password',true,'','minlength="12"')+submitButtons+'</form>')}
 function modalClient(x={}){
  const form=field('Nome / razão social','name','text',true,x.name)+field('CPF/CNPJ (apenas teste)','tax_id','text',false,x.tax_id)+
  field('E-mail','email','email',false,x.email)+field('Telefone','phone','tel',false,x.phone)+field('Endereço','address','text',false,x.address)+submitButtons;
@@ -175,6 +176,9 @@ document.addEventListener('submit',async e=>{
    form.reset();if(setup){state.mode='login';toast('Administrador criado. Faça login.');authView()}else{state.user=result.user;await loadLists();state.view='inicio';render()}return;
   }
   const id=form.dataset.id;
+  if(form.id==='password-form'){
+    await api('auth/change-password','POST',b);document.querySelector('#secure-dialog')?.remove();toast('Senha alterada. Outras sessões foram encerradas.');return;
+  }
   if(form.id==='client-form')await api('clients'+(id?'/'+id:''),id?'PUT':'POST',b);
   else if(form.id==='project-form')await api('projects'+(id?'/'+id:''),id?'PUT':'POST',b);
   else if(form.id==='budget-form'){if(id)b.lock_version=Number(b.lock_version);await api('budgets'+(id?'/'+id:''),id?'PUT':'POST',b);}
@@ -197,6 +201,7 @@ document.addEventListener('click',async e=>{
   if(act==='close-dialog'){document.querySelector('#secure-dialog')?.remove();return}
   if(act==='logout'){await api('auth/logout','POST',{});state.user=null;state.mode='login';render();return}
   if(act==='view'){await changeView(btn.dataset.view);return}
+  if(act==='password-modal'){passwordModal();return}
   if(act==='new-client'){modalClient();return}
   if(act==='new-project'){modalProject();return}
   if(act==='new-budget'){modalBudget();return}
