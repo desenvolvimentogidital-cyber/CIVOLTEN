@@ -18,7 +18,7 @@ from xml.etree import ElementTree as ET
 
 NS={"m":"http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 CELL_RE=re.compile(r"^([A-Z]+)")
-CODE_RE=re.compile(r"^\\d{3,9}$")
+CODE_RE=re.compile(r"^\d{3,9}$")
 MAX_ITEMS=20000
 
 def scalar(value):
