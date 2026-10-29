@@ -63,7 +63,8 @@ test('Etapa 2: SIURB canônica, custo auditado, BDI parametrizado, extras e risc
   expect(await call('budgets/'+budget+'/cost-settings','PUT',settings),200);
   expect(await call('budgets/'+budget+'/cost-settings','PUT',settings),409);
   costs=expect(await call('budgets/'+budget+'/costs'),200);
-  assert.equal(costs.estimate.ready,true);
+  assert.equal(costs.estimate.ready,false,'Composição oficial sem insumos precificados não pode ser aprovada');
+  assert.ok(costs.estimate.errors.some(e=>e.code==='SIURB_INPUTS_UNPRICED'));
   assert.ok(costs.estimate.total_reais>costs.estimate.direct_cost_reais);
   assert.ok(costs.estimate.bdi_effective_pct>0);
   expect(await call('budgets/'+budget+'/extra-costs','POST',{
@@ -76,7 +77,8 @@ test('Etapa 2: SIURB canônica, custo auditado, BDI parametrizado, extras e risc
   const newSettings={...settings,lock_version:costs.budget.lock_version};
   expect(await call('budgets/'+budget+'/cost-settings','PUT',newSettings),200);
   costs=expect(await call('budgets/'+budget+'/costs'),200);
-  assert.equal(costs.estimate.ready,true);
+  assert.equal(costs.estimate.ready,false,'Composição oficial sem insumos precificados não pode ser aprovada');
+  assert.ok(costs.estimate.errors.some(e=>e.code==='SIURB_INPUTS_UNPRICED'));
   // Uma edição de quantidade deve revogar a evidência técnica e a aprovação financeira anterior.
   expect(await call('budgets/'+budget+'/items/'+item.id,'PUT',{
     position:1,source_code:'QA-102',source_name:'Serviço oficial fictício de validação',
