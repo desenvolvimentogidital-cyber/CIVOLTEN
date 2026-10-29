@@ -37,6 +37,7 @@ export function estimateBudget(input){
  items.forEach((entry,i)=>{
   const id=String(entry.code||'SEM-CODIGO'),src=String(entry.source||'MANUAL');
   let cost=0n;
+  let breakdown={};
   try{
    const quantity=scaled(entry.quantity,6,'Quantidade do item '+(i+1));
    const unitCost=scaled(entry.unit_cost,4,'Preço unitário do item '+(i+1));
@@ -44,8 +45,15 @@ export function estimateBudget(input){
    const freight=scaled(entry.freight_unit_cost??0,4,'Frete unitário do item '+(i+1));
    const other=scaled(entry.other_unit_cost??0,4,'Outros custos unitários do item '+(i+1));
    if(quantity<=0n||unitCost<=0n)invalid('Quantidade e custo unitário devem ser positivos');
-   const grossUnitCost=unitCost+roundDiv(unitCost*loss,10000n)+freight+other;
+   const lossUnit=roundDiv(unitCost*loss,10000n);
+   const grossUnitCost=unitCost+lossUnit+freight+other;
    cost=roundDiv(quantity*grossUnitCost,100000000n);
+   const baseCost=roundDiv(quantity*unitCost,100000000n);
+   const lossCost=roundDiv(quantity*lossUnit,100000000n);
+   const freightCost=roundDiv(quantity*freight,100000000n);
+   const otherCost=roundDiv(quantity*other,100000000n);
+   breakdown={base_reais:reais(baseCost),loss_reais:reais(lossCost),freight_reais:reais(freightCost),other_reais:reais(otherCost),
+     rounding_adjustment_reais:reais(cost-baseCost-lossCost-freightCost-otherCost)};
    direct+=cost;
   }catch(error){auditText(report,'INVALID_ITEM','Item '+(i+1)+' ('+id+'): '+error.message,true)}
   if(!entry.unit||!String(entry.description||'').trim())auditText(report,'SCOPE','Item '+(i+1)+' sem descrição ou unidade.',true);
@@ -62,7 +70,7 @@ export function estimateBudget(input){
    if(entry.supplier_quote_verified&&(!entry.supplier_name||!entry.quote_date||!entry.quote_reference))auditText(report,'QUOTE_TRACEABILITY','Serviço '+id+' sem fornecedor, data ou referência comprovável.',true);
   }
   if(!entry.quantity_verified)auditText(report,'MEASUREMENTS','Quantitativo do serviço '+id+' precisa de medição validada.',true);
-  lines.push({code:id,description:String(entry.description||''),unit:String(entry.unit||''),cost_cents:toNumber(cost),cost_reais:reais(cost),source:src});
+  lines.push({code:id,description:String(entry.description||''),unit:String(entry.unit||''),cost_cents:toNumber(cost),cost_reais:reais(cost),source:src,...breakdown});
  });
  const extra=[];
  for(const a of (input?.extra_direct_costs||[])){
