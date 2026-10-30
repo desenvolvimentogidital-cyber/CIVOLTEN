@@ -8,7 +8,7 @@ import {handleWorkforceEstimate} from './workforce-estimate-api.mjs';
 import {renderProposalDraftPdf} from './proposal-draft-pdf.mjs';
 
 const uuid=value=>typeof value==='string'&&
- /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i.test(value);
+ /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 const number=value=>value===null||value===undefined?null:Number(value);
 const safeString=(value,placeholder)=>typeof value==='string'&&value.trim()?value.trim():placeholder;
 
