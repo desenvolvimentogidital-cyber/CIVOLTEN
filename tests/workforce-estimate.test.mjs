@@ -106,7 +106,7 @@ test('Tela usa dados de orçamento e aponta hipótese, revisão e equipes não c
  assert.match(html,/workforce-settings-form/);
  assert.match(html,/Recalcular equipes/);
  assert.match(html,/Estimativa, não escala de trabalho/);
- assert.match(html,/Equipes · paralelo/);
+ assert.match(html,/Equipes necessárias/);
  const secure=readFileSync(new URL('../public/secure.js',import.meta.url),'utf8');
  const schedule=readFileSync(new URL('../public/secure-schedule.js',import.meta.url),'utf8');
  assert.match(secure,/workforce-estimate/);
