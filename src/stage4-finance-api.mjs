@@ -90,6 +90,12 @@ export async function handleStage4(ctx){
    const drafts=await sql.query(`SELECT id,version,budget_lock_version,snapshot,snapshot_sha256,
      status,created_at FROM proposal_draft_snapshots WHERE id=$1 AND budget_id=$2`,[fourth,budgetId]);
    if(!drafts.length)return done(404,{error:'Rascunho inexistente'});
+   // Integridade do JSONB: canonicalizar e conferir o SHA-256 antes da leitura
+   // e do PDF. A versão persistida não pode ser aceita se sofrer mutação.
+   const expectedHash=createHash('sha256')
+     .update(JSON.stringify(canonical(drafts[0].snapshot))).digest('hex');
+   if(expectedHash!==String(drafts[0].snapshot_sha256).trim().toLowerCase())
+    return done(409,{error:'Integridade da proposta não confirmada; snapshot divergente'});
    if(fifth==='pdf'){
     const pdf=await renderProposalDraftPdf(drafts[0].snapshot,{
       version:drafts[0].version,sha256:drafts[0].snapshot_sha256});
