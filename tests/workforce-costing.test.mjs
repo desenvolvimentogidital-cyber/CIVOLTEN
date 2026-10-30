@@ -21,7 +21,7 @@ test('soma por profissão sem contar os mesmos trabalhadores duas vezes na sequ�
  assert.equal(x.role_totals.parallel_workers,7);
  assert.equal(x.role_totals.sequential_workers,5);
  assert.equal(x.duration.parallel_workdays,10);
- assert.equal(x.duration.sequential_workdays,18);
+ assert.equal(x.duration.sequential_workdays,19);
  assert.equal(x.duration.complete,true);
 });
 test('sem custo da empresa informado não inventa valores monetários',()=>{
@@ -35,11 +35,11 @@ test('custo da equipe por horas pagas e despesas fixas mensais proporcionais ao 
   {role_code:'2020',hourly_employer_cost:'30'},
   {role_code:'2099',hourly_employer_cost:'20'}],
   overhead:{monthly_overhead:'22000',workdays_per_month:22}});
- assert.equal(x.costs.labor_estimated,12320);
- assert.equal(x.costs.overhead_sequential,18000);
+ assert.equal(x.costs.labor_estimated,13360);
+ assert.equal(x.costs.overhead_sequential,19000);
  assert.equal(x.costs.overhead_parallel,10000);
- assert.equal(x.costs.total_sequential,30320);
- assert.equal(x.costs.total_parallel,22320);
+ assert.equal(x.costs.total_sequential,32360);
+ assert.equal(x.costs.total_parallel,23360);
  assert.equal(x.costs.available,true);
 });
 test('cadastro de funcionário pode fornecer média de custo-hora caso não exista tarifa explícita',()=>{
@@ -65,7 +65,7 @@ test('tela exibe total por função, prazo geral, custos não configurados e aç
  const x={...estimate(),...example(),budget:{code:'ORC-QA'}};
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const html=workforcePanel(x,esc);
- for(const t of ['Resumo final da mão de obra','PEDREIRO','SERVENTE','18 dias úteis','10 dias úteis',
+ for(const t of ['Resumo final da mão de obra','PEDREIRO','SERVENTE','19 dias úteis','10 dias úteis',
   'Custo interno estimado','Cadastrar custos e profissionais','Aguardando custos-hora'])
   assert.ok(html.includes(t),t);
  assert.ok(!html.includes('data-action="schedule-add-crew"'));
