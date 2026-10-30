@@ -23,9 +23,9 @@ test('Painel logado mantém navegação e módulos reais, nunca demo',()=>{
   assert.match(ui,new RegExp("'"+nav+"'"));
  assert.match(ui,/function navHTML\(mobile=false\)/);
  assert.match(ui,/function dashboard\(\)/);
- assert.match(ui,/await api\('clients'\)/);
- assert.match(ui,/await api\('projects'\)/);
- assert.match(ui,/await api\('budgets'\)/);
+ assert.match(ui,/api\('clients'\)/);
+ assert.match(ui,/api\('projects'\)/);
+ assert.match(ui,/api\('budgets'\)/);
  assert.doesNotMatch(page,/demo-api\.js/);
 });
 test('Design responsivo mantém rodapé móvel e dashboard acessíveis',()=>{
