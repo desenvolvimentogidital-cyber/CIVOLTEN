@@ -18,8 +18,32 @@ const state=()=>({
    observed_hh_per_unit:null,progress_pct:null}]},
  scheduleRemaining:{ready:false,errors:['Sem produtividade observada aprovada'],
   items:[{id:c,title:'Piso QA',remaining_quantity:100,estimated_remaining_workdays:null}]},
- schedulePreview:null,scheduleSettings:null
+ schedulePreview:null,scheduleSettings:null,scheduleAdvanced:true
 });
+test('cronograma inicial mostra serviços automaticamente e não exige cadastrar equipe',()=>{
+ const x=state();
+ x.scheduleAdvanced=false;
+ x.scheduleWorkforce={
+  budget:{code:'ORC-2026-QA'},settings:{target_days:10,hours_day:8,efficiency_pct:85,crew_size:4},
+  summary:{total_services:1,simultaneous_workers:3,simultaneous_crews:1,sequential_peak_crews:1,without_productivity:0},
+  services:[{id:c,code:'QA-102',title:'ALVENARIA DE BLOCO',quantity:'100',unit:'M2',workers:3,crews:1,
+   estimated_hh:200,hh_per_unit:2,days_at_suggested_staff:10,roles:[{name:'Pedreiro',workers:2},{name:'Servente',workers:1}],
+   reviewed:false}],
+  notice:'Hipótese de dimensionamento',assumptions:'Prazo não confirmado'
+ };
+ const s=schedulePage({state:x,esc,writeable:()=>true});
+ assert.match(s,/ALVENARIA DE BLOCO/);
+ assert.match(s,/Pedreiro/);
+ assert.match(s,/Servente/);
+ assert.match(s,/Equipes · paralelo/);
+ assert.match(s,/data-action="schedule-back"/);
+ assert.doesNotMatch(s,/data-action="schedule-add-crew"/);
+ assert.doesNotMatch(s,/data-action="schedule-add-task"/);
+ assert.doesNotMatch(s,/Equipes cadastradas/);
+ assert.doesNotMatch(s,/Cadastre uma equipe antes/);
+ assert.match(s,/data-action="schedule-advanced-open"/);
+});
+
 test('painel exibe todas as operações, restrições e previsão bloqueada',()=>{
  const s=schedulePage({state:state(),esc,writeable:()=>true});
  for(const action of ['schedule-edit-crew','schedule-archive-crew','schedule-edit-task',
