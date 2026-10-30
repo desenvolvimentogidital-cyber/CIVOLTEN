@@ -42,7 +42,7 @@ test('Etapa 2: SIURB canônica, custo auditado, BDI parametrizado, extras e risc
   await sql.query("INSERT INTO budgets(id,code,client_id,project_id,title,reference_month,regime,bdi_pct,created_by) VALUES($1,'QA-ETAPA2-001',$2,$3,'Orçamento de homologação SIURB','2026-07','Sem desoneração',0,$4)",[budget,client,project,admin]);
   await sql.query("INSERT INTO reference_price_versions(id,source,reference_month,regime,scope,source_url,sha256) VALUES($1,'SIURB','2026-07','Sem desoneração','Edificações','https://prefeitura.sp.gov.br/web/obras/w/tabelas_de_custos/355179',$2)",[version,'a'.repeat(64)]);
   await sql.query("INSERT INTO reference_prices(id,version_id,code,description,unit,unit_cost) VALUES($1,$2,'QA-102','Serviço oficial fictício de validação','M2',100.0000)",[price,version]);
-  await sql.query("INSERT INTO reference_composition_details(reference_price_id,labor,other,direct_hh_per_unit,validation) VALUES($1,'[{\"code\":\"QA-TRABALHO\",\"name\":\"Mão de obra fictícia\",\"coef\":\"0.25\"}]'::jsonb,'[]'::jsonb,0.25,'dados diretos parciais')",[price]);
+  await sql.query("INSERT INTO reference_composition_details(reference_price_id,labor,other,direct_hh_per_unit,validation) VALUES($1,'[{\"code\":\"QA-TRABALHO\",\"name\":\"Mão de obra fictícia\",\"coef\":\"0.25\",\"unit\":\"H\"}]'::jsonb,'[]'::jsonb,0.25,'dados diretos parciais')",[price]);
   const composition=expect(await call('siurb/'+price+'/composition'),200);
   assert.equal(composition.composition_available,true);
   assert.equal(composition.labor[0].code,'QA-TRABALHO');
