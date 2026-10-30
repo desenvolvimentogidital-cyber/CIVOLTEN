@@ -38,11 +38,12 @@ export function schedulePage({state,esc,writeable}){
    '<p class="muted tiny">Sem coeficiente de mão de obra aprovado, não há rendimento calculado; a duração manual permanece apenas uma estimativa.</p>'+
    '<div class="table-wrap"><table><thead><tr><th>Atividade</th><th>Evidência</th><th>h-h totais</th><th>h-h/dia da equipe</th><th>Dias por h-h</th></tr></thead><tbody>'+productivityRows+'</tbody></table></div></div>':'';
  const span=preview?.ready?Math.max(...preview.tasks.map(t=>t.endExclusive),1):1;
+ const criticalTaskIds=new Set(state.schedulePreview?.critical_chain?.critical_task_ids||[]);
  const gantt=preview?.ready?'<div class="card"><h2>Linha do tempo preliminar</h2><div class="table-wrap"><div class="schedule-gantt">'+preview.tasks.map(t=>{
    const left=(t.startIndex/span*100).toFixed(3),width=((t.endExclusive-t.startIndex)/span*100).toFixed(3);
    return '<div class="schedule-gantt-row"><div class="schedule-gantt-name">'+esc(t.title)+'</div>'+
     '<div class="schedule-gantt-track"><div class="schedule-gantt-bar" style="left:'+left+'%;width:'+width+'%" role="img" aria-label="'+esc(t.title+' de '+t.start+' até '+t.finish)+'"></div></div>'+
-    '<div class="tiny">'+esc(t.start)+' — '+esc(t.finish)+'</div></div>';
+    '<div class="tiny">'+esc(t.start)+' — '+esc(t.finish)+(criticalTaskIds.has(String(t.id))?'<strong> · Crítica</strong>':'')+'</div></div>';
   }).join('')+'</div></div><p class="tiny muted">Barras em dias úteis; o detalhamento oficial de calendário e recursos depende da revisão da obra.</p></div>':'';
  const report=state.scheduleProgress||{summaries:[],measurements:[]};
  const canReport=canEdit&&tasks.length>0;
