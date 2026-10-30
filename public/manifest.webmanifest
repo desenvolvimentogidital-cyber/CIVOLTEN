@@ -11,22 +11,16 @@
   "lang": "pt-BR",
   "icons": [
     {
-      "src": "/assets/icone.png",
+      "src": "/assets/pwa-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/icone.png",
+      "src": "/assets/pwa-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/assets/icone.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
@@ -36,7 +30,7 @@
       "url": "/offline.html",
       "icons": [
         {
-          "src": "/assets/icone.png",
+          "src": "/assets/pwa-192.png",
           "sizes": "192x192",
           "type": "image/png"
         }
