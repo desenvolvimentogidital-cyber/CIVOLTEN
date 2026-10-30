@@ -2,6 +2,7 @@
 import {buildWorkforceEstimate} from './workforce-estimate.mjs';
 import {summarizeWorkforce} from './workforce-costing.mjs';
 import {readCompanyCosts} from './company-costs-api.mjs';
+import {planResourceSchedule} from './budget-resource-scheduler.mjs';
 const uuid=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(x);
 export async function handleWorkforceEstimate({req,res,sql,user,parts,method,send}){
  const [resource,id,sub]=parts;
@@ -23,9 +24,31 @@ export async function handleWorkforceEstimate({req,res,sql,user,parts,method,sen
  const internal=['administrador','orcamentista'].includes(user?.role);
  const costs=internal?await readCompanyCosts(sql):{rates:[],workers:[],overhead:null};
  const management=summarizeWorkforce(result,costs);
+ const [fronts,dependencies]=await Promise.all([
+  sql.query('SELECT budget_item_id,work_front,wait_workdays FROM budget_service_planning WHERE budget_id=$1',[id]),
+  sql.query('SELECT predecessor_item_id,successor_item_id,lag_workdays FROM budget_service_dependencies WHERE budget_id=$1',[id])
+ ]);
+ const resourceSchedule=planResourceSchedule(result.services,{
+  available_workers:result.settings.available_workers,fronts,dependencies});
+ const days=resourceSchedule.workdays;
+ const dayCost=costs.overhead?Number(costs.overhead.monthly_overhead)/Number(costs.overhead.workdays_per_month):null;
+ const laborCost=management.costs.labor_estimated;
+ const totalPossible=resourceSchedule.ready&&days!==null&&dayCost!==null&&laborCost!==null;
+ // Substituir soma sequencial simplista pelo rateio do cronograma com frentes e recursos.
+ management.duration={...management.duration,
+  sequential_workdays:days??management.duration.sequential_workdays,
+  complete:resourceSchedule.ready,
+  mode:'frentes_e_recursos',
+  dependency_only_workdays:resourceSchedule.dependency_only_workdays};
+ management.costs={...management.costs,
+  overhead_sequential:dayCost===null||days===null?null:Math.round(dayCost*days*100)/100,
+  total_sequential:totalPossible?Math.round((laborCost+dayCost*days)*100)/100:null,
+  incomplete_scope:!resourceSchedule.ready,
+  available:totalPossible};
+
  return done(200,{budget:{id:budget.id,code:budget.code,status:budget.status,
     reference_month:budget.reference_month,regime:budget.regime,lock_version:budget.lock_version},
-   ...result,...management,
+   ...result,...management,resource_schedule:resourceSchedule,
    // Do not expose salary or company overhead to read-only users.
    costs:internal?management.costs:null,
    roles:internal?management.roles:management.roles.map(({hourly_cost,cost_source,estimated_cost,...role})=>role)});

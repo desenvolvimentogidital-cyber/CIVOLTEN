@@ -308,3 +308,23 @@ body{background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,syst
 .workforce-total-days{grid-template-columns:1fr!important}
 .workforce-cost-totals{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:620px){.workforce-sequence{padding:15px!important}.workforce-cost-totals{grid-template-columns:1fr}}
+
+
+/* Opcional: frentes e relações técnicas sem exigir cadastro de equipes. */
+.planning-tools{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:0;overflow:hidden}
+.planning-tools>summary{padding:16px 18px;font-weight:750;color:var(--text);cursor:pointer;font-size:13px}
+.planning-tools[open]>summary{border-bottom:1px solid var(--border)}
+.planning-tools>p,.planning-tools>section,.planning-tools>h3,.planning-tools>ul{margin:14px 17px}
+.planning-tools h3{font-size:15px;margin-bottom:10px}
+.planning-front-forms{display:grid;gap:9px}
+.planning-front-form{display:grid;grid-template-columns:minmax(170px,1.5fr) repeat(2,minmax(120px,1fr)) auto;align-items:end;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.planning-front-name{font-size:13px;font-weight:700;overflow-wrap:anywhere}
+.planning-front-form label,.planning-tools #planning-link-form label{display:grid;gap:6px;font-size:11px;font-weight:700;color:var(--muted)}
+.planning-front-form input,.planning-tools :is(input,select){width:100%;min-height:38px;padding:8px 10px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px}
+.planning-tools #planning-link-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:12px}
+.planning-tools #planning-link-form button{grid-column:1/-1;justify-self:start}
+.planning-dependencies{padding-left:22px}
+.planning-dependencies li{line-height:1.7;margin:9px 0}
+.planning-dependencies .btn{margin-left:9px;font-size:11px}
+@media(max-width:900px){.planning-front-form{grid-template-columns:repeat(2,minmax(0,1fr))}.planning-front-name{grid-column:1/-1}.planning-tools #planning-link-form{grid-template-columns:1fr}}
+@media(max-width:620px){.planning-front-form{grid-template-columns:1fr}.planning-front-name{grid-column:auto}.planning-front-form .btn,.planning-tools #planning-link-form .btn{width:100%}}

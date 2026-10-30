@@ -6,7 +6,7 @@ import {companyCostsDialog,companyCostsSubmit} from './secure-company-costs.js';
 /* Painel privado CIVOLTEN — desenvolvimento/homologação
  * Jamais usar localStorage para informações comerciais ou tokens de sessão.
  */
-const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleRemaining:null,scheduleWorkforce:null,scheduleWorkforceSettings:null,scheduleAdvanced:false,finance:null,financeSelected:null,financeDraft:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false};
+const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleRemaining:null,scheduleWorkforce:null,scheduleWorkforceSettings:null,schedulePlanning:null,scheduleAdvanced:false,finance:null,financeSelected:null,financeDraft:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false};
 const app=document.querySelector('#secure-app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const BRL=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
@@ -240,6 +240,16 @@ function modalItem(x={},forceManual=false){
  dialog(x.id?'Editar serviço':'Novo serviço','<form id="item-form" data-id="'+esc(x.id||'')+'">'+form+'</form>');
 }
 async function changeView(view){state.view=view;state.detail=null;render()}
+async function refreshAutomaticPlan(){
+ const id=state.detail.id,q=new URLSearchParams(state.scheduleWorkforceSettings||{});
+ const [estimate,planning]=await Promise.all([
+  api('budgets/'+id+'/workforce-estimate?'+q).catch(e=>({error:e.message})),
+  api('budgets/'+id+'/planning-config').catch(e=>({error:e.message}))
+ ]);
+ state.scheduleWorkforce=estimate;state.schedulePlanning=planning;
+ state.detail=await api('budgets/'+id);
+ render();
+}
 const formData=form=>Object.fromEntries(new FormData(form).entries());
 document.addEventListener('submit',async e=>{
  const form=e.target;if(!form.id)return;e.preventDefault();
@@ -271,13 +281,25 @@ document.addEventListener('submit',async e=>{
       render();
     }});return;
   }
+  if(form.id.startsWith('planning-front-')||form.id==='planning-link-form'){
+    if(!state.schedulePlanning?.budget?.lock_version&&state.schedulePlanning?.budget?.lock_version!==0)throw Error('Plano desatualizado');
+    const budget='budgets/'+state.detail.id;
+    const path=budget+'/planning-config';
+    const payload={...b,lock_version:state.schedulePlanning.budget.lock_version};
+    if(form.id.startsWith('planning-front-'))payload.budget_item_id=form.dataset.service;
+    if(form.id==='planning-link-form'&&payload.predecessor_item_id===payload.successor_item_id)
+      throw Error('Escolha dois serviços diferentes');
+    await api(path,form.id==='planning-link-form'?'POST':'PUT',payload);
+    await refreshAutomaticPlan();
+    toast('Frente e dependências atualizadas.');return;
+  }
   if(form.id==='workforce-settings-form'){
     const args=Object.fromEntries(new FormData(form).entries());
     const q=new URLSearchParams(args);
     const estimate=await api('budgets/'+state.detail.id+'/workforce-estimate?'+q);
     state.scheduleWorkforceSettings=args;
     state.scheduleWorkforce=estimate;
-    render();toast('Sugestão de equipes recalculada.');return;
+    render();toast('Profissionais, dias e frentes recalculados.');return;
   }
   if(form.id.startsWith('schedule-')){
     await scheduleHandleForm(form,{state,api,toast,refresh:async reload=>{
@@ -383,11 +405,14 @@ document.addEventListener('click',async e=>{
     state.scheduleAdvanced=false;state.schedulePlan=null;state.scheduleProgress=null;
     state.schedulePreview=null;state.scheduleRemaining=null;
     state.view='cronograma';state.scheduleWorkforce=null;render();
-    try{
-      const query=new URLSearchParams(state.scheduleWorkforceSettings||{});
-      state.scheduleWorkforce=await api('budgets/'+state.detail.id+'/workforce-estimate?'+query.toString());
-    }catch(err){state.scheduleWorkforce={error:err.message}}
-    render();return;
+    await refreshAutomaticPlan();return;
+  }
+  if(act==='planning-remove-link'){
+    if(!state.schedulePlanning?.budget)throw Error('Recarregue o planejamento');
+    await api('budgets/'+state.detail.id+'/planning-config','DELETE',{
+      predecessor_item_id:btn.dataset.before,successor_item_id:btn.dataset.after,
+      lock_version:state.schedulePlanning.budget.lock_version});
+    await refreshAutomaticPlan();toast('Dependência removida.');return;
   }
   if(act==='schedule-advanced-open'){
     const base='budgets/'+state.detail.id+'/';

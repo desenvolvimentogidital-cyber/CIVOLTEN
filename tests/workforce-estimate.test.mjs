@@ -77,6 +77,8 @@ test('API é somente leitura, exige UUID válido e lê itens incluindo LEFT JOIN
   queries.push({query,args});
   if(query.includes('FROM budgets WHERE'))return [{id:bid,code:'QA',status:'rascunho',reference_month:'2026-07',regime:'Sem desoneração'}];
   if(query.includes('FROM budget_items bi'))return items;
+  if(query.includes('FROM budget_service_planning'))return [];
+  if(query.includes('FROM budget_service_dependencies'))return [];
   throw Error('SQL inesperado');
  }};
  const send=(res,status,data)=>{res.status=status;res.body=data};
@@ -111,7 +113,7 @@ test('Tela usa dados de orçamento e aponta hipótese, revisão e equipes não c
  const secure=readFileSync(new URL('../public/secure.js',import.meta.url),'utf8');
  const schedule=readFileSync(new URL('../public/secure-schedule.js',import.meta.url),'utf8');
  assert.match(secure,/workforce-estimate/);
- assert.match(schedule,/workforcePanel\(state\.scheduleWorkforce,esc\)/);
+ assert.match(schedule,/workforcePanel\(state\.scheduleWorkforce,esc,/);
 });
 test('não permite HTML injetado no nome do serviço',()=>{
  const x=buildWorkforceEstimate([{...items[0],source_name:'<svg onload=alert(1)>'}]);
