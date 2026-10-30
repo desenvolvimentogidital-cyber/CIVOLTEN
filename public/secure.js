@@ -168,7 +168,7 @@ function budgetDetail(){
  const b=state.detail;if(!b)return empty('Orçamento não encontrado.');
  const sum=(b.items||[]).reduce((a,x)=>a+Number(x.quantity)*Number(x.direct_unit_cost),0);
  return heading(b.title,b.code+' • '+(b.client_name||'Cliente')+' • orçamento de desenvolvimento')+
- '<div class="actions"><button class="btn" data-action="back-budget">Voltar</button><button class="btn primary" data-action="open-costing">Conferir custos e BDI</button><button class="btn" data-action="open-schedule">Cronograma</button><button class="btn" data-action="open-finance">Propostas e finanças</button>'+ (writeable()?'<button class="btn" data-action="new-item">+ Serviço</button>':'')+'</div>'+
+ '<div class="actions"><button class="btn" data-action="back-budget">Voltar</button><button class="btn primary" data-action="open-costing">Conferir custos e BDI</button><button class="btn" data-action="open-schedule">Cronograma</button><button class="btn" data-action="open-finance">Propostas e finanças</button>'+ (writeable()?'<button class="btn" data-action="new-item">+ Adicionar serviço</button>':'')+'</div>'+
  '<div class="grid"><div class="card"><div class="muted">Custo direto preliminar</div><div class="metric">'+BRL(sum)+'</div></div>'+
  '<div class="card"><div class="muted">BDI configurado</div><div class="metric">'+esc(b.bdi_pct)+'%</div></div>'+
  '<div class="card"><div class="muted">Prévia aritmética (não validada)</div><div class="metric">'+BRL(sum*(1+Number(b.bdi_pct)/100))+'</div></div></div>'+
