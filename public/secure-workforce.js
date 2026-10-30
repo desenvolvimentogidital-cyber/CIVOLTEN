@@ -12,8 +12,8 @@ export function workforcePanel(data,esc,planning={}){
  const sbox=(label,value,sub)=>'<div class="card workforce-stat"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(sub)+'</small></div>';
  const stats='<div class="workforce-stat-grid">'+
   sbox('Serviços no orçamento',s.total_services??0,'Selecionados no orçamento')+
-  sbox('Profissionais necessários',data.execution_sequence?.complete?(data.role_totals?.sequential_workers??s.sequential_peak_workers??0):'Mín. '+(data.role_totals?.sequential_workers??s.sequential_peak_workers??0),'Pico das etapas conhecidas')+
-  sbox('Equipes necessárias',data.execution_sequence?.complete?(s.sequential_peak_crews??0):'Mín. '+(s.sequential_peak_crews??0),'Pico das etapas conhecidas')+
+  sbox('Profissionais necessários',data.resource_schedule?.ready?data.resource_schedule.peak_workers:'Parcial','Pico simultâneo real do plano')+
+  sbox('Equipes necessárias',data.resource_schedule?.ready?Math.ceil(data.resource_schedule.peak_workers/(cfg.crew_size||4)):'Parcial','Até '+esc(cfg.crew_size||4)+' profissionais por equipe')+
   sbox('Dias estimados',data.resource_schedule?.ready?data.resource_schedule.workdays:'Parcial','Frentes e profissionais disponíveis')+'</div>';
  const services=items.map((item,i)=>{
   const roles=item.roles?.length?item.roles.map(role=>
@@ -52,8 +52,9 @@ export function workforcePanel(data,esc,planning={}){
   '</div><button type="submit" class="btn primary">Recalcular equipes</button></form></details>';
  const brl=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
  const d=data.duration||{},roles=data.roles||[],cost=data.costs;
+ const peak=new Map((data.resource_schedule?.peak_roles||[]).map(r=>[String(r.code),Number(r.workers)]));
  const occupationRows=roles.map(r=>'<tr><td><strong>'+esc(professionLabel(r.name))+'</strong></td>'+
-   '<td><strong>'+esc(r.sequential_workers)+'</strong></td>'+
+   '<td><strong>'+esc(peak.has(String(r.code))?peak.get(String(r.code)):r.sequential_workers)+'</strong></td>'+
    (cost?'<td>'+esc(r.hourly_cost===null?'Não cadastrado':brl(r.hourly_cost))+'</td>':'')+'</tr>').join('');
  const execution=data.execution_sequence||{steps:[],missing:[],complete:false};
  const dynamic=data.resource_schedule?.tasks?.length?data.resource_schedule.tasks:null;
