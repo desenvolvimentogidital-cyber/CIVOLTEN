@@ -215,3 +215,60 @@ body{background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,syst
 .schedule-advanced p{margin:0}
 @media(max-width:1100px){.workforce-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.workforce-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media(max-width:620px){.workforce-fields{grid-template-columns:1fr}.workforce-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}.workforce-table{padding:12px!important}.workforce-section .page-title h2{font-size:21px}.workforce-kpis .stat-card{padding:13px}.workforce-kpis .stat-value{font-size:19px}.workforce-settings{padding:14px}.workforce-settings .btn{width:100%}}
+
+
+/* Cronograma automático: nenhum cadastro de equipes na visão inicial. */
+.schedule-auto-header{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;flex-wrap:wrap;margin-bottom:18px}
+.schedule-auto-header h1{font-size:clamp(24px,3vw,33px);margin:7px 0 8px;letter-spacing:-.6px}
+.schedule-auto-header p{margin:0;line-height:1.55}
+.schedule-auto-header>.btn{flex-shrink:0}
+.workforce-section{display:grid;gap:17px}
+.workforce-intro{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.workforce-intro h2{font-size:clamp(20px,2.8vw,26px);margin:7px 0 8px;letter-spacing:-.45px}
+.workforce-intro p{margin:0;color:var(--muted);line-height:1.55;font-size:13px}
+.workforce-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.workforce-stat{min-width:0;display:grid;gap:8px;padding:17px;margin:0!important}
+.workforce-stat>span{color:var(--muted);font-size:12px;line-height:1.4}
+.workforce-stat>strong{font-size:30px;letter-spacing:-.6px;line-height:1.1;font-variant-numeric:tabular-nums}
+.workforce-stat>small{font-size:11px;line-height:1.35;color:var(--muted)}
+.workforce-service-section{display:grid;gap:12px}
+.workforce-service-section h2{font-size:19px;margin:0}
+.workforce-service-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.workforce-service{min-width:0;padding:18px!important;margin:0!important;display:grid;align-content:start;gap:12px}
+.workforce-service-head{display:flex;align-items:flex-start;gap:12px}
+.workforce-index{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;font-weight:800;font-size:13px;background:var(--orange-bg);color:var(--orange)}
+.workforce-service-title{min-width:0;overflow-wrap:anywhere}
+.workforce-service-title h3{margin:5px 0 0!important;font-size:15px;line-height:1.45;letter-spacing:-.12px}
+.workforce-service-counts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.workforce-service-counts>div{display:grid;gap:4px;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:12px}
+.workforce-service-counts strong{font-size:25px;line-height:1.1;color:var(--text);font-variant-numeric:tabular-nums}
+.workforce-service-counts small{font-size:11px;line-height:1.35;color:var(--muted)}
+.workforce-mini-label{display:block;font-weight:750;font-size:11px;letter-spacing:.02em;color:var(--muted);margin-bottom:8px}
+.workforce-role-list{display:flex;flex-wrap:wrap;gap:7px}
+.workforce-role{display:inline-flex;align-items:center;gap:7px;background:var(--orange-bg);color:var(--text);border-radius:8px;padding:7px 9px;font-size:12px;max-width:100%;overflow-wrap:anywhere}
+.workforce-role strong{color:var(--orange)}
+.workforce-service-hh{margin:0;font-size:12px;color:var(--muted);line-height:1.5}
+.workforce-duration{font-size:12px;font-weight:740;color:var(--text)}
+.workforce-service-source{margin:0;font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:10px}
+.workforce-adjust{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.workforce-adjust summary{cursor:pointer;padding:15px 17px;font-weight:750;color:var(--text);font-size:13px}
+.workforce-adjust[open] summary{border-bottom:1px solid var(--border);color:var(--orange)}
+.workforce-adjust .workforce-settings{border:0;border-radius:0}
+.workforce-qualification{line-height:1.6;margin:0}
+.schedule-technical-link{padding:14px 0 20px;border-top:1px solid var(--border);margin-top:12px}
+.schedule-technical-link .btn{font-size:12px;min-height:38px}
+.schedule-technical-link p{margin:8px 0 0;line-height:1.6}
+.workforce-wait{padding:24px!important}
+.workforce-empty{padding:20px!important}
+@media(max-width:1080px){.workforce-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){
+ .schedule-auto-header{gap:11px}
+ .schedule-auto-header>.btn{min-height:38px;padding:9px 13px;font-size:12px}
+ .workforce-service-grid{grid-template-columns:1fr}
+ .workforce-stat-grid{gap:9px}
+ .workforce-stat{padding:13px}
+ .workforce-stat strong{font-size:25px}
+ .workforce-service{padding:15px!important}
+ .workforce-service-counts strong{font-size:23px}
+ .workforce-intro .tag{max-width:100%;overflow-wrap:anywhere}
+}
