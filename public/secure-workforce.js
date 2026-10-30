@@ -1,10 +1,11 @@
+import {planningToolsPanel} from './secure-planning-ui.js';
 /* CIVOLTEN — cronograma automático em linguagem simples.
  * Exibe serviços reais do orçamento. Não requer equipe ou atividade cadastrada.
  * Não altera preços, contratos, orçamento ou equipe no banco.
  */
 const nfmt=n=>new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2}).format(Number(n)||0);
 const professionLabel=name=>/\bSERVENTE\b/i.test(String(name))?'Ajudante / servente':String(name||'').replace(/\s*\(SGSP\)\s*/gi,'').trim();
-export function workforcePanel(data,esc){
+export function workforcePanel(data,esc,planning={}){
  if(!data)return '<div class="card workforce-wait"><h2>Serviços e equipes sugeridas</h2><p class="muted">Consultando os serviços do seu orçamento e calculando a mão de obra necessária…</p></div>';
  if(data.error)return '<div class="card workforce-wait" role="alert"><h2>Não foi possível calcular</h2><p class="danger">'+esc(data.error)+'</p><p class="muted">A lista de serviços no orçamento continua preservada. Atualize a página para tentar novamente.</p></div>';
  const s=data.summary||{},cfg=data.settings||{},items=data.services||[];
@@ -13,7 +14,7 @@ export function workforcePanel(data,esc){
   sbox('Serviços no orçamento',s.total_services??0,'Selecionados no orçamento')+
   sbox('Profissionais necessários',data.execution_sequence?.complete?(data.role_totals?.sequential_workers??s.sequential_peak_workers??0):'Mín. '+(data.role_totals?.sequential_workers??s.sequential_peak_workers??0),'Pico das etapas conhecidas')+
   sbox('Equipes necessárias',data.execution_sequence?.complete?(s.sequential_peak_crews??0):'Mín. '+(s.sequential_peak_crews??0),'Pico das etapas conhecidas')+
-  sbox('Dias estimados',data.execution_sequence?.complete?data.execution_sequence.sequence_workdays_estimated:'Parcial','Até completar as etapas')+'</div>';
+  sbox('Dias estimados',data.resource_schedule?.ready?data.resource_schedule.workdays:'Parcial','Frentes e profissionais disponíveis')+'</div>';
  const services=items.map((item,i)=>{
   const roles=item.roles?.length?item.roles.map(role=>
     '<span class="workforce-role">'+esc(professionLabel(role.name))+' <strong>'+esc(role.workers)+'</strong></span>').join(''):
@@ -55,11 +56,15 @@ export function workforcePanel(data,esc){
    '<td><strong>'+esc(r.sequential_workers)+'</strong></td>'+
    (cost?'<td>'+esc(r.hourly_cost===null?'Não cadastrado':brl(r.hourly_cost))+'</td>':'')+'</tr>').join('');
  const execution=data.execution_sequence||{steps:[],missing:[],complete:false};
- const sequenceCards=(execution.steps||[]).map(x=>
-  '<li class="workforce-sequence-step"><span class="workforce-sequence-number">'+esc(x.sequence)+'</span>'+
-  '<div class="workforce-sequence-body"><strong>'+esc(x.stage)+'</strong>'+
+ const dynamic=data.resource_schedule?.tasks?.length?data.resource_schedule.tasks:null;
+ const rendered=dynamic||execution.steps||[];
+ const sequenceCards=rendered.map(x=>
+  '<li class="workforce-sequence-step"><span class="workforce-sequence-number">'+esc(x.sequence??(rendered.indexOf(x)+1))+'</span>'+
+  '<div class="workforce-sequence-body"><strong>'+esc(x.front||x.stage||'Serviço')+'</strong>'+
   '<div>'+esc(x.title)+'</div>'+
-  '<small class="muted">'+esc(x.duration_workdays===null?'Duração pendente':x.duration_workdays+' dia(s) úteis estimados')+'</small></div></li>').join('');
+  '<small class="muted">'+esc(x.start_workday!=null?'Dias úteis '+(x.start_workday+1)+' a '+x.finish_workday+
+   ' · '+x.workers+' profissionais':x.duration_workdays===null?'Duração pendente':x.duration_workdays+' dia(s) úteis estimados')+
+   '</small></div></li>').join('');
  const missingCards=(execution.missing||[]).map(x=>
   '<div class="notice workforce-missing-stage" role="alert"><strong>'+esc(x.label)+'</strong>'+
   '<p>'+esc(x.message)+'</p><button type="button" class="btn primary" data-action="schedule-back">Ver serviços do orçamento</button></div>').join('');
@@ -73,7 +78,7 @@ export function workforcePanel(data,esc){
    (cost?'<th>Custo-hora interno</th>':'')+'</tr></thead><tbody>'+occupationRows+'</tbody></table></div>':
    '<p class="muted">Sem composição por profissão. O total de pessoas por função depende da revisão do serviço.</p>')+
   '<div class="workforce-total-days"><div><span>Duração estimada da sequência</span><strong>'+esc(d.complete?d.sequential_workdays:'Mínimo parcial: '+(d.sequential_workdays??0))+' dias úteis</strong></div></div>'+
-  '<p class="muted tiny">Prazos de simulação por serviço, sem dependências, retrabalho, cura, logística, clima ou caminho crítico validado.</p></div>';
+  '<p class="muted tiny">Prazos de simulação por frente, com dependências e limite global de pessoas. Não incluem feriados, clima ou dias tecnológicos não cadastrados.</p></div>';
  const costPanel=cost?'<div class="card workforce-cost-summary"><div class="row"><h2>Custo interno estimado da obra</h2>'+
    '<button type="button" class="btn primary" data-action="company-config">Cadastrar custos e profissionais</button></div>'+
    '<div class="workforce-cost-totals"><div><span>Mão de obra estimada</span><strong>'+esc(cost.labor_estimated===null?'Aguardando custos-hora':brl(cost.labor_estimated))+'</strong></div>'+
@@ -81,13 +86,15 @@ export function workforcePanel(data,esc){
    '</div>'+
    (cost.missing_rates?.length?'<p class="muted tiny">Preencha custo-hora das funções: '+cost.missing_rates.map(esc).join(', ')+'.</p>':'')+
    '<p class="muted tiny">Valor gerencial da empresa, sem materiais, equipamentos, impostos, BDI ou margem de lucro. Não adicionar sobre a tabela SIURB sem conciliação, para evitar duplicidade.</p></div>':'';
+ const workfrontPanel=planningToolsPanel({config:planning.config,services:items,
+  canEdit:!!planning.canEdit,esc});
  const info='<div class="notice tiny workforce-qualification"><strong>Estimativa, não escala de trabalho.</strong> '+
   (cfg.available_workers!==null&&cfg.available_workers!==undefined?
     'Simulação com até '+esc(cfg.available_workers)+' profissionais por serviço, sem contar você, ':
     'Simulação dimensionada para '+esc(cfg.target_days)+' dias úteis por serviço, ')+
   esc(cfg.hours_day)+' h/dia, '+
   esc(cfg.efficiency_pct)+'% de eficiência e até '+esc(cfg.crew_size)+' pessoas por equipe. '+
-  'Os coeficientes de mão de obra SIURB são parciais; o prazo e as profissões devem ser conferidos na obra. O efetivo é por atividade, não uma alocação simultânea global.'+
+  'Os coeficientes de mão de obra SIURB são parciais; o prazo e as profissões devem ser conferidos na obra. A soma simultânea é limitada pelo efetivo global configurado no cronograma.'+
   (s.without_productivity?'<p class="danger"><strong>'+esc(s.without_productivity)+
   ' serviço(s) sem coeficiente:</strong> o total de equipes pode estar subestimado.</p>':'')+
   '<p>Os serviços dependentes são planejados em sequência; o mesmo profissional pode executar etapas diferentes. Não foram computadas esperas de cura ou secagem.</p></div>';
@@ -101,5 +108,5 @@ export function workforcePanel(data,esc){
    '<span class="tag">'+esc(items.length)+' serviço(s)</span></div>'+
    '<div class="workforce-service-grid">'+services+'</div></div>':
    '<div class="card workforce-empty"><h3>Nenhum serviço no orçamento</h3><p>Adicione serviços ao orçamento primeiro. Eles aparecerão aqui automaticamente, sem cadastrar equipes.</p></div>')+
-  sequencePanel+workforceSummary+costPanel+form+info+'</section>';
+  sequencePanel+workforceSummary+workfrontPanel+costPanel+form+info+'</section>';
 }
