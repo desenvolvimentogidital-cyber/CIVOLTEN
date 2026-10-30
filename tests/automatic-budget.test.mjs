@@ -64,6 +64,7 @@ test('serviço SIURB produz automaticamente custo, funções e sequência sem ca
  const a=result.data;
  assert.equal(a.cost.direct_reais,500);
  assert.equal(a.cost.price_approved,false);
+ assert.equal(a.cost.total_preliminary_reais,null,'BDI sem revisão não deve produzir preço final');
  assert.equal(a.workforce.total_hh,25);
  assert.equal(a.workforce.services.length,1);
  assert.equal(a.workforce.services[0].roles.length,2);
@@ -80,6 +81,8 @@ test('sem serviços não inventa orçamento, profissionais nem PDF',async()=>{
  const x=await request({sql});
  assert.equal(x.status,200);
  assert.equal(x.data.workforce.services.length,0);
+ assert.equal(x.data.schedule.ready,false);
+ assert.equal(x.data.schedule.workdays,null);
  assert.ok(x.data.issues.some(s=>s.includes('Adicione um serviço')));
  const pdf=await request({sql:makeSql([],[]),suffix:'/pdf'});
  assert.equal(pdf.status,409);
