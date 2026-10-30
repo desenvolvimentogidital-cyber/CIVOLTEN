@@ -10,6 +10,14 @@ const formInput=(label,name,type,required,value,esc,attrs='')=>'<div class="fiel
  '<input id="schedule-'+esc(name)+'" name="'+esc(name)+'" type="'+esc(type)+'" value="'+esc(value??'')+'" '+(required?'required':'')+' '+attrs+'></div>';
 const actions='<div class="actions"><button class="btn primary" type="submit">Salvar</button><button class="btn" type="button" data-action="close-dialog">Cancelar</button></div>';
 export function schedulePage({state,esc,writeable}){
+ if(!state.scheduleAdvanced){
+  return '<div class="schedule-auto-header"><div><span class="breadcrumb">ORÇAMENTOS / CRONOGRAMA</span>'+
+    '<h1>Cronograma automático</h1><p class="muted">Serviços e quantidade de profissionais calculados a partir do orçamento '+esc(state.detail?.code||'')+'.</p></div>'+
+    '<button type="button" class="btn" data-action="schedule-back">Voltar ao orçamento</button></div>'+
+    workforcePanel(state.scheduleWorkforce,esc)+
+    '<div class="schedule-technical-link"><button type="button" class="btn" data-action="schedule-advanced-open">Acompanhamento técnico (opcional)</button>'+
+    '<p class="muted tiny">Só para quem quiser registrar equipes reais, medições ou dependências. A estimativa acima não exige nada disso.</p></div>';
+ }
  const p=state.schedulePlan;
  if(!p)return '<div class="card"><p>Carregando planejamento...</p></div>';
  const crew=p.crews||[],tasks=p.tasks||[],deps=p.dependencies||[];
@@ -76,7 +84,7 @@ export function schedulePage({state,esc,writeable}){
     '<div class="notice"><strong>Previsão bloqueada:</strong><ul>'+forecast.errors.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>')+
    '<div class="table-wrap"><table><thead><tr><th>Atividade</th><th>Falta executar</th><th>Origem do rendimento</th><th>Dias restantes</th></tr></thead><tbody>'+
    (forecast.items||[]).map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc(x.remaining_quantity??'—')+'</td><td>'+esc(x.coefficient_source||'Sem evidência')+'</td><td>'+esc(x.estimated_remaining_workdays??'—')+'</td></tr>').join('')+'</tbody></table></div></div>':'';
- return workforcePanel(state.scheduleWorkforce,esc)+'<div class="card schedule-advanced"><div class="row"><div><h2>Planejamento detalhado e medições</h2><p class="muted tiny">Opcional: aqui você pode cadastrar equipes reais, revisar atividades, criar dependências e registrar execução.</p></div></div></div>'+
+ return '<div class="actions"><button type="button" class="btn" data-action="schedule-advanced-close">Voltar ao cronograma automático</button></div><div class="card schedule-advanced"><div class="row"><div><h2>Planejamento detalhado e medições</h2><p class="muted tiny">Opcional: aqui você pode cadastrar equipes reais, revisar atividades, criar dependências e registrar execução.</p></div></div></div>'+
   '<div class="row"><div><h1>Cronograma da obra</h1><p class="muted">Etapa 3 — equipes, produtividade e dependências · '+esc(state.detail?.code||'')+'</p></div></div>'+
   actionsRow+
   '<div class="notice"><strong>Ambiente de homologação.</strong> Somente atividades com duração revisada recebem datas. Não é prazo contratual aprovado; a estimativa não libera propostas comerciais.</div>'+

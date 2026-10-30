@@ -5,7 +5,7 @@ import {showServiceCatalog,showOfficialServiceEdit} from './secure-service-picke
 /* Painel privado CIVOLTEN — desenvolvimento/homologação
  * Jamais usar localStorage para informações comerciais ou tokens de sessão.
  */
-const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleRemaining:null,scheduleWorkforce:null,scheduleWorkforceSettings:null,finance:null,financeSelected:null,financeDraft:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false};
+const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleRemaining:null,scheduleWorkforce:null,scheduleWorkforceSettings:null,scheduleAdvanced:false,finance:null,financeSelected:null,financeDraft:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false};
 const app=document.querySelector('#secure-app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const BRL=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
@@ -368,16 +368,23 @@ document.addEventListener('click',async e=>{
     financeDialog(act,{state,dialog,esc});return;
   }
   if(act==='open-schedule'){
-    const base='budgets/'+state.detail.id+'/';
-    const parameters=new URLSearchParams(state.scheduleWorkforceSettings||{});
-    const [plan,progress,workforce]=await Promise.all([
-      api(base+'schedule-plan'),
-      api(base+'schedule-progress'),
-      api(base+'workforce-estimate?'+parameters.toString()).catch(e=>({error:e.message}))
-    ]);
-    state.schedulePlan=plan;state.scheduleProgress=progress;state.scheduleWorkforce=workforce;
-    state.schedulePreview=null;state.scheduleRemaining=null;state.view='cronograma';render();return;
+    state.scheduleAdvanced=false;state.schedulePlan=null;state.scheduleProgress=null;
+    state.schedulePreview=null;state.scheduleRemaining=null;
+    state.view='cronograma';state.scheduleWorkforce=null;render();
+    try{
+      const query=new URLSearchParams(state.scheduleWorkforceSettings||{});
+      state.scheduleWorkforce=await api('budgets/'+state.detail.id+'/workforce-estimate?'+query.toString());
+    }catch(err){state.scheduleWorkforce={error:err.message}}
+    render();return;
   }
+  if(act==='schedule-advanced-open'){
+    const base='budgets/'+state.detail.id+'/';
+    [state.schedulePlan,state.scheduleProgress]=await Promise.all([
+      api(base+'schedule-plan'),api(base+'schedule-progress')
+    ]);
+    state.scheduleAdvanced=true;render();return;
+  }
+  if(act==='schedule-advanced-close'){state.scheduleAdvanced=false;render();return}
   if(act==='schedule-back'){
     state.view='detalhe';state.detail=await api('budgets/'+state.detail.id);render();return;
   }
