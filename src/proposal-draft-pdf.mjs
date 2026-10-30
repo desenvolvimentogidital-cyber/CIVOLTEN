@@ -66,7 +66,7 @@ export async function renderProposalDraftPdf(snapshot,{version,sha256}={}){
  print('Contingencia: '+money(snapshot.costs?.contingency_reais));
  print('Total preliminar: '+money(snapshot.costs?.total_reais),13,true);
  y-=12;print('CONDICOES DE PAGAMENTO',12,true);print(snapshot.payment_terms);
- print('Validade proposta: '+snapshot.validity_days+' dias (nao iniciada)');
+ print('Validade proposta: '+(Number.isSafeInteger(Number(snapshot.validity_days))&&snapshot.validity_days!=null&&Number(snapshot.validity_days)>0?String(snapshot.validity_days)+' dias (nao iniciada)':'A DEFINIR; sem validade comercial'));
  y-=12;print('EXCLUSOES',12,true);print(snapshot.exclusions);
  y-=8;print('Este arquivo e apenas uma previa interna. Nao e oferta, contrato, aceite ou ordem de servico.',9,true);
  if(snapshot.costs?.blocking_errors?.length){
