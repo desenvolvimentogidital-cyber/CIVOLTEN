@@ -1,13 +1,13 @@
 /* CIVOLTEN PWA — cache EXCLUSIVAMENTE do app shell publico.
  * Dados de APIs, sessao, autenticacao e orcamentos: network-only, nunca Cache API.
  */
-const CACHE='civolten-shell-v1-20261030';
+const CACHE='civolten-shell-v2-20261030';
 const ASSETS=[
  '/offline.html','/offline.css','/offline.js','/offline-store.js','/offline-sync.js','/pwa-init.js',
  '/secure.html','/secure.css','/style.css','/secure.js','/secure-costing.js',
  '/secure-schedule.js','/secure-finance.js','/secure-service-picker.js',
  '/secure-workforce.js','/secure-planning-ui.js','/secure-company-costs.js',
- '/manifest.webmanifest','/assets/logo.png','/assets/icone.png'
+ '/manifest.webmanifest','/assets/logo.png','/assets/icone.png','/assets/pwa-192.png','/assets/pwa-512.png'
 ];
 self.addEventListener('install',event=>{
  event.waitUntil((async()=>{
