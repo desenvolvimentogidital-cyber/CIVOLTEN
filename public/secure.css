@@ -7,3 +7,13 @@
 @media(max-width:800px){.layout{display:block}.sidebar{display:none}.menu-mobile{display:flex;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);z-index:4;justify-content:space-around;padding:8px max(10px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom))}.menu-mobile .nav{font-size:11px;text-align:center;padding:8px 7px}.container{padding-bottom:96px}.topbar{min-height:64px}.grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:480px){.grid,.two{grid-template-columns:1fr}.login-card{padding:22px}.row{align-items:flex-start}.topbar .tiny{display:none}.container h1{font-size:23px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+/* Etapa 3: diagrama Gantt responsivo com contraste em claro/escuro. */
+.schedule-gantt{min-width:640px;display:grid;gap:8px}
+.schedule-gantt-row{display:grid;grid-template-columns:190px minmax(250px,1fr) 180px;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)}
+.schedule-gantt-name{font-weight:650;overflow-wrap:anywhere}
+.schedule-gantt-track{height:22px;background:var(--accent-bg);border-radius:5px;position:relative}
+.schedule-gantt-bar{position:absolute;top:2px;bottom:2px;min-width:4px;border-radius:4px;background:var(--accent)}
+.schedule-gantt-row .tiny{font-variant-numeric:tabular-nums}
+@media(max-width:800px){.schedule-gantt-row{grid-template-columns:165px minmax(240px,1fr) 165px}}
+@media(prefers-reduced-motion:reduce){.schedule-gantt-bar{transition:none}}
