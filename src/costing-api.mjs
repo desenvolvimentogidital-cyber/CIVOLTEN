@@ -112,6 +112,20 @@ export async function handleStage2(ctx){
    if(!created.length)return done(res,409,{error:'Orçamento modificado; recarregue'});
    return done(res,201,created[0]);
  }
+ if(sub==='siurb-items'&&method==='PUT'&&fourth){
+   if(!canWrite(user))return done(res,403,{error:'Sem permissão de orçamento'});
+   if(!draft)return done(res,409,{error:'Somente rascunhos'});
+   if(!validUUID(fourth))return done(res,400,{error:'Identificador do serviço inválido'});
+   const body=await readBody(req);
+   if(!scopeMatch(budget,body))return done(res,409,{error:'Orçamento alterado; recarregue antes de editar'});
+   const position=Number(body.position);
+   if(!Number.isSafeInteger(position)||position<1||position>10000)return done(res,400,{error:'Posição inválida'});
+   const quantity=decimal(body.quantity,'Quantidade',1e10,6);
+   const changed=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND lock_version=$4 AND status='rascunho' AND EXISTS(SELECT 1 FROM budget_items i JOIN budget_item_cost_reviews r ON r.budget_item_id=i.id JOIN reference_prices p ON p.id=i.reference_price_id JOIN reference_price_versions v ON v.id=p.version_id WHERE i.id=$1 AND i.budget_id=$2 AND i.deleted_at IS NULL AND r.source='SIURB' AND v.source='SIURB' AND v.reference_month=$6 AND v.regime=$7) RETURNING id), updated AS (UPDATE budget_items SET position=$3,quantity=$5 WHERE id=$1 AND budget_id=$2 AND deleted_at IS NULL AND reference_price_id IS NOT NULL AND EXISTS(SELECT 1 FROM guard) RETURNING *), reviewed AS (UPDATE budget_item_cost_reviews SET quantity_verified=false,composition_reviewed=false WHERE budget_item_id=$1 AND EXISTS(SELECT 1 FROM updated) RETURNING budget_item_id), audited AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $8,'budget_items',updated.id,'update_siurb_measurement' FROM updated RETURNING id), invalidated AS (UPDATE budget_costing_profiles SET technical_reviewed=false,commercial_reviewed=false,bdi_reviewed=false,updated_at=now() WHERE budget_id=$2 AND EXISTS(SELECT 1 FROM updated) RETURNING budget_id) SELECT updated.* FROM updated JOIN reviewed ON reviewed.budget_item_id=updated.id JOIN audited ON true",
+    [fourth,id,position,body.lock_version,quantity,budget.reference_month,budget.regime,user.id]);
+   if(!changed.length)return done(res,409,{error:'Serviço oficial não disponível; recarregue orçamento'});
+   return done(res,200,changed[0]);
+ }
  if(sub==='cost-settings'&&method==='PUT'){
    if(!canWrite(user)&&!canApprove(user))return done(res,403,{error:'Sem permissão'});
    if(!draft)return done(res,409,{error:'Só rascunhos permitem revisão'});
