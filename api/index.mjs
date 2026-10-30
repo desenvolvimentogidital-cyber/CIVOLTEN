@@ -6,6 +6,7 @@ import {handleStage2} from '../src/costing-api.mjs';
 import {handleServiceCatalog} from '../src/service-catalog-api.mjs';
 import {handleStage3} from '../src/schedule-api.mjs';
 import {handleWorkforceEstimate} from '../src/workforce-estimate-api.mjs';
+import {handleAutomaticBriefing} from '../src/automatic-budget-api.mjs';
 import {handleBudgetPlanning} from '../src/budget-planning-api.mjs';
 import {handleCompanyCosts} from '../src/company-costs-api.mjs';
 import {handleScheduleManagement} from '../src/schedule-management-api.mjs';
@@ -123,6 +124,8 @@ export function createApi(sql,opts={}){
    if(stage5Handled)return;
    const catalogHandled=await handleServiceCatalog({req,res,sql,user,parts,method,send:response});
    if(catalogHandled)return;
+   const automaticHandled=await handleAutomaticBriefing({req,res,sql,user,parts,method,send:response,readBody});
+   if(automaticHandled)return;
    const stage2Handled=await handleStage2({req,res,sql,user,parts,method,send:response,readBody});
    if(stage2Handled)return;
    const companyCostsHandled=await handleCompanyCosts({req,res,sql,user,parts,method,send:response,readBody});
