@@ -1,3 +1,4 @@
+import {marginOnSale,reconcileCostSources} from './company-pricing-engine.mjs';
 /* Custos internos da CIVOLTEN: cadastros opcionais; sem dados de identificação
  * além do nome profissional. A API exige usuário interno com escrita de orçamento.
  */
@@ -35,6 +36,49 @@ export async function handleCompanyCosts({req,res,sql,user,parts,method,send,rea
  const done=(status,data)=>{send(res,status,data);return true};
  if(!allowed(user))return done(403,{error:'Somente equipe interna autorizada pode consultar custos de pessoal'});
  if(parts.length===1&&method==='GET')return done(200,{...await readCompanyCosts(sql),commercial_release:false});
+ if(parts[1]==='pricing'&&parts[2]==='simulate'&&parts.length===3&&method==='POST'){
+  // Non-persistent, administrator-only price scenario. No automatic SIURB/BDI
+  // combination, and no commercial approval is implied by a numeric result.
+  if(user.role!=='administrador')return done(403,{error:'Somente administrador simula preços e impostos da empresa'});
+  const b=await readBody(req);
+  const labels={
+   internal_labor_cost:'Mão de obra própria',
+   material_cost:'Materiais próprios',
+   equipment_cost:'Equipamentos próprios',
+   other_direct_cost:'Outros custos diretos',
+   owner_prolabore_allocation:'Pró-labore alocado à obra',
+   other_overhead_allocation:'Outros custos indiretos alocados'
+  };
+  const costs=Object.fromEntries(Object.entries(labels).map(([field,label])=>
+   [field,Number(cash(b[field],label))]));
+  const taxPct=Number(cash(b.taxes_on_revenue_pct,'Tributos efetivos sobre a receita',60));
+  const configured=await sql.query(
+   'SELECT target_margin_pct,owner_prolabore_monthly FROM company_pricing_config WHERE singleton=1',[]);
+  if(!configured.length)return done(409,{error:'Configure margem e pró-labore da CIVOLTEN antes da simulação'});
+  const reconciliation=reconcileCostSources({
+   source_mode:'own_cost',...costs,approval:false});
+  if(reconciliation.combined_cost===null||reconciliation.combined_cost<=0)
+   return done(400,{error:'Informe ao menos um custo real positivo e todas as categorias explicitamente'});
+  const indicative=marginOnSale({
+   cost_base:reconciliation.combined_cost,
+   margin_pct:Number(configured[0].target_margin_pct),
+   taxes_on_revenue_pct:taxPct
+  });
+  return done(200,{
+   scenario:'custo_proprio_informado',source_mode:'own_cost',
+   costs,complete_cost_reais:reconciliation.combined_cost,
+   taxes_on_revenue_pct:taxPct,
+   owner_prolabore_monthly_configured:configured[0].owner_prolabore_monthly,
+   price:indicative,reference_siurb_added:false,
+   bdi_added:false,stored:false,can_issue:false,commercial_release:false,
+   warnings:[
+    'Simulação interna não grava ou modifica orçamento, proposta, contrato ou referência SIURB.',
+    'Tributos informados pelo responsável devem ser conferidos com o enquadramento da empresa; não são uma alíquota calculada pelo sistema.',
+    'Pró-labore e despesas indiretas precisam ser rateados por critério técnico e não podem ser incluídos outra vez no BDI ou na tabela de serviços.',
+    'Preço indicativo não é proposta aprovada nem lucro líquido. Exige validações fiscal, técnica e comercial.'
+   ]
+  });
+ }
  if(parts[1]==='pricing'&&parts.length===2&&method==='PUT'){
   // Commercial targets and owner compensation can only be changed by an administrator.
   // This does not write budget prices, BDI, proposals or invoices.
