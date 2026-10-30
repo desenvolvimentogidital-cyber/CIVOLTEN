@@ -68,6 +68,13 @@ export function schedulePage({state,esc,writeable}){
   formInput('Margem de segurança (%)','safety_pct','number',true,state.scheduleSettings?.safety_pct??15,esc,'min="0" max="100" step="1"')+
   formInput('Feriados (AAAA-MM-DD separados por vírgula)','holidays','text',false,state.scheduleSettings?.holidays||'',esc)+'</div>'+
   '<div class="actions"><button class="btn primary" type="submit">Calcular prévia</button><button class="btn" type="button" data-action="schedule-run-remaining">Prever prazo restante (medições)</button></div></form>';
+ const forecast=state.scheduleRemaining;
+ const forecastPanel=forecast?'<div class="card"><h2>Previsão operacional do trabalho restante</h2>'+
+   '<p class="muted tiny">Somente produção validada ou coeficientes de mão de obra revisados. Nunca usar como prazo contratual sem conferência.</p>'+
+   (forecast.ready?'<div class="metric">'+esc(forecast.completed?'Concluído':forecast.schedule?.finish||'Sem término')+'</div>':
+    '<div class="notice"><strong>Previsão bloqueada:</strong><ul>'+forecast.errors.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>')+
+   '<div class="table-wrap"><table><thead><tr><th>Atividade</th><th>Falta executar</th><th>Origem do rendimento</th><th>Dias restantes</th></tr></thead><tbody>'+
+   (forecast.items||[]).map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc(x.remaining_quantity??'—')+'</td><td>'+esc(x.coefficient_source||'Sem evidência')+'</td><td>'+esc(x.estimated_remaining_workdays??'—')+'</td></tr>').join('')+'</tbody></table></div></div>':'';
  return '<div class="row"><div><h1>Cronograma da obra</h1><p class="muted">Etapa 3 — equipes, produtividade e dependências · '+esc(state.detail?.code||'')+'</p></div></div>'+
   actionsRow+
   '<div class="notice"><strong>Ambiente de homologação.</strong> Somente atividades com duração revisada recebem datas. Não é prazo contratual aprovado; a estimativa não libera propostas comerciais.</div>'+
@@ -76,13 +83,6 @@ export function schedulePage({state,esc,writeable}){
    crew.map(x=>'<tr><td>'+esc(x.title)+(canEdit?'<div class="actions"><button class="btn" data-action="schedule-edit-crew" data-id="'+esc(x.id)+'">Editar</button><button class="btn danger" data-action="schedule-archive-crew" data-id="'+esc(x.id)+'">Arquivar</button></div>':'')+'</td><td>'+esc((x.roles||[]).map(r=>r.role_name+' ('+r.workers+')').join(', ')||x.workers)+'</td><td>'+esc(x.workday_hours)+' h/dia</td><td>'+esc(Math.round(Number(x.efficiency)*100))+'%</td></tr>').join('')+'</tbody></table></div>':'<p class="muted">Cadastre uma equipe antes de criar atividades.</p>')+'</div>'+
   '<div class="card"><h2>Atividades e revisões</h2>'+(tasks.length?'<div class="table-wrap"><table><thead><tr><th>Atividade</th><th>Equipe</th><th>Duração</th><th>Situação</th><th>Revisão</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<p class="muted">Nenhuma atividade cadastrada.</p>')+
   (deps.length?'<h3>Precedências</h3><ul>'+dependencyList+'</ul>':'')+'</div>'+
- const forecast=state.scheduleRemaining;
- const forecastPanel=forecast?'<div class="card"><h2>Previsão operacional do trabalho restante</h2>'+
-   '<p class="muted tiny">Somente produção validada ou coeficientes de mão de obra revisados. Nunca usar como prazo contratual sem conferência.</p>'+
-   (forecast.ready?'<div class="metric">'+esc(forecast.completed?'Concluído':forecast.schedule?.finish||'Sem término')+'</div>':
-    '<div class="notice"><strong>Previsão bloqueada:</strong><ul>'+forecast.errors.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>')+
-   '<div class="table-wrap"><table><thead><tr><th>Atividade</th><th>Falta executar</th><th>Origem do rendimento</th><th>Dias restantes</th></tr></thead><tbody>'+
-   (forecast.items||[]).map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc(x.remaining_quantity??'—')+'</td><td>'+esc(x.coefficient_source||'Sem evidência')+'</td><td>'+esc(x.estimated_remaining_workdays??'—')+'</td></tr>').join('')+'</tbody></table></div></div>':'';
   diary+inputs+errors+warnings+summary+forecastPanel+productivityPanel+gantt;
 }
 export function scheduleDialog(action,{state,dialog,field,esc}){
