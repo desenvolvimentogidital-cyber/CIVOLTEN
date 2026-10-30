@@ -2,6 +2,7 @@
  * Endpoint somente leitura; não escreve datas e não emite prazos contratuais.
  */
 import {buildWorkSchedule} from './schedule-engine.mjs';
+import {inspectCriticalChain} from './schedule-critical-chain.mjs';
 
 const validUUID=s=>typeof s==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
 const reviewed=s=>['revisado','aprovado','validado'].includes(String(s||'').toLowerCase());
@@ -86,7 +87,7 @@ export async function handleStage3({req,res,sql,parts,method,send}){
   warnings.push('Há atividades cujo prazo manual é inferior ao prazo calculado a partir de horas-homem conferidas. Justifique os recursos.');
  return done(200,{budget:{id:budgets[0].id,code:budgets[0].code,
    lock_version:budgets[0].lock_version,status:budgets[0].status},
-   schedule:{...calendar,warnings},productivity,commercial_release:false,
+   schedule:{...calendar,warnings},critical_chain:inspectCriticalChain(calendar),productivity,commercial_release:false,
    model:'duracoes_manuais_revisadas',preview_only:true,
    review_required:true});
 }
