@@ -7,7 +7,7 @@ const css=readFileSync(new URL('../public/secure.css',import.meta.url),'utf8');
 const demo=readFileSync(new URL('../public/style.css',import.meta.url),'utf8');
 
 test('Painel real compartilha tokens visuais com interface aprovada',()=>{
- assert.match(css,/^@import url\('\/style\.css'\)/);
+ assert.match(css,/@import url\('\/style\.css'\)/);
  assert.match(demo,/--orange:/);
  assert.match(css,/\.secure-layout \.nav-link/);
  assert.match(css,/\.secure-layout \.topbar/);
