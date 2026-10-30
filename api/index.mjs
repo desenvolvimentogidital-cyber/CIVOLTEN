@@ -9,6 +9,7 @@ import {handleScheduleProgress} from '../src/schedule-progress-api.mjs';
 import {handleRemainingSchedule} from '../src/schedule-remaining-api.mjs';
 import {handleStage4} from '../src/stage4-finance-api.mjs';
 import {handleStage4Closeout} from '../src/stage4-closeout-api.mjs';
+import {handleStage5Readiness} from '../src/stage5-readiness-api.mjs';
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
 
 const sessionName='civolten_dev_session';
@@ -104,6 +105,8 @@ export function createApi(sql,opts={}){
    if(!user)return response(res,401,{error:'Sessão necessária'});
    if(user.must_change_password && !(resource==='auth'&&id==='change-password'))return response(res,403,{error:'Altere a senha temporária antes de acessar dados do CIVOLTEN',password_change_required:true});
    if(resource==='me'&&method==='GET')return response(res,200,user);
+   const stage5Handled=await handleStage5Readiness({req,res,sql,user,parts,method,send:response});
+   if(stage5Handled)return;
    const stage2Handled=await handleStage2({req,res,sql,user,parts,method,send:response,readBody});
    if(stage2Handled)return;
    const stage3Handled=await handleStage3({req,res,sql,user,parts,method,send:response});
