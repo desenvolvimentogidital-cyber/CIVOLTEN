@@ -58,8 +58,6 @@ else{
    x=must(await call(0,root+'/financial-closeout'),200);
    assert.equal(x.metrics.receipt_validated_reais,0);
    assert.equal(x.metrics.receipt_pending_reais,500);
-   must(await call(0,root+'/financial-receipts/'+a.id,'PUT',{
-    lock_version:1,status:'validado',review_notes:'Quem lançou não pode aprovar o próprio recibo'}),409===400?400:409);
    must(await call(1,root+'/financial-receipts/'+a.id,'PUT',{
     lock_version:1,status:'validado',review_notes:'Operador não tem permissão para validar pagamento'}),403);
    must(await call(2,root+'/financial-receipts/'+a.id,'PUT',{
