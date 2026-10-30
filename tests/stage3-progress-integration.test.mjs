@@ -95,6 +95,25 @@ else{
    assert.equal(report.totals_include_full_history,true);
    assert.equal(report.summaries[0].completed_quantity,217.5);
    assert.equal(report.summaries[0].validated_person_hours,220);
+   // Projeção restante só existe com vínculo quantitativo e medição validada.
+   let remaining=must(await call(0,'budgets/'+budget+'/schedule-remaining?start_date=2026-11-02'),200);
+   assert.equal(remaining.ready,false);
+   assert.ok(remaining.errors.some(x=>x.includes('sem quantidade planejada')));
+   const item=randomUUID();
+   await sql.query(`INSERT INTO budget_items(id,budget_id,position,source_name,unit,quantity,direct_unit_cost)
+      VALUES($1,$2,1,'Revestimento QA','M2',300,50)`,[item,budget]);
+   await sql.query('UPDATE schedule_tasks SET budget_item_id=$2 WHERE id=$1',[task,item]);
+   await sql.query("INSERT INTO crew_roles(crew_id,role_code,role_name,workers) VALUES($1,'pedreiro','Pedreiro QA',2)",[crew]);
+   remaining=must(await call(0,'budgets/'+budget+'/schedule-remaining?start_date=2026-11-02&holidays=2026-11-02'),200);
+   assert.equal(remaining.ready,true,JSON.stringify(remaining.errors));
+   assert.equal(remaining.items[0].validated_quantity,217.5);
+   assert.equal(remaining.items[0].estimated_remaining_workdays,7);
+   assert.equal(remaining.schedule.base_workdays,7);
+   assert.equal(remaining.commercial_release,false);
+   // O histórico impede editar atividade/equipe para falsear parâmetros usados nas medições.
+   must(await call(1,'budgets/'+budget+'/schedule-tasks/'+task,'DELETE',{lock_version:4}),409);
+   must(await call(1,'budgets/'+budget+'/schedule-crews/'+crew,'PUT',{
+     lock_version:4,title:'Equipe alterada',workday_hours:6,efficiency:0.9}),409);
   }finally{await pool.end()}
  });
 }
