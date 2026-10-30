@@ -2,6 +2,7 @@
  * Endpoint somente leitura; não escreve datas e não emite prazos contratuais.
  */
 import {buildWorkSchedule} from './schedule-engine.mjs';
+import {inspectCriticalChain} from './schedule-critical-chain.mjs';
 
 const validUUID=s=>typeof s==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
 const reviewed=s=>['revisado','aprovado','validado'].includes(String(s||'').toLowerCase());
@@ -28,14 +29,14 @@ export async function handleStage3({req,res,sql,parts,method,send}){
   sql.query(`SELECT c.id,c.title,c.workday_hours,c.efficiency,
     COALESCE(SUM(cr.workers),0)::integer AS workers
     FROM crews c LEFT JOIN crew_roles cr ON cr.crew_id=c.id
-    WHERE c.budget_id=$1 GROUP BY c.id ORDER BY c.title`,[id]),
+    WHERE c.budget_id=$1 AND c.archived_at IS NULL GROUP BY c.id ORDER BY c.title`,[id]),
   sql.query(`SELECT t.id,t.title,t.crew_id,t.days_estimated,t.duration_review_state,
     t.budget_item_id,bi.quantity,bi.direct_labor_hh_unit,bi.labor_review_state,bi.deleted_at
     FROM schedule_tasks t LEFT JOIN budget_items bi ON bi.id=t.budget_item_id
-    WHERE t.budget_id=$1 ORDER BY t.title,t.id`,[id]),
+    WHERE t.budget_id=$1 AND t.archived_at IS NULL ORDER BY t.title,t.id`,[id]),
   sql.query(`SELECT d.predecessor_id,d.successor_id,d.dependency_type,d.lag_days
-    FROM task_dependencies d JOIN schedule_tasks t ON t.id=d.successor_id
-    WHERE t.budget_id=$1 ORDER BY d.successor_id,d.predecessor_id`,[id])
+    FROM task_dependencies d JOIN schedule_tasks t ON t.id=d.successor_id JOIN schedule_tasks p ON p.id=d.predecessor_id
+    WHERE t.budget_id=$1 AND t.archived_at IS NULL AND p.archived_at IS NULL ORDER BY d.successor_id,d.predecessor_id`,[id])
  ]);
  const issues=[];
  const deps=new Map(tasks.map(t=>[String(t.id),[]]));
@@ -86,7 +87,7 @@ export async function handleStage3({req,res,sql,parts,method,send}){
   warnings.push('Há atividades cujo prazo manual é inferior ao prazo calculado a partir de horas-homem conferidas. Justifique os recursos.');
  return done(200,{budget:{id:budgets[0].id,code:budgets[0].code,
    lock_version:budgets[0].lock_version,status:budgets[0].status},
-   schedule:{...calendar,warnings},productivity,commercial_release:false,
+   schedule:{...calendar,warnings},critical_chain:inspectCriticalChain(calendar),productivity,commercial_release:false,
    model:'duracoes_manuais_revisadas',preview_only:true,
    review_required:true});
 }

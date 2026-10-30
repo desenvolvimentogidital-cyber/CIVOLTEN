@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "node --watch server.mjs",
-    "test": "node --check public/app.js && node --check public/demo-api.js && node --check public/secure.js && node --check public/secure-costing.js && node --check public/secure-schedule.js && node --check src/schedule-management-api.mjs && node --check api/index.mjs && node --check scripts/import-siurb-neon.mjs && node --check src/proposal-pdf.mjs && node --test tests/*.test.mjs",
+    "test": "node --check public/app.js && node --check public/demo-api.js && node --check public/secure.js && node --check public/secure-costing.js && node --check public/secure-schedule.js && node --check src/schedule-management-api.mjs && node --check src/schedule-progress-api.mjs && node --check src/schedule-remaining-api.mjs && node --check src/schedule-remaining.mjs && node --check src/schedule-critical-chain.mjs && node --check api/index.mjs && node --check scripts/import-siurb-neon.mjs && node --check src/proposal-pdf.mjs && node --test tests/*.test.mjs",
     "verify:remote": "node scripts/verify-remote-stage1.mjs",
     "validate:siurb": "node scripts/import-siurb-neon.mjs --dry-run"
   },

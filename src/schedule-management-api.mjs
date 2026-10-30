@@ -38,20 +38,136 @@ export async function handleScheduleManagement({req,res,sql,user,parts,method,se
      COALESCE(SUM(cr.workers),0)::integer AS workers,
      COALESCE(jsonb_agg(jsonb_build_object('id',cr.id,'role_code',cr.role_code,'role_name',cr.role_name,'workers',cr.workers)) FILTER(WHERE cr.id IS NOT NULL),'[]'::jsonb) AS roles
      FROM crews c LEFT JOIN crew_roles cr ON cr.crew_id=c.id
-     WHERE c.budget_id=$1 GROUP BY c.id ORDER BY c.title`,[id]),
+     WHERE c.budget_id=$1 AND c.archived_at IS NULL GROUP BY c.id ORDER BY c.title`,[id]),
    sql.query(`SELECT t.id,t.title,t.crew_id,t.budget_item_id,t.days_estimated,t.duration_review_state,
        bi.source_name AS budget_service, bi.deleted_at
      FROM schedule_tasks t LEFT JOIN budget_items bi ON bi.id=t.budget_item_id
-     WHERE t.budget_id=$1 ORDER BY t.title,t.id`,[id]),
+     WHERE t.budget_id=$1 AND t.archived_at IS NULL ORDER BY t.title,t.id`,[id]),
    sql.query(`SELECT d.predecessor_id,d.successor_id,d.dependency_type,d.lag_days
-     FROM task_dependencies d JOIN schedule_tasks t ON t.id=d.successor_id
-     WHERE t.budget_id=$1 ORDER BY d.successor_id,d.predecessor_id`,[id])
+     FROM task_dependencies d JOIN schedule_tasks t ON t.id=d.successor_id JOIN schedule_tasks p ON p.id=d.predecessor_id
+     WHERE t.budget_id=$1 AND t.archived_at IS NULL AND p.archived_at IS NULL ORDER BY d.successor_id,d.predecessor_id`,[id])
   ]);
   return done(200,{budget:budgets[0],crews,tasks,dependencies,commercial_release:false});
  }
- if(!['POST','PUT'].includes(method))return done(405,{error:'Método não permitido'});
+ if(!['POST','PUT','DELETE'].includes(method))return done(405,{error:'Método não permitido'});
  if(!isDraft)return done(409,{error:'Somente orçamento em rascunho permite edição de cronograma'});
  const b=await readBody(req),lock=version(b);
+ if(sub==='schedule-crews'&&method==='PUT'&&fourth){
+  if(!canWrite(user))return done(403,{error:'Permissão insuficiente'});
+  if(!uuid(fourth))return done(400,{error:'Equipe inválida'});
+  const title=str(b.title,'Equipe',160),hours=num(b.workday_hours,'Jornada',1,12),
+   efficiency=num(b.efficiency,'Eficiência',0.01,1);
+  // Uma medição já realizada preserva os parâmetros de pessoal e jornada históricos.
+  const rows=await sql.query(`
+   WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now()
+     WHERE id=$1 AND lock_version=$2 AND status='rascunho'
+       AND EXISTS(SELECT 1 FROM crews WHERE id=$3 AND budget_id=$1 AND archived_at IS NULL)
+       AND NOT EXISTS(SELECT 1 FROM schedule_progress_measurements m
+         JOIN schedule_tasks t ON t.id=m.task_id WHERE t.crew_id=$3 AND t.budget_id=$1)
+     RETURNING id),
+   changed AS (UPDATE crews SET title=$4,workday_hours=$5,efficiency=$6
+     WHERE id=$3 AND budget_id=$1 AND archived_at IS NULL
+       AND EXISTS(SELECT 1 FROM guard) RETURNING *),
+   audit AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action)
+     SELECT $7,'crews',changed.id,'update' FROM changed RETURNING id)
+   SELECT changed.* FROM changed JOIN audit ON true`,
+   [id,lock,fourth,title,hours,efficiency,user.id]);
+  if(!rows.length)return done(409,{error:'Equipe não editável: versão ou medições anteriores'});
+  return done(200,rows[0]);
+ }
+ if(sub==='schedule-crews'&&method==='DELETE'&&fourth){
+  if(!canWrite(user))return done(403,{error:'Permissão insuficiente'});
+  if(!uuid(fourth))return done(400,{error:'Equipe inválida'});
+  const rows=await sql.query(`
+   WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now()
+     WHERE id=$1 AND lock_version=$2 AND status='rascunho'
+       AND EXISTS(SELECT 1 FROM crews WHERE id=$3 AND budget_id=$1 AND archived_at IS NULL)
+       AND NOT EXISTS(SELECT 1 FROM schedule_tasks
+         WHERE crew_id=$3 AND budget_id=$1 AND archived_at IS NULL)
+     RETURNING id),
+   archived AS (UPDATE crews SET archived_at=now()
+     WHERE id=$3 AND budget_id=$1 AND archived_at IS NULL
+       AND EXISTS(SELECT 1 FROM guard) RETURNING *),
+   audit AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action)
+     SELECT $4,'crews',archived.id,'archive' FROM archived RETURNING id)
+   SELECT archived.* FROM archived JOIN audit ON true`,
+   [id,lock,fourth,user.id]);
+  if(!rows.length)return done(409,{error:'Equipe não pode ser arquivada com atividades ativas'});
+  return done(200,{...rows[0],archived:true});
+ }
+ if(sub==='schedule-tasks'&&method==='PUT'&&fourth&&b.action==='edit'){
+  if(!canWrite(user))return done(403,{error:'Permissão insuficiente'});
+  if(!uuid(fourth)||!uuid(b.crew_id))return done(400,{error:'Atividade ou equipe inválida'});
+  const title=str(b.title,'Atividade',200);
+  const days=num(b.duration_workdays,'Duração',1,9000);
+  if(!Number.isSafeInteger(days))return done(400,{error:'Duração deve ser inteira'});
+  const itemId=b.budget_item_id||null;
+  if(itemId!==null&&!uuid(itemId))return done(400,{error:'Serviço inválido'});
+  const rows=await sql.query(`
+   WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now()
+      WHERE id=$1 AND lock_version=$2 AND status='rascunho'
+       AND EXISTS(SELECT 1 FROM schedule_tasks WHERE id=$3 AND budget_id=$1 AND archived_at IS NULL)
+       AND EXISTS(SELECT 1 FROM crews WHERE id=$4 AND budget_id=$1 AND archived_at IS NULL)
+       AND ($5::uuid IS NULL OR EXISTS(SELECT 1 FROM budget_items
+         WHERE id=$5 AND budget_id=$1 AND deleted_at IS NULL))
+       AND NOT EXISTS(SELECT 1 FROM schedule_progress_measurements WHERE task_id=$3)
+      RETURNING id),
+   changed AS (UPDATE schedule_tasks SET title=$6,crew_id=$4,budget_item_id=$5,
+      days_estimated=$7,duration_review_state='pendente'
+      WHERE id=$3 AND budget_id=$1 AND archived_at IS NULL
+        AND EXISTS(SELECT 1 FROM guard) RETURNING *),
+   audit AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action)
+     SELECT $8,'schedule_tasks',changed.id,'update' FROM changed RETURNING id)
+   SELECT changed.* FROM changed JOIN audit ON true`,
+   [id,lock,fourth,b.crew_id,itemId,title,days,user.id]);
+  if(!rows.length)return done(409,{error:'Atividade não editável: versão, equipe ou medição existente'});
+  return done(200,rows[0]);
+ }
+ if(sub==='schedule-tasks'&&method==='DELETE'&&fourth){
+  if(!canWrite(user))return done(403,{error:'Permissão insuficiente'});
+  if(!uuid(fourth))return done(400,{error:'Atividade inválida'});
+  const rows=await sql.query(`
+   WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now()
+     WHERE id=$1 AND lock_version=$2 AND status='rascunho'
+       AND EXISTS(SELECT 1 FROM schedule_tasks WHERE id=$3 AND budget_id=$1 AND archived_at IS NULL)
+       AND NOT EXISTS(SELECT 1 FROM schedule_progress_measurements WHERE task_id=$3)
+       AND NOT EXISTS(SELECT 1 FROM task_dependencies
+         WHERE predecessor_id=$3 OR successor_id=$3)
+     RETURNING id),
+   archived AS (UPDATE schedule_tasks SET archived_at=now(),duration_review_state='pendente'
+     WHERE id=$3 AND budget_id=$1 AND archived_at IS NULL AND EXISTS(SELECT 1 FROM guard)
+      RETURNING *),
+   audit AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action)
+     SELECT $4,'schedule_tasks',archived.id,'archive' FROM archived RETURNING id)
+   SELECT archived.* FROM archived JOIN audit ON true`,
+   [id,lock,fourth,user.id]);
+  if(!rows.length)return done(409,{error:'Atividade não pode ser arquivada com medições ou dependências'});
+  return done(200,{...rows[0],archived:true});
+ }
+ if(sub==='schedule-dependencies'&&method==='DELETE'&&fourth){
+  if(!canWrite(user))return done(403,{error:'Permissão insuficiente'});
+  if(!uuid(fourth)||!uuid(b.successor_id))return done(400,{error:'Dependência inválida'});
+  const rows=await sql.query(`
+   WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now()
+     WHERE id=$1 AND lock_version=$2 AND status='rascunho'
+       AND EXISTS(SELECT 1 FROM task_dependencies d
+        JOIN schedule_tasks t ON t.id=d.successor_id
+        JOIN schedule_tasks p ON p.id=d.predecessor_id
+        WHERE d.predecessor_id=$3 AND d.successor_id=$4
+        AND t.budget_id=$1 AND p.budget_id=$1)
+     RETURNING id),
+   removed AS (DELETE FROM task_dependencies
+      WHERE predecessor_id=$3 AND successor_id=$4
+       AND EXISTS(SELECT 1 FROM guard) RETURNING *),
+   audit AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action,metadata)
+     SELECT $5,'task_dependencies',removed.successor_id,'delete',
+       jsonb_build_object('predecessor_id',$3::uuid)
+     FROM removed RETURNING id)
+   SELECT removed.* FROM removed JOIN audit ON true`,
+   [id,lock,fourth,b.successor_id,user.id]);
+  if(!rows.length)return done(409,{error:'Dependência não encontrada ou versão desatualizada'});
+  return done(200,{removed:true});
+ }
  if(sub==='schedule-crews'&&method==='POST'&&!fourth){
   if(!canWrite(user))return done(403,{error:'Permissão insuficiente'});
   const title=str(b.title,'Equipe',160);
@@ -88,7 +204,7 @@ export async function handleScheduleManagement({req,res,sql,user,parts,method,se
   const rows=await sql.query(`
     WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now()
         WHERE id=$1 AND lock_version=$2 AND status='rascunho'
-        AND EXISTS(SELECT 1 FROM crews WHERE id=$4 AND budget_id=$1)
+        AND EXISTS(SELECT 1 FROM crews WHERE id=$4 AND budget_id=$1 AND archived_at IS NULL)
         AND ($5::uuid IS NULL OR EXISTS(SELECT 1 FROM budget_items
            WHERE id=$5 AND budget_id=$1 AND deleted_at IS NULL)) RETURNING id),
     task AS (INSERT INTO schedule_tasks(id,budget_id,crew_id,budget_item_id,title,days_estimated,duration_review_state)
@@ -110,9 +226,9 @@ export async function handleScheduleManagement({req,res,sql,user,parts,method,se
   const rows=await sql.query(`
     WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now()
       WHERE id=$1 AND lock_version=$2 AND status='rascunho'
-        AND EXISTS(SELECT 1 FROM schedule_tasks WHERE id=$3 AND budget_id=$1) RETURNING id),
+        AND EXISTS(SELECT 1 FROM schedule_tasks WHERE id=$3 AND budget_id=$1 AND archived_at IS NULL) RETURNING id),
     task AS (UPDATE schedule_tasks SET days_estimated=$4,duration_review_state='revisado'
-      WHERE id=$3 AND budget_id=$1 AND EXISTS(SELECT 1 FROM guard) RETURNING *),
+      WHERE id=$3 AND budget_id=$1 AND archived_at IS NULL AND EXISTS(SELECT 1 FROM guard) RETURNING *),
     audit AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action,metadata)
       SELECT $5,'schedule_tasks',task.id,'duration_reviewed',$6::jsonb FROM task RETURNING id)
     SELECT task.* FROM task JOIN audit ON true`,[id,lock,fourth,days,user.id,metadata(note)]);
@@ -133,7 +249,7 @@ export async function handleScheduleManagement({req,res,sql,user,parts,method,se
   const rows=await sql.query(`
     WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now()
       WHERE id=$1 AND lock_version=$2 AND status='rascunho'
-        AND (SELECT count(*) FROM schedule_tasks WHERE budget_id=$1 AND id IN ($3,$4))=2
+        AND (SELECT count(*) FROM schedule_tasks WHERE budget_id=$1 AND archived_at IS NULL AND id IN ($3,$4))=2
         AND NOT EXISTS(SELECT 1 FROM task_dependencies WHERE predecessor_id=$3 AND successor_id=$4)
       RETURNING id),
     edge AS (INSERT INTO task_dependencies(predecessor_id,successor_id,dependency_type,lag_days)
