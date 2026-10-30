@@ -113,7 +113,7 @@ export async function handleStage4(ctx){
   if(!items.length)return done(409,{error:'Rascunho de proposta exige ao menos um serviço'});
   const snapshot=canonical({model:'civolten-proposal-draft-v1',budget:{id:budget.id,code:budget.code,
    title:budget.title,reference_month:budget.reference_month,regime:budget.regime,
-   lock_version:budget.lock_version},
+   lock_version:budget.lock_version+1},
    client:{name:budget.client_name,tax_id:budget.client_tax_id},
    project:{title:budget.project_title,address:budget.project_address},
    items:items.map(i=>({code:i.source_code,name:i.source_name,unit:i.unit,
@@ -132,7 +132,7 @@ export async function handleStage4(ctx){
    created AS (INSERT INTO proposal_draft_snapshots
       (id,budget_id,version,budget_lock_version,snapshot,snapshot_sha256,created_by)
       SELECT $3,guard.id,COALESCE((SELECT MAX(version)+1 FROM proposal_draft_snapshots
-          WHERE budget_id=$1),1),$2,$4::jsonb,$5,$6
+          WHERE budget_id=$1),1),$2+1,$4::jsonb,$5,$6
       FROM guard RETURNING *),
    audit AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action)
       SELECT $6,'proposal_draft_snapshots',created.id,'create'
