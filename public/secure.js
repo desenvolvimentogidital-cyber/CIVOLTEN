@@ -1,4 +1,5 @@
 import {costPage,costDialog,costEvidenceDialog,costHandleForm,costHandleClick} from './secure-costing.js';
+import {automaticBudgetPanel} from './secure-automatic.js';
 import {schedulePage,scheduleDialog,scheduleHandleForm} from './secure-schedule.js';
 import {financePage,financeDialog,financeHandleForm} from './secure-finance.js';
 import {showServiceCatalog,showOfficialServiceEdit} from './secure-service-picker.js';
@@ -8,7 +9,7 @@ import {syncOfflineBudget} from './offline-sync.js';
 /* Painel privado CIVOLTEN — desenvolvimento/homologação
  * Jamais usar localStorage para informações comerciais ou tokens de sessão.
  */
-const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleRemaining:null,scheduleWorkforce:null,scheduleWorkforceSettings:null,schedulePlanning:null,scheduleAdvanced:false,finance:null,financeSelected:null,financeDraft:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false};
+const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleRemaining:null,scheduleWorkforce:null,scheduleWorkforceSettings:null,schedulePlanning:null,scheduleAdvanced:false,finance:null,financeSelected:null,financeDraft:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false,autoBriefing:null};
 const app=document.querySelector('#secure-app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const BRL=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
@@ -189,7 +190,8 @@ function budgetDetail(){
  {title:'Unitário',render:x=>BRL(x.direct_unit_cost)},
  {title:'Custo direto',render:x=>BRL(Number(x.quantity)*Number(x.direct_unit_cost))},
  {title:'Ações',render:x=>writeable()?'<button class="btn" data-action="edit-item" data-id="'+esc(x.id)+'">Editar</button> <button class="btn danger" data-action="remove-item" data-id="'+esc(x.id)+'">Remover</button>':'—'}
- ]):empty('Sem serviços cadastrados.'));
+ ]):empty('Sem serviços cadastrados.'))+
+ automaticBudgetPanel(state.autoBriefing,esc,{budgetId:b.id});
 }
 function render(){
  if(!state.user){authView();return}
@@ -247,7 +249,16 @@ function modalItem(x={},forceManual=false){
  field('Custo unitário direto (R$)','direct_unit_cost','number',true,x.direct_unit_cost??0,'min="0" step="any"')+'</div>'+submitButtons;
  dialog(x.id?'Editar serviço':'Novo serviço','<form id="item-form" data-id="'+esc(x.id||'')+'">'+form+'</form>');
 }
-async function changeView(view){state.view=view;state.detail=null;render()}
+async function changeView(view){state.view=view;state.detail=null;state.autoBriefing=null;render()}
+async function refreshAutomaticBriefing(){
+ const id=state.detail?.id,version=state.detail?.lock_version;
+ if(!id)return;
+ try{
+  const result=await api('budgets/'+id+'/automatic-briefing');
+  if(state.detail?.id===id&&state.detail?.lock_version===version)state.autoBriefing=result;
+ }catch(e){if(state.detail?.id===id)state.autoBriefing={error:e.message}}
+ if(state.detail?.id===id&&state.view==='detalhe')render();
+}
 async function refreshAutomaticPlan(){
  const id=state.detail.id,q=new URLSearchParams(state.scheduleWorkforceSettings||{});
  const [estimate,planning]=await Promise.all([
@@ -359,7 +370,10 @@ document.addEventListener('submit',async e=>{
    state.detail=await api('budgets/'+state.detail.id);
   }
   document.querySelector('#secure-dialog')?.remove();
-  await loadLists();render();toast('Registro salvo no PostgreSQL.');
+  if(['catalog-item-form','catalog-edit-form','item-form'].includes(form.id)){
+   state.autoBriefing=null;render();await refreshAutomaticBriefing();
+  }
+  await loadLists();render();toast('Registro salvo no PostgreSQL; cálculos automáticos atualizados.');
  }catch(err){toast(err.message,true)}finally{if(send)send.disabled=false}
 });
 document.addEventListener('click',async e=>{
@@ -367,6 +381,7 @@ document.addEventListener('click',async e=>{
  const act=btn.dataset.action;
  try{
   if(act==='retry'){await init();return}
+  if(act==='automatic-refresh'){state.autoBriefing=null;render();await refreshAutomaticBriefing();return}
   if(act==='login-view'||act==='setup-view'){state.mode=act==='setup-view'?'setup':'login';render();return}
   if(act==='theme'){const order=['auto','light','dark'],next=order[(order.indexOf(localStorage.getItem('civolten-theme')||'auto')+1)%3];localStorage.setItem('civolten-theme',next);theme();render();toast('Aparência: '+(next==='auto'?'automático':next==='light'?'claro':'escuro'));return}
   if(act==='close-dialog'){document.querySelector('#secure-dialog')?.remove();return}
@@ -420,7 +435,10 @@ document.addEventListener('click',async e=>{
     if(!window.confirm(label+' Confirma?'))return;
     const target=act==='archive-client'?'clients/'+btn.dataset.id:act==='archive-project'?'projects/'+btn.dataset.id:act==='archive-budget'?'budgets/'+btn.dataset.id:'budgets/'+state.detail.id+'/items/'+btn.dataset.id;
     await api(target,'DELETE');
-    if(act==='remove-item')state.detail=await api('budgets/'+state.detail.id);
+    if(act==='remove-item'){
+     state.detail=await api('budgets/'+state.detail.id);
+     state.autoBriefing=null;render();await refreshAutomaticBriefing();
+    }
     await loadLists();render();toast('Ação registrada na auditoria.');return;
   }
   if(act==='open-finance'){
@@ -527,7 +545,11 @@ document.addEventListener('click',async e=>{
   if(act==='edit-project'){modalProject(state.projects.find(x=>x.id===btn.dataset.id)||{});return}
   if(act==='edit-budget'){modalBudget(state.budgets.find(x=>x.id===btn.dataset.id)||{});return}
   if(act==='edit-item'){modalItem(state.detail.items.find(x=>x.id===btn.dataset.id)||{});return}
-  if(act==='detail-budget'){state.detail=await api('budgets/'+btn.dataset.id);state.view='detalhe';render();return}
+  if(act==='detail-budget'){
+   state.detail=await api('budgets/'+btn.dataset.id);
+   state.view='detalhe';state.autoBriefing=null;render();
+   await refreshAutomaticBriefing();return;
+  }
   if(act==='back-budget'){await changeView('orcamentos');return}
  }catch(err){toast(err.message,true)}
 });
