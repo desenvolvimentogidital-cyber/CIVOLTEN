@@ -117,9 +117,28 @@ export function planResourceSchedule(services=[],options={}){
   dependency_critical:critical.includes(x.id)}))
   .sort((a,b)=>(a.start_workday??Infinity)-(b.start_workday??Infinity)||a.position-b.position);
  const days=started.size===steps.length?Math.max(0,...[...started.values()].map(x=>x.end)):null;
+ // Pico de trabalhadores por profissão considera somente atividades simultâneas.
+ // O máximo não é a soma de toda obra nem trabalhadores duplicados em frentes diferentes.
+ let peakWorkers=0,peakRoles=[];
+ if(started.size===steps.length){
+  for(const tick of [...new Set([...started.values()].map(x=>x.start))]){
+   const running=steps.filter(x=>started.has(x.id)&&started.get(x.id).start<=tick&&started.get(x.id).end>tick);
+   const demand=running.reduce((n,x)=>n+x.workers,0);
+   if(demand>peakWorkers){
+    peakWorkers=demand;
+    const roles=new Map();
+    for(const task of running)for(const role of task.roles){
+     const key=String(role.code||role.name),curr=roles.get(key)||{code:key,name:role.name,workers:0};
+     curr.workers+=Number(role.workers)||0;roles.set(key,curr);
+    }
+    peakRoles=[...roles.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+   }
+  }
+ }
  return {ready:!incomplete&&!deadlock&&missing.length===0,partial:incomplete||missing.length>0||deadlock,
   tasks:scheduled,dependencies:edges,missing,available_workers:capacity,capacity_source:staff===null?'estimativa_por_servico':'informado',
-  workdays:days,minimum_known_workdays:days,critical_chain_dependency_only:critical,
+  workdays:days,minimum_known_workdays:days,peak_workers:peakWorkers,peak_roles:peakRoles,
+  critical_chain_dependency_only:critical,
   dependency_only_workdays:theoreticalFinish,unestimated_services:steps.filter(x=>x.duration===null).length,
   notes:['Prazos em dias úteis sem data e sem feriados; não há aprovação contratual.',
    'Não há dois serviços simultâneos na mesma frente. Entre frentes, a soma do pessoal nunca ultrapassa o limite.',
