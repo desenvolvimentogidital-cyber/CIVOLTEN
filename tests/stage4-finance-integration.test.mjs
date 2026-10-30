@@ -83,6 +83,17 @@ else {
    drafts=must(await call(0,base+'/proposal-drafts'),200);
    assert.equal(drafts.drafts[0].stale,false);
    assert.equal(drafts.drafts[1].stale,true);
+   // A rota PDF usa autenticação obrigatória e entrega somente rascunho não emitido.
+   const pdfReq=Readable.from([]);
+   pdfReq.url='/api/v1/'+base+'/proposal-drafts/'+draft2.id+'/pdf';
+   pdfReq.method='GET';
+   pdfReq.headers={host:'localhost:3000',cookie:'civolten_dev_session='+tokens[0]};
+   const pdfRes={statusCode:200,headers:{},setHeader(k,v){this.headers[k]=v},end(bytes){this.bytes=bytes}};
+   await api(pdfReq,pdfRes);
+   assert.equal(pdfRes.statusCode,200);
+   assert.equal(pdfRes.headers['Content-Type'],'application/pdf');
+   assert.equal(pdfRes.headers['Cache-Control'],'private, no-store');
+   assert.equal(pdfRes.bytes.subarray(0,5).toString(),'%PDF-');
    assert.equal((await sql.query('SELECT COUNT(*)::int AS c FROM proposals WHERE budget_id=$1',[budget]))[0].c,0,
      'Não produzir emissão comercial automaticamente');
    const audit=await sql.query("SELECT COUNT(*)::int AS c FROM audit_events WHERE entity_type IN ('proposal_draft_snapshots','budget_actual_costs') AND actor_id=ANY($1)",[ids]);
