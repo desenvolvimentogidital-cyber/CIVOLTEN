@@ -7,7 +7,7 @@ export const requiredTables=Object.freeze([
  'reference_prices','reference_composition_details','crews','crew_roles',
  'schedule_tasks','task_dependencies','schedule_progress_measurements',
  'proposal_draft_snapshots','budget_actual_costs','budget_cash_receipts',
- 'budget_completion_forecasts'
+ 'budget_completion_forecasts','deployment_environment_guards'
 ]);
 export const requiredColumns=Object.freeze([
  ['budgets','lock_version'],['crews','archived_at'],
@@ -45,7 +45,7 @@ export function evaluateReleaseGates(evidence={}){
   return {key,label,passed:!!accepted,
    reference:accepted?raw.reference.trim():null};
  });
- return {production_ready:checks.every(x=>x.passed),commercial_release:checks.every(x=>x.passed),
+ return {production_ready:false,release_evidence_complete:checks.every(x=>x.passed),commercial_release:false,
   failed:checks.filter(x=>!x.passed),checks,
-  note:'Checklist documental. A API comercial também precisa validar usuário, orçamento, revisão técnica e assinatura; este relatório não emite propostas.'};
+  note:'Checklist documental apenas. Mesmo todas as evidências preenchidas não autorizam emissão: homologação jurídica/tributária e assinatura exigem fluxos externos verificáveis.'};
 }
