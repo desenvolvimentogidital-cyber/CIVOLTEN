@@ -94,6 +94,17 @@ else {
    assert.equal(pdfRes.headers['Content-Type'],'application/pdf');
    assert.equal(pdfRes.headers['Cache-Control'],'private, no-store');
    assert.equal(pdfRes.bytes.subarray(0,5).toString(),'%PDF-');
+   // Injeção controlada em QA: JSONB adulterado deve ser recusado pela API
+   // sem modificar o documento comercial nem aceitar o hash antigo.
+   await sql.query("UPDATE proposal_draft_snapshots SET snapshot=jsonb_set(snapshot,'{client,name}',to_jsonb('TAMPER QA'::text)) WHERE id=$1",[draft2.id]);
+   must(await call(0,base+'/proposal-drafts/'+draft2.id),409);
+   const badReq=Readable.from([]);
+   badReq.url='/api/v1/'+base+'/proposal-drafts/'+draft2.id+'/pdf';
+   badReq.method='GET';badReq.headers={host:'localhost:3000',cookie:'civolten_dev_session='+tokens[0]};
+   const badRes={statusCode:200,setHeader(){},end(t){this.body=JSON.parse(t)}};
+   await api(badReq,badRes);
+   assert.equal(badRes.statusCode,409);
+   assert.match(badRes.body.error,/Integridade/);
    assert.equal((await sql.query('SELECT COUNT(*)::int AS c FROM proposals WHERE budget_id=$1',[budget]))[0].c,0,
      'Não produzir emissão comercial automaticamente');
    const audit=await sql.query("SELECT COUNT(*)::int AS c FROM audit_events WHERE entity_type IN ('proposal_draft_snapshots','budget_actual_costs') AND actor_id=ANY($1)",[ids]);

@@ -12,6 +12,39 @@ export function financePage({state,esc,writeable}){
    canApprove=reviewer(state)&&budget.status==='rascunho';
  const errors=summary.estimate.errors||[];
  const totals=summary.comparison;
+ const closeout=model.closeout||{metrics:{}},metrics=closeout.metrics||{},
+  receipts=model.receipts?.records||[],forecasts=model.forecasts?.records||[];
+ const approved=(s)=>s==='validado'?'Validado':s==='rejeitado'?'Rejeitado':'Pendente';
+ const receiptRows=receipts.map(x=>'<tr><td>'+esc(x.payer_name)+'</td><td>'+m(x.amount)+'</td>'+
+   '<td>'+esc(String(x.received_on).slice(0,10))+'</td><td>'+esc(x.evidence_ref)+'</td>'+
+   '<td>'+approved(x.status)+'</td><td>'+(canApprove&&x.status==='pendente'&&x.created_by!==state.user?.id?
+    '<button class="btn" data-action="finance-review-receipt" data-id="'+esc(x.id)+'">Conferir</button>':'—')+'</td></tr>').join('');
+ const forecastRows=forecasts.map(x=>'<tr><td>'+esc(String(x.as_of).slice(0,10))+'</td><td>'+m(x.expected_remaining_cost)+'</td>'+
+   '<td>'+esc(x.evidence_ref)+'</td><td>'+approved(x.status)+'</td>'+
+   '<td>'+(canApprove&&x.status==='pendente'&&x.created_by!==state.user?.id?
+    '<button class="btn" data-action="finance-review-forecast" data-id="'+esc(x.id)+'">Conferir</button>':'—')+'</td></tr>').join('');
+ const readiness=model.readiness||{ready:false,reasons:[]};
+ const closeoutPanel='<div class="card"><h2>Recebimentos e custo a concluir</h2>'+
+    '<p class="muted tiny">Valores recebidos e evidenciados são diferentes de faturamento e lucro; previsões sem revisão não entram no fechamento.</p>'+
+    '<div class="grid"><div class="card"><div class="muted">Recebimentos validados</div><div class="metric">'+m(metrics.receipt_validated_reais)+'</div></div>'+
+    '<div class="card"><div class="muted">Recebimentos pendentes</div><div class="metric">'+m(metrics.receipt_pending_reais)+'</div></div>'+
+    '<div class="card"><div class="muted">Custo ainda a completar, validado</div><div class="metric">'+
+       (metrics.approved_remaining_cost_reais==null?'Não determinado':m(metrics.approved_remaining_cost_reais))+'</div></div>'+
+    '<div class="card"><div class="muted">Custo projetado ao terminar</div><div class="metric">'+
+       (metrics.projected_cost_at_completion_reais==null?'Não determinado':m(metrics.projected_cost_at_completion_reais))+'</div></div>'+
+    '<div class="card"><div class="muted">Contribuição hipotética sobre preço estimado</div><div class="metric">'+
+       (metrics.hypothetical_contribution_at_estimated_price_reais==null?'Não determinada':
+         m(metrics.hypothetical_contribution_at_estimated_price_reais))+'</div></div></div>'+
+    (closeout.needs_forecast_refresh?'<div class="notice">Novo custo validado após previsão: refazer o custo a completar.</div>':'')+
+    '<h3>Comprovantes de recebimentos</h3>'+
+    (receiptRows?'<div class="table-wrap"><table><thead><tr><th>Pagador</th><th>Valor</th><th>Data</th><th>Documento</th><th>Status</th><th>Conferência</th></tr></thead><tbody>'+receiptRows+'</tbody></table></div>':
+       '<p class="muted">Nenhum recebimento registrado.</p>')+
+    '<h3>Projeções de custo restante</h3>'+
+    (forecastRows?'<div class="table-wrap"><table><thead><tr><th>Data-base</th><th>Saldo previsto</th><th>Evidência</th><th>Status</th><th>Conferência</th></tr></thead><tbody>'+forecastRows+'</tbody></table></div>':
+       '<p class="muted">Nenhuma projeção documentada.</p>')+'</div>';
+ const readinessPanel='<div class="card"><h2>Condições para emitir proposta comercial</h2>'+
+   '<div class="notice"><strong>Emissão, envio, assinatura e aceite bloqueados</strong>. Não substituir análise técnica, tributária ou assinatura do cliente por clique interno.</div>'+
+   '<ul>'+readiness.reasons.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
  const draftRows=(drafts.drafts||[]).map(d=>'<tr><td>'+esc(d.version)+'</td><td>'+
    esc(String(d.created_at||'').slice(0,10))+'</td><td>'+
    (d.stale?'Desatualizado: orçamento modificado':'Atual na versão do orçamento')+'</td>'+
@@ -23,7 +56,7 @@ export function financePage({state,esc,writeable}){
     '<button class="btn" data-action="finance-review-actual" data-id="'+esc(a.id)+'">Revisar</button>':'—')+'</td></tr>').join('');
  return '<div class="row"><div><h1>Propostas e finanças</h1><p class="muted">Etapa 4 — '+esc(budget.code)+'</p></div></div>'+
   '<div class="actions"><button class="btn" data-action="finance-back">Voltar ao orçamento</button>'+
-  (edit?'<button class="btn primary" data-action="finance-create-draft">+ Versão de proposta</button><button class="btn" data-action="finance-add-actual">+ Custo realizado</button>':'')+'</div>'+
+  (edit?'<button class="btn primary" data-action="finance-create-draft">+ Versão de proposta</button><button class="btn" data-action="finance-add-actual">+ Custo realizado</button><button class="btn" data-action="finance-add-receipt">+ Recebimento</button><button class="btn" data-action="finance-add-forecast">+ Custo a completar</button>':'')+'</div>'+
   '<div class="notice"><strong>Somente desenvolvimento.</strong> Rascunhos são internos; não são documentos comerciais. A contribuição estimada não significa lucro líquido. Não usar valores não homologados para contratar.</div>'+
   '<div class="grid"><div class="card"><div class="muted">Preço de venda estimado</div><div class="metric">'+m(totals.budget_sell_reais)+'</div></div>'+
   '<div class="card"><div class="muted">Custo direto orçado</div><div class="metric">'+m(totals.budget_direct_reais)+'</div></div>'+
@@ -37,9 +70,40 @@ export function financePage({state,esc,writeable}){
   '<div class="card"><h2>Versões internas da proposta</h2>'+
    (draftRows?'<div class="table-wrap"><table><thead><tr><th>Versão</th><th>Data</th><th>Situação</th><th>SHA-256</th><th>Detalhes</th></tr></thead><tbody>'+draftRows+'</tbody></table></div>':'<p class="muted">Nenhum rascunho registrado.</p>')+'</div>'+
   '<div class="card"><h2>Custos realizados e documentos</h2>'+
-   (actualRows?'<div class="table-wrap"><table><thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Evidência</th><th>Situação</th><th>Conferência</th></tr></thead><tbody>'+actualRows+'</tbody></table></div>':'<p class="muted">Nenhum custo realizado registrado.</p>')+'</div>';
+   (actualRows?'<div class="table-wrap"><table><thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Evidência</th><th>Situação</th><th>Conferência</th></tr></thead><tbody>'+actualRows+'</tbody></table></div>':'<p class="muted">Nenhum custo realizado registrado.</p>')+'</div>'+closeoutPanel+readinessPanel;
 }
 export function financeDialog(action,{state,dialog,esc}){
+ if(action==='finance-add-receipt'){
+  dialog('Registrar recebimento com comprovante','<form id="finance-receipt-form">'+
+   field('Valor recebido (R$)','amount','number',true,'','min="0.01" max="100000000" step="0.01"')+
+   field('Data do recebimento','received_on','date',true,new Date().toISOString().slice(0,10))+
+   '<div class="field"><label>Meio do recebimento</label><select name="method"><option value="pix">PIX</option><option value="transferencia">Transferência</option><option value="boleto">Boleto</option><option value="cartao">Cartão</option><option value="dinheiro">Dinheiro</option><option value="outro">Outro</option></select></div>'+
+   field('Nome do pagador','payer_name')+field('Referência do comprovante','evidence_ref')+
+   '<div class="field"><label>Descrição da evidência</label><textarea name="evidence_notes" required minlength="15" maxlength="1500"></textarea></div>'+
+   '<p class="muted tiny">O recebimento fica pendente até revisão de outra pessoa. Não emite nota fiscal.</p>'+buttons+'</form>');
+  return true;
+ }
+ if(action==='finance-add-forecast'){
+  dialog('Previsão do custo restante','<form id="finance-forecast-form">'+
+   field('Custo a completar (R$)','expected_remaining_cost','number',true,'0','min="0" max="100000000" step="0.01"')+
+   field('Data-base da previsão','as_of','date',true,new Date().toISOString().slice(0,10))+
+   field('Referência técnica','evidence_ref')+
+   '<div class="field"><label>Premissas e memória de cálculo</label><textarea name="assumptions" required minlength="20" maxlength="3000"></textarea></div>'+
+   '<div class="field"><label>Custos pendentes estão incluídos no saldo previsto?</label><select name="includes_pending_costs"><option value="true">Sim</option><option value="false">Não — exige conferência</option></select></div>'+
+   '<p class="muted tiny">O saldo restante não é custo realizado, requer validação por pessoa diferente.</p>'+buttons+'</form>');
+  return true;
+ }
+ if(action==='finance-review-receipt'||action==='finance-review-forecast'){
+  const table=action==='finance-review-receipt'?'receipts':'forecasts';
+  const entry=(state.finance?.[table]?.records||[]).find(x=>x.id===state.financeSelected);
+  if(!entry||entry.status!=='pendente')throw Error('Evidência não está pendente');
+  dialog('Revisar evidência financeira','<form id="'+(table==='receipts'?'finance-receipt-review-form':'finance-forecast-review-form')+
+   '" data-id="'+esc(entry.id)+'">'+
+   '<p><strong>'+esc(entry.evidence_ref)+'</strong></p>'+
+   '<div class="field"><label>Resultado</label><select name="status"><option value="validado">Validar</option><option value="rejeitado">Rejeitar</option></select></div>'+
+   '<div class="field"><label>Justificativa</label><textarea name="review_notes" required minlength="15" maxlength="1500"></textarea></div>'+buttons+'</form>');
+  return true;
+ }
  if(action==='finance-create-draft'){
   dialog('Criar snapshot de proposta em rascunho',
    '<form id="finance-draft-form">'+
@@ -98,7 +162,14 @@ export async function financeHandleForm(form,{state,api,refresh,toast}){
  if(!budget)throw Error('Orçamento não selecionado');
  body.lock_version=state.finance.summary.budget.lock_version;
  let endpoint=null,method='POST';
- if(form.id==='finance-draft-form')endpoint='proposal-drafts';
+ if(form.id==='finance-receipt-form')endpoint='financial-receipts';
+ else if(form.id==='finance-forecast-form'){
+  endpoint='financial-forecasts';
+  body.includes_pending_costs=body.includes_pending_costs==='true';
+ }
+ else if(form.id==='finance-receipt-review-form'){endpoint='financial-receipts/'+form.dataset.id;method='PUT';}
+ else if(form.id==='finance-forecast-review-form'){endpoint='financial-forecasts/'+form.dataset.id;method='PUT';}
+ else if(form.id==='finance-draft-form')endpoint='proposal-drafts';
  else if(form.id==='finance-actual-form')endpoint='financial-actuals';
  else if(form.id==='finance-review-form'){
   endpoint='financial-actuals/'+form.dataset.id;method='PUT';
