@@ -5,7 +5,7 @@ export function planningToolsPanel({config,services,canEdit,esc}){
  const options=(services||[]).map(s=>'<option value="'+esc(s.item_id)+'">'+esc(s.title)+'</option>').join('');
  const frontRows=(services||[]).map(x=>{
   const front=fronts.get(String(x.item_id))||{};
-  return '<form class="planning-front-form" data-service="'+esc(x.item_id)+'">'+
+  return '<form id="planning-front-'+esc(x.item_id)+'" class="planning-front-form" data-service="'+esc(x.item_id)+'">'+
    '<div class="planning-front-name">'+esc(x.title)+'</div>'+
    '<label>Frente de serviço <input name="work_front" maxlength="80" value="'+esc(front.work_front||'Geral')+'" required></label>'+
    '<label>Espera após execução (dias úteis) <input name="wait_workdays" type="number" min="0" max="60" step="1" value="'+esc(front.wait_workdays??0)+'" required></label>'+
