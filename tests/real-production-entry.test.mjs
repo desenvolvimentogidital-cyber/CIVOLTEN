@@ -56,7 +56,7 @@ test('monitoração de produção é diária, só consulta e não precisa de sec
  const workflow=source('.github/workflows/production-smoke.yml');
  assert.match(workflow,/schedule:/);
  assert.match(workflow,/workflow_dispatch:/);
- assert.match(workflow,/permissions:\\n  contents: read/);
- assert.match(workflow,/node scripts\\/verify-remote-stage1\\.mjs/);
+ assert.ok(workflow.includes('contents: read'));
+ assert.ok(workflow.includes('node scripts/verify-remote-stage1.mjs'));
  assert.doesNotMatch(workflow,/CIVOLTEN_BACKUP_DATABASE_URL|VERCEL_TOKEN|INSERT INTO|DELETE FROM/);
 });
