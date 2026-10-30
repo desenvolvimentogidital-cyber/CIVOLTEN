@@ -22,8 +22,8 @@ export function schedulePage({state,esc,writeable}){
  const rows=tasks.map(t=>'<tr><td><strong>'+esc(t.title)+'</strong>'+
    (t.budget_service?'<div class="tiny muted">Serviço: '+esc(t.budget_service)+'</div>':'')+'</td>'+
    '<td>'+esc(names.get(t.crew_id)||'Sem equipe')+'</td><td>'+esc(t.days_estimated||'—')+' dias</td>'+
-   '<td>'+esc(t.duration_review_state)+'</td><td>'+(canApprove?'<button class="btn" data-action="schedule-review-task" data-id="'+esc(t.id)+'">Revisar duração</button>':'—')+'</td></tr>').join('');
- const dependencyList=deps.map(d=>'<li>'+esc(taskNames.get(d.predecessor_id)||'Atividade')+' → '+esc(taskNames.get(d.successor_id)||'Atividade')+'</li>').join('');
+   '<td>'+esc(t.duration_review_state)+'</td><td>'+(canApprove?'<button class="btn" data-action="schedule-review-task" data-id="'+esc(t.id)+'">Revisar duração</button>':'')+(canEdit?'<button class="btn" data-action="schedule-edit-task" data-id="'+esc(t.id)+'">Editar</button><button class="btn danger" data-action="schedule-archive-task" data-id="'+esc(t.id)+'">Arquivar</button>':'')+'</td></tr>').join('');
+ const dependencyList=deps.map(d=>'<li>'+esc(taskNames.get(d.predecessor_id)||'Atividade')+' → '+esc(taskNames.get(d.successor_id)||'Atividade')+' '+(canEdit?'<button class="btn danger" data-action="schedule-remove-dependency" data-id="'+esc(d.predecessor_id)+'" data-successor="'+esc(d.successor_id)+'">Remover vínculo</button>':'')+'</li>').join('');
  const errors=preview?.errors?.length?'<div class="notice" role="alert"><strong>Cálculo bloqueado:</strong><ul>'+preview.errors.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>':'';
  const warnings=preview?.warnings?.length?'<div class="notice"><strong>Avisos:</strong><ul>'+preview.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>':'';
  const summary=preview?.ready?'<div class="grid"><div class="card"><div class="muted">Início previsto</div><div class="metric">'+esc(preview.start)+'</div></div>'+
@@ -67,16 +67,23 @@ export function schedulePage({state,esc,writeable}){
   formInput('Dias por semana (5 ou 6)','work_days_week','number',true,state.scheduleSettings?.work_days_week||5,esc,'min="5" max="6" step="1"')+
   formInput('Margem de segurança (%)','safety_pct','number',true,state.scheduleSettings?.safety_pct??15,esc,'min="0" max="100" step="1"')+
   formInput('Feriados (AAAA-MM-DD separados por vírgula)','holidays','text',false,state.scheduleSettings?.holidays||'',esc)+'</div>'+
-  '<div class="actions"><button class="btn primary" type="submit">Calcular prévia</button></div></form>';
+  '<div class="actions"><button class="btn primary" type="submit">Calcular prévia</button><button class="btn" type="button" data-action="schedule-run-remaining">Prever prazo restante (medições)</button></div></form>';
  return '<div class="row"><div><h1>Cronograma da obra</h1><p class="muted">Etapa 3 — equipes, produtividade e dependências · '+esc(state.detail?.code||'')+'</p></div></div>'+
   actionsRow+
   '<div class="notice"><strong>Ambiente de homologação.</strong> Somente atividades com duração revisada recebem datas. Não é prazo contratual aprovado; a estimativa não libera propostas comerciais.</div>'+
   '<div class="grid"><div class="card"><div class="muted">Equipes cadastradas</div><div class="metric">'+esc(crew.length)+'</div></div><div class="card"><div class="muted">Atividades</div><div class="metric">'+esc(tasks.length)+'</div></div><div class="card"><div class="muted">Dependências</div><div class="metric">'+esc(deps.length)+'</div></div></div>'+
   '<div class="card"><h2>Equipes</h2>'+(crew.length?'<div class="table-wrap"><table><thead><tr><th>Equipe</th><th>Profissionais</th><th>Jornada</th><th>Eficiência</th></tr></thead><tbody>'+
-   crew.map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc((x.roles||[]).map(r=>r.role_name+' ('+r.workers+')').join(', ')||x.workers)+'</td><td>'+esc(x.workday_hours)+' h/dia</td><td>'+esc(Math.round(Number(x.efficiency)*100))+'%</td></tr>').join('')+'</tbody></table></div>':'<p class="muted">Cadastre uma equipe antes de criar atividades.</p>')+'</div>'+
+   crew.map(x=>'<tr><td>'+esc(x.title)+(canEdit?'<div class="actions"><button class="btn" data-action="schedule-edit-crew" data-id="'+esc(x.id)+'">Editar</button><button class="btn danger" data-action="schedule-archive-crew" data-id="'+esc(x.id)+'">Arquivar</button></div>':'')+'</td><td>'+esc((x.roles||[]).map(r=>r.role_name+' ('+r.workers+')').join(', ')||x.workers)+'</td><td>'+esc(x.workday_hours)+' h/dia</td><td>'+esc(Math.round(Number(x.efficiency)*100))+'%</td></tr>').join('')+'</tbody></table></div>':'<p class="muted">Cadastre uma equipe antes de criar atividades.</p>')+'</div>'+
   '<div class="card"><h2>Atividades e revisões</h2>'+(tasks.length?'<div class="table-wrap"><table><thead><tr><th>Atividade</th><th>Equipe</th><th>Duração</th><th>Situação</th><th>Revisão</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<p class="muted">Nenhuma atividade cadastrada.</p>')+
   (deps.length?'<h3>Precedências</h3><ul>'+dependencyList+'</ul>':'')+'</div>'+
-  diary+inputs+errors+warnings+summary+productivityPanel+gantt;
+ const forecast=state.scheduleRemaining;
+ const forecastPanel=forecast?'<div class="card"><h2>Previsão operacional do trabalho restante</h2>'+
+   '<p class="muted tiny">Somente produção validada ou coeficientes de mão de obra revisados. Nunca usar como prazo contratual sem conferência.</p>'+
+   (forecast.ready?'<div class="metric">'+esc(forecast.completed?'Concluído':forecast.schedule?.finish||'Sem término')+'</div>':
+    '<div class="notice"><strong>Previsão bloqueada:</strong><ul>'+forecast.errors.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>')+
+   '<div class="table-wrap"><table><thead><tr><th>Atividade</th><th>Falta executar</th><th>Origem do rendimento</th><th>Dias restantes</th></tr></thead><tbody>'+
+   (forecast.items||[]).map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc(x.remaining_quantity??'—')+'</td><td>'+esc(x.coefficient_source||'Sem evidência')+'</td><td>'+esc(x.estimated_remaining_workdays??'—')+'</td></tr>').join('')+'</tbody></table></div></div>':'';
+  diary+inputs+errors+warnings+summary+forecastPanel+productivityPanel+gantt;
 }
 export function scheduleDialog(action,{state,dialog,field,esc}){
  const plan=state.schedulePlan||{},crews=plan.crews||[],tasks=plan.tasks||[];
@@ -105,6 +112,28 @@ export function scheduleDialog(action,{state,dialog,field,esc}){
   dialog('Dependência entre atividades','<form id="schedule-dependency-form">'+
    select('predecessor_id',tasks,esc,'Atividade predecessora')+select('successor_id',tasks,esc,'Atividade sucessora')+
    '<p class="tiny muted">Tipo fim-início (FS), sem defasagem. Ciclos são bloqueados.</p>'+actions+'</form>');
+  return true;
+ }
+ if(action==='schedule-edit-crew'){
+  const x=crews.find(c=>c.id===state.scheduleTaskId);
+  if(!x)throw Error('Equipe indisponível');
+  dialog('Editar equipe (sem medições anteriores)','<form id="schedule-crew-edit-form" data-id="'+esc(x.id)+'">'+
+    field('Nome da equipe','title','text',true,x.title)+
+    formInput('Jornada diária','workday_hours','number',true,x.workday_hours,esc,'min="1" max="12" step="0.5"')+
+    formInput('Eficiência','efficiency','number',true,x.efficiency,esc,'min="0.01" max="1" step="0.01"')+
+    '<p class="muted tiny">Alocação com medições anteriores fica preservada e não pode ser alterada.</p>'+actions+'</form>');
+  return true;
+ }
+ if(action==='schedule-edit-task'){
+  const x=tasks.find(t=>t.id===state.scheduleTaskId);
+  if(!x)throw Error('Atividade indisponível');
+  dialog('Editar atividade (requer nova revisão)','<form id="schedule-task-edit-form" data-id="'+esc(x.id)+'">'+
+    field('Nome da atividade','title','text',true,x.title)+
+    '<div class="field"><label>Equipe</label><select name="crew_id" required>'+crews.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===x.crew_id?'selected':'')+'>'+esc(c.title)+'</option>').join('')+'</select></div>'+
+    '<div class="field"><label>Serviço do orçamento</label><select name="budget_item_id"><option value="">Não vincular</option>'+
+    (state.detail?.items||[]).map(i=>'<option value="'+esc(i.id)+'" '+(i.id===x.budget_item_id?'selected':'')+'>'+esc(i.source_name)+'</option>').join('')+'</select></div>'+
+    formInput('Dias úteis previstos','duration_workdays','number',true,x.days_estimated,esc,'min="1" max="9000" step="1"')+
+    '<p class="muted tiny">A edição revoga a revisão de duração. Atividades já medidas não poderão ser alteradas.</p>'+actions+'</form>');
   return true;
  }
  if(action==='schedule-add-progress'){
@@ -156,6 +185,8 @@ export async function scheduleHandleForm(form,{state,api,refresh,toast}){
  let route=null,method='POST';
  if(form.id==='schedule-progress-form')route='schedule-progress';
  else if(form.id==='schedule-progress-review-form'){route='schedule-progress/'+form.dataset.id;method='PUT';}
+ else if(form.id==='schedule-crew-edit-form'){route='schedule-crews/'+form.dataset.id;method='PUT';}
+ else if(form.id==='schedule-task-edit-form'){route='schedule-tasks/'+form.dataset.id;method='PUT';body.action='edit';}
  else if(form.id==='schedule-crew-form')route='schedule-crews';
  else if(form.id==='schedule-task-form')route='schedule-tasks';
  else if(form.id==='schedule-dependency-form')route='schedule-dependencies';
