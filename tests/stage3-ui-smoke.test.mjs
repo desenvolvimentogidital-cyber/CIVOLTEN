@@ -34,7 +34,7 @@ test('cronograma inicial mostra serviços automaticamente e não exige cadastrar
  const s=schedulePage({state:x,esc,writeable:()=>true});
  assert.match(s,/ALVENARIA DE BLOCO/);
  assert.match(s,/Pedreiro/);
- assert.match(s,/Servente/);
+ assert.match(s,/Ajudante \/ servente/);
  assert.match(s,/Equipes · paralelo/);
  assert.match(s,/data-action="schedule-back"/);
  assert.doesNotMatch(s,/data-action="schedule-add-crew"/);
