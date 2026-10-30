@@ -41,6 +41,9 @@ export function workforcePanel(data,esc){
  const form='<details class="workforce-adjust"><summary>Ajustar prazo e jornada (opcional)</summary>'+
   '<form id="workforce-settings-form" class="workforce-settings">'+
   '<div class="workforce-fields">'+
+  '<div class="field"><label for="wf-available">Profissionais disponíveis (sem contar você)</label>'+
+  '<input id="wf-available" type="number" name="available_workers" min="1" max="100" step="1" value="'+esc(cfg.available_workers??'')+
+  '" placeholder="Ex.: 5 ou 10"><small class="muted">Opcional. Limite por frente/atividade; não pressupõe funcionários atuando ao mesmo tempo em frentes diferentes.</small></div>'+
   '<div class="field"><label for="wf-days">Prazo por serviço (dias úteis)</label><input id="wf-days" type="number" name="target_days" min="1" max="365" step="1" value="'+esc(cfg.target_days)+'" required></div>'+
   '<div class="field"><label for="wf-hours">Horas por dia</label><input id="wf-hours" type="number" name="hours_day" min="4" max="12" step="0.5" value="'+esc(cfg.hours_day)+'" required></div>'+
   '<div class="field"><label for="wf-efficiency">Eficiência estimada (%)</label><input id="wf-efficiency" type="number" name="efficiency_pct" min="50" max="100" step="1" value="'+esc(cfg.efficiency_pct)+'" required></div>'+
@@ -79,9 +82,12 @@ export function workforcePanel(data,esc){
    (cost.missing_rates?.length?'<p class="muted tiny">Preencha custo-hora das funções: '+cost.missing_rates.map(esc).join(', ')+'.</p>':'')+
    '<p class="muted tiny">Valor gerencial da empresa, sem materiais, equipamentos, impostos, BDI ou margem de lucro. Não adicionar sobre a tabela SIURB sem conciliação, para evitar duplicidade.</p></div>':'';
  const info='<div class="notice tiny workforce-qualification"><strong>Estimativa, não escala de trabalho.</strong> '+
-  'Cálculo com '+esc(cfg.target_days)+' dias úteis por serviço, '+esc(cfg.hours_day)+' h/dia, '+
+  (cfg.available_workers!==null&&cfg.available_workers!==undefined?
+    'Simulação com até '+esc(cfg.available_workers)+' profissionais por serviço, sem contar você, ':
+    'Simulação dimensionada para '+esc(cfg.target_days)+' dias úteis por serviço, ')+
+  esc(cfg.hours_day)+' h/dia, '+
   esc(cfg.efficiency_pct)+'% de eficiência e até '+esc(cfg.crew_size)+' pessoas por equipe. '+
-  'Os coeficientes de mão de obra SIURB são parciais; o prazo e as profissões devem ser conferidos na obra.'+
+  'Os coeficientes de mão de obra SIURB são parciais; o prazo e as profissões devem ser conferidos na obra. O efetivo é por atividade, não uma alocação simultânea global.'+
   (s.without_productivity?'<p class="danger"><strong>'+esc(s.without_productivity)+
   ' serviço(s) sem coeficiente:</strong> o total de equipes pode estar subestimado.</p>':'')+
   '<p>Os serviços dependentes são planejados em sequência; o mesmo profissional pode executar etapas diferentes. Não foram computadas esperas de cura ou secagem.</p></div>';
