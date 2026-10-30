@@ -11,8 +11,8 @@ export function workforcePanel(data,esc){
  const sbox=(label,value,sub)=>'<div class="card workforce-stat"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(sub)+'</small></div>';
  const stats='<div class="workforce-stat-grid">'+
   sbox('Serviços no orçamento',s.total_services??0,'Selecionados no orçamento')+
-  sbox('Profissionais necessários',data.role_totals?.sequential_workers??s.sequential_peak_workers??0,'Pico em uma etapa')+
-  sbox('Equipes necessárias',s.sequential_peak_crews??0,'Pico em uma etapa')+
+  sbox('Profissionais necessários',data.execution_sequence?.complete?(data.role_totals?.sequential_workers??s.sequential_peak_workers??0):'Mín. '+(data.role_totals?.sequential_workers??s.sequential_peak_workers??0),'Pico das etapas conhecidas')+
+  sbox('Equipes necessárias',data.execution_sequence?.complete?(s.sequential_peak_crews??0):'Mín. '+(s.sequential_peak_crews??0),'Pico das etapas conhecidas')+
   sbox('Dias estimados',data.execution_sequence?.complete?data.execution_sequence.sequence_workdays_estimated:'Parcial','Até completar as etapas')+'</div>';
  const services=items.map((item,i)=>{
   const roles=item.roles?.length?item.roles.map(role=>
@@ -74,7 +74,7 @@ export function workforcePanel(data,esc){
  const costPanel=cost?'<div class="card workforce-cost-summary"><div class="row"><h2>Custo interno estimado da obra</h2>'+
    '<button type="button" class="btn primary" data-action="company-config">Cadastrar custos e profissionais</button></div>'+
    '<div class="workforce-cost-totals"><div><span>Mão de obra estimada</span><strong>'+esc(cost.labor_estimated===null?'Aguardando custos-hora':brl(cost.labor_estimated))+'</strong></div>'+
-   '<div><span>Empresa + mão de obra · sequência</span><strong>'+esc(cost.total_sequential===null?'Aguardando despesas':brl(cost.total_sequential))+'</strong></div>'+
+   '<div><span>Empresa + mão de obra · sequência</span><strong>'+esc(cost.total_sequential===null?(cost.incomplete_scope?'Orçamento incompleto':'Aguardando despesas'):brl(cost.total_sequential))+'</strong></div>'+
    '</div>'+
    (cost.missing_rates?.length?'<p class="muted tiny">Preencha custo-hora das funções: '+cost.missing_rates.map(esc).join(', ')+'.</p>':'')+
    '<p class="muted tiny">Valor gerencial da empresa, sem materiais, equipamentos, impostos, BDI ou margem de lucro. Não adicionar sobre a tabela SIURB sem conciliação, para evitar duplicidade.</p></div>':'';
