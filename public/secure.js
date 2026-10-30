@@ -1,6 +1,7 @@
 import {costPage,costDialog,costEvidenceDialog,costHandleForm,costHandleClick} from './secure-costing.js';
 import {schedulePage,scheduleDialog,scheduleHandleForm} from './secure-schedule.js';
 import {financePage,financeDialog,financeHandleForm} from './secure-finance.js';
+import {showServiceCatalog,showOfficialServiceEdit} from './secure-service-picker.js';
 /* Painel privado CIVOLTEN — desenvolvimento/homologação
  * Jamais usar localStorage para informações comerciais ou tokens de sessão.
  */
@@ -224,7 +225,13 @@ function modalBudget(x={}){
  field('BDI preliminar (%)','bdi_pct','number',true,x.bdi_pct??25,'step="0.01" min="0" max="100"')+(x.id?'<input type="hidden" name="lock_version" value="'+esc(x.lock_version)+'">':'')+submitButtons;
  dialog(x.id?'Editar orçamento':'Novo orçamento','<form id="budget-form" data-id="'+esc(x.id||'')+'">'+form+'</form>');
 }
-function modalItem(x={}){
+function modalItem(x={},forceManual=false){
+ if(!x.id&&!forceManual){
+  return showServiceCatalog({dialog,api,esc,field,state,toast,manual:()=>modalItem({},true)});
+ }
+ if(x.id&&x.reference_price_id){
+  return showOfficialServiceEdit({dialog,esc,field,item:x,state});
+ }
  const form=field('Descrição do serviço','source_name','text',true,x.source_name)+field('Código referência','source_code','text',false,x.source_code)+
  '<div class="two">'+field('Unidade','unit','text',true,x.unit||'m²')+field('Posição','position','number',true,x.position??(state.detail?.items?.length||0)+1,'min="1" step="1"')+'</div>'+
  '<div class="two">'+field('Quantidade medida','quantity','number',true,x.quantity??1,'min="0.000001" step="any"')+
@@ -290,6 +297,16 @@ document.addEventListener('submit',async e=>{
   if(form.id==='client-form')await api('clients'+(id?'/'+id:''),id?'PUT':'POST',b);
   else if(form.id==='project-form')await api('projects'+(id?'/'+id:''),id?'PUT':'POST',b);
   else if(form.id==='budget-form'){if(id)b.lock_version=Number(b.lock_version);await api('budgets'+(id?'/'+id:''),id?'PUT':'POST',b);}
+  else if(form.id==='catalog-item-form'||form.id==='catalog-edit-form'){
+   if(form.id==='catalog-item-form'&&!b.reference_price_id)throw Error('Selecione um serviço do catálogo antes de salvar.');
+   if(!state.detail||state.detail.status!=='rascunho')throw Error('Abra um orçamento em rascunho.');
+   const route='budgets/'+state.detail.id+'/siurb-items'+(form.id==='catalog-edit-form'?'/'+id:'');
+   await api(route,form.id==='catalog-edit-form'?'PUT':'POST',{
+    lock_version:state.detail.lock_version,position:Number(b.position),quantity:b.quantity,
+    ...(form.id==='catalog-item-form'?{reference_price_id:b.reference_price_id}:{})
+   });
+   state.detail=await api('budgets/'+state.detail.id);
+  }
   else if(form.id==='item-form'){
    b.position=Number(b.position);b.quantity=Number(b.quantity);b.direct_unit_cost=Number(b.direct_unit_cost);
    await api('budgets/'+state.detail.id+'/items'+(id?'/'+id:''),id?'PUT':'POST',b);
