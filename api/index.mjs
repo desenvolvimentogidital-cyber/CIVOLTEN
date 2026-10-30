@@ -10,6 +10,7 @@ import {handleRemainingSchedule} from '../src/schedule-remaining-api.mjs';
 import {handleStage4} from '../src/stage4-finance-api.mjs';
 import {handleStage4Closeout} from '../src/stage4-closeout-api.mjs';
 import {handleStage5Readiness} from '../src/stage5-readiness-api.mjs';
+import {authorizePreviewMutation} from '../src/stage5-preview-guard.mjs';
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
 
 const sessionName='civolten_dev_session';
@@ -62,6 +63,15 @@ export function createApi(sql,opts={}){
    const [resource,id,sub]=parts;
    if(!['GET','POST','PUT','DELETE'].includes(method))return response(res,405,{error:'Método não permitido'});
    if(method!=='GET')validateRequest(req);
+   if(method!=='GET'){
+    const gate=await authorizePreviewMutation(sql,{
+     environment:opts.environment,previewBranchId:opts.previewBranchId
+    });
+    if(!gate.permitted)return response(res,503,{
+     error:'Prévia sem identificação válida do banco de homologação: operações de escrita bloqueadas',
+     code:gate.reason,commercial_release:false
+    });
+   }
    if(resource==='health'&&method==='GET'){
      const data=await sql.query('SELECT 1 AS connected',[]);
      return response(res,200,{ok:data[0]?.connected===1,database:'connected',mode:'homologacao'});

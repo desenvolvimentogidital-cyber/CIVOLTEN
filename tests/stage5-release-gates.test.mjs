@@ -45,3 +45,12 @@ test('Etapa 5: não aceitar boolean simples ou referência vazia como aprovaçã
  assert.equal(gates.checks.find(x=>x.key==='ci_green').passed,false);
  assert.equal(gates.checks.find(x=>x.key==='schema_ready').passed,false);
 });
+
+test('Etapa 5: checklist todo marcado ainda não pode emitir documento comercial',()=>{
+ const every=Object.fromEntries(evaluateReleaseGates().checks.map(x=>[x.key,
+   {passed:true,reference:'Apenas declaração fictícia sem homologação válida'}]));
+ const r=evaluateReleaseGates(every);
+ assert.equal(r.release_evidence_complete,true);
+ assert.equal(r.production_ready,false);
+ assert.equal(r.commercial_release,false);
+});
