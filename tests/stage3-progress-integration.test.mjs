@@ -80,6 +80,21 @@ else{
    assert.equal(report.commercial_release,false);
    const records=await sql.query("SELECT action FROM audit_events WHERE entity_type='schedule_progress_measurements' AND entity_id IN ($1,$2)",[a.id,b.id]);
    assert.equal(records.length,4);
+   // A listagem exibe somente os 200 registros recentes; o total não pode perder
+   // nem um dos registros mais antigos (prevenção de truncamento silencioso).
+   await sql.query(`INSERT INTO schedule_progress_measurements
+      (id,budget_id,task_id,worked_on,completed_quantity,workers,hours_per_worker,
+       evidence_ref,evidence_notes,review_status,created_by,reviewed_by,reviewed_at,review_notes)
+      SELECT gen_random_uuid(),$1,$2,DATE '2025-01-01'+n,1,1,1,
+       'QA-2025-REGISTRO-'||n,
+       'Medição sintética gerada apenas para testar paginação',
+       'validado',$3,$4,now(),'Aprovação sintética de volume em ambiente de teste'
+      FROM generate_series(1,205) AS n`,[budget,task,writer,reviewer]);
+   report=must(await call(3,route),200);
+   assert.equal(report.measurements.length,200);
+   assert.equal(report.totals_include_full_history,true);
+   assert.equal(report.summaries[0].completed_quantity,217.5);
+   assert.equal(report.summaries[0].validated_person_hours,220);
   }finally{await pool.end()}
  });
 }
