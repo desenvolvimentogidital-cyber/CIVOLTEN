@@ -6,6 +6,7 @@ import {handleStage2} from '../src/costing-api.mjs';
 import {handleStage3} from '../src/schedule-api.mjs';
 import {handleScheduleManagement} from '../src/schedule-management-api.mjs';
 import {handleScheduleProgress} from '../src/schedule-progress-api.mjs';
+import {handleRemainingSchedule} from '../src/schedule-remaining-api.mjs';
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
 
 const sessionName='civolten_dev_session';
@@ -109,6 +110,8 @@ export function createApi(sql,opts={}){
    if(scheduleManagementHandled)return;
    const progressHandled=await handleScheduleProgress({req,res,sql,user,parts,method,send:response,readBody});
    if(progressHandled)return;
+   const remainingHandled=await handleRemainingSchedule({req,res,sql,parts,method,send:response});
+   if(remainingHandled)return;
 
    if(resource==='auth'&&id==='change-password'&&method==='POST'){
      const b=await readBody(req);
