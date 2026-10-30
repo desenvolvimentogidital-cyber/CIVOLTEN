@@ -30,6 +30,8 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
  if((estimate.errors||[]).length)
   issues.push('BDI, custos e documentação de referência ainda contêm pendências de aprovação comercial.');
  const deduped=[...new Set(issues)];
+ const bdiMissing=(estimate.errors||[]).some(x=>x.code==='BDI_INPUT'||x.code==='BDI_TAX');
+ const scheduleReady=services.length>0&&!!plan.ready;
  return {
   budget:{id:budget.id,code:budget.code,title:budget.title,status:budget.status,
    lock_version:budget.lock_version,reference_month:budget.reference_month,regime:budget.regime},
@@ -37,9 +39,9 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
   mode:'calculo_automatico_sem_cadastro_de_equipes',
   cost:{
    direct_reais:number(estimate.direct_cost_reais),
-   bdi_reais:number(estimate.bdi_amount_reais),
+   bdi_reais:bdiMissing?null:number(estimate.bdi_amount_reais),
    contingency_reais:number(estimate.contingency_reais),
-   total_preliminary_reais:number(estimate.total_reais),
+   total_preliminary_reais:bdiMissing?null:number(estimate.total_reais),
    price_approved:false,
    blocking_errors:(estimate.errors||[]).map(x=>x.message||String(x)).slice(0,35)
   },
@@ -57,11 +59,11 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
    assumptions:workforce.assumptions
   },
   schedule:{
-   ready:!!plan.ready,
-   workdays:plan.ready?plan.workdays:null,
-   tentative_workdays:plan.workdays??null,
-   peak_workers:plan.ready?plan.peak_workers:null,
-   peak_roles:plan.ready?plan.peak_roles:[],
+   ready:scheduleReady,
+   workdays:scheduleReady?plan.workdays:null,
+   tentative_workdays:services.length?plan.workdays??null:null,
+   peak_workers:scheduleReady?plan.peak_workers:null,
+   peak_roles:scheduleReady?plan.peak_roles:[],
    tasks:plan.tasks||[],dependencies:plan.dependencies||[],
    missing:plan.missing||[],errors:plan.errors||[],
    start_date:null,finish_date:null,
