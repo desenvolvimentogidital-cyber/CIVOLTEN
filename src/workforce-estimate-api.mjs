@@ -11,7 +11,8 @@ export async function handleWorkforceEstimate({req,res,sql,user,parts,method,sen
  if(!uuid(id))return done(400,{error:'Orçamento inválido'});
  const q=new URL(req.url,'https://civolten-gj91.vercel.app').searchParams;
  const settings={target_days:q.get('target_days')??10,hours_day:q.get('hours_day')??8,
-  efficiency_pct:q.get('efficiency_pct')??85,crew_size:q.get('crew_size')??4};
+  efficiency_pct:q.get('efficiency_pct')??85,crew_size:q.get('crew_size')??4,
+  available_workers:q.get('available_workers')??null};
  let check;
  try{check=buildWorkforceEstimate([],settings)}catch(e){if(e.status===400)return done(400,{error:e.message});throw e}
  const budgets=await sql.query("SELECT id,code,status,reference_month,regime,lock_version FROM budgets WHERE id=$1 LIMIT 1",[id]);

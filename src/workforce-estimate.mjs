@@ -9,10 +9,12 @@ export function buildWorkforceEstimate(items,settings={}){
  const days=Number(settings.target_days??10),
   hours=Number(settings.hours_day??8),
   efficiencyPct=Number(settings.efficiency_pct??85),
-  crewSize=Number(settings.crew_size??4);
+  crewSize=Number(settings.crew_size??4),
+  availableWorkers=settings.available_workers===undefined||settings.available_workers===null||settings.available_workers===''?null:Number(settings.available_workers);
  if(!Number.isSafeInteger(days)||!valid(days,1,365)||!valid(hours,4,12)||
     !Number.isSafeInteger(efficiencyPct)||!valid(efficiencyPct,50,100)||
-    !Number.isSafeInteger(crewSize)||!valid(crewSize,1,20))
+    !Number.isSafeInteger(crewSize)||!valid(crewSize,1,20)||
+    (availableWorkers!==null&&(!Number.isSafeInteger(availableWorkers)||!valid(availableWorkers,1,100))))
   throw Object.assign(new Error('Prazo, jornada, eficiência ou tamanho da equipe inválidos'),{status:400});
  const daily=hours*efficiencyPct/100,capacity=days*daily;
  const proposals=(items||[]).map(item=>{
@@ -59,7 +61,32 @@ export function buildWorkforceEstimate(items,settings={}){
    return {code:r.code,name:r.name,hh_per_unit:round(r.hh_unit,5),
      projected_hh:round(roleHH,3),workers:Math.max(1,Math.ceil(roleHH/capacity))};
   }):[];
-  const workers=roles.length?roles.reduce((s,r)=>s+r.workers,0):Math.max(1,Math.ceil(personHours/capacity));
+  // Cenário opcional por capacidade: N trabalhadores disponíveis para ESTA frente,
+  // além do proprietário. Nunca pressupor que 1 ajudante possa substituir um pedreiro.
+  if(availableWorkers!==null&&roles.length>availableWorkers){
+   return {...base,status:'capacidade_insuficiente',hh_per_unit:round(hhUnit,6),
+    estimated_hh:round(personHours,3),workers:null,crews:null,roles,person_workdays:round(personHours/daily,2),
+    warning:'Equipe disponível de '+availableWorkers+' pessoa(s) não cobre as '+roles.length+
+      ' profissões diferentes exigidas para esta atividade. Ajuste a equipe ou revise o método de execução.'};
+  }
+  let workers;
+  if(availableWorkers!==null&&roles.length){
+   const allocated=roles.map(()=>1);
+   // Alocar cada profissional extra à profissão que mais limita o prazo.
+   // Parar em 1 dia de produção (adicionar mais gente não reduz dias inteiros).
+   for(let count=roles.length;count<availableWorkers;count++){
+    const estimates=roles.map((r,i)=>r.projected_hh/(allocated[i]*daily));
+    const worst=Math.max(...estimates);
+    if(worst<=1)break;
+    const at=estimates.indexOf(worst);
+    allocated[at]++;
+   }
+   roles.forEach((role,i)=>{role.workers=allocated[i]});
+   workers=allocated.reduce((a,b)=>a+b,0);
+  }else if(availableWorkers!==null){
+   workers=Math.min(availableWorkers,Math.max(1,Math.ceil(personHours/daily)));
+  }else workers=roles.length?roles.reduce((total,r)=>total+r.workers,0):
+   Math.max(1,Math.ceil(personHours/capacity));
   const crews=Math.ceil(workers/crewSize);
   // A função mais lenta limita a conclusão: não basta dividir o total de h-h pelo efetivo geral.
   const daysAtStaff=roles.length?Math.max(...roles.map(r=>Math.ceil(r.projected_hh/(r.workers*daily))),1):
@@ -76,7 +103,8 @@ export function buildWorkforceEstimate(items,settings={}){
  const pending=proposals.filter(x=>x.workers===null);
  // O total simultâneo representa um cenário pessimista de todos os serviços no mesmo período.
  return {settings:{target_days:days,hours_day:hours,efficiency_pct:efficiencyPct,crew_size:crewSize,
-   effective_hours_per_worker_day:round(daily,3)},
+   effective_hours_per_worker_day:round(daily,3),available_workers:availableWorkers,
+   excludes_owner:true},
   summary:{total_services:proposals.length,estimated_services:ready.length,without_productivity:pending.length,
    simultaneous_workers:ready.reduce((s,x)=>s+x.workers,0),
    simultaneous_crews:ready.reduce((s,x)=>s+x.crews,0),
@@ -85,8 +113,9 @@ export function buildWorkforceEstimate(items,settings={}){
    partial_estimate:pending.length>0||ready.some(x=>!x.reviewed),
    total_hh:round(ready.reduce((s,x)=>s+x.estimated_hh,0),2)},
   services:proposals,has_unestimated_services:pending.length>0,
-  model:'dimensionamento_inicial_por_horas_homem',
-  assumptions:'Todos os serviços executados em paralelo durante o prazo informado; frentes e dependências ainda não avaliadas.',
+  model:availableWorkers===null?'dimensionamento_inicial_por_horas_homem':'capacidade_de_pessoal_por_frente',
+  assumptions:availableWorkers===null?'O prazo por atividade é uma hipótese de dimensionamento inicial; frentes e dependências devem ser conferidas.':
+   'O efetivo informado é um limite por frente de serviço, sem contar o proprietário. A obra respeita a sequência técnica proposta; atividades independentes podem exigir avaliação de simultaneidade.',
   notice:'Estimativa de pessoal e de quantidade de equipes, não cadastro, reserva, escala ou cronograma contratual. Coeficientes SIURB de mão de obra direta são parciais; confirmar produtividades, sequência, segurança, frentes de serviço e composição antes da contratação.',
   commercial_release:false,preview_only:true};
 }

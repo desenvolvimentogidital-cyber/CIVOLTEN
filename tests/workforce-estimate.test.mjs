@@ -88,9 +88,10 @@ test('API é somente leitura, exige UUID válido e lê itens incluindo LEFT JOIN
  assert.equal((await call('GET','/api/v1/budgets/nao-uuid/workforce-estimate',['budgets','nao-uuid','workforce-estimate'])).res.status,400);
  assert.equal((await call('GET','/api/v1/budgets/'+bid+'/workforce-estimate?target_days=0')).res.status,400);
  assert.equal(queries.length,0);
- const ok=await call('GET','/api/v1/budgets/'+bid+'/workforce-estimate?target_days=10');
+ const ok=await call('GET','/api/v1/budgets/'+bid+'/workforce-estimate?target_days=10&available_workers=5');
  assert.equal(ok.res.status,200);assert.equal(ok.res.body.services.length,2);
- assert.equal(ok.res.body.summary.simultaneous_crews,3);
+ assert.equal(ok.res.body.settings.available_workers,5);
+ assert.equal(ok.res.body.summary.simultaneous_crews,4);
  assert.ok(queries[1].query.includes('bi.deleted_at IS NULL'));
  assert.ok(queries[1].query.includes('reference_price_versions'));
  assert.deepEqual(queries[1].args,[bid]);
@@ -118,4 +119,36 @@ test('não permite HTML injetado no nome do serviço',()=>{
  const html=workforcePanel(x,esc);
  assert.doesNotMatch(html,/<svg onload/);
  assert.match(html,/&lt;svg/);
+});
+
+
+test('obra com 5 profissionais disponíveis, sem contar o proprietário, dimensiona por função e dia',()=>{
+ const p=buildWorkforceEstimate(items,{available_workers:5,target_days:10,hours_day:8,efficiency_pct:85,crew_size:4});
+ assert.equal(p.settings.available_workers,5);
+ assert.equal(p.settings.excludes_owner,true);
+ assert.equal(p.services[0].workers,5);
+ assert.equal(p.services[0].days_at_suggested_staff,9);
+ assert.deepEqual(p.services[0].roles.map(x=>x.workers),[3,2]);
+ assert.equal(p.services[1].workers,5);
+ assert.equal(p.services[1].days_at_suggested_staff,5);
+ assert.ok(p.services.every(x=>x.workers<=5));
+ assert.match(p.assumptions,/proprietário/);
+});
+test('obra com 10 profissionais termina antes do cenário com 5, com o mesmo quantitativo',()=>{
+ const five=buildWorkforceEstimate(items,{available_workers:5});
+ const ten=buildWorkforceEstimate(items,{available_workers:10});
+ assert.ok(ten.services[0].days_at_suggested_staff<five.services[0].days_at_suggested_staff);
+ assert.ok(ten.services[1].days_at_suggested_staff<=five.services[1].days_at_suggested_staff);
+ assert.ok(ten.services.every(x=>x.workers<=10));
+});
+test('não inventa pedreiro e servente quando há só 1 profissional disponível',()=>{
+ const p=buildWorkforceEstimate([items[0]],{available_workers:1});
+ assert.equal(p.services[0].workers,null);
+ assert.equal(p.services[0].status,'capacidade_insuficiente');
+ assert.equal(p.summary.without_productivity,1);
+ assert.match(p.services[0].warning,/2 profissões/);
+});
+test('limites inválidos de pessoal são rejeitados',()=>{
+ for(const available_workers of ['0',-1,101,1.5,'texto'])
+  assert.throws(()=>buildWorkforceEstimate([], {available_workers}),e=>e.status===400);
 });
