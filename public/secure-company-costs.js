@@ -25,7 +25,8 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
   show('Custos internos da CIVOLTEN','<div class="notice tiny"><strong>Uso interno:</strong> informe o custo completo da empresa por profissional, incluindo salário, encargos e benefícios. Não é necessário cadastrar profissionais para fazer o cronograma.</div>'+
    '<div class="actions"><button class="btn primary" type="button" data-action="company-edit-overhead">Despesas fixas da empresa</button>'+
    '<button class="btn" type="button" data-action="company-add-worker">+ Cadastrar profissional</button>'+
-   (state.user?.role==='administrador'?'<button class="btn" type="button" data-action="company-edit-pricing">Margem e pró-labore</button>':'')+'</div>'+
+   (state.user?.role==='administrador'?'<button class="btn" type="button" data-action="company-edit-pricing">Margem e pró-labore</button>'+
+    '<button class="btn primary" type="button" data-action="company-simulate-sale">Simular preço com custos próprios</button>':'')+'</div>'+
    '<div class="notice tiny"><strong>Metas comerciais internas:</strong> '+
    (data.pricing?'Margem '+esc(Number(data.pricing.target_margin_pct))+'% sobre a venda · Pró-labore mensal '+esc(cur(data.pricing.owner_prolabore_monthly)):'Configuração ainda não instalada no banco')+
    '. Não somar automaticamente ao BDI da SIURB ou emitir preço final sem impostos informados e conferência técnica.</div>'+
@@ -36,6 +37,29 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    '<h3>Base dos profissionais</h3><p class="muted tiny">Cadastro opcional. A média dos custos mensais ativos pode ser usada quando não houver custo-hora específico. Nenhum profissional é alocado automaticamente.</p>'+
    '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Função</th><th>Custo mensal</th><th>Situação</th><th>Ação</th></tr></thead><tbody>'+
    (workers||'<tr><td colspan="5">Nenhum profissional cadastrado.</td></tr>')+'</tbody></table></div>');
+  return;
+ }
+ if(action==='company-simulate-sale'){
+  if(state.user?.role!=='administrador')throw Error('Somente administrador acessa a simulação comercial');
+  if(!data.pricing)throw Error('Configure a margem e o pró-labore antes de simular');
+  const fields=[
+   ['Mão de obra da obra, com encargos (R$)','internal_labor_cost'],
+   ['Materiais da obra (R$)','material_cost'],
+   ['Equipamentos e locações da obra (R$)','equipment_cost'],
+   ['Outros custos diretos, inclusive mobilização (R$)','other_direct_cost'],
+   ['Pró-labore RATEADO para esta obra (R$)','owner_prolabore_allocation'],
+   ['Outras despesas indiretas RATEADAS para esta obra (R$)','other_overhead_allocation']
+  ];
+  show('Simular preço de venda com custos próprios',
+   '<div class="notice"><strong>Simulação, sem emissão comercial.</strong> A conta parte apenas dos custos próprios informados, não soma a tabela SIURB nem adiciona BDI. Preencha cada categoria, usando 0 somente quando for realmente inexistente.</div>'+
+   '<p class="muted tiny">Margem atual: '+esc(data.pricing.target_margin_pct)+'% da receita. Pró-labore mensal configurado: '+esc(cur(data.pricing.owner_prolabore_monthly))+
+   '. Informe abaixo o valor justificável alocado a ESTA obra, sem duplicar administração.</p>'+
+   '<form id="company-simulate-form">'+
+   fields.map(([label,name])=>input(label,name,'','number','min="0" max="100000000" step="0.01"')).join('')+
+   input('Tributos efetivos sobre a receita (%) — confirme com a contabilidade','taxes_on_revenue_pct','','number','min="0" max="60" step="0.01"')+
+   '<p class="muted tiny">Sem impostos confirmados não há formação de preço confiável. Esta operação não altera orçamentos, fichas SIURB, contratos ou cadastros.</p>'+
+   '<div class="actions"><button class="btn primary" type="submit">Calcular cenário indicativo</button>'+
+   '<button class="btn" type="button" data-action="company-config">Cancelar</button></div></form>');
   return;
  }
  if(action==='company-edit-pricing'){
@@ -79,8 +103,28 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    '<p class="tiny muted">Não informe CPF, telefone ou dados sensíveis. O registro serve apenas como base de custo e não significa alocação nesta obra.</p>'+buttons+'</form>');return;
  }
 }
-export async function companyCostsSubmit(form,{state,api,toast,refresh}){
+export async function companyCostsSubmit(form,{state,api,toast,refresh,dialog,esc}) {
  const b=Object.fromEntries(new FormData(form).entries());
+ if(form.id==='company-simulate-form'){
+  if(state.user?.role!=='administrador')throw Error('Somente administrador acessa a simulação comercial');
+  const scenario=await api('company-costs/pricing/simulate','POST',b);
+  if(scenario.commercial_release!==false||scenario.can_issue!==false)
+   throw Error('Simulação não pode emitir proposta comercial');
+  document.querySelector('#secure-dialog')?.remove();
+  dialog('Resultado da simulação de custos próprios',
+   '<div class="notice"><strong>Estimativa não contratual</strong><p>Preço de venda indicativo: '+
+   esc(cur(scenario.price.sale_price))+'</p><p>Custo completo informado: '+esc(cur(scenario.complete_cost_reais))+
+   '</p><p>Margem configurada: '+esc(scenario.price.margin_pct)+'% · Tributos informados: '+
+   esc(scenario.taxes_on_revenue_pct)+'% · Valor indicativo da margem: '+
+   esc(cur(scenario.price.profit_before_income_tax))+'</p></div>'+
+   '<p class="muted tiny">Nenhum orçamento foi alterado nem documento emitido. Os valores não representam lucro líquido.</p>'+
+   '<div class="notice tiny">'+scenario.warnings.map(x=>'<p>'+esc(x)+'</p>').join('')+'</div>'+
+   '<div class="actions"><button class="btn" type="button" data-action="company-simulate-sale">Recalcular</button>'+
+   '<button class="btn" type="button" data-action="company-config">Voltar aos custos</button></div>');
+  toast('Cenário calculado com os custos próprios e tributos informados; nenhum valor foi gravado.');
+  return true;
+ }
+
  if(form.id==='company-pricing-form')await api('company-costs/pricing','PUT',b);
  else if(form.id==='company-overhead-form')await api('company-costs/overhead','PUT',b);
  else if(form.id==='company-rate-form')await api('company-costs/rates','PUT',b);
