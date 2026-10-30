@@ -102,7 +102,7 @@ test('Tela usa dados de orçamento e aponta hipótese, revisão e equipes não c
  const html=workforcePanel(estimate,escape);
  assert.match(html,/ALVENARIA EM BLOCO/);
  assert.match(html,/REBOCO INTERNO/);
- assert.match(html,/PEDREIRO/);assert.match(html,/SERVENTE/);
+ assert.match(html,/PEDREIRO/);assert.match(html,/Ajudante/);
  assert.match(html,/workforce-settings-form/);
  assert.match(html,/Recalcular equipes/);
  assert.match(html,/Estimativa, não escala de trabalho/);
