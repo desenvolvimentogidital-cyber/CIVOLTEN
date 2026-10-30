@@ -50,6 +50,17 @@ test('Etapa 2: SIURB canônica, custo auditado, BDI parametrizado, extras e risc
   assert.equal(found.length,1);assert.equal(found[0].id,price);
   const nonexistent=expect(await call('siurb/search?q=QA-102&regime='+encodeURIComponent('Com desoneração')),200);
   assert.equal(nonexistent.length,0);
+  const catalog=expect(await call('services/search?budget_id='+budget),200);
+  assert.equal(catalog.reference_month,'2026-07');
+  assert.equal(catalog.regime,'Sem desoneração');
+  assert.equal(catalog.total,1);
+  assert.equal(catalog.items[0].description,'Serviço oficial fictício de validação');
+  const searchedCatalog=expect(await call('services/search?budget_id='+budget+'&q=QA-102&limit=1'),200);
+  assert.equal(searchedCatalog.items[0].id,price);
+  assert.equal(searchedCatalog.items[0].unit,'M2');
+  assert.equal(Number(searchedCatalog.items[0].unit_cost),100);
+  expect(await call('services/search?budget_id='+budget+'&limit=100'),400);
+  expect(await call('services/search?budget_id='+randomUUID()),404);
   expect(await call('budgets/'+budget+'/siurb-items','POST',{lock_version:0,reference_price_id:randomUUID(),position:1,quantity:'2'}),400);
   const item=expect(await call('budgets/'+budget+'/siurb-items','POST',{lock_version:0,reference_price_id:price,position:1,quantity:'2'}),201);
   assert.equal(item.reference_price_id,price);
@@ -89,8 +100,19 @@ test('Etapa 2: SIURB canônica, custo auditado, BDI parametrizado, extras e risc
   // Uma edição de quantidade deve revogar a evidência técnica e a aprovação financeira anterior.
   expect(await call('budgets/'+budget+'/items/'+item.id,'PUT',{
     position:1,source_code:'QA-102',source_name:'Serviço oficial fictício de validação',
-    unit:'M2',quantity:3,direct_unit_cost:100
+    unit:'M2',quantity:3,direct_unit_cost:0
+  }),409); // Não sobrescrever catálogo via edição manual.
+  const changedOfficial=expect(await call('budgets/'+budget+'/siurb-items/'+item.id,'PUT',{
+    lock_version:costs.budget.lock_version,position:1,quantity:'3',direct_unit_cost:0
   }),200);
+  assert.equal(changedOfficial.reference_price_id,price);
+  assert.equal(changedOfficial.source_name,'Serviço oficial fictício de validação');
+  assert.equal(changedOfficial.unit,'M2');
+  assert.equal(Number(changedOfficial.direct_unit_cost),100);
+  assert.equal(Number(changedOfficial.quantity),3);
+  expect(await call('budgets/'+budget+'/siurb-items/'+item.id,'PUT',{
+    lock_version:costs.budget.lock_version,position:1,quantity:'4'
+  }),409); // Controle de concorrência após alteração.
   costs=expect(await call('budgets/'+budget+'/costs'),200);
   assert.equal(costs.estimate.ready,false);
   assert.equal(costs.config.technical_reviewed,false);
