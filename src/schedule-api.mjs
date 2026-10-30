@@ -63,11 +63,30 @@ export async function handleStage3({req,res,sql,parts,method,send}){
    base_workdays:null,total_workdays:null,finish:null}:
    buildWorkSchedule({start_date:start,work_days_week:week,holidays,safety_pct:safety,
      teams,tasks:activity});
+ const teamCapacity=new Map(teams.map(t=>[t.id,t.workers*t.hours_day*t.efficiency]));
+ const productivity=tasks.map(t=>{
+  const capacity=teamCapacity.get(String(t.crew_id));
+  const qty=Number(t.quantity),hh=Number(t.direct_labor_hh_unit);
+  const hasVerifiedHours=!!t.budget_item_id&&!t.deleted_at &&
+   reviewed(t.labor_review_state) && Number.isFinite(qty)&&qty>0 &&
+   t.direct_labor_hh_unit!=null&&Number.isFinite(hh)&&hh>0;
+  const totalHH=hasVerifiedHours?qty*hh:null;
+  const derived=hasVerifiedHours&&Number.isFinite(capacity)&&capacity>0?Math.ceil(totalHH/capacity):null;
+  const planned=Number(t.days_estimated);
+  return {task_id:t.id,linked_item_id:t.budget_item_id||null,
+   projected_hh:totalHH===null?null:Number(totalHH.toFixed(4)),
+   team_capacity_hh_per_day:capacity&&Number.isFinite(capacity)?Number(capacity.toFixed(4)):null,
+   derived_workdays:derived,planned_workdays:Number.isFinite(planned)&&planned>0?planned:null,
+   labor_reference_verified:hasVerifiedHours,
+   notice:hasVerifiedHours?'Horas derivadas de coeficiente conferido; requer produtividade observada em obra.':'Sem coeficiente de hora-homem revisado; não inferir produtividade de fichas SIURB parciais.'};
+ });
  const warnings=[...(calendar.warnings||[]),
   'Resultado preliminar. Conferir equipes por profissão, equipamentos, clima e rendimento real da obra.'];
+ if(productivity.some(x=>x.derived_workdays!=null&&x.planned_workdays!=null&&x.derived_workdays>x.planned_workdays))
+  warnings.push('Há atividades cujo prazo manual é inferior ao prazo calculado a partir de horas-homem conferidas. Justifique os recursos.');
  return done(200,{budget:{id:budgets[0].id,code:budgets[0].code,
    lock_version:budgets[0].lock_version,status:budgets[0].status},
-   schedule:{...calendar,warnings},commercial_release:false,
+   schedule:{...calendar,warnings},productivity,commercial_release:false,
    model:'duracoes_manuais_revisadas',preview_only:true,
    review_required:true});
 }
