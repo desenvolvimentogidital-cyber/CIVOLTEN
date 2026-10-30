@@ -80,6 +80,38 @@ test('Etapa 3: CRUD seguro, equipes, revisão de duração, ciclos e versões', 
   assert.equal(final.dependencies.length,1);
   const audit=await sql.query("SELECT count(*)::int AS count FROM audit_events WHERE actor_id IN ($1,$2,$3) AND entity_type IN ('crews','schedule_tasks','task_dependencies')",[adminId,plannerId,reviewerId]);
   assert.ok(audit[0].count>=9);
+  // Edição só em rascunho, revogação de duração revisada e arquivamento lógico.
+  must(await request(1,base+'schedule-tasks/'+a.id,'DELETE',{lock_version:9}),409);
+  must(await request(1,base+'schedule-dependencies/'+a.id,'DELETE',{
+    lock_version:9,successor_id:c.id}),200);
+  must(await request(1,base+'schedule-tasks/'+c.id,'PUT',{
+    lock_version:10,action:'edit',title:'Acabamento revisado',
+    crew_id:first.id,duration_workdays:2}),200);
+  let after=must(await request(0,base+'schedule-plan'),200);
+  assert.equal(after.tasks.find(x=>x.id===c.id).duration_review_state,'pendente');
+  must(await request(2,base+'schedule-tasks/'+c.id,'PUT',{
+    lock_version:11,duration_workdays:2,review_note:'Revisão de prazo em ambiente QA fictício'}),200);
+  must(await request(1,base+'schedule-tasks/'+c.id,'DELETE',{lock_version:12}),200);
+  must(await request(1,base+'schedule-tasks/'+a.id,'DELETE',{lock_version:13}),200);
+  must(await request(1,base+'schedule-crews/'+first.id,'DELETE',{lock_version:14}),200);
+  must(await request(1,base+'schedule-crews/'+second.id,'PUT',{
+    lock_version:15,title:'Equipe elétrica nova',workday_hours:8,efficiency:0.85}),200);
+  must(await request(1,base+'schedule-tasks/'+b.id,'PUT',{
+    lock_version:16,action:'edit',title:'Instalação elétrica revisada',
+    crew_id:second.id,duration_workdays:3}),200);
+  after=must(await request(0,base+'schedule-plan'),200);
+  assert.equal(after.budget.lock_version,17);
+  assert.equal(after.crews.length,1);
+  assert.equal(after.tasks.length,1);
+  assert.equal(after.dependencies.length,0);
+  assert.equal(after.tasks[0].duration_review_state,'pendente');
+  const pending=must(await request(0,base+'schedule-preview?start_date=2026-11-02'),200);
+  assert.equal(pending.schedule.ready,false);
+  must(await request(2,base+'schedule-tasks/'+b.id,'PUT',{
+    lock_version:17,duration_workdays:3,review_note:'Nova revisão de duração após alteração de atividade'}),200);
+  const resumed=must(await request(0,base+'schedule-preview?start_date=2026-11-02'),200);
+  assert.equal(resumed.schedule.ready,true);
+  assert.equal(resumed.schedule.total_workdays,3);
  }finally{await pool.end()}
 });
 }
