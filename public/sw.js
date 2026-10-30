@@ -3,7 +3,7 @@
  */
 const CACHE='civolten-shell-v1-20261030';
 const ASSETS=[
- '/offline.html','/offline.js','/offline-store.js','/offline-sync.js','/pwa-init.js',
+ '/offline.html','/offline.css','/offline.js','/offline-store.js','/offline-sync.js','/pwa-init.js',
  '/secure.html','/secure.css','/style.css','/secure.js','/secure-costing.js',
  '/secure-schedule.js','/secure-finance.js','/secure-service-picker.js',
  '/secure-workforce.js','/secure-planning-ui.js','/secure-company-costs.js',
