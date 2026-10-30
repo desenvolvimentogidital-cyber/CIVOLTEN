@@ -283,7 +283,7 @@ document.addEventListener('submit',async e=>{
     }});return;
   }
   if(form.id.startsWith('company-')){
-    await companyCostsSubmit(form,{state,api,toast,refresh:async()=>{
+    await companyCostsSubmit(form,{state,api,toast,dialog,esc,refresh:async()=>{
       const q=new URLSearchParams(state.scheduleWorkforceSettings||{});
       state.scheduleWorkforce=await api('budgets/'+state.detail.id+'/workforce-estimate?'+q);
       render();
