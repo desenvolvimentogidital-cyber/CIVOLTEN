@@ -3,6 +3,8 @@ import {schedulePage,scheduleDialog,scheduleHandleForm} from './secure-schedule.
 import {financePage,financeDialog,financeHandleForm} from './secure-finance.js';
 import {showServiceCatalog,showOfficialServiceEdit} from './secure-service-picker.js';
 import {companyCostsDialog,companyCostsSubmit} from './secure-company-costs.js';
+import {saveBudgetForOffline,getOfflineDraft,pendingChanges} from './offline-store.js';
+import {syncOfflineBudget} from './offline-sync.js';
 /* Painel privado CIVOLTEN — desenvolvimento/homologação
  * Jamais usar localStorage para informações comerciais ou tokens de sessão.
  */
@@ -169,7 +171,13 @@ function budgetDetail(){
  const b=state.detail;if(!b)return empty('Orçamento não encontrado.');
  const sum=(b.items||[]).reduce((a,x)=>a+Number(x.quantity)*Number(x.direct_unit_cost),0);
  return heading(b.title,b.code+' • '+(b.client_name||'Cliente')+' • orçamento de desenvolvimento')+
- '<div class="actions"><button class="btn" data-action="back-budget">Voltar</button><button class="btn primary" data-action="open-costing">Conferir custos e BDI</button><button class="btn" data-action="open-schedule">Cronograma</button><button class="btn" data-action="open-finance">Propostas e finanças</button>'+ (writeable()?'<button class="btn" data-action="new-item">+ Adicionar serviço</button>':'')+'</div>'+
+ '<div class="actions"><button class="btn" data-action="back-budget">Voltar</button>'+
+ '<button class="btn primary" data-action="open-costing">Conferir custos e BDI</button>'+
+ '<button class="btn" data-action="open-schedule">Cronograma</button>'+
+ '<button type="button" class="btn" data-action="offline-save">Salvar para usar offline</button>'+
+ '<button type="button" class="btn" data-action="offline-sync">Sincronizar rascunho offline</button>'+
+ '<a class="btn" href="/offline.html">Abrir modo offline</a>'+
+ '<button class="btn" data-action="open-finance">Propostas e finanças</button>'+ (writeable()?'<button class="btn" data-action="new-item">+ Adicionar serviço</button>':'')+'</div>'+
  '<div class="grid"><div class="card"><div class="muted">Custo direto preliminar</div><div class="metric">'+BRL(sum)+'</div></div>'+
  '<div class="card"><div class="muted">BDI configurado</div><div class="metric">'+esc(b.bdi_pct)+'%</div></div>'+
  '<div class="card"><div class="muted">Prévia aritmética (não validada)</div><div class="metric">'+BRL(sum*(1+Number(b.bdi_pct)/100))+'</div></div></div>'+
@@ -362,6 +370,22 @@ document.addEventListener('click',async e=>{
   if(act==='login-view'||act==='setup-view'){state.mode=act==='setup-view'?'setup':'login';render();return}
   if(act==='theme'){const order=['auto','light','dark'],next=order[(order.indexOf(localStorage.getItem('civolten-theme')||'auto')+1)%3];localStorage.setItem('civolten-theme',next);theme();render();toast('Aparência: '+(next==='auto'?'automático':next==='light'?'claro':'escuro'));return}
   if(act==='close-dialog'){document.querySelector('#secure-dialog')?.remove();return}
+  if(act==='offline-save'){
+    if(!state.detail?.id)throw Error('Abra um orçamento');
+    const snapshot=await saveBudgetForOffline(state.detail);
+    toast('Orçamento '+snapshot.code+' salvo neste celular. As cópias locais não possuem login próprio.');return;
+  }
+  if(act==='offline-sync'){
+    if(!state.detail?.id)throw Error('Abra um orçamento');
+    const draft=await getOfflineDraft(state.detail.id);
+    if(!draft)throw Error('Nenhuma cópia offline deste orçamento. Use Salvar para usar offline primeiro.');
+    const changes=pendingChanges(draft);
+    if(!changes.length){toast('Nenhuma quantidade pendente. Anotações locais continuam somente no celular.');return}
+    if(!window.confirm('Sincronizar '+changes.length+' quantidade(s) deste orçamento com o servidor? Se outro usuário alterou os itens, a operação será interrompida.'))return;
+    const result=await syncOfflineBudget(state.detail.id,api);
+    state.detail=await api('budgets/'+state.detail.id);
+    render();toast(result.synced+' quantidade(s) sincronizada(s). Notas locais não são enviadas.');return;
+  }
   if(act==='logout'){await api('auth/logout','POST',{});state.user=null;state.mode='login';render();return}
   if(act==='view'){await changeView(btn.dataset.view);return}
   if(act==='password-modal'){passwordModal();return}
@@ -486,7 +510,7 @@ document.addEventListener('click',async e=>{
 async function init(){
  theme();
  try{const status=await api('auth/status');if(status.authenticated){state.user=status.user;if(!state.user.must_change_password)await loadLists()}}
- catch(err){console.warn('[CIVOLTEN] Painel seguro indisponível:',err.message);app.innerHTML='<section class="login"><div class="login-card">'+brand()+'<h1>API indisponível</h1><p class="error">'+esc(err.message)+'</p><button class="btn primary" data-action="retry">Tentar novamente</button></div></section>';return}
+ catch(err){console.warn('[CIVOLTEN] Painel seguro indisponível:',err.message);app.innerHTML='<section class="login"><div class="login-card">'+brand()+'<h1>API indisponível</h1><p class="error">'+esc(err.message)+'</p><div class="actions"><button class="btn primary" data-action="retry">Tentar novamente</button><a class="btn" href="/offline.html">Abrir rascunhos offline</a></div></div></section>';return}
  render();
 }
 init();

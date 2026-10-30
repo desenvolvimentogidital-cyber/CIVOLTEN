@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#f26b09"/>
+<meta name="robots" content="noindex,nofollow"/>
+<meta name="description" content="Rascunhos de quantidades CIVOLTEN salvos neste dispositivo para consulta e edição sem conexão."/>
+<title>CIVOLTEN • Rascunhos offline</title>
+<link rel="icon" type="image/png" href="/assets/icone.png"/>
+<link rel="manifest" href="/manifest.webmanifest"/>
+<link rel="stylesheet" href="/secure.css"/>
+<link rel="stylesheet" href="/offline.css"/>
+<script>!function(){try{var t=localStorage.getItem('civolten-theme')||'auto';document.documentElement.dataset.theme=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light'}catch(e){}}();</script>
+</head><body>
+<main class="offline-layout">
+<header class="offline-header"><img src="/assets/logo.png" alt="CIVOLTEN"/><div><span class="tag">Rascunhos no dispositivo</span><h1>Orçamentos offline</h1><p>Consulte seus serviços e ajuste quantidades mesmo sem internet.</p></div></header>
+<div class="notice tiny" role="note"><strong>Limites do modo offline:</strong> só funciona após instalar/abrir o aplicativo conectado e salvar uma cópia do orçamento. Não consulta o catálogo SIURB nem calcula valores comerciais sem rede. As mudanças ficam neste celular, sem sincronização automática. Não use um dispositivo compartilhado.</div>
+<section id="offline-content" aria-live="polite"><p>Carregando rascunhos do dispositivo…</p></section>
+<footer class="offline-footer"><a class="btn primary" href="/secure.html">Voltar ao CIVOLTEN / sincronizar online</a><button class="btn" type="button" id="offline-refresh">Atualizar lista</button><p class="muted tiny">As anotações locais não são enviadas ao servidor. Para sincronizar quantidades, entre na conta e confirme no orçamento original.</p></footer>
+</main>
+<script src="/pwa-init.js" defer></script>
+<script type="module" src="/offline.js"></script>
+</body></html>
