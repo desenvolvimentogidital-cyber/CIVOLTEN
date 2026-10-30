@@ -393,6 +393,7 @@ document.addEventListener('click',async e=>{
     if(state.user?.role!=='administrador')throw Error('Acesso reservado ao administrador');
     const report=await api('release-readiness');
     const checks=report.gates?.checks||[];
+    const op=report.operational||{},account=op.account_setup||{};
     const rows=checks.map(x=>'<tr><td>'+esc(x.label)+'</td><td>'+
       (x.passed?'<span class="ok">Verificado</span>':'<span class="danger">Pendente</span>')+
       '</td></tr>').join('');
@@ -401,6 +402,13 @@ document.addEventListener('click',async e=>{
       '</strong><p>Dados deste diagnóstico vêm do banco e das condições de homologação. Não representam assinatura técnica ou autorização para emitir contratos.</p></div>'+
       '<p>Estrutura do banco: '+(report.schema?.ready?'<strong class="ok">Validada</strong>':'<strong class="danger">Incompleta</strong>')+'</p>'+
       (report.schema?.missing_tables?.length?'<p class="muted">Tabelas pendentes: '+esc(report.schema.missing_tables.join(', '))+'</p>':'')+
+      '<h3>Situação observada no banco</h3>'+
+      '<p>Administrador ativo: '+(account.administrator_present?'<strong class="ok">Sim</strong>':'<strong class="danger">Não</strong>')+'</p>'+
+      '<p>Troca de senha inicial: '+(account.administrator_password_change_pending?'<strong class="danger">Pendente</strong>':'<strong class="ok">Nenhuma pendência registrada</strong>')+'</p>'+
+      '<p>Orçamentos registrados: '+esc(op.budget_records??'não conferido')+
+      ' · Preços de referência: '+esc(op.reference_price_records??'não conferido')+
+      ' · Rascunhos de proposta: '+esc(op.proposal_draft_records??'não conferido')+'</p>'+
+      '<p class="muted tiny">Backup criptografado periódico e login em dois dispositivos: exigem comprovação operacional independente.</p>'+
       '<div class="table-wrap"><table class="table"><thead><tr><th>Verificação</th><th>Situação</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
       '<p class="muted tiny">Somente a conclusão documentada dos requisitos e a confirmação do responsável podem autorizar o uso contratual.</p>');
     return;
