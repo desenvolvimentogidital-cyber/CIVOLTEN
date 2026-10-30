@@ -58,7 +58,7 @@ const kinds={
 export async function handleStage4Closeout(ctx){
  const {req,res,sql,user,parts,method,send,readBody}=ctx;
  const [resource,id,sub,fourth]=parts;
- if(resource!=='budgets'||!(sub in kinds||sub==='financial-closeout'||sub==='commercial-readiness'))return false;
+ if(resource!=='budgets'||!(Object.hasOwn(kinds,sub)||sub==='financial-closeout'||sub==='commercial-readiness'))return false;
  const done=(status,payload)=>{send(res,status,payload);return true};
  if(!uuid(id))return done(400,{error:'Orçamento inválido'});
  const budgetRows=await sql.query('SELECT id,code,status,lock_version FROM budgets WHERE id=$1',[id]);
