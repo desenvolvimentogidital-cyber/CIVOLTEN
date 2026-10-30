@@ -188,3 +188,30 @@ body{background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,syst
 .catalog-total strong{font-size:19px;color:var(--text);font-variant-numeric:tabular-nums}
 #catalog-selection .btn{min-height:32px;font-size:12px;padding:5px 10px;margin:7px 0 0}
 @media(max-width:620px){.catalog-total{align-items:flex-start;flex-direction:column}.catalog-total strong{font-size:22px}.catalog-results{max-height:220px}.service-option{padding:14px 11px}.service-title{font-size:12.5px}}
+
+
+/* Cronograma: dimensionamento automático de serviços, separado de equipes cadastradas. */
+.workforce-section{display:grid;gap:15px;margin:0 0 29px}
+.workforce-section .page-title{margin-bottom:0}
+.workforce-section .page-title h2{font-size:23px;letter-spacing:-.55px;margin:5px 0 7px}
+.workforce-section .page-title p{font-size:13px;color:var(--muted);line-height:1.6}
+.workforce-settings{display:grid;gap:13px;background:var(--surface);padding:20px;border:1px solid var(--border);border-radius:13px}
+.workforce-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.workforce-settings .field{margin:0}
+.workforce-settings .btn{justify-self:start}
+.workforce-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px}
+.workforce-kpis .stat-card{margin:0;min-height:95px;padding:17px}
+.workforce-kpis .stat-value{font-size:23px}
+.workforce-table{margin:0!important;padding:19px!important}
+.workforce-table .row{margin-bottom:13px}
+.workforce-table h3{margin:0;font-size:17px}
+.workforce-table .table td{min-width:96px}
+.workforce-table .table td:first-child{min-width:230px}
+.workforce-table .table td:nth-child(5){min-width:180px}
+.workforce-table .tag{margin:2px;white-space:normal;text-align:left}
+.workforce-pending{color:var(--red);font-weight:750;font-size:12px}
+.schedule-advanced{background:var(--surface2);padding:15px!important;border-style:dashed!important;margin-top:28px!important;margin-bottom:18px!important}
+.schedule-advanced h2{margin:0 0 5px;font-size:18px}
+.schedule-advanced p{margin:0}
+@media(max-width:1100px){.workforce-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.workforce-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:620px){.workforce-fields{grid-template-columns:1fr}.workforce-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}.workforce-table{padding:12px!important}.workforce-section .page-title h2{font-size:21px}.workforce-kpis .stat-card{padding:13px}.workforce-kpis .stat-value{font-size:19px}.workforce-settings{padding:14px}.workforce-settings .btn{width:100%}}
