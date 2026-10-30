@@ -55,7 +55,7 @@ export function inspectCriticalChain(schedule){
   const slack=Math.max(0,l.start-t.startIndex);
   return {id:String(t.id),title:t.title,crew_id:String(t.crew_id),
    start:t.start,finish:t.finish,workdays:t.duration_workdays,
-   free_float_workdays:slack,critical:slack===0};
+   total_float_workdays:slack,critical:slack===0};
  });
  return {ready:true,project_workdays:workdays,
   critical_task_ids:activities.filter(t=>t.critical).map(t=>t.id),
