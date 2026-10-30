@@ -24,7 +24,11 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    '<button class="btn" type="button" data-action="company-edit-worker" data-id="'+esc(w.id)+'">Editar</button></td></tr>').join('');
   show('Custos internos da CIVOLTEN','<div class="notice tiny"><strong>Uso interno:</strong> informe o custo completo da empresa por profissional, incluindo salário, encargos e benefícios. Não é necessário cadastrar profissionais para fazer o cronograma.</div>'+
    '<div class="actions"><button class="btn primary" type="button" data-action="company-edit-overhead">Despesas fixas da empresa</button>'+
-   '<button class="btn" type="button" data-action="company-add-worker">+ Cadastrar profissional</button></div>'+
+   '<button class="btn" type="button" data-action="company-add-worker">+ Cadastrar profissional</button>'+
+   (state.user?.role==='administrador'?'<button class="btn" type="button" data-action="company-edit-pricing">Margem e pró-labore</button>':'')+'</div>'+
+   '<div class="notice tiny"><strong>Metas comerciais internas:</strong> '+
+   (data.pricing?'Margem '+esc(Number(data.pricing.target_margin_pct))+'% sobre a venda · Pró-labore mensal '+esc(cur(data.pricing.owner_prolabore_monthly)):'Configuração ainda não instalada no banco')+
+   '. Não somar automaticamente ao BDI da SIURB ou emitir preço final sem impostos informados e conferência técnica.</div>'+
    '<p class="muted tiny">Despesas mensais: '+esc(data.overhead?cur(data.overhead.monthly_overhead):'Não configuradas')+
    ' · Dias úteis/mês: '+esc(data.overhead?.workdays_per_month??22)+'. Inclua aluguel, escritório, veículos e pró-labore, sem repetir parcelas já computadas.</p>'+
    '<h3>Custo-hora por profissão</h3><div class="table-wrap"><table><thead><tr><th>Profissão</th><th>Custo-hora</th><th>Ação</th></tr></thead><tbody>'+
@@ -33,6 +37,14 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Função</th><th>Custo mensal</th><th>Situação</th><th>Ação</th></tr></thead><tbody>'+
    (workers||'<tr><td colspan="5">Nenhum profissional cadastrado.</td></tr>')+'</tbody></table></div>');
   return;
+ }
+ if(action==='company-edit-pricing'){
+  if(state.user?.role!=='administrador')throw Error('Somente administrador pode alterar a margem e o pró-labore');
+  if(!data.pricing)throw Error('A configuração de preços ainda não foi instalada no banco');
+  show('Margem e pró-labore CIVOLTEN','<form id="company-pricing-form">'+
+   input('Margem desejada sobre faturamento (%)','target_margin_pct',data.pricing.target_margin_pct,'number','min="0" max="80" step="0.01"')+
+   input('Pró-labore mensal do proprietário (R$)','owner_prolabore_monthly',data.pricing.owner_prolabore_monthly,'number','min="0" max="10000000" step="0.01"')+
+   '<p class="muted tiny">Esta configuração serve para estudo gerencial. O pró-labore é separado das despesas fixas e não entra automaticamente no BDI. Tributos sobre a receita devem ser informados e preços comerciais precisam de revisão antes da aprovação.</p>'+buttons+'</form>');return;
  }
  if(action==='company-edit-overhead'){
   const o=data.overhead||{};
@@ -69,7 +81,8 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
 }
 export async function companyCostsSubmit(form,{state,api,toast,refresh}){
  const b=Object.fromEntries(new FormData(form).entries());
- if(form.id==='company-overhead-form')await api('company-costs/overhead','PUT',b);
+ if(form.id==='company-pricing-form')await api('company-costs/pricing','PUT',b);
+ else if(form.id==='company-overhead-form')await api('company-costs/overhead','PUT',b);
  else if(form.id==='company-rate-form')await api('company-costs/rates','PUT',b);
  else if(form.id==='company-worker-form')await api('company-costs/workers','POST',b);
  else if(form.id==='company-worker-edit-form'){
