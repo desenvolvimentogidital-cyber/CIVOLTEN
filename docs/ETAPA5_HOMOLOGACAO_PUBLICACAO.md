@@ -102,3 +102,46 @@ Esperar a janela de quota Hobby e identificar/fixar
 `DATABASE_URL` preview→QA antes de emitir um único POST; repetir
 testes de browser, registrar aprovação dos responsáveis e aplicar a
 migração principal apenas depois do aceite formal.
+
+
+## 7. Defesa adicional testada na prévia — migração 0014
+
+- A Vercel possui agora `DATABASE_URL` **somente em production**.
+  A opção `preview` foi retirada da variável original, sem alterar seu
+  valor criptografado. Este isolamento impede a herança involuntária do
+  banco principal pelas prévias.
+- Foi criada a branch de GitHub `qa-stage5-homologacao-20261029`,
+  apontando para uma versão da etapa 5.
+  Uma prévia da Vercel chegou a `READY` no deployment
+  `dpl_64a4TYRqiT4Lgod8F5sqAVa9DHdQ`. A verificação de interface
+  autenticada permanece pendente: o ambiente possui proteção SSO e,
+  corretamente, **não possui DATABASE_URL na prévia**.
+- A Vercel possui a variável **não secreta**
+  `CIVOLTEN_QA_DB_BRANCH_ID=br-crimson-fog-b6pyoiov`, somente para
+  a branch de GitHub `qa-stage5-homologacao-20261029`.
+- A migração `0014_stage5_preview_guard.sql` cria a tabela
+  `deployment_environment_guards`. O banco Neon de homologação recebeu,
+  **somente nele**, uma linha com `environment=preview` e o
+  identificador correspondente. A migração **não semeia** esta linha.
+- Antes de qualquer POST, PUT ou DELETE quando `VERCEL_ENV=preview`,
+  o servidor verifica no banco conectado a existência da marca correta.
+  Ausência da variável, ausência da tabela, erro SQL ou divergência do
+  ID produzem **HTTP 503** sem executar a escrita. Este mecanismo é
+  uma defesa complementar à separação de `DATABASE_URL`.
+- A camada de checklist não pode liberar clientes ou contratos por
+  simples flags: `production_ready` e `commercial_release` seguem
+  `false` mesmo que todos os itens documentais sejam alegados
+  como concluídos. Homologação e aceite profissional são processos
+  externos independentes.
+
+**Ação manual inevitável e restrita:** na Vercel, abrir
+Project `civolten-gj91` → Settings → Environment Variables → adicionar
+`DATABASE_URL` com target **Preview** e Git branch exclusiva
+`qa-stage5-homologacao-20261029`, utilizando a URL da branch Neon QA
+`br-crimson-fog-b6pyoiov`. Não aplicar esse valor a Production nem a
+todas as prévias. A ferramenta de automação bloqueou a transferência
+de credenciais entre conexões Neon e Vercel por política de segurança.
+O usuário deve copiar o segredo diretamente nos painéis, sem enviar
+senhas ao ChatGPT. Só depois repetir o deploy de prévia e os testes
+autenticados no navegador. A Vercel pode continuar protegendo a URL
+por SSO; não desligar essa proteção para realizar o teste.
