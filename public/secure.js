@@ -35,8 +35,7 @@ function authView(){
  field('Usuário','login','text',true)+field('Senha','password','password',true)+
  '<button class="btn primary block" type="submit">'+(setup?'Criar administrador':'Entrar')+'</button></form>'+
  '<p class="muted tiny">O sistema não envia senhas nem dados para o armazenamento local do navegador.</p>'+
- '<button class="btn block" type="button" data-action="'+(setup?'login-view':'setup-view')+'">'+(setup?'Voltar ao login':'Primeira configuração do administrador')+'</button>'+
- '<p class="fallback"><a href="/">Voltar à demonstração</a></p></div></section>';
+ (setup?'<button class="btn block" type="button" data-action="login-view">Voltar ao login</button>':'<p class="muted tiny">O administrador já está cadastrado. Entre com suas credenciais; se a senha for temporária, será solicitada a troca.</p>')+'</div></section>';
 }
 function forcedPasswordView(){
  app.innerHTML='<section class="login"><div class="login-card">'+brand()+
@@ -126,7 +125,8 @@ function dashboard(){
  '<section class="card dashboard-panel status-panel"><div class="panel-head">'+ico('shield')+'<h2>Controle e segurança</h2></div>'+
  '<span class="tag status-pill">Modo interno de testes</span>'+
  '<p>Suas alterações neste painel são gravadas no banco PostgreSQL. Use dados fictícios enquanto testa as funcionalidades.</p>'+
- '<p class="muted tiny">A emissão comercial de propostas e contratos ainda depende de revisão de custos, tributação e homologação.</p></section></div>';
+ '<p class="muted tiny">A emissão comercial de propostas e contratos ainda depende de revisão de custos, tributação e homologação.</p>'+
+ (state.user?.role==='administrador'?'<button type="button" class="btn" data-action="release-readiness">Verificar liberação real do sistema</button>':'')+'</section></div>';
 }
 
 function clientPage(){
@@ -389,6 +389,22 @@ document.addEventListener('click',async e=>{
   if(act==='logout'){await api('auth/logout','POST',{});state.user=null;state.mode='login';render();return}
   if(act==='view'){await changeView(btn.dataset.view);return}
   if(act==='password-modal'){passwordModal();return}
+  if(act==='release-readiness'){
+    if(state.user?.role!=='administrador')throw Error('Acesso reservado ao administrador');
+    const report=await api('release-readiness');
+    const checks=report.gates?.checks||[];
+    const rows=checks.map(x=>'<tr><td>'+esc(x.label)+'</td><td>'+
+      (x.passed?'<span class="ok">Verificado</span>':'<span class="danger">Pendente</span>')+
+      '</td></tr>').join('');
+    dialog('Liberação operacional CIVOLTEN',
+      '<div class="notice"><strong>'+ (report.commercial_release?'Liberado':'Uso comercial ainda não liberado')+
+      '</strong><p>Dados deste diagnóstico vêm do banco e das condições de homologação. Não representam assinatura técnica ou autorização para emitir contratos.</p></div>'+
+      '<p>Estrutura do banco: '+(report.schema?.ready?'<strong class="ok">Validada</strong>':'<strong class="danger">Incompleta</strong>')+'</p>'+
+      (report.schema?.missing_tables?.length?'<p class="muted">Tabelas pendentes: '+esc(report.schema.missing_tables.join(', '))+'</p>':'')+
+      '<div class="table-wrap"><table class="table"><thead><tr><th>Verificação</th><th>Situação</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+      '<p class="muted tiny">Somente a conclusão documentada dos requisitos e a confirmação do responsável podem autorizar o uso contratual.</p>');
+    return;
+  }
   if(act==='new-user'){userModal();return}
   if(act==='edit-user'){const found=state.users.find(u=>u.id===btn.dataset.id);if(found)userModal(found);return}
   if(['archive-client','archive-project','archive-budget','remove-item'].includes(act)){
