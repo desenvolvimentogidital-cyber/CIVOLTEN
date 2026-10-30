@@ -56,3 +56,18 @@ test('PWA não cacheia login, sessão, API nem dados comerciais',()=>{
  assert.match(offline,/putOfflineDraft/);
  assert.match(offline,/removeOfflineDraft/);
 });
+
+test('Android install icons exist as real square 192/512 PNG files',()=>{
+ const manifest=JSON.parse(readFileSync(new URL('../public/manifest.webmanifest',import.meta.url),'utf8'));
+ const icons=new Map(manifest.icons.map(x=>[x.sizes,x]));
+ for(const size of [192,512]){
+  const icon=icons.get(size+'x'+size);
+  assert.ok(icon,'Faltou ícone quadrado '+size);
+  assert.equal(icon.type,'image/png');
+  const buffer=readFileSync(new URL('../public'+icon.src,import.meta.url));
+  assert.equal(buffer.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+  assert.equal(buffer.readUInt32BE(16),size);
+  assert.equal(buffer.readUInt32BE(20),size);
+  assert.ok(buffer.length>2000,'Arquivo PNG incompleto');
+ }
+});
