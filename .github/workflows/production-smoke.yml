@@ -1,0 +1,30 @@
+name: CIVOLTEN - disponibilidade real (somente leitura)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "21 10 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: civolten-production-health
+  cancel-in-progress: false
+
+jobs:
+  verify-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Ler o código do sistema
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Preparar Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.13.1'
+      - name: Verificar produção CIVOLTEN e conexão real com Neon sem gravar registros
+        env:
+          CIVOLTEN_BASE_URL: https://civolten-gj91.vercel.app
+        run: node scripts/verify-remote-stage1.mjs

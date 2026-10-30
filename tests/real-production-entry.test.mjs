@@ -44,3 +44,19 @@ test('smoke remoto exige redirecionamento, API, autenticação e banco',()=>{
  assert.match(smoke,/\/api\/v1\/health/);
  assert.match(smoke,/\/api\/v1\/auth\/status/);
 });
+
+test('smoke aceita arquivos com query de versão e não declara falha falsa',()=>{
+ const smoke=source('scripts/verify-remote-stage1.mjs');
+ const html=source('public/secure.html');
+ assert.ok(smoke.includes("marker:'src=\"/secure.js'"),'O marcador deve aceitar o sufixo de versão');
+ assert.ok(html.includes('src="/secure.js?v='),'O painel publica versão de cache do arquivo JS');
+});
+
+test('monitoração de produção é diária, só consulta e não precisa de secrets',()=>{
+ const workflow=source('.github/workflows/production-smoke.yml');
+ assert.match(workflow,/schedule:/);
+ assert.match(workflow,/workflow_dispatch:/);
+ assert.ok(workflow.includes('contents: read'));
+ assert.ok(workflow.includes('node scripts/verify-remote-stage1.mjs'));
+ assert.doesNotMatch(workflow,/CIVOLTEN_BACKUP_DATABASE_URL|VERCEL_TOKEN|INSERT INTO|DELETE FROM/);
+});
