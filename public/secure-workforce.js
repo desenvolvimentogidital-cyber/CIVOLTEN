@@ -3,6 +3,7 @@
  * Não altera preços, contratos, orçamento ou equipe no banco.
  */
 const nfmt=n=>new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2}).format(Number(n)||0);
+const professionLabel=name=>/\bSERVENTE\b/i.test(String(name))?'Ajudante / servente':String(name||'').replace(/\s*\(SGSP\)\s*/gi,'').trim();
 export function workforcePanel(data,esc){
  if(!data)return '<div class="card workforce-wait"><h2>Serviços e equipes sugeridas</h2><p class="muted">Consultando os serviços do seu orçamento e calculando a mão de obra necessária…</p></div>';
  if(data.error)return '<div class="card workforce-wait" role="alert"><h2>Não foi possível calcular</h2><p class="danger">'+esc(data.error)+'</p><p class="muted">A lista de serviços no orçamento continua preservada. Atualize a página para tentar novamente.</p></div>';
@@ -15,7 +16,7 @@ export function workforcePanel(data,esc){
   sbox('Equipes · sequencial',s.sequential_peak_crews??0,'Reaproveitando pessoal')+'</div>';
  const services=items.map((item,i)=>{
   const roles=item.roles?.length?item.roles.map(role=>
-    '<span class="workforce-role">'+esc(role.name)+' <strong>'+esc(role.workers)+'</strong></span>').join(''):
+    '<span class="workforce-role">'+esc(professionLabel(role.name))+' <strong>'+esc(role.workers)+'</strong></span>').join(''):
     '<span class="muted tiny">Composição por profissão não confirmada</span>';
   const has=item.workers!==null;
   const workers=has?'<strong>'+esc(item.workers)+'</strong><small>profissional(is)</small>':
@@ -47,7 +48,7 @@ export function workforcePanel(data,esc){
   '</div><button type="submit" class="btn primary">Recalcular equipes</button></form></details>';
  const brl=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
  const d=data.duration||{},roles=data.roles||[],cost=data.costs;
- const occupationRows=roles.map(r=>'<tr><td><strong>'+esc(r.name)+'</strong></td>'+
+ const occupationRows=roles.map(r=>'<tr><td><strong>'+esc(professionLabel(r.name))+'</strong></td>'+
    '<td><strong>'+esc(r.parallel_workers)+'</strong></td><td>'+esc(r.sequential_workers)+'</td>'+
    (cost?'<td>'+esc(r.hourly_cost===null?'Não cadastrado':brl(r.hourly_cost))+'</td>':'')+'</tr>').join('');
  const workforceSummary='<div class="card workforce-final-summary"><h2>Resumo final da mão de obra</h2>'+
