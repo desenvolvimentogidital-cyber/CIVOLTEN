@@ -86,7 +86,7 @@ export function financeDialog(action,{state,dialog,esc}){
     '<p><strong>Preço calculado não aprovado:</strong> '+m(s.costs?.total_reais)+'</p>'+
     '<p><strong>Hash:</strong> <code>'+esc(d.snapshot_sha256)+'</code></p>'+
     '<h3>Serviços</h3><ul>'+lines+'</ul>'+
-    '<div class="actions"><button type="button" class="btn" data-action="close-dialog">Fechar</button></div>');
+    '<div class="actions"><a class="btn" href="/api/v1/budgets/'+esc(state.detail.id)+'/proposal-drafts/'+esc(d.id)+'/pdf">Baixar PDF RASCUNHO</a><button type="button" class="btn" data-action="close-dialog">Fechar</button></div>');
   return true;
  }
  return false;
