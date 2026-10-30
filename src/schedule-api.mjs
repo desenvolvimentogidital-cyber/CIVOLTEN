@@ -29,14 +29,14 @@ export async function handleStage3({req,res,sql,parts,method,send}){
   sql.query(`SELECT c.id,c.title,c.workday_hours,c.efficiency,
     COALESCE(SUM(cr.workers),0)::integer AS workers
     FROM crews c LEFT JOIN crew_roles cr ON cr.crew_id=c.id
-    WHERE c.budget_id=$1 GROUP BY c.id ORDER BY c.title`,[id]),
+    WHERE c.budget_id=$1 AND c.archived_at IS NULL GROUP BY c.id ORDER BY c.title`,[id]),
   sql.query(`SELECT t.id,t.title,t.crew_id,t.days_estimated,t.duration_review_state,
     t.budget_item_id,bi.quantity,bi.direct_labor_hh_unit,bi.labor_review_state,bi.deleted_at
     FROM schedule_tasks t LEFT JOIN budget_items bi ON bi.id=t.budget_item_id
-    WHERE t.budget_id=$1 ORDER BY t.title,t.id`,[id]),
+    WHERE t.budget_id=$1 AND t.archived_at IS NULL ORDER BY t.title,t.id`,[id]),
   sql.query(`SELECT d.predecessor_id,d.successor_id,d.dependency_type,d.lag_days
-    FROM task_dependencies d JOIN schedule_tasks t ON t.id=d.successor_id
-    WHERE t.budget_id=$1 ORDER BY d.successor_id,d.predecessor_id`,[id])
+    FROM task_dependencies d JOIN schedule_tasks t ON t.id=d.successor_id JOIN schedule_tasks p ON p.id=d.predecessor_id
+    WHERE t.budget_id=$1 AND t.archived_at IS NULL AND p.archived_at IS NULL ORDER BY d.successor_id,d.predecessor_id`,[id])
  ]);
  const issues=[];
  const deps=new Map(tasks.map(t=>[String(t.id),[]]));
