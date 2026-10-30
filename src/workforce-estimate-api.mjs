@@ -10,7 +10,8 @@ export async function handleWorkforceEstimate({req,res,sql,parts,method,send}){
  const q=new URL(req.url,'https://civolten-gj91.vercel.app').searchParams;
  const settings={target_days:q.get('target_days')??10,hours_day:q.get('hours_day')??8,
   efficiency_pct:q.get('efficiency_pct')??85,crew_size:q.get('crew_size')??4};
- const check=buildWorkforceEstimate([],settings);
+ let check;
+ try{check=buildWorkforceEstimate([],settings)}catch(e){if(e.status===400)return done(400,{error:e.message});throw e}
  const budgets=await sql.query("SELECT id,code,status,reference_month,regime,lock_version FROM budgets WHERE id=$1 LIMIT 1",[id]);
  if(!budgets.length)return done(404,{error:'Orçamento não encontrado'});
  const budget=budgets[0];
