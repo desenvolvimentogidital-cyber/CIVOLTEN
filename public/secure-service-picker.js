@@ -13,7 +13,7 @@ export function catalogOptionHtml(x,esc){
   '<span class="service-meta">'+esc(x.category)+' · '+esc(x.unit)+' · <strong>'+fmtServicePrice(x.unit_cost)+'</strong></span></button>';
 }
 export function catalogFormHtml({field,esc,state}){
- const budget=state.detail,position=Math.max(1,...(budget.items||[]).map(x=>Number(x.position)||0))+1;
+ const budget=state.detail,position=Math.max(0,...(budget.items||[]).map(x=>Number(x.position)||0))+1;
  return '<form id="catalog-item-form" autocomplete="off">'+
   '<div class="notice tiny"><strong>Catálogo SIURB:</strong> '+esc(budget.reference_month)+' · '+esc(budget.regime)+
   '. Busque pelo nome ou código. A escolha preenche os campos usando o banco de dados.</div>'+
