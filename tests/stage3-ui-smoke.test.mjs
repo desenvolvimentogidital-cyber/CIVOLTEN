@@ -35,7 +35,7 @@ test('cronograma inicial mostra serviços automaticamente e não exige cadastrar
  assert.match(s,/ALVENARIA DE BLOCO/);
  assert.match(s,/Pedreiro/);
  assert.match(s,/Ajudante \/ servente/);
- assert.match(s,/Equipes · paralelo/);
+ assert.match(s,/Equipes necessárias/);
  assert.match(s,/data-action="schedule-back"/);
  assert.doesNotMatch(s,/data-action="schedule-add-crew"/);
  assert.doesNotMatch(s,/data-action="schedule-add-task"/);
