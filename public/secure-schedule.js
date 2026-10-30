@@ -29,6 +29,14 @@ export function schedulePage({state,esc,writeable}){
  const summary=preview?.ready?'<div class="grid"><div class="card"><div class="muted">Início previsto</div><div class="metric">'+esc(preview.start)+'</div></div>'+
   '<div class="card"><div class="muted">Conclusão estimada</div><div class="metric">'+esc(preview.finish)+'</div></div>'+
   '<div class="card"><div class="muted">Dias úteis + segurança</div><div class="metric">'+esc(preview.total_workdays)+'</div></div></div>':'';
+ const productivity=state.schedulePreview?.productivity||[];
+ const productivityRows=productivity.map(p=>'<tr><td>'+esc(tasks.find(x=>x.id===p.task_id)?.title||p.task_id)+'</td>'+
+   '<td>'+esc(p.labor_reference_verified?'Coeficiente conferido':'Pendente')+'</td>'+
+   '<td>'+esc(p.projected_hh??'—')+'</td><td>'+esc(p.team_capacity_hh_per_day??'—')+'</td>'+
+   '<td>'+esc(p.derived_workdays??'—')+'</td></tr>').join('');
+ const productivityPanel=state.schedulePreview?'<div class="card"><h2>Conferência de produtividade (hora-homem)</h2>'+
+   '<p class="muted tiny">Sem coeficiente de mão de obra aprovado, não há rendimento calculado; a duração manual permanece apenas uma estimativa.</p>'+
+   '<div class="table-wrap"><table><thead><tr><th>Atividade</th><th>Evidência</th><th>h-h totais</th><th>h-h/dia da equipe</th><th>Dias por h-h</th></tr></thead><tbody>'+productivityRows+'</tbody></table></div></div>':'';
  const span=preview?.ready?Math.max(...preview.tasks.map(t=>t.endExclusive),1):1;
  const gantt=preview?.ready?'<div class="card"><h2>Linha do tempo preliminar</h2><div class="table-wrap"><div class="schedule-gantt">'+preview.tasks.map(t=>{
    const left=(t.startIndex/span*100).toFixed(3),width=((t.endExclusive-t.startIndex)/span*100).toFixed(3);
@@ -51,7 +59,7 @@ export function schedulePage({state,esc,writeable}){
    crew.map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc((x.roles||[]).map(r=>r.role_name+' ('+r.workers+')').join(', ')||x.workers)+'</td><td>'+esc(x.workday_hours)+' h/dia</td><td>'+esc(Math.round(Number(x.efficiency)*100))+'%</td></tr>').join('')+'</tbody></table></div>':'<p class="muted">Cadastre uma equipe antes de criar atividades.</p>')+'</div>'+
   '<div class="card"><h2>Atividades e revisões</h2>'+(tasks.length?'<div class="table-wrap"><table><thead><tr><th>Atividade</th><th>Equipe</th><th>Duração</th><th>Situação</th><th>Revisão</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<p class="muted">Nenhuma atividade cadastrada.</p>')+
   (deps.length?'<h3>Precedências</h3><ul>'+dependencyList+'</ul>':'')+'</div>'+
-  inputs+errors+warnings+summary+gantt;
+  inputs+errors+warnings+summary+productivityPanel+gantt;
 }
 export function scheduleDialog(action,{state,dialog,field,esc}){
  const plan=state.schedulePlan||{},crews=plan.crews||[],tasks=plan.tasks||[];
