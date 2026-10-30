@@ -3,7 +3,7 @@ import {schedulePage,scheduleDialog,scheduleHandleForm} from './secure-schedule.
 /* Painel privado CIVOLTEN — desenvolvimento/homologação
  * Jamais usar localStorage para informações comerciais ou tokens de sessão.
  */
-const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false};
+const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleRemaining:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false};
 const app=document.querySelector('#secure-app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const BRL=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
@@ -211,6 +211,7 @@ document.addEventListener('submit',async e=>{
         api('budgets/'+state.detail.id+'/schedule-plan'),
         api('budgets/'+state.detail.id+'/schedule-progress')
       ]);
+      if(reload)state.scheduleRemaining=null;
       render();
     }});
     return;
@@ -273,12 +274,33 @@ document.addEventListener('click',async e=>{
       api('budgets/'+state.detail.id+'/schedule-plan'),
       api('budgets/'+state.detail.id+'/schedule-progress')
     ]);
-    state.schedulePreview=null;state.view='cronograma';render();return;
+    state.schedulePreview=null;state.scheduleRemaining=null;state.view='cronograma';render();return;
   }
   if(act==='schedule-back'){
     state.view='detalhe';state.detail=await api('budgets/'+state.detail.id);render();return;
   }
-  if(['schedule-add-crew','schedule-add-task','schedule-add-dependency','schedule-review-task','schedule-add-progress','schedule-review-progress'].includes(act)){
+  if(act==='schedule-run-remaining'){
+    const form=document.querySelector('#schedule-simulate-form');
+    if(!form||!form.reportValidity())return;
+    const query=new URLSearchParams(new FormData(form));
+    state.scheduleSettings=Object.fromEntries(new FormData(form));
+    state.scheduleRemaining=await api('budgets/'+state.detail.id+'/schedule-remaining?'+query.toString());
+    render();return;
+  }
+  if(['schedule-archive-task','schedule-archive-crew','schedule-remove-dependency'].includes(act)){
+    if(!window.confirm('Confirmar alteração? Atividades com medições ou vínculos em uso não serão arquivadas.'))return;
+    const base='budgets/'+state.detail.id+'/';
+    const route=act==='schedule-archive-task'?'schedule-tasks/'+btn.dataset.id:
+      act==='schedule-archive-crew'?'schedule-crews/'+btn.dataset.id:'schedule-dependencies/'+btn.dataset.id;
+    const payload={lock_version:state.schedulePlan.budget.lock_version};
+    if(act==='schedule-remove-dependency')payload.successor_id=btn.dataset.successor;
+    await api(base+route,'DELETE',payload);
+    [state.schedulePlan,state.scheduleProgress]=await Promise.all([
+      api(base+'schedule-plan'),api(base+'schedule-progress')
+    ]);
+    state.schedulePreview=null;state.scheduleRemaining=null;render();toast('Alteração auditada.');return;
+  }
+  if(['schedule-add-crew','schedule-add-task','schedule-add-dependency','schedule-review-task','schedule-add-progress','schedule-review-progress','schedule-edit-crew','schedule-edit-task'].includes(act)){
     state.scheduleTaskId=btn.dataset.id||null;
     scheduleDialog(act,{state,dialog,field,esc});return;
   }
