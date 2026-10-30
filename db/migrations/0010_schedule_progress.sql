@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS schedule_progress_measurements (
   evidence_ref TEXT NOT NULL CHECK (length(trim(evidence_ref)) BETWEEN 6 AND 180),
   evidence_notes TEXT NOT NULL CHECK (length(trim(evidence_notes)) BETWEEN 15 AND 1500),
   review_status TEXT NOT NULL DEFAULT 'pendente'
-    CHECK (review_status IN ('pendente','validado')),
+    CHECK (review_status IN ('pendente','validado','rejeitado')),
   created_by UUID NOT NULL REFERENCES app_users(id) ON DELETE RESTRICT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   reviewed_by UUID REFERENCES app_users(id) ON DELETE RESTRICT,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS schedule_progress_measurements (
   review_notes TEXT,
   CONSTRAINT schedule_progress_review_integrity CHECK
    ((review_status='pendente' AND reviewed_by IS NULL AND reviewed_at IS NULL)
-     OR (review_status='validado' AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL
+     OR (review_status IN ('validado','rejeitado') AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL
       AND review_notes IS NOT NULL AND length(trim(review_notes))>=15)),
   CONSTRAINT schedule_progress_unique_task_date UNIQUE(task_id,worked_on)
 );
