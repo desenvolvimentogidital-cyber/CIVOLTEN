@@ -62,9 +62,9 @@ export async function renderProposalDraftPdf(snapshot,{version,sha256}={}){
  }
  y-=12;print('RESUMO DE CUSTOS NAO APROVADOS',12,true);
  print('Custo direto: '+money(snapshot.costs?.direct_reais));
- print('BDI estimado: '+money(snapshot.costs?.bdi_reais));
+ print('BDI estimado: '+(snapshot.costs?.bdi_reais==null?'PENDENTE DE DEFINICAO':money(snapshot.costs.bdi_reais)));
  print('Contingencia: '+money(snapshot.costs?.contingency_reais));
- print('Total preliminar: '+money(snapshot.costs?.total_reais),13,true);
+ print('Total preliminar: '+(snapshot.costs?.total_reais==null?'NAO DETERMINADO; BDI PENDENTE':money(snapshot.costs.total_reais)),13,true);
  y-=12;print('CONDICOES DE PAGAMENTO',12,true);print(snapshot.payment_terms);
  print('Validade proposta: '+(Number.isSafeInteger(Number(snapshot.validity_days))&&snapshot.validity_days!=null&&Number(snapshot.validity_days)>0?String(snapshot.validity_days)+' dias (nao iniciada)':'A DEFINIR; sem validade comercial'));
  y-=12;print('EXCLUSOES',12,true);print(snapshot.exclusions);
