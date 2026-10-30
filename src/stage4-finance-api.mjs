@@ -3,6 +3,7 @@
  */
 import {randomUUID,createHash} from 'node:crypto';
 import {handleStage2} from './costing-api.mjs';
+import {renderProposalDraftPdf} from './proposal-draft-pdf.mjs';
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[89ab0-9a-f]{12}$/i.test(v);
 const canWrite=user=>['administrador','orcamentista'].includes(user.role);
 const canReview=user=>['administrador','revisor'].includes(user.role);
@@ -36,7 +37,7 @@ export async function readCostEstimate(ctx,budgetId){
 const money=n=>Number(Math.round(Number(n)*100)/100);
 export async function handleStage4(ctx){
  const {req,res,sql,user,parts,method,send,readBody}=ctx;
- const [resource,budgetId,sub,fourth]=parts;
+ const [resource,budgetId,sub,fourth,fifth]=parts;
  if(resource!=='budgets'||!['proposal-drafts','financial-actuals','financial-summary'].includes(sub))return false;
  const done=(code,data)=>{send(res,code,data);return true};
  if(!uuid(budgetId))return done(400,{error:'Orçamento inválido'});
@@ -89,6 +90,18 @@ export async function handleStage4(ctx){
    const drafts=await sql.query(`SELECT id,version,budget_lock_version,snapshot,snapshot_sha256,
      status,created_at FROM proposal_draft_snapshots WHERE id=$1 AND budget_id=$2`,[fourth,budgetId]);
    if(!drafts.length)return done(404,{error:'Rascunho inexistente'});
+   if(fifth==='pdf'){
+    const pdf=await renderProposalDraftPdf(drafts[0].snapshot,{
+      version:drafts[0].version,sha256:drafts[0].snapshot_sha256});
+    res.statusCode=200;
+    res.setHeader('Content-Type','application/pdf');
+    res.setHeader('Content-Disposition','attachment; filename="civolten-rascunho-v'+drafts[0].version+'.pdf"');
+    res.setHeader('Cache-Control','private, no-store');
+    res.setHeader('X-Content-Type-Options','nosniff');
+    res.end(pdf);
+    return true;
+   }
+   if(fifth)return done(404,{error:'Arquivo não encontrado'});
    return done(200,{...drafts[0],stale:budget.lock_version!==drafts[0].budget_lock_version,
     commercial_release:false});
   }
