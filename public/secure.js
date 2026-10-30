@@ -3,7 +3,7 @@ import {schedulePage,scheduleDialog,scheduleHandleForm} from './secure-schedule.
 /* Painel privado CIVOLTEN — desenvolvimento/homologação
  * Jamais usar localStorage para informações comerciais ou tokens de sessão.
  */
-const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false};
+const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false};
 const app=document.querySelector('#secure-app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const BRL=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
@@ -207,7 +207,10 @@ document.addEventListener('submit',async e=>{
   }
   if(form.id.startsWith('schedule-')){
     await scheduleHandleForm(form,{state,api,toast,refresh:async reload=>{
-      if(reload)state.schedulePlan=await api('budgets/'+state.detail.id+'/schedule-plan');
+      if(reload)[state.schedulePlan,state.scheduleProgress]=await Promise.all([
+        api('budgets/'+state.detail.id+'/schedule-plan'),
+        api('budgets/'+state.detail.id+'/schedule-progress')
+      ]);
       render();
     }});
     return;
@@ -266,13 +269,16 @@ document.addEventListener('click',async e=>{
     await loadLists();render();toast('Ação registrada na auditoria.');return;
   }
   if(act==='open-schedule'){
-    state.schedulePlan=await api('budgets/'+state.detail.id+'/schedule-plan');
+    [state.schedulePlan,state.scheduleProgress]=await Promise.all([
+      api('budgets/'+state.detail.id+'/schedule-plan'),
+      api('budgets/'+state.detail.id+'/schedule-progress')
+    ]);
     state.schedulePreview=null;state.view='cronograma';render();return;
   }
   if(act==='schedule-back'){
     state.view='detalhe';state.detail=await api('budgets/'+state.detail.id);render();return;
   }
-  if(['schedule-add-crew','schedule-add-task','schedule-add-dependency','schedule-review-task'].includes(act)){
+  if(['schedule-add-crew','schedule-add-task','schedule-add-dependency','schedule-review-task','schedule-add-progress','schedule-review-progress'].includes(act)){
     state.scheduleTaskId=btn.dataset.id||null;
     scheduleDialog(act,{state,dialog,field,esc});return;
   }
