@@ -170,3 +170,21 @@ body{background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,syst
  .card{box-shadow:none;break-inside:avoid}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* Busca inteligente de serviços SIURB dentro de Adicionar Serviço. */
+.catalog-results{border:1px solid var(--border);border-radius:12px;background:var(--surface);max-height:252px;overflow-y:auto;overscroll-behavior:contain;margin:5px 0 9px}
+.catalog-results[hidden],.catalog-more[hidden],#catalog-selection[hidden]{display:none!important}
+.catalog-results>p{margin:0;padding:18px 15px}
+.service-option{display:flex;width:100%;flex-direction:column;gap:7px;text-align:left;padding:12px 13px;background:transparent;color:var(--text);border:0;border-bottom:1px solid var(--border);cursor:pointer}
+.service-option:last-child{border-bottom:0}
+.service-option:hover,.service-option:focus-visible{background:var(--orange-bg);color:var(--text)}
+.service-title{font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.service-title strong{display:inline-block;color:var(--orange);margin-right:6px}
+.service-meta{color:var(--muted);font-size:11px;line-height:1.4}
+.service-meta strong{color:var(--text)}
+.catalog-more{width:100%;margin:0 0 15px}
+.catalog-total{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:16px;margin:17px 0;background:var(--orange-bg);border:1px solid var(--border);border-radius:12px;font-size:13px;font-weight:650}
+.catalog-total strong{font-size:19px;color:var(--text);font-variant-numeric:tabular-nums}
+#catalog-selection .btn{min-height:32px;font-size:12px;padding:5px 10px;margin:7px 0 0}
+@media(max-width:620px){.catalog-total{align-items:flex-start;flex-direction:column}.catalog-total strong{font-size:22px}.catalog-results{max-height:220px}.service-option{padding:14px 11px}.service-title{font-size:12.5px}}
