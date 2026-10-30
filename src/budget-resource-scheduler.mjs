@@ -55,6 +55,8 @@ export function planResourceSchedule(services=[],options={}){
    throw Object.assign(new Error('Defasagem entre serviços inválida'),{status:400});
   insert(String(d.predecessor_item_id),String(d.successor_item_id),lag,'dependencia_manual');
  }
+ // O tempo técnico de espera é após cada atividade, não um dia de mão de obra.
+ for(const e of relations.values())e.lag+=byId.get(e.predecessor_id).wait_workdays;
  const edges=[...relations.values()];
  const predecessors=new Map(steps.map(x=>[x.id,[]])),successors=new Map(steps.map(x=>[x.id,[]]));
  for(const e of edges){predecessors.get(e.successor_id).push(e);successors.get(e.predecessor_id).push(e)}
