@@ -9,7 +9,7 @@ const app=document.querySelector('#secure-app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const BRL=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
 const writeable=()=>state.user&&['administrador','orcamentista'].includes(state.user.role);
-const theme=()=>{const pref=localStorage.getItem('civolten-theme')||'auto';document.documentElement.classList.toggle('dark',pref==='dark'||(pref==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches))};
+const theme=()=>{const pref=localStorage.getItem('civolten-theme')||'auto';const dark=pref==='dark'||(pref==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',dark);document.documentElement.dataset.theme=dark?'dark':'light'};
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>theme());
 const toast=(message,isError=false)=>{document.querySelector('.toast')?.remove();const el=document.createElement('div');el.className='toast'+(isError?' error':'');el.textContent=message;document.body.append(el);setTimeout(()=>el.remove(),4500)};
 async function api(path,method='GET',payload){
@@ -50,44 +50,81 @@ function selectField(label,name,items,value='',placeholder='Selecione'){
  items.map(x=>'<option value="'+esc(x.id)+'" '+(String(x.id)===String(value)?'selected':'')+'>'+esc(x.title||x.name||x.code)+'</option>').join('')+'</select></div>';
 }
 function textareaField(label,name,value='',required=false){return '<div class="field"><label for="f_'+esc(name)+'">'+esc(label)+'</label><textarea name="'+esc(name)+'" '+(required?'required':'')+'>'+esc(value)+'</textarea></div>'}
-const nav=[['inicio','Painel'],['clientes','Clientes'],['obras','Obras'],['orcamentos','Orçamentos'],['usuarios','Usuários']];
-function navHTML(){
- return nav.filter(([id])=>id!=='usuarios'||state.user?.role==='administrador').map(([id,text])=>'<button class="nav '+(state.view===id?'active':'')+'" data-action="view" data-view="'+id+'">'+esc(text)+'</button>').join('');
+const nav=[['inicio','Painel','home'],['clientes','Clientes','users'],['obras','Obras','hardhat'],['orcamentos','Orçamentos','file'],['usuarios','Usuários','settings']];
+const iconShapes={
+ home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
+ users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+ hardhat:'<path d="M2 18v-2h20v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2ZM5 16V9a7 7 0 0 1 14 0v7M12 3v8"/>',
+ file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/>',
+ settings:'<path d="M12 8v8M8 12h8"/><circle cx="12" cy="12" r="9"/>',
+ logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+ moon:'<path d="M20.8 14A9 9 0 0 1 10 3.2 9 9 0 1 0 20.8 14z"/>',
+ shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+ key:'<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9 2 2-3 3 2 2-3 3-2-2-2 2"/>',
+ chevron:'<path d="m9 18 6-6-6-6"/>'
+};
+function ico(name){return '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+(iconShapes[name]||iconShapes.file)+'</svg>'}
+function navHTML(mobile=false){
+ return nav.filter(([id])=>id!=='usuarios'||state.user?.role==='administrador')
+ .map(([id,text,icon])=>'<button type="button" class="'+(mobile?'mobile-link':'nav-link')+(state.view===id?' active':'')+'" data-action="view" data-view="'+id+'" '+(state.view===id?'aria-current="page"':'')+'>'+ico(icon)+'<span>'+esc(text)+'</span></button>').join('');
 }
 function shell(){
- app.innerHTML='<div class="layout"><aside class="sidebar">'+brand()+'<div class="muted tiny">GESTÃO SEGURA · DESENVOLVIMENTO</div>'+navHTML()+
- '<div class="bottom"><button class="btn block" style="margin-bottom:8px" data-action="password-modal">Alterar senha</button><button class="btn block" data-action="logout">Sair da conta</button></div></aside>'+
- '<div class="main"><header class="topbar"><div><strong>CIVOLTEN</strong><div class="muted tiny">Banco PostgreSQL • Neon</div></div><div class="actions"><span class="tag">'+esc(state.user.login)+' · '+esc(state.user.role)+'</span><button class="btn" data-action="theme">Aparência</button><button class="btn" data-action="logout">Sair</button></div></header><div class="container" id="private-content"></div></div>'+
- '<nav class="menu-mobile">'+navHTML()+'</nav></div>';
+ const role=state.user.role==='administrador'?'Administrador':state.user.role==='orcamentista'?'Orçamentista':state.user.role==='revisor'?'Revisor':'Consulta';
+ app.innerHTML='<div class="layout secure-layout"><aside class="sidebar" aria-label="Navegação principal"><div class="brand">'+brand()+'</div>'+
+ '<div class="sidebar-caption">SISTEMA DE ORÇAMENTOS</div><nav class="nav" aria-label="Módulos">'+navHTML()+'</nav>'+
+ '<div class="nav-btm"><div class="mini-company"><img src="/assets/icone.png" alt=""/><div><strong>CIVOLTEN</strong><span>Sistema de gestão</span></div></div>'+
+ '<button type="button" class="sidebar-action" data-action="password-modal">'+ico('key')+' Alterar senha</button>'+
+ '<button type="button" class="sidebar-action" data-action="logout">'+ico('logout')+' Sair da conta</button></div></aside>'+
+ '<div class="workarea"><header class="topbar"><div class="mobile-top">'+brand()+'</div>'+
+ '<div class="header-identity"><span class="eyebrow">ÁREA DE TRABALHO</span><strong>CIVOLTEN <span class="header-divider">/</span> Orçamentos</strong></div>'+
+ '<div class="header-actions"><span class="session-pill">'+ico('shield')+' Banco conectado</span>'+
+ '<button type="button" class="icon-btn secure-theme" data-action="theme" aria-label="Alternar entre tema automático, claro e escuro" title="Alternar aparência">'+ico(document.documentElement.dataset.theme==='dark'?'moon':'sun')+'</button>'+
+ '<div class="user-chip"><div class="user-dot">'+ico('users')+'</div><span class="user-identity">'+esc(state.user.login)+'<small>'+esc(role)+'</small></span></div>'+
+ '<button type="button" class="icon-btn secure-logout" data-action="logout" title="Sair da conta" aria-label="Sair da conta">'+ico('logout')+'</button></div></header>'+
+ '<main class="content secure-content"><div class="workspace-note">'+ico('shield')+' <span><strong>Ambiente interno:</strong> dados registrados no banco CIVOLTEN. Propostas contratuais seguem bloqueadas até homologação.</span></div>'+
+ '<div id="private-content"></div></main></div><nav class="mobile-nav" aria-label="Navegação no celular">'+navHTML(true)+'</nav></div>';
 }
+
 async function loadLists(){
  const [a,b,c]=await Promise.all([api('clients'),api('projects'),api('budgets')]);
  state.clients=a;state.projects=b;state.budgets=c;
  state.users=state.user?.role==='administrador'?await api('users'):[];
 }
 function heading(title,subtitle,button='',action=''){
- return '<div class="row"><div><h1>'+esc(title)+'</h1><p class="muted">'+esc(subtitle)+'</p></div>'+
- (button&&writeable()?'<button class="btn primary" data-action="'+esc(action)+'">+ '+esc(button)+'</button>':'')+'</div>';
+ return '<div class="page-title"><div><div class="breadcrumb">CIVOLTEN / '+esc(title)+'</div><h1>'+esc(title)+'</h1><p>'+esc(subtitle)+'</p></div>'+
+ (button&&writeable()?'<button type="button" class="btn primary btn-primary" data-action="'+esc(action)+'">+ '+esc(button)+'</button>':'')+'</div>';
 }
-function empty(message){return '<div class="card"><p class="muted">'+esc(message)+'</p></div>'}
+function empty(message){return '<div class="card empty-state">'+ico('file')+'<h2>Nenhum registro por enquanto</h2><p>'+esc(message)+'</p></div>'}
 function listRows(items,cols){
- return '<div class="card table-wrap"><table><thead><tr>'+cols.map(c=>'<th>'+esc(c.title)+'</th>').join('')+'</tr></thead><tbody>'+
+ return '<div class="card table-wrap"><table class="table"><thead><tr>'+cols.map(c=>'<th>'+esc(c.title)+'</th>').join('')+'</tr></thead><tbody>'+
  items.map(item=>'<tr>'+cols.map(c=>'<td>'+c.render(item)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
 }
-function statusPill(x){return '<span class="tag">'+esc(x||'rascunho')+'</span>'}
+function statusPill(x){return '<span class="tag status-pill">'+esc(x||'rascunho')+'</span>'}
+
 function actions(x,kind){
  let btn='<button class="btn" data-action="edit-'+kind+'" data-id="'+esc(x.id)+'">Editar</button>';
  if(kind==='budget')btn='<button class="btn" data-action="detail-budget" data-id="'+esc(x.id)+'">Abrir</button> '+btn;
  return writeable()?btn+' <button class="btn danger" data-action="archive-'+kind+'" data-id="'+esc(x.id)+'">'+(kind==='budget'?'Cancelar':'Arquivar')+'</button>':kind==='budget'?'<button class="btn" data-action="detail-budget" data-id="'+esc(x.id)+'">Abrir</button>':'—';
 }
 function dashboard(){
- return heading('Painel administrativo','Informações salvas no PostgreSQL, acessíveis com sua conta.')+
- '<div class="grid"><div class="card"><div class="muted">Clientes</div><div class="metric">'+state.clients.length+'</div></div>'+
- '<div class="card"><div class="muted">Obras</div><div class="metric">'+state.projects.length+'</div></div>'+
- '<div class="card"><div class="muted">Orçamentos</div><div class="metric">'+state.budgets.length+'</div></div></div>'+
- '<div class="card"><h2>Controle de qualidade</h2><p>Os orçamentos persistidos nesta etapa são <strong>rascunhos</strong>. A proposta contratual e o cronograma definitivo continuam bloqueados até a homologação.</p>'+
- '<p class="muted">A gestão nesta área não utiliza os dados fictícios da demonstração. Fonte oficial SIURB, BDI e engenharia de custos serão integrados por etapas e terão revisão obrigatória.</p></div>';
+ return heading('Visão geral','Acompanhe sua operação e encontre as ferramentas para montar seus orçamentos.')+
+ '<div class="grid dashboard-kpis">'+
+ [['Clientes',state.clients.length,'users','Cadastros ativos'],['Obras',state.projects.length,'hardhat','Projetos cadastrados'],['Orçamentos',state.budgets.length,'file','Documentos em elaboração']].map(([name,total,icon,detail])=>
+ '<div class="card stat-card"><div class="stat-icon">'+ico(icon)+'</div><div><div class="stat-label">'+esc(name)+'</div><div class="stat-value">'+total+'</div><div class="stat-sub">'+esc(detail)+'</div></div></div>').join('')+
+ '</div><div class="grid dashboard-panels"><section class="card dashboard-panel"><div class="panel-head">'+ico('file')+'<h2>Comece por aqui</h2></div>'+
+ '<p class="muted">Cadastre o cliente, registre a obra e prepare o orçamento com os custos e as informações técnicas.</p>'+
+ '<div class="dashboard-steps"><div><span>01</span><strong>Clientes</strong><small>Organize os dados da empresa ou pessoa</small></div>'+
+ '<div><span>02</span><strong>Obras</strong><small>Vincule a execução ao cliente</small></div>'+
+ '<div><span>03</span><strong>Orçamentos</strong><small>Monte custos e serviços</small></div></div>'+
+ '<div class="actions"><button type="button" class="btn primary btn-primary" data-action="view" data-view="clientes">Abrir clientes '+ico('chevron')+'</button>'+
+ '<button type="button" class="btn" data-action="view" data-view="orcamentos">Ver orçamentos</button></div></section>'+
+ '<section class="card dashboard-panel status-panel"><div class="panel-head">'+ico('shield')+'<h2>Controle e segurança</h2></div>'+
+ '<span class="tag status-pill">Modo interno de testes</span>'+
+ '<p>Suas alterações neste painel são gravadas no banco PostgreSQL. Use dados fictícios enquanto testa as funcionalidades.</p>'+
+ '<p class="muted tiny">A emissão comercial de propostas e contratos ainda depende de revisão de custos, tributação e homologação.</p></section></div>';
 }
+
 function clientPage(){
  return heading('Clientes','Cadastro persistente com histórico no banco de desenvolvimento.','Novo cliente','new-client')+
  (state.clients.length?listRows(state.clients,[
@@ -268,7 +305,7 @@ document.addEventListener('click',async e=>{
  try{
   if(act==='retry'){await init();return}
   if(act==='login-view'||act==='setup-view'){state.mode=act==='setup-view'?'setup':'login';render();return}
-  if(act==='theme'){const order=['auto','light','dark'],next=order[(order.indexOf(localStorage.getItem('civolten-theme')||'auto')+1)%3];localStorage.setItem('civolten-theme',next);theme();toast('Aparência: '+(next==='auto'?'automático':next==='light'?'claro':'escuro'));return}
+  if(act==='theme'){const order=['auto','light','dark'],next=order[(order.indexOf(localStorage.getItem('civolten-theme')||'auto')+1)%3];localStorage.setItem('civolten-theme',next);theme();render();toast('Aparência: '+(next==='auto'?'automático':next==='light'?'claro':'escuro'));return}
   if(act==='close-dialog'){document.querySelector('#secure-dialog')?.remove();return}
   if(act==='logout'){await api('auth/logout','POST',{});state.user=null;state.mode='login';render();return}
   if(act==='view'){await changeView(btn.dataset.view);return}

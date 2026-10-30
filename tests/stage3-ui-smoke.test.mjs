@@ -54,6 +54,8 @@ test('edição de equipe/atividade exige explicação sobre medição e revogaç
 test('layout mantém modo claro/escuro e Gantt para celular',async()=>{
  const css=await readFile(new URL('../public/secure.css',import.meta.url),'utf8');
  assert.ok(css.includes('.schedule-gantt-row'));
- assert.ok(css.includes('@media(max-width:800px)'));
- assert.ok(css.includes('.dark'));
+ assert.ok(css.includes('@media(max-width:900px)'));
+ assert.ok(css.includes("@import url('/style.css')"));
+ const html=await readFile(new URL('../public/secure.html',import.meta.url),'utf8');
+ assert.ok(html.includes('document.documentElement.dataset.theme'));
 });
