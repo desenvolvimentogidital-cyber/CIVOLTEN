@@ -28,34 +28,38 @@ export async function handleScheduleProgress({req,res,sql,user,parts,method,send
  const budgets=await sql.query('SELECT id,lock_version,status FROM budgets WHERE id=$1',[budgetId]);
  if(!budgets.length)return done(404,{error:'Orçamento não encontrado'});
  if(method==='GET'&&!measurementId){
+  // A listagem é recente, mas o total é calculado com TODO o histórico validado.
+  // Nunca truncar resultados financeiros/operacionais em função da paginação.
   const [measurements,tasks]=await Promise.all([
    sql.query(`SELECT m.id,m.task_id,t.title AS task_title,m.worked_on,m.completed_quantity,m.workers,
       m.hours_per_worker,m.actual_person_hours,m.evidence_ref,m.evidence_notes,m.review_status,
       m.reviewed_at,m.review_notes,m.created_at
       FROM schedule_progress_measurements m JOIN schedule_tasks t ON t.id=m.task_id
-      WHERE m.budget_id=$1 ORDER BY m.worked_on DESC,m.created_at DESC LIMIT 1000`,[budgetId]),
+      WHERE m.budget_id=$1 ORDER BY m.worked_on DESC,m.created_at DESC LIMIT 200`,[budgetId]),
    sql.query(`SELECT t.id,t.title,t.budget_item_id,bi.unit,bi.quantity AS planned_quantity,
-      bi.direct_labor_hh_unit,bi.labor_review_state
+      bi.direct_labor_hh_unit,bi.labor_review_state,
+      COALESCE(SUM(m.completed_quantity) FILTER(WHERE m.review_status='validado'),0) AS validated_quantity,
+      COALESCE(SUM(m.actual_person_hours) FILTER(WHERE m.review_status='validado'),0) AS validated_person_hours,
+      COUNT(m.id) FILTER(WHERE m.review_status='pendente')::integer AS pending_evidence_count
       FROM schedule_tasks t LEFT JOIN budget_items bi ON bi.id=t.budget_item_id
-      WHERE t.budget_id=$1 ORDER BY t.title`,[budgetId])
+      LEFT JOIN schedule_progress_measurements m ON m.task_id=t.id AND m.budget_id=$1
+      WHERE t.budget_id=$1 GROUP BY t.id,bi.id ORDER BY t.title`,[budgetId])
   ]);
   const summaries=tasks.map(t=>{
-   const approved=measurements.filter(m=>m.task_id===t.id&&m.review_status==='validado');
-   const pending=measurements.filter(m=>m.task_id===t.id&&m.review_status==='pendente');
-   const doneQty=approved.reduce((sum,m)=>sum+Number(m.completed_quantity),0);
-   const doneHH=approved.reduce((sum,m)=>sum+Number(m.actual_person_hours),0);
+   const doneQty=Number(t.validated_quantity),doneHH=Number(t.validated_person_hours);
    const target=t.budget_item_id?Number(t.planned_quantity):null;
    const progress=target>0?round4(doneQty/target*100):null;
    return {task_id:t.id,title:t.title,completed_quantity:round4(doneQty),
     validated_person_hours:round4(doneHH),observed_hh_per_unit:doneQty>0?round4(doneHH/doneQty):null,
     planned_quantity:target,unit:t.unit||null,progress_pct:progress,
-    pending_evidence_count:pending.length,
+    pending_evidence_count:t.pending_evidence_count,
     exceeds_budget_quantity:progress!=null&&progress>100,
     official_labor_hh_per_unit:['revisado','validado','aprovado'].includes(t.labor_review_state)?
       Number(t.direct_labor_hh_unit)||null:null};
   });
-  return done(200,{budget:budgets[0],measurements,summaries,
-   note:'Somente medições validadas entram na produtividade; quantidades e horas não autorizam preço ou prazo contratual.',
+  return done(200,{budget:budgets[0],measurements,summaries,shown_latest_measurements:measurements.length,
+   totals_include_full_history:true,
+   note:'Somente medições validadas entram na produtividade; mostra até 200 evidências recentes, com totais calculados em todo o banco. Não autoriza preço ou prazo contratual.',
    commercial_release:false});
  }
  if(!['POST','PUT'].includes(method))return done(405,{error:'Método não permitido'});
