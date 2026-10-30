@@ -44,6 +44,7 @@ export function planResourceSchedule(services=[],options={}){
   const walls=stages.get('alvenaria')||[],coats=stages.get('chapisco')||[],renders=stages.get('reboco')||[];
   for(const a of walls)for(const c of coats)insert(a.id,c.id,0,'precedencia_sugerida');
   for(const c of coats)for(const r of renders)insert(c.id,r.id,0,'precedencia_sugerida');
+  if(!coats.length)for(const a of walls)for(const r of renders)insert(a.id,r.id,0,'precedencia_sugerida_sem_chapisco');
   if(walls.length&&renders.length&&!coats.length)missing.push({
    code:'missing_chapisco',front,title:'Chapisco não encontrado na frente '+front,
    message:'Confirme se o chapisco já está incluído numa composição. Se não estiver, acrescente-o ao orçamento. Nenhuma quantidade ou custo foi criado automaticamente.'
