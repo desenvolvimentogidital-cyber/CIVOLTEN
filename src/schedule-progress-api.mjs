@@ -109,7 +109,7 @@ export async function handleScheduleProgress({req,res,sql,user,parts,method,send
    WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now()
      WHERE id=$1 AND lock_version=$2 AND status='rascunho'
        AND EXISTS(SELECT 1 FROM schedule_progress_measurements
-          WHERE id=$3 AND budget_id=$1 AND review_status='pendente')
+          WHERE id=$3 AND budget_id=$1 AND review_status='pendente' AND created_by<>$6)
      RETURNING id),
    reviewed AS (UPDATE schedule_progress_measurements SET
      review_status=$4,review_notes=$5,reviewed_by=$6,reviewed_at=now()
