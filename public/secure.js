@@ -5,7 +5,7 @@ import {showServiceCatalog,showOfficialServiceEdit} from './secure-service-picke
 /* Painel privado CIVOLTEN — desenvolvimento/homologação
  * Jamais usar localStorage para informações comerciais ou tokens de sessão.
  */
-const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleRemaining:null,finance:null,financeSelected:null,financeDraft:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false};
+const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleRemaining:null,scheduleWorkforce:null,scheduleWorkforceSettings:null,finance:null,financeSelected:null,financeDraft:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false};
 const app=document.querySelector('#secure-app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const BRL=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
@@ -263,6 +263,14 @@ document.addEventListener('submit',async e=>{
       render();
     }});return;
   }
+  if(form.id==='workforce-settings-form'){
+    const args=Object.fromEntries(new FormData(form).entries());
+    const q=new URLSearchParams(args);
+    const estimate=await api('budgets/'+state.detail.id+'/workforce-estimate?'+q);
+    state.scheduleWorkforceSettings=args;
+    state.scheduleWorkforce=estimate;
+    render();toast('Sugestão de equipes recalculada.');return;
+  }
   if(form.id.startsWith('schedule-')){
     await scheduleHandleForm(form,{state,api,toast,refresh:async reload=>{
       if(reload)[state.schedulePlan,state.scheduleProgress]=await Promise.all([
@@ -360,10 +368,14 @@ document.addEventListener('click',async e=>{
     financeDialog(act,{state,dialog,esc});return;
   }
   if(act==='open-schedule'){
-    [state.schedulePlan,state.scheduleProgress]=await Promise.all([
-      api('budgets/'+state.detail.id+'/schedule-plan'),
-      api('budgets/'+state.detail.id+'/schedule-progress')
+    const base='budgets/'+state.detail.id+'/';
+    const parameters=new URLSearchParams(state.scheduleWorkforceSettings||{});
+    const [plan,progress,workforce]=await Promise.all([
+      api(base+'schedule-plan'),
+      api(base+'schedule-progress'),
+      api(base+'workforce-estimate?'+parameters.toString()).catch(e=>({error:e.message}))
     ]);
+    state.schedulePlan=plan;state.scheduleProgress=progress;state.scheduleWorkforce=workforce;
     state.schedulePreview=null;state.scheduleRemaining=null;state.view='cronograma';render();return;
   }
   if(act==='schedule-back'){
