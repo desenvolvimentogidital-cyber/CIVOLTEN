@@ -164,6 +164,33 @@ test('Etapa 2: SIURB canônica, custo auditado, BDI parametrizado, extras e risc
     lock_version:costs.budget.lock_version,source:'SIURB',reference_price_id:priceMissing,
     quantity_verified:true,composition_reviewed:true,loss_pct:0
   }),400);
+  // Planejamento sem equipes: salvar frente, espera e dependências com auditoria.
+  let planning=expect(await call('budgets/'+budget+'/planning-config'),200);
+  assert.deepEqual(planning.fronts,[]);
+  assert.deepEqual(planning.dependencies,[]);
+  expect(await call('budgets/'+budget+'/planning-config','PUT',{
+    lock_version:planning.budget.lock_version,budget_item_id:item.id,
+    work_front:'Área interna',wait_workdays:2}),200);
+  planning=expect(await call('budgets/'+budget+'/planning-config'),200);
+  assert.equal(planning.fronts[0].work_front,'Área interna');
+  assert.equal(planning.fronts[0].wait_workdays,2);
+  expect(await call('budgets/'+budget+'/planning-config','POST',{
+    lock_version:planning.budget.lock_version,predecessor_item_id:item.id,
+    successor_item_id:itemMissing.id,lag_workdays:1}),200);
+  planning=expect(await call('budgets/'+budget+'/planning-config'),200);
+  assert.equal(planning.dependencies.length,1);
+  expect(await call('budgets/'+budget+'/planning-config','POST',{
+    lock_version:planning.budget.lock_version,predecessor_item_id:itemMissing.id,
+    successor_item_id:item.id,lag_workdays:0}),409);
+  expect(await call('budgets/'+budget+'/planning-config','DELETE',{
+    lock_version:planning.budget.lock_version,predecessor_item_id:item.id,
+    successor_item_id:itemMissing.id}),200);
+  planning=expect(await call('budgets/'+budget+'/planning-config'),200);
+  assert.deepEqual(planning.dependencies,[]);
+  assert.equal(planning.budget.status,'rascunho');
+  const estimateFront=expect(await call('budgets/'+budget+'/workforce-estimate?available_workers=5'),200);
+  assert.ok(estimateFront.resource_schedule);
+  assert.equal(estimateFront.resource_schedule.ready,false,'Serviço sem coeficiente impede prazo fechado');
   const audit=await sql.query("SELECT action FROM audit_events WHERE entity_type IN ('budgets','budget_items','budget_extra_direct_costs') AND (entity_id=$1 OR entity_id=$2)",[budget,item.id]);
   assert.ok(audit.length>=2);
   const c=await sql.query('SELECT count(*)::int AS rows FROM budget_costing_profiles WHERE budget_id=$1',[budget]);
