@@ -61,7 +61,9 @@ export function buildWorkforceEstimate(items,settings={}){
   }):[];
   const workers=roles.length?roles.reduce((s,r)=>s+r.workers,0):Math.max(1,Math.ceil(personHours/capacity));
   const crews=Math.ceil(workers/crewSize);
-  const daysAtStaff= Math.max(1,Math.ceil(personHours/(workers*daily)));
+  // A função mais lenta limita a conclusão: não basta dividir o total de h-h pelo efetivo geral.
+  const daysAtStaff=roles.length?Math.max(...roles.map(r=>Math.ceil(r.projected_hh/(r.workers*daily))),1):
+   Math.max(1,Math.ceil(personHours/(workers*daily)));
   const notes=['Referência de horas-homem diretas: possíveis auxiliares, mobilização e perdas não computados.'];
   if(!validChecked)notes.push('Coeficiente SIURB parcial, ainda não revisado para esta obra.');
   if(!consistent)notes.push('Distribuição por profissão indisponível ou divergente; dimensionamento somente total.');

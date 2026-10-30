@@ -73,6 +73,31 @@ test('Etapa 2: SIURB canônica, custo auditado, BDI parametrizado, extras e risc
   assert.equal(manpower.services[0].crews,1);
   assert.equal(manpower.services[0].roles[0].name,'Mão de obra fictícia');
   assert.equal(manpower.commercial_release,false);
+  assert.equal(manpower.duration.parallel_workdays,1);
+  assert.equal(manpower.duration.sequential_workdays,1);
+  assert.equal(manpower.role_totals.parallel_workers,1);
+  assert.equal(manpower.costs.labor_estimated,null);
+  const companyBefore=expect(await call('company-costs'),200);
+  assert.deepEqual(companyBefore.rates,[]);
+  expect(await call('company-costs/rates','PUT',{
+    role_code:'QA-TRABALHO',role_name:'Mão de obra fictícia',hourly_employer_cost:'25.00'
+  }),200);
+  expect(await call('company-costs/overhead','PUT',{
+    monthly_overhead:'2200.00',workdays_per_month:22
+  }),200);
+  const newWorker=expect(await call('company-costs/workers','POST',{
+    display_name:'Profissional QA Fictício',role_code:'QA-TRABALHO',role_name:'Mão de obra fictícia',
+    monthly_employer_cost:'4400.00'
+  }),201);
+  assert.equal(newWorker.active,true);
+  const companyAfter=expect(await call('company-costs'),200);
+  assert.equal(companyAfter.workers.length,1);
+  assert.equal(Number(companyAfter.overhead.monthly_overhead),2200);
+  const costed=expect(await call('budgets/'+budget+'/workforce-estimate?target_days=5&hours_day=8&efficiency_pct=85&crew_size=4'),200);
+  assert.equal(costed.costs.labor_estimated,200);
+  assert.equal(costed.costs.overhead_parallel,100);
+  assert.equal(costed.costs.total_parallel,300);
+  assert.equal(costed.roles[0].parallel_workers,1);
   expect(await call('budgets/'+budget+'/workforce-estimate?target_days=0'),400);
   expect(await call('budgets/'+budget+'/siurb-items','POST',{lock_version:0,reference_price_id:price,position:2,quantity:'3'}),409);
   let costs=expect(await call('budgets/'+budget+'/costs'),200);

@@ -3,6 +3,7 @@
  * Não altera preços, contratos, orçamento ou equipe no banco.
  */
 const nfmt=n=>new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2}).format(Number(n)||0);
+const professionLabel=name=>/\bSERVENTE\b/i.test(String(name))?'Ajudante / servente':String(name||'').replace(/\s*\(SGSP\)\s*/gi,'').trim();
 export function workforcePanel(data,esc){
  if(!data)return '<div class="card workforce-wait"><h2>Serviços e equipes sugeridas</h2><p class="muted">Consultando os serviços do seu orçamento e calculando a mão de obra necessária…</p></div>';
  if(data.error)return '<div class="card workforce-wait" role="alert"><h2>Não foi possível calcular</h2><p class="danger">'+esc(data.error)+'</p><p class="muted">A lista de serviços no orçamento continua preservada. Atualize a página para tentar novamente.</p></div>';
@@ -15,7 +16,7 @@ export function workforcePanel(data,esc){
   sbox('Equipes · sequencial',s.sequential_peak_crews??0,'Reaproveitando pessoal')+'</div>';
  const services=items.map((item,i)=>{
   const roles=item.roles?.length?item.roles.map(role=>
-    '<span class="workforce-role">'+esc(role.name)+' <strong>'+esc(role.workers)+'</strong></span>').join(''):
+    '<span class="workforce-role">'+esc(professionLabel(role.name))+' <strong>'+esc(role.workers)+'</strong></span>').join(''):
     '<span class="muted tiny">Composição por profissão não confirmada</span>';
   const has=item.workers!==null;
   const workers=has?'<strong>'+esc(item.workers)+'</strong><small>profissional(is)</small>':
@@ -45,6 +46,26 @@ export function workforcePanel(data,esc){
   '<div class="field"><label for="wf-efficiency">Eficiência estimada (%)</label><input id="wf-efficiency" type="number" name="efficiency_pct" min="50" max="100" step="1" value="'+esc(cfg.efficiency_pct)+'" required></div>'+
   '<div class="field"><label for="wf-crew">Máximo de pessoas por equipe</label><input id="wf-crew" type="number" name="crew_size" min="1" max="20" step="1" value="'+esc(cfg.crew_size)+'" required></div>'+
   '</div><button type="submit" class="btn primary">Recalcular equipes</button></form></details>';
+ const brl=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
+ const d=data.duration||{},roles=data.roles||[],cost=data.costs;
+ const occupationRows=roles.map(r=>'<tr><td><strong>'+esc(professionLabel(r.name))+'</strong></td>'+
+   '<td><strong>'+esc(r.parallel_workers)+'</strong></td><td>'+esc(r.sequential_workers)+'</td>'+
+   (cost?'<td>'+esc(r.hourly_cost===null?'Não cadastrado':brl(r.hourly_cost))+'</td>':'')+'</tr>').join('');
+ const workforceSummary='<div class="card workforce-final-summary"><h2>Resumo final da mão de obra</h2>'+
+  '<p class="muted tiny">Os mesmos profissionais podem trabalhar em serviços diferentes. Não somamos o mesmo funcionário duas vezes quando os serviços são sequenciais.</p>'+
+  (roles.length?'<div class="table-wrap"><table class="table"><thead><tr><th>Profissão</th><th>Juntos</th><th>Em sequência</th>'+
+   (cost?'<th>Custo-hora interno</th>':'')+'</tr></thead><tbody>'+occupationRows+'</tbody></table></div>':
+   '<p class="muted">Sem composição por profissão. O total de pessoas por função depende da revisão do serviço.</p>')+
+  '<div class="workforce-total-days"><div><span>Tempo total · serviços em sequência</span><strong>'+esc(d.complete?d.sequential_workdays:'Parcial: '+(d.sequential_workdays??0))+' dias úteis</strong></div>'+
+  '<div><span>Tempo total · serviços em paralelo</span><strong>'+esc(d.complete?d.parallel_workdays:'Parcial: '+(d.parallel_workdays??0))+' dias úteis</strong></div></div>'+
+  '<p class="muted tiny">Prazos de simulação por serviço, sem dependências, retrabalho, cura, logística, clima ou caminho crítico validado.</p></div>';
+ const costPanel=cost?'<div class="card workforce-cost-summary"><div class="row"><h2>Custo interno estimado da obra</h2>'+
+   '<button type="button" class="btn primary" data-action="company-config">Cadastrar custos e profissionais</button></div>'+
+   '<div class="workforce-cost-totals"><div><span>Mão de obra estimada</span><strong>'+esc(cost.labor_estimated===null?'Aguardando custos-hora':brl(cost.labor_estimated))+'</strong></div>'+
+   '<div><span>Empresa + mão de obra · sequência</span><strong>'+esc(cost.total_sequential===null?'Aguardando despesas':brl(cost.total_sequential))+'</strong></div>'+
+   '<div><span>Empresa + mão de obra · paralelo</span><strong>'+esc(cost.total_parallel===null?'Aguardando despesas':brl(cost.total_parallel))+'</strong></div></div>'+
+   (cost.missing_rates?.length?'<p class="muted tiny">Preencha custo-hora das funções: '+cost.missing_rates.map(esc).join(', ')+'.</p>':'')+
+   '<p class="muted tiny">Valor gerencial da empresa, sem materiais, equipamentos, impostos, BDI ou margem de lucro. Não adicionar sobre a tabela SIURB sem conciliação, para evitar duplicidade.</p></div>':'';
  const info='<div class="notice tiny workforce-qualification"><strong>Estimativa, não escala de trabalho.</strong> '+
   'Cálculo com '+esc(cfg.target_days)+' dias úteis por serviço, '+esc(cfg.hours_day)+' h/dia, '+
   esc(cfg.efficiency_pct)+'% de eficiência e até '+esc(cfg.crew_size)+' pessoas por equipe. '+
@@ -63,5 +84,5 @@ export function workforcePanel(data,esc){
    '<span class="tag">'+esc(items.length)+' serviço(s)</span></div>'+
    '<div class="workforce-service-grid">'+services+'</div></div>':
    '<div class="card workforce-empty"><h3>Nenhum serviço no orçamento</h3><p>Adicione serviços ao orçamento primeiro. Eles aparecerão aqui automaticamente, sem cadastrar equipes.</p></div>')+
-  form+info+'</section>';
+  workforceSummary+costPanel+form+info+'</section>';
 }

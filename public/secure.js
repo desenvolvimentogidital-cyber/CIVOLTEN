@@ -2,6 +2,7 @@ import {costPage,costDialog,costEvidenceDialog,costHandleForm,costHandleClick} f
 import {schedulePage,scheduleDialog,scheduleHandleForm} from './secure-schedule.js';
 import {financePage,financeDialog,financeHandleForm} from './secure-finance.js';
 import {showServiceCatalog,showOfficialServiceEdit} from './secure-service-picker.js';
+import {companyCostsDialog,companyCostsSubmit} from './secure-company-costs.js';
 /* Painel privado CIVOLTEN — desenvolvimento/homologação
  * Jamais usar localStorage para informações comerciais ou tokens de sessão.
  */
@@ -263,6 +264,13 @@ document.addEventListener('submit',async e=>{
       render();
     }});return;
   }
+  if(form.id.startsWith('company-')){
+    await companyCostsSubmit(form,{state,api,toast,refresh:async()=>{
+      const q=new URLSearchParams(state.scheduleWorkforceSettings||{});
+      state.scheduleWorkforce=await api('budgets/'+state.detail.id+'/workforce-estimate?'+q);
+      render();
+    }});return;
+  }
   if(form.id==='workforce-settings-form'){
     const args=Object.fromEntries(new FormData(form).entries());
     const q=new URLSearchParams(args);
@@ -366,6 +374,10 @@ document.addEventListener('click',async e=>{
       'finance-add-receipt','finance-review-receipt','finance-add-forecast','finance-review-forecast'].includes(act)){
     state.financeSelected=btn.dataset.id||null;
     financeDialog(act,{state,dialog,esc});return;
+  }
+  if(act.startsWith('company-')){
+    await companyCostsDialog(act,{state,api,dialog,esc,id:btn.dataset.id||null});
+    return;
   }
   if(act==='open-schedule'){
     state.scheduleAdvanced=false;state.schedulePlan=null;state.scheduleProgress=null;
