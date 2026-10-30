@@ -4,6 +4,7 @@ import { neon } from '@neondatabase/serverless';
 import {validTaxId,normalizeTaxId} from '../src/documents.mjs';
 import {handleStage2} from '../src/costing-api.mjs';
 import {handleStage3} from '../src/schedule-api.mjs';
+import {handleScheduleManagement} from '../src/schedule-management-api.mjs';
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
 
 const sessionName='civolten_dev_session';
@@ -103,6 +104,8 @@ export function createApi(sql,opts={}){
    if(stage2Handled)return;
    const stage3Handled=await handleStage3({req,res,sql,user,parts,method,send:response});
    if(stage3Handled)return;
+   const scheduleManagementHandled=await handleScheduleManagement({req,res,sql,user,parts,method,send:response,readBody});
+   if(scheduleManagementHandled)return;
 
    if(resource==='auth'&&id==='change-password'&&method==='POST'){
      const b=await readBody(req);
