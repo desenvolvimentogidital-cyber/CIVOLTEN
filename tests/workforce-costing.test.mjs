@@ -65,7 +65,7 @@ test('tela exibe total por função, prazo geral, custos não configurados e aç
  const x={...estimate(),...example(),budget:{code:'ORC-QA'}};
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const html=workforcePanel(x,esc);
- for(const t of ['Resumo final da mão de obra','PEDREIRO','SERVENTE','19 dias úteis','10 dias úteis',
+ for(const t of ['Resumo final da mão de obra','PEDREIRO','Ajudante','19 dias úteis','10 dias úteis',
   'Custo interno estimado','Cadastrar custos e profissionais','Aguardando custos-hora'])
   assert.ok(html.includes(t),t);
  assert.ok(!html.includes('data-action="schedule-add-crew"'));
