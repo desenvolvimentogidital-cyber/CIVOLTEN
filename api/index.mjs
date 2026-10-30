@@ -3,6 +3,7 @@
 import { neon } from '@neondatabase/serverless';
 import {validTaxId,normalizeTaxId} from '../src/documents.mjs';
 import {handleStage2} from '../src/costing-api.mjs';
+import {handleServiceCatalog} from '../src/service-catalog-api.mjs';
 import {handleStage3} from '../src/schedule-api.mjs';
 import {handleScheduleManagement} from '../src/schedule-management-api.mjs';
 import {handleScheduleProgress} from '../src/schedule-progress-api.mjs';
@@ -117,6 +118,8 @@ export function createApi(sql,opts={}){
    if(resource==='me'&&method==='GET')return response(res,200,user);
    const stage5Handled=await handleStage5Readiness({req,res,sql,user,parts,method,send:response});
    if(stage5Handled)return;
+   const catalogHandled=await handleServiceCatalog({req,res,sql,user,parts,method,send:response});
+   if(catalogHandled)return;
    const stage2Handled=await handleStage2({req,res,sql,user,parts,method,send:response,readBody});
    if(stage2Handled)return;
    const stage3Handled=await handleStage3({req,res,sql,user,parts,method,send:response});
@@ -271,7 +274,7 @@ export function createApi(sql,opts={}){
            [itemId,id,position,description,sourceCode,unit,qty,unitCost,user.id]);
        }else{
          if(!uuid(parts[3]))return response(res,400,{error:'Serviço inválido'});
-         row=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND status='rascunho' AND EXISTS (SELECT 1 FROM budget_items WHERE id=$1 AND budget_id=$2 AND deleted_at IS NULL) RETURNING id), changed AS (UPDATE budget_items SET position=$3,source_name=$4,source_code=$5,unit=$6,quantity=$7,direct_unit_cost=$8,reference_price_id=NULL WHERE id=$1 AND budget_id=$2 AND deleted_at IS NULL AND EXISTS (SELECT 1 FROM guard) RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $9,'budget_items',changed.id,'update' FROM changed RETURNING id), deleted_reviews AS (DELETE FROM budget_item_cost_reviews WHERE budget_item_id=$1 AND EXISTS(SELECT 1 FROM changed) RETURNING budget_item_id), invalidated AS (UPDATE budget_costing_profiles SET bdi_reviewed=false,technical_reviewed=false,commercial_reviewed=false,updated_at=now() WHERE budget_id=$2 AND EXISTS(SELECT 1 FROM changed) RETURNING budget_id) SELECT changed.* FROM changed JOIN logged ON true",
+         row=await sql.query("WITH guard AS (UPDATE budgets SET lock_version=lock_version+1,updated_at=now() WHERE id=$2 AND status='rascunho' AND EXISTS (SELECT 1 FROM budget_items WHERE id=$1 AND budget_id=$2 AND deleted_at IS NULL AND reference_price_id IS NULL) RETURNING id), changed AS (UPDATE budget_items SET position=$3,source_name=$4,source_code=$5,unit=$6,quantity=$7,direct_unit_cost=$8,reference_price_id=NULL WHERE id=$1 AND budget_id=$2 AND deleted_at IS NULL AND reference_price_id IS NULL AND EXISTS (SELECT 1 FROM guard) RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $9,'budget_items',changed.id,'update' FROM changed RETURNING id), deleted_reviews AS (DELETE FROM budget_item_cost_reviews WHERE budget_item_id=$1 AND EXISTS(SELECT 1 FROM changed) RETURNING budget_item_id), invalidated AS (UPDATE budget_costing_profiles SET bdi_reviewed=false,technical_reviewed=false,commercial_reviewed=false,updated_at=now() WHERE budget_id=$2 AND EXISTS(SELECT 1 FROM changed) RETURNING budget_id) SELECT changed.* FROM changed JOIN logged ON true",
            [parts[3],id,position,description,sourceCode,unit,qty,unitCost,user.id]);
        }
        if(!row.length)return response(res,409,{error:'Orçamento não editável ou item indisponível. Recarregue o orçamento.'});
