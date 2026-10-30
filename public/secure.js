@@ -208,10 +208,13 @@ document.addEventListener('submit',async e=>{
   }
   if(form.id.startsWith('finance-')){
     await financeHandleForm(form,{state,api,toast,refresh:async()=>{
-      [state.finance.summary,state.finance.drafts,state.finance.actuals]=await Promise.all([
-        api('budgets/'+state.detail.id+'/financial-summary'),
-        api('budgets/'+state.detail.id+'/proposal-drafts'),
-        api('budgets/'+state.detail.id+'/financial-actuals')
+      const base='budgets/'+state.detail.id+'/';
+      [state.finance.summary,state.finance.drafts,state.finance.actuals,state.finance.closeout,
+       state.finance.receipts,state.finance.forecasts,state.finance.readiness]=await Promise.all([
+        api(base+'financial-summary'),api(base+'proposal-drafts'),
+        api(base+'financial-actuals'),api(base+'financial-closeout'),
+        api(base+'financial-receipts'),api(base+'financial-forecasts'),
+        api(base+'commercial-readiness')
       ]);
       render();
     }});return;
@@ -282,10 +285,12 @@ document.addEventListener('click',async e=>{
   }
   if(act==='open-finance'){
     const base='budgets/'+state.detail.id+'/';
-    const [summary,drafts,actuals]=await Promise.all([
-      api(base+'financial-summary'),api(base+'proposal-drafts'),api(base+'financial-actuals')
+    const [summary,drafts,actuals,closeout,receipts,forecasts,readiness]=await Promise.all([
+      api(base+'financial-summary'),api(base+'proposal-drafts'),api(base+'financial-actuals'),
+      api(base+'financial-closeout'),api(base+'financial-receipts'),
+      api(base+'financial-forecasts'),api(base+'commercial-readiness')
     ]);
-    state.finance={summary,drafts,actuals};
+    state.finance={summary,drafts,actuals,closeout,receipts,forecasts,readiness};
     state.view='financas';render();return;
   }
   if(act==='finance-back'){
@@ -295,7 +300,8 @@ document.addEventListener('click',async e=>{
     state.financeDraft=await api('budgets/'+state.detail.id+'/proposal-drafts/'+btn.dataset.id);
     financeDialog('finance-view-draft',{state,dialog,esc});return;
   }
-  if(['finance-create-draft','finance-add-actual','finance-review-actual'].includes(act)){
+  if(['finance-create-draft','finance-add-actual','finance-review-actual',
+      'finance-add-receipt','finance-review-receipt','finance-add-forecast','finance-review-forecast'].includes(act)){
     state.financeSelected=btn.dataset.id||null;
     financeDialog(act,{state,dialog,esc});return;
   }
