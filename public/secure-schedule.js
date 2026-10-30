@@ -44,6 +44,22 @@ export function schedulePage({state,esc,writeable}){
     '<div class="schedule-gantt-track"><div class="schedule-gantt-bar" style="left:'+left+'%;width:'+width+'%" role="img" aria-label="'+esc(t.title+' de '+t.start+' até '+t.finish)+'"></div></div>'+
     '<div class="tiny">'+esc(t.start)+' — '+esc(t.finish)+'</div></div>';
   }).join('')+'</div></div><p class="tiny muted">Barras em dias úteis; o detalhamento oficial de calendário e recursos depende da revisão da obra.</p></div>':'';
+ const report=state.scheduleProgress||{summaries:[],measurements:[]};
+ const canReport=canEdit&&tasks.length>0;
+ const recorded=report.measurements||[];
+ const metrics=(report.summaries||[]).map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc(x.completed_quantity)+' '+esc(x.unit||'')+
+   '</td><td>'+esc(x.validated_person_hours)+' h-h</td><td>'+esc(x.observed_hh_per_unit??'—')+'</td>'+
+   '<td>'+esc(x.progress_pct===null?'—':x.progress_pct+'%')+'</td></tr>').join('');
+ const measurements=recorded.map(m=>'<tr><td>'+esc(String(m.worked_on).slice(0,10))+'</td><td>'+esc(m.task_title)+'</td>'+
+   '<td>'+esc(m.completed_quantity)+'</td><td>'+esc(m.actual_person_hours)+'</td><td>'+esc(m.review_status)+'</td>'+
+   '<td>'+esc(m.evidence_ref)+'</td><td>'+(canApprove&&m.review_status==='pendente'?
+    '<button class="btn" type="button" data-action="schedule-review-progress" data-id="'+esc(m.id)+'">Validar / rejeitar</button>':'—')+'</td></tr>').join('');
+ const diary='<div class="card"><div class="row"><h2>Diário de execução e medição</h2>'+
+    (canReport?'<button class="btn primary" type="button" data-action="schedule-add-progress">+ Registrar medição</button>':'')+'</div>'+
+    '<p class="muted tiny">As horas e quantidades são informadas pela equipe. Só registros validados por revisor entram na produtividade observada. Evidências rejeitadas permanecem no histórico.</p>'+
+    (metrics?'<div class="table-wrap"><table><thead><tr><th>Atividade</th><th>Quantidade validada</th><th>Horas-homem</th><th>h-h por unidade</th><th>Avanço do orçamento</th></tr></thead><tbody>'+metrics+'</tbody></table></div>':'')+
+    (measurements?'<h3>Lançamentos</h3><div class="table-wrap"><table><thead><tr><th>Data</th><th>Atividade</th><th>Quantidade</th><th>Horas-homem</th><th>Estado</th><th>Evidência</th><th>Revisão</th></tr></thead><tbody>'+measurements+'</tbody></table></div>':
+      '<p class="muted">Nenhuma medição registrada neste orçamento.</p>')+'</div>';
  const today=new Date().toISOString().slice(0,10);
  const inputs='<form id="schedule-simulate-form" class="card"><h2>Simular cronograma</h2>'+
   '<div class="grid">'+formInput('Data de início','start_date','date',true,state.scheduleSettings?.start_date||today,esc)+
@@ -59,7 +75,7 @@ export function schedulePage({state,esc,writeable}){
    crew.map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc((x.roles||[]).map(r=>r.role_name+' ('+r.workers+')').join(', ')||x.workers)+'</td><td>'+esc(x.workday_hours)+' h/dia</td><td>'+esc(Math.round(Number(x.efficiency)*100))+'%</td></tr>').join('')+'</tbody></table></div>':'<p class="muted">Cadastre uma equipe antes de criar atividades.</p>')+'</div>'+
   '<div class="card"><h2>Atividades e revisões</h2>'+(tasks.length?'<div class="table-wrap"><table><thead><tr><th>Atividade</th><th>Equipe</th><th>Duração</th><th>Situação</th><th>Revisão</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<p class="muted">Nenhuma atividade cadastrada.</p>')+
   (deps.length?'<h3>Precedências</h3><ul>'+dependencyList+'</ul>':'')+'</div>'+
-  inputs+errors+warnings+summary+productivityPanel+gantt;
+  diary+inputs+errors+warnings+summary+productivityPanel+gantt;
 }
 export function scheduleDialog(action,{state,dialog,field,esc}){
  const plan=state.schedulePlan||{},crews=plan.crews||[],tasks=plan.tasks||[];
@@ -90,6 +106,29 @@ export function scheduleDialog(action,{state,dialog,field,esc}){
    '<p class="tiny muted">Tipo fim-início (FS), sem defasagem. Ciclos são bloqueados.</p>'+actions+'</form>');
   return true;
  }
+ if(action==='schedule-add-progress'){
+  if(!tasks.length)throw Error('Cadastre uma atividade antes da medição.');
+  dialog('Registrar medição da execução','<form id="schedule-progress-form">'+
+    select('task_id',tasks,esc,'Atividade executada')+
+    formInput('Data efetiva','worked_on','date',true,new Date().toISOString().slice(0,10),esc)+
+    formInput('Quantidade executada','completed_quantity','number',true,1,esc,'min="0.0001" max="1000000" step="0.0001"')+
+    formInput('Profissionais presentes','workers','number',true,2,esc,'min="1" max="100" step="1"')+
+    formInput('Horas trabalhadas por profissional','hours_per_worker','number',true,8,esc,'min="0.0001" max="12" step="0.0001"')+
+    field('Referência da evidência (diário / documento)','evidence_ref','text',true)+
+    '<div class="field"><label>Descrição da medição, local e método</label><textarea name="evidence_notes" minlength="15" maxlength="1500" required></textarea></div>'+
+    '<p class="muted tiny">O lançamento fica pendente até conferência independente, sem alterar o preço orçado.</p>'+actions+'</form>');
+  return true;
+ }
+ if(action==='schedule-review-progress'){
+  const measurement=(state.scheduleProgress?.measurements||[]).find(x=>x.id===state.scheduleTaskId);
+  if(!measurement||measurement.review_status!=='pendente')throw Error('Medição não pendente');
+  dialog('Conferir evidência de execução','<form id="schedule-progress-review-form" data-id="'+esc(measurement.id)+'">'+
+    '<p><strong>'+esc(measurement.task_title)+'</strong>: '+esc(measurement.completed_quantity)+' unidades, '+esc(measurement.actual_person_hours)+' h-h</p>'+
+    '<p class="muted">'+esc(measurement.evidence_ref)+' — '+esc(measurement.evidence_notes)+'</p>'+
+    '<div class="field"><label>Resultado</label><select name="review_status"><option value="validado">Validar medição</option><option value="rejeitado">Rejeitar medição</option></select></div>'+
+    '<div class="field"><label>Justificativa</label><textarea name="review_notes" required minlength="15" maxlength="1500"></textarea></div>'+actions+'</form>');
+  return true;
+ }
  if(action==='schedule-review-task'){
   const x=tasks.find(t=>t.id===state.scheduleTaskId);
   if(!x)throw Error('Atividade não encontrada');
@@ -114,7 +153,9 @@ export async function scheduleHandleForm(form,{state,api,refresh,toast}){
  }
  body.lock_version=state.schedulePlan.budget.lock_version;
  let route=null,method='POST';
- if(form.id==='schedule-crew-form')route='schedule-crews';
+ if(form.id==='schedule-progress-form')route='schedule-progress';
+ else if(form.id==='schedule-progress-review-form'){route='schedule-progress/'+form.dataset.id;method='PUT';}
+ else if(form.id==='schedule-crew-form')route='schedule-crews';
  else if(form.id==='schedule-task-form')route='schedule-tasks';
  else if(form.id==='schedule-dependency-form')route='schedule-dependencies';
  else if(form.id==='schedule-review-form'){
