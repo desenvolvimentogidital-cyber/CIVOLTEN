@@ -126,7 +126,7 @@ test('interface recarrega em adição, edição, exclusão e entrada no orçamen
  assert.match(js,/if\(act==='detail-budget'\)/);
  assert.match(api,/handleAutomaticBriefing/);
  const html=automaticBudgetPanel({budget:{id},cost:{direct_reais:500,total_preliminary_reais:500},
-  workforce:{services:[],total_hh:0},schedule:{ready:false,tasks:[]},
+  workforce:{services:[{item_id:itemId,title:'Alvenaria',quantity:10,unit:'m2',estimated_hh:25,workers:2,days_at_suggested_staff:2,roles:[]}],total_hh:25},schedule:{ready:false,tasks:[]},
   proposal_preview:{download_url:'/api/v1/budgets/'+id+'/automatic-briefing/pdf'},
   issues:[]},v=>String(v),{budgetId:id});
  assert.match(html,/Baixar prévia PDF automática/);
