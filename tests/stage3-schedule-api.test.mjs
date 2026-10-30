@@ -63,3 +63,22 @@ test('Etapa 3: datas, método e feriados inválidos são rejeitados',async()=>{
  assert.equal((await preview('start_date=2026-11-02&holidays=xx')).status,400);
  assert.equal((await preview(undefined,fixture(),'POST')).status,405);
 });
+
+test('Etapa 3: produtividade usa somente h-h revisada e alerta sobre prazo subestimado',async()=>{
+ const data=fixture();
+ data.tasks[0].budget_item_id='00000000-0000-4000-8000-000000000123';
+ data.tasks[0].quantity='100';
+ data.tasks[0].direct_labor_hh_unit='1.0000';
+ data.tasks[0].labor_review_state='revisado';
+ const response=await preview(undefined,data);
+ assert.equal(response.body.schedule.ready,true);
+ const item=response.body.productivity.find(x=>x.task_id===a);
+ assert.equal(item.projected_hh,100);
+ assert.equal(item.derived_workdays,8);
+ assert.equal(item.labor_reference_verified,true);
+ assert.ok(response.body.schedule.warnings.some(x=>x.includes('prazo manual')));
+ data.tasks[0].labor_review_state='direta_parcial';
+ const second=await preview(undefined,data);
+ assert.equal(second.body.productivity.find(x=>x.task_id===a).projected_hh,null);
+ assert.equal(second.body.productivity.find(x=>x.task_id===a).derived_workdays,null);
+});
