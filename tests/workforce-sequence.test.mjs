@@ -28,9 +28,9 @@ test('Ordem alvenaria depois chapisco depois reboco, mesmo com orçamento fora d
  assert.equal(sequence.missing.length,0);
  assert.equal(sequence.complete,true);
  assert.equal(sequence.sequence_workdays_estimated,22);
- assert.equal(sequence.steps[0].duration_workdays,10);
+ assert.equal(sequence.steps[0].duration_workdays,9);
  assert.equal(sequence.steps[1].duration_workdays,3);
- assert.equal(sequence.steps[2].duration_workdays,9);
+ assert.equal(sequence.steps[2].duration_workdays,10);
 });
 test('Sem chapisco, não inventa serviço nem fecha prazo e custo total',()=>{
  const model=buildWorkforceEstimate(data);
