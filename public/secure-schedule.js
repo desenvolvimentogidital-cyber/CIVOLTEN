@@ -14,7 +14,7 @@ export function schedulePage({state,esc,writeable}){
   return '<div class="schedule-auto-header"><div><span class="breadcrumb">ORÇAMENTOS / CRONOGRAMA</span>'+
     '<h1>Cronograma automático</h1><p class="muted">Serviços e quantidade de profissionais calculados a partir do orçamento '+esc(state.detail?.code||'')+'.</p></div>'+
     '<button type="button" class="btn" data-action="schedule-back">Voltar ao orçamento</button></div>'+
-    workforcePanel(state.scheduleWorkforce,esc)+
+    workforcePanel(state.scheduleWorkforce,esc,{config:state.schedulePlanning,canEdit:writeable()})+
     '<div class="schedule-technical-link"><button type="button" class="btn" data-action="schedule-advanced-open">Acompanhamento técnico (opcional)</button>'+
     '<p class="muted tiny">Só para quem quiser registrar equipes reais, medições ou dependências. A estimativa acima não exige nada disso.</p></div>';
  }
