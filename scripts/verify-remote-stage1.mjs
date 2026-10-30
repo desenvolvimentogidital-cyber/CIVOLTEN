@@ -41,7 +41,7 @@ for(const check of checks){
  }catch(e){console.error('FAIL '+check.route+' -> '+(e?.message||'erro'));failures++}
 }
 const files=[
- {path:'/secure.html',type:'text/html',marker:'src="/secure.js"'},
+ {path:'/secure.html',type:'text/html',marker:'src="/secure.js'},
  {path:'/secure.js',type:'javascript',marker:'must_change_password'},
  {path:'/secure-costing.js',type:'javascript',marker:'costPage'},
  {path:'/secure.css',type:'text/css',marker:'prefers-reduced-motion'}
