@@ -64,6 +64,16 @@ test('Etapa 2: SIURB canônica, custo auditado, BDI parametrizado, extras e risc
   expect(await call('budgets/'+budget+'/siurb-items','POST',{lock_version:0,reference_price_id:randomUUID(),position:1,quantity:'2'}),400);
   const item=expect(await call('budgets/'+budget+'/siurb-items','POST',{lock_version:0,reference_price_id:price,position:1,quantity:'2'}),201);
   assert.equal(item.reference_price_id,price);
+  // Cronograma automático deriva h-h da mesma composição SIURB sem cadastrar equipes.
+  const manpower=expect(await call('budgets/'+budget+'/workforce-estimate?target_days=5&hours_day=8&efficiency_pct=85&crew_size=4'),200);
+  assert.equal(manpower.summary.total_services,1);
+  assert.equal(manpower.summary.estimated_services,1);
+  assert.equal(manpower.services[0].estimated_hh,0.5);
+  assert.equal(manpower.services[0].workers,1);
+  assert.equal(manpower.services[0].crews,1);
+  assert.equal(manpower.services[0].roles[0].name,'Mão de obra fictícia');
+  assert.equal(manpower.commercial_release,false);
+  expect(await call('budgets/'+budget+'/workforce-estimate?target_days=0'),400);
   expect(await call('budgets/'+budget+'/siurb-items','POST',{lock_version:0,reference_price_id:price,position:2,quantity:'3'}),409);
   let costs=expect(await call('budgets/'+budget+'/costs'),200);
   assert.equal(costs.estimate.ready,false);
