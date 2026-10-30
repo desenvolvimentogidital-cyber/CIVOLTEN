@@ -1,3 +1,4 @@
+import {planExecutionSequence} from './workforce-sequence.mjs';
 /* CIVOLTEN – resumo das profissões e estimativa GERENCIAL de custos.
  * Pessoas simultâneas somam necessidades; em sequência, é o pico de cada profissão.
  * Prazo com serviços em paralelo = maior duração; sequencial = soma.
@@ -8,6 +9,7 @@ const money=n=>Math.round((Number(n)+Number.EPSILON)*100)/100;
 const round=(n,p=2)=>Number(n.toFixed(p));
 export function summarizeWorkforce(model,{rates=[],workers=[],overhead=null}={}){
  const items=(model.services||[]).filter(s=>s.workers!==null);
+ const execution_sequence=planExecutionSequence(model.services||[]);
  const all=model.services||[],group=new Map();
  const named=(r)=>String(r.code||r.name||'').trim();
  for(const item of items){
@@ -50,12 +52,13 @@ export function summarizeWorkforce(model,{rates=[],workers=[],overhead=null}={})
  const laborCost=roleCosts.reduce((s,r)=>s+(r.estimated_cost||0),0);
  const overheadParallel=monthlyOverhead===null?null:money(monthlyOverhead*parallelDays/workingDays);
  const overheadSequential=monthlyOverhead===null?null:money(monthlyOverhead*sequentialDays/workingDays);
- const canTotal=laborKnown&&overhead!==null;
+ const canTotal=laborKnown&&overhead!==null&&execution_sequence.complete;
  const costs={
   labor_estimated:laborKnown?money(laborCost):null,
   overhead_parallel:overheadParallel,
   overhead_sequential:overheadSequential,
   total_parallel:canTotal?money(laborCost+overheadParallel):null,
+  incomplete_scope:!execution_sequence.complete,
   total_sequential:canTotal?money(laborCost+overheadSequential):null,
   missing_rates:roleCosts.filter(r=>r.hourly_cost===null).map(r=>r.name),
   unclassified_services:unclassified,
@@ -64,13 +67,15 @@ export function summarizeWorkforce(model,{rates=[],workers=[],overhead=null}={})
  return {
   roles:roleCosts,
   duration:{parallel_workdays:parallelDays,sequential_workdays:sequentialDays,
-    complete:all.length>0&&all.length===items.length,
-    mode:'cenarios_sem_dependencias',note:'Prazo hipotético: serviços simultâneos usam a maior duração; serviços sequenciais somam durações. O caminho crítico real depende da ordem e de dependências.'},
+    complete:execution_sequence.complete,
+    mode:'sequencia_tecnica_proposta',
+    note:'Os serviços de alvenaria, chapisco e reboco seguem precedência técnica sugerida. Os demais mantêm a ordem do orçamento. Sem tempos de cura/secagem ou dependências definitivas.'},
+  execution_sequence,
   role_totals:{
    parallel_workers:roleCosts.reduce((s,r)=>s+r.parallel_workers,0),
    sequential_workers:roleCosts.reduce((s,r)=>s+r.sequential_workers,0),
    unclassified_services:unclassified,
-   has_incomplete_scope:all.length!==items.length||unclassified>0},
+   has_incomplete_scope:all.length!==items.length||unclassified>0||!execution_sequence.complete},
   costs,
   active_workers_in_registry:active.length
  };
