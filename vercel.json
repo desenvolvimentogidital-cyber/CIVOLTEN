@@ -9,5 +9,17 @@
       "source": "/api/v1/:route*",
       "destination": "/api/index?route=:route*"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/secure.html",
+      "permanent": false
+    },
+    {
+      "source": "/index.html",
+      "destination": "/secure.html",
+      "permanent": false
+    }
   ]
 }
