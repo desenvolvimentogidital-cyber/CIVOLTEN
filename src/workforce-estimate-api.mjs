@@ -1,7 +1,9 @@
 /* Sugestões de pessoal somente leitura, derivadas dos serviços salvos no orçamento. */
 import {buildWorkforceEstimate} from './workforce-estimate.mjs';
+import {summarizeWorkforce} from './workforce-costing.mjs';
+import {readCompanyCosts} from './company-costs-api.mjs';
 const uuid=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(x);
-export async function handleWorkforceEstimate({req,res,sql,parts,method,send}){
+export async function handleWorkforceEstimate({req,res,sql,user,parts,method,send}){
  const [resource,id,sub]=parts;
  if(resource!=='budgets'||sub!=='workforce-estimate')return false;
  const done=(status,data)=>{send(res,status,data);return true};
@@ -17,7 +19,13 @@ export async function handleWorkforceEstimate({req,res,sql,parts,method,send}){
  const budget=budgets[0];
  const items=await sql.query("SELECT bi.id,bi.position,bi.source_code,bi.source_name,bi.quantity,bi.unit,bi.reference_price_id,bi.direct_labor_hh_unit,bi.labor_review_state,p.workforce_hh_direct,d.direct_hh_per_unit,d.labor,CASE WHEN bi.reference_price_id IS NULL THEN TRUE WHEN v.source='SIURB' AND v.reference_month=b.reference_month AND v.regime=b.regime THEN TRUE ELSE FALSE END AS source_matches_budget FROM budget_items bi JOIN budgets b ON b.id=bi.budget_id LEFT JOIN reference_prices p ON p.id=bi.reference_price_id LEFT JOIN reference_price_versions v ON v.id=p.version_id LEFT JOIN reference_composition_details d ON d.reference_price_id=p.id WHERE bi.budget_id=$1 AND bi.deleted_at IS NULL ORDER BY bi.position,bi.id LIMIT 500",[id]);
  const result=buildWorkforceEstimate(items,check.settings);
+ const internal=['administrador','orcamentista'].includes(user?.role);
+ const costs=internal?await readCompanyCosts(sql):{rates:[],workers:[],overhead:null};
+ const management=summarizeWorkforce(result,costs);
  return done(200,{budget:{id:budget.id,code:budget.code,status:budget.status,
     reference_month:budget.reference_month,regime:budget.regime,lock_version:budget.lock_version},
-   ...result});
+   ...result,...management,
+   // Do not expose salary or company overhead to read-only users.
+   costs:internal?management.costs:null,
+   roles:internal?management.roles:management.roles.map(({hourly_cost,cost_source,estimated_cost,...role})=>role)});
 }
