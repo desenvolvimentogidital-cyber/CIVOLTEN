@@ -19,6 +19,16 @@ test('porta de entrada publicada abre o painel autenticado e nunca a demo',()=>{
  assert.doesNotMatch(secure,/demo-api\.js/);
 });
 
+test('scripts da demonstração antiga não são servidos pela Vercel em produção',()=>{
+ const config=JSON.parse(source('vercel.json'));
+ for(const path of ['/demo-api.js','/app.js']){
+  const rule=config.redirects.find(x=>x.source===path);
+  assert.ok(rule,'Script legado sem bloqueio: '+path);
+  assert.equal(rule.destination,'/secure.html');
+  assert.equal(rule.permanent,false);
+ }
+});
+
 test('login e painel não oferecem mais a demonstração como operação real',()=>{
  const script=source('public/secure.js');
  assert.doesNotMatch(script,/Voltar à demonstração/);
