@@ -57,7 +57,7 @@ export function financePage({state,esc,writeable}){
  return '<div class="row"><div><h1>Propostas e finanças</h1><p class="muted">Etapa 4 — '+esc(budget.code)+'</p></div></div>'+
   '<div class="actions"><button class="btn" data-action="finance-back">Voltar ao orçamento</button>'+
   (edit?'<button class="btn primary" data-action="finance-create-draft">+ Versão de proposta</button><button class="btn" data-action="finance-add-actual">+ Custo realizado</button><button class="btn" data-action="finance-add-receipt">+ Recebimento</button><button class="btn" data-action="finance-add-forecast">+ Custo a completar</button>':'')+'</div>'+
-  '<div class="notice"><strong>Somente desenvolvimento.</strong> Rascunhos são internos; não são documentos comerciais. A contribuição estimada não significa lucro líquido. Não usar valores não homologados para contratar.</div>'+
+  '<div class="notice"><strong>Prévia interna, ainda não emitida.</strong> Você escolhe na versão da proposta se a CIVOLTEN fornecerá materiais ou somente mão de obra. Preço final exige aprovação de custos, impostos, BDI e condições contratuais. A contribuição estimada não significa lucro líquido.</div>'+
   '<div class="grid"><div class="card"><div class="muted">Preço de venda estimado</div><div class="metric">'+m(totals.budget_sell_reais)+'</div></div>'+
   '<div class="card"><div class="muted">Custo direto orçado</div><div class="metric">'+m(totals.budget_direct_reais)+'</div></div>'+
   '<div class="card"><div class="muted">Contribuição orçada indicativa</div><div class="metric">'+m(totals.budget_contribution_reais)+'</div></div>'+
@@ -107,6 +107,12 @@ export function financeDialog(action,{state,dialog,esc}){
  if(action==='finance-create-draft'){
   dialog('Criar snapshot de proposta em rascunho',
    '<form id="finance-draft-form">'+
+    '<div class="field"><label>O que a CIVOLTEN vai fornecer nesta proposta?</label>'+ 
+    '<select name="proposal_mode" required>'+ 
+    '<option value="mao_de_obra_e_materiais">Mão de obra + materiais (serviços SIURB completos)</option>'+ 
+    '<option value="somente_mao_de_obra">Somente mão de obra (sem fornecimento de materiais)</option>'+ 
+    '</select></div>'+ 
+    '<p class="muted tiny">A escolha vale para esta versão da proposta. Somente mão de obra exige produtividade revisada e custos-hora cadastrados. O sistema não usa o preço integral SIURB para retirar materiais por porcentagem fictícia.</p>'+ 
     '<div class="field"><label>Escopo completo da proposta</label><textarea name="scope" required minlength="15" maxlength="5000"></textarea></div>'+
     '<div class="field"><label>Exclusões e responsabilidades</label><textarea name="exclusions" required minlength="10" maxlength="3000"></textarea></div>'+
     '<div class="field"><label>Condições de pagamento</label><textarea name="payment_terms" required minlength="10" maxlength="1000"></textarea></div>'+
@@ -144,10 +150,14 @@ export function financeDialog(action,{state,dialog,esc}){
     '<div class="notice"><strong>RASCUNHO • NÃO EMITIDO</strong> — '+(d.stale?'Versão desatualizada':'Versão do orçamento atual')+'</div>'+
     '<p><strong>Cliente:</strong> '+esc(s.client?.name)+'</p>'+
     '<p><strong>Obra:</strong> '+esc(s.project?.title||'Sem obra')+'</p>'+
-    '<p><strong>Escopo:</strong> '+esc(s.scope)+'</p>'+
+    '<p><strong>Modalidade escolhida:</strong> '+esc(s.proposal_mode==='somente_mao_de_obra'?'Somente mão de obra, sem materiais':'Mão de obra + materiais')+'</p>'+ 
+    '<p><strong>Base de cálculo:</strong> '+esc(s.scope_pricing?.price_source||'Referência do orçamento')+'</p>'+ 
+    '<p><strong>Escopo:</strong> '+esc(s.scope)+'</p>'+ 
     '<p><strong>Exclusões:</strong> '+esc(s.exclusions)+'</p>'+
     '<p><strong>Pagamento:</strong> '+esc(s.payment_terms)+'</p>'+
-    '<p><strong>Preço calculado não aprovado:</strong> '+m(s.costs?.total_reais)+'</p>'+
+    '<p><strong>Preço calculado não aprovado:</strong> '+(s.costs?.total_reais==null?'A definir após revisões':m(s.costs.total_reais))+'</p>'+ 
+    (s.proposal_mode==='somente_mao_de_obra'?'<p><strong>Custo de mão de obra estimado, não preço de venda:</strong> '+
+      (s.scope_pricing?.labor_cost_reference_reais==null?'Pendente de produtividade ou custo-hora revisados':m(s.scope_pricing.labor_cost_reference_reais))+'</p>':'')+
     '<p><strong>Hash:</strong> <code>'+esc(d.snapshot_sha256)+'</code></p>'+
     '<h3>Serviços</h3><ul>'+lines+'</ul>'+
     '<div class="actions"><a class="btn" href="/api/v1/budgets/'+esc(state.detail.id)+'/proposal-drafts/'+esc(d.id)+'/pdf">Baixar PDF RASCUNHO</a><button type="button" class="btn" data-action="close-dialog">Fechar</button></div>');

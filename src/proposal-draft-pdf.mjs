@@ -54,20 +54,31 @@ export async function renderProposalDraftPdf(snapshot,{version,sha256}={}){
  print('Cliente: '+(snapshot.client?.name||'Nao informado'));
  print('Obra: '+(snapshot.project?.title||'Nao vinculada'));
  print('Orcamento: '+snapshot.budget?.code+'  |  Revisao '+snapshot.budget?.lock_version);
+ const laborOnly=snapshot.proposal_mode==='somente_mao_de_obra';
+ print('MODALIDADE: '+(laborOnly?'SOMENTE MAO DE OBRA — SEM MATERIAIS':'MAO DE OBRA E MATERIAIS — SERVICOS COMPLETOS'),11,true);
  y-=12;print('ESCOPO',12,true);print(snapshot.scope);
  y-=12;print('SERVICOS E QUANTITATIVOS',12,true);
  for(const [i,item] of snapshot.items.entries()){
   print((i+1)+'. '+item.name+' ['+(item.code||'proprio')+']');
-  print(item.quantity+' '+item.unit+' x '+money(item.unit_cost),9);
+  print(laborOnly?item.quantity+' '+item.unit+' | custo MO: '+
+   (item.estimated_labor_cost_reais==null?'A REVISAR':money(item.estimated_labor_cost_reais)):
+   item.quantity+' '+item.unit+' x '+(item.unit_cost==null?'A REVISAR':money(item.unit_cost)),9);
  }
  y-=12;print('RESUMO DE CUSTOS NAO APROVADOS',12,true);
- print('Custo direto: '+money(snapshot.costs?.direct_reais));
+ if(laborOnly){
+  print('Materiais: NAO INCLUSOS nesta modalidade',10,true);
+  print('Base: horas-homem SIURB revisadas x custos-hora da empresa.',9);
+  print('Custo direto de mao de obra (NAO preco de venda): '+
+   (snapshot.scope_pricing?.labor_cost_reference_reais==null?'A REVISAR':money(snapshot.scope_pricing.labor_cost_reference_reais)));
+  print('Margem, tributos e BDI desta modalidade: NAO APROVADOS.');
+ }else print('Custo direto SIURB: '+(snapshot.costs?.direct_reais==null?'A REVISAR':money(snapshot.costs.direct_reais)));
  print('BDI estimado: '+(snapshot.costs?.bdi_reais==null?'PENDENTE DE DEFINICAO':money(snapshot.costs.bdi_reais)));
- print('Contingencia: '+money(snapshot.costs?.contingency_reais));
+ print('Contingencia: '+(snapshot.costs?.contingency_reais==null?'A DEFINIR':money(snapshot.costs.contingency_reais)));
  print('Total preliminar: '+(snapshot.costs?.total_reais==null?'NAO DETERMINADO; BDI PENDENTE':money(snapshot.costs.total_reais)),13,true);
  y-=12;print('CONDICOES DE PAGAMENTO',12,true);print(snapshot.payment_terms);
  print('Validade proposta: '+(Number.isSafeInteger(Number(snapshot.validity_days))&&snapshot.validity_days!=null&&Number(snapshot.validity_days)>0?String(snapshot.validity_days)+' dias (nao iniciada)':'A DEFINIR; sem validade comercial'));
  y-=12;print('EXCLUSOES',12,true);print(snapshot.exclusions);
+ if(laborOnly)print('Nao inclusos: fornecimento de materiais, insumos e equipamentos, salvo expressamente contratado.',9,true);
  y-=8;print('Este arquivo e apenas uma previa interna. Nao e oferta, contrato, aceite ou ordem de servico.',9,true);
  if(snapshot.costs?.blocking_errors?.length){
   print('Existem pendencias tecnicas e financeiras. O documento nao pode ser emitido.',9,true);

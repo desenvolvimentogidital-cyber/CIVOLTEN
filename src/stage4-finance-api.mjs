@@ -3,6 +3,8 @@
  */
 import {randomUUID,createHash} from 'node:crypto';
 import {handleStage2} from './costing-api.mjs';
+import {handleWorkforceEstimate} from './workforce-estimate-api.mjs';
+import {prepareProposalScope,proposalModes} from './proposal-scope-mode.mjs';
 import {renderProposalDraftPdf} from './proposal-draft-pdf.mjs';
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[89ab0-9a-f]{12}$/i.test(v);
 const canWrite=user=>['administrador','orcamentista'].includes(user.role);
@@ -127,18 +129,33 @@ export async function handleStage4(ctx){
   const validity=Number(b.validity_days??30);
   if(!Number.isSafeInteger(validity)||validity<1||validity>365)return done(400,{error:'Validade inválida'});
   const costing=await readCostEstimate(ctx,budgetId);
+  const proposalMode=b.proposal_mode??proposalModes.full; // Compatibilidade de rascunhos antigos.
+  if(!Object.values(proposalModes).includes(proposalMode))return done(400,{error:'Modalidade de proposta inválida'});
   const items=await sql.query(`SELECT id,position,source_code,source_name,unit,quantity,direct_unit_cost
     FROM budget_items WHERE budget_id=$1 AND deleted_at IS NULL ORDER BY position,id`,[budgetId]);
   if(!items.length)return done(409,{error:'Rascunho de proposta exige ao menos um serviço'});
+  let workforce=null;
+  if(proposalMode===proposalModes.labor){
+   let status=503,payload=null;
+   await handleWorkforceEstimate({...ctx,parts:['budgets',budgetId,'workforce-estimate'],
+    method:'GET',send:(_r,code,data)=>{status=code;payload=data}});
+   if(status!==200)return done(409,{error:payload?.error||'Produtividade SIURB indisponível'});
+   workforce=payload;
+  }
+  const scopePricing=prepareProposalScope(proposalMode,{budgetItems:items,costing,workforce});
   const snapshot=canonical({model:'civolten-proposal-draft-v1',budget:{id:budget.id,code:budget.code,
    title:budget.title,reference_month:budget.reference_month,regime:budget.regime,
    lock_version:budget.lock_version+1},
    client:{name:budget.client_name,tax_id:budget.client_tax_id},
    project:{title:budget.project_title,address:budget.project_address},
-   items:items.map(i=>({code:i.source_code,name:i.source_name,unit:i.unit,
-    quantity:String(i.quantity),unit_cost:String(i.direct_unit_cost)})),
+   proposal_mode:proposalMode,scope_pricing:scopePricing,
+   items:scopePricing.items,
    scope,exclusions,payment_terms:payment,validity_days:validity,
-   costs:{direct_reais:costing.estimate.direct_cost_reais,
+   costs:proposalMode===proposalModes.labor?{
+    direct_reais:scopePricing.labor_cost_reference_reais,
+    bdi_reais:null,contingency_reais:null,total_reais:null,ready:false,
+    blocking_errors:scopePricing.issues.map(message=>({message}))
+   }:{direct_reais:costing.estimate.direct_cost_reais,
     bdi_reais:costing.estimate.bdi_amount_reais,contingency_reais:costing.estimate.contingency_reais,
     total_reais:costing.estimate.total_reais,ready:costing.estimate.ready,
     blocking_errors:costing.estimate.errors},
@@ -160,7 +177,8 @@ export async function handleStage4(ctx){
    [budgetId,lock,draftId,snapshotJson,sha,user.id]);
   if(!saved.length)return done(409,{error:'Orçamento alterado; atualize antes de criar proposta'});
   return done(201,{id:draftId,version:saved[0].version,snapshot_sha256:sha,
-   cost_estimate_ready:costing.estimate.ready,commercial_release:false,
+   proposal_mode:proposalMode,scope_cost_complete:scopePricing.complete,
+   cost_estimate_ready:proposalMode===proposalModes.full&&costing.estimate.ready,commercial_release:false,
    notice:'Rascunho interno versionado. Não enviar ao cliente como proposta comercial.'});
  }
  if(sub==='financial-actuals'&&method==='POST'&&!fourth){
