@@ -25,7 +25,7 @@ export async function handleStage5Readiness({req,res,user,sql,parts,method,send}
       WHERE i.deleted_at IS NULL
       AND (r.quantity_verified IS DISTINCT FROM TRUE OR r.composition_reviewed IS DISTINCT FROM TRUE)) AS items_pending_cost_review,
    (SELECT count(*)::int FROM budget_items WHERE deleted_at IS NULL
-      AND (direct_labor_hh_unit IS NULL OR labor_review_state NOT IN ('revisado','aprovado','validado'))) AS items_pending_productivity_review,
+      AND (direct_labor_hh_unit IS NULL OR COALESCE(labor_review_state,'') NOT IN ('revisado','aprovado','validado'))) AS items_pending_productivity_review,
    (SELECT count(*)::int FROM budgets b LEFT JOIN budget_costing_profiles c ON c.budget_id=b.id
       WHERE b.status='rascunho'
       AND (c.bdi_reviewed IS DISTINCT FROM TRUE OR c.technical_reviewed IS DISTINCT FROM TRUE
