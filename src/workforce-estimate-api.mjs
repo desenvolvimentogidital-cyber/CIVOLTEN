@@ -33,17 +33,19 @@ export async function handleWorkforceEstimate({req,res,sql,user,parts,method,sen
  const days=resourceSchedule.workdays;
  const dayCost=costs.overhead?Number(costs.overhead.monthly_overhead)/Number(costs.overhead.workdays_per_month):null;
  const laborCost=management.costs.labor_estimated;
- const totalPossible=resourceSchedule.ready&&days!==null&&dayCost!==null&&laborCost!==null;
+ const productivityReviewed=result.services.length>0&&result.services.every(s=>s.reviewed===true);
+ const planIsValidated=resourceSchedule.ready&&productivityReviewed;
+ const totalPossible=planIsValidated&&days!==null&&dayCost!==null&&laborCost!==null;
  // Substituir soma sequencial simplista pelo rateio do cronograma com frentes e recursos.
  management.duration={...management.duration,
   sequential_workdays:days??management.duration.sequential_workdays,
-  complete:resourceSchedule.ready,
+  complete:planIsValidated,
   mode:'frentes_e_recursos',
   dependency_only_workdays:resourceSchedule.dependency_only_workdays};
  management.costs={...management.costs,
   overhead_sequential:dayCost===null||days===null?null:Math.round(dayCost*days*100)/100,
   total_sequential:totalPossible?Math.round((laborCost+dayCost*days)*100)/100:null,
-  incomplete_scope:!resourceSchedule.ready,
+  incomplete_scope:!planIsValidated,
   available:totalPossible};
 
  return done(200,{budget:{id:budget.id,code:budget.code,status:budget.status,
