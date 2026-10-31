@@ -33,14 +33,28 @@ export function summarizeWorkforce(model,{rates=[],workers=[],overhead=null}={})
  const costMap=new Map((rates||[]).map(x=>[String(x.role_code),Number(x.hourly_employer_cost)]));
  const active=(workers||[]).filter(x=>x.active===true);
  const roster=new Map();
- for(const w of active){const key=String(w.role_code),row=roster.get(key)||{count:0,total:0};
-  row.count++;row.total+=Number(w.monthly_employer_cost)||0;roster.set(key,row)}
- const workingDays=Number(overhead?.workdays_per_month)||22,monthlyOverhead=overhead?Number(overhead.monthly_overhead):null;
+ // Individual paid days and hours take precedence; no universal 22-day salary divisor.
+ // Legacy records without personal jornada can use the configured company workdays.
+ const companyDays=Number(overhead?.workdays_per_month);
+ for(const w of active){
+  const key=String(w.role_code),row=roster.get(key)||{count:0,hourlySum:0,missing:0};
+  const paidDays=w.workdays_per_month==null?companyDays:Number(w.workdays_per_month);
+  const paidHours=w.hours_per_day==null?Number(cfg.hours_day):Number(w.hours_per_day);
+  const monthly=w.monthly_employer_cost==null?null:Number(w.monthly_employer_cost);
+  row.count++;
+  if(monthly===null||!Number.isFinite(monthly)||monthly<0||
+     !Number.isFinite(paidDays)||paidDays<=0||
+     !Number.isFinite(paidHours)||paidHours<=0)row.missing++;
+  else row.hourlySum+=monthly/paidDays/paidHours;
+  roster.set(key,row);
+ }
+ const workingDays=Number(overhead?.workdays_per_month);
+ const monthlyOverhead=overhead?Number(overhead.monthly_overhead):null;
  const roleCosts=roles.map(r=>{
   let rate=costMap.get(r.code),source='valor_configurado';
   if(rate===undefined){
    const local=roster.get(r.code);
-   if(local?.count){rate=money(local.total/local.count/workingDays/hrs);source='media_do_cadastro'}
+   if(local?.count&&local.missing===0){rate=money(local.hourlySum/local.count);source='media_do_cadastro'}
    else{rate=null;source='nao_configurado'}
   }
   return {...r,active_registered:roster.get(r.code)?.count||0,
@@ -50,8 +64,9 @@ export function summarizeWorkforce(model,{rates=[],workers=[],overhead=null}={})
  const unclassified=noRoles.length;
  const laborKnown=roleCosts.length>0&&roleCosts.every(x=>x.estimated_cost!==null)&&unclassified===0&&all.length===items.length;
  const laborCost=roleCosts.reduce((s,r)=>s+(r.estimated_cost||0),0);
- const overheadParallel=monthlyOverhead===null?null:money(monthlyOverhead*parallelDays/workingDays);
- const overheadSequential=monthlyOverhead===null?null:money(monthlyOverhead*sequentialDays/workingDays);
+ const validDays=Number.isSafeInteger(workingDays)&&workingDays>=1;
+ const overheadParallel=monthlyOverhead===null||!validDays?null:money(monthlyOverhead*parallelDays/workingDays);
+ const overheadSequential=monthlyOverhead===null||!validDays?null:money(monthlyOverhead*sequentialDays/workingDays);
  const canTotal=laborKnown&&overhead!==null&&execution_sequence.complete;
  const costs={
   labor_estimated:laborKnown?money(laborCost):null,
