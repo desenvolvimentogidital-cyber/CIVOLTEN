@@ -80,7 +80,7 @@ export function workforcePanel(data,esc,planning={}){
   (roles.length?'<div class="table-wrap"><table class="table"><thead><tr><th>Profissão</th><th>Profissionais no pico</th>'+
    (cost?'<th>Custo-hora interno</th>':'')+'</tr></thead><tbody>'+occupationRows+'</tbody></table></div>':
    '<p class="muted">Sem composição por profissão. O total de pessoas por função depende da revisão do serviço.</p>')+
-  '<div class="workforce-total-days"><div><span>Duração estimada da sequência</span><strong>'+esc(d.complete&&validatedSchedule?d.sequential_workdays:'Prévia a revisar: '+(d.sequential_workdays??'sem cálculo'))+' dias úteis</strong></div></div>'+
+  '<div class="workforce-total-days"><div><span>Duração estimada da sequência</span><strong>'+esc(!d.complete?'Mínimo parcial: '+(d.sequential_workdays??0):validatedSchedule?d.sequential_workdays:'Prévia a revisar: '+(d.sequential_workdays??'sem cálculo'))+' dias úteis</strong></div></div>'+
   '<p class="muted tiny">Prazos de simulação por frente, com dependências e limite global de pessoas. Não incluem feriados, clima ou dias tecnológicos não cadastrados.</p></div>';
  const costPanel=cost?'<div class="card workforce-cost-summary"><div class="row"><h2>Custo interno estimado da obra</h2>'+
    '<button type="button" class="btn primary" data-action="company-config">Cadastrar custos e profissionais</button></div>'+
