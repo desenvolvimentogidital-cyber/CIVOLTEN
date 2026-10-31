@@ -69,13 +69,27 @@ test('serviço SIURB produz automaticamente custo, funções e sequência sem ca
  assert.equal(a.workforce.services.length,1);
  assert.equal(a.workforce.services[0].roles.length,2);
  assert.equal(a.schedule.tasks.length,1);
- assert.equal(a.schedule.ready,true);
- assert.equal(a.schedule.workdays>0,true);
+ assert.equal(a.schedule.ready,false,'SIURB sem revisão não é prazo validado');
+ assert.equal(a.schedule.workdays,null);
+ assert.equal(a.schedule.tentative_workdays>0,true,'prévia ainda pode ser calculada');
+ assert.equal(a.workforce.services[0].reviewed,false);
+ assert.ok(a.issues.some(x=>/revisão técnica/.test(x)));
  assert.equal(a.proposal_preview.issued,false);
  assert.equal(a.commercial_release,false);
  assert.ok(a.issues.some(x=>/BDI/.test(x)));
  assert.ok(result.sql.queries.every(x=>/^SELECT/.test(x.query)));
 });
+test('coeficiente revisado para todos os serviços autoriza apenas o prazo relativo, sem liberação comercial',async()=>{
+ const reviewed={...workforceItem,direct_labor_hh_unit:'2.5',labor_review_state:'revisado'};
+ const r=await request({sql:makeSql([costItem],[reviewed])});
+ assert.equal(r.status,200);
+ assert.equal(r.data.workforce.services[0].reviewed,true);
+ assert.equal(r.data.schedule.all_productivity_reviewed,true);
+ assert.equal(r.data.schedule.ready,true);
+ assert.equal(r.data.schedule.workdays>0,true);
+ assert.equal(r.data.commercial_release,false);
+});
+
 test('sem serviços não inventa orçamento, profissionais nem PDF',async()=>{
  const sql=makeSql([],[]);
  const x=await request({sql});
@@ -134,4 +148,5 @@ test('interface recarrega em adição, edição, exclusão e entrada no orçamen
   issues:[]},v=>String(v),{budgetId:id});
  assert.match(html,/Baixar prévia PDF automática/);
  assert.match(html,/Não calculado|500,00/);
+ assert.match(html,/Prazo ainda não validado/);
 });
