@@ -412,6 +412,9 @@ document.addEventListener('click',async e=>{
     const rows=checks.map(x=>'<tr><td>'+esc(x.label)+'</td><td>'+
       (x.passed?'<span class="ok">Verificado</span>':'<span class="danger">Pendente</span>')+
       '</td></tr>').join('');
+    const preparation=(op.preparation||[]).map(x=>'<tr><td>'+esc(x.label)+'</td><td>'+
+      (x.complete?'<span class="ok">Cadastrado/revisado</span>':'<span class="danger">Pendente</span>')+
+      '</td></tr>').join('');
     dialog('Liberação operacional CIVOLTEN',
       '<div class="notice"><strong>'+ (report.commercial_release?'Liberado':'Uso comercial ainda não liberado')+
       '</strong><p>Dados deste diagnóstico vêm do banco e das condições de homologação. Não representam assinatura técnica ou autorização para emitir contratos.</p></div>'+
@@ -423,6 +426,16 @@ document.addEventListener('click',async e=>{
       '<p>Orçamentos registrados: '+esc(op.budget_records??'não conferido')+
       ' · Preços de referência: '+esc(op.reference_price_records??'não conferido')+
       ' · Rascunhos de proposta: '+esc(op.proposal_draft_records??'não conferido')+'</p>'+
+      '<h3>Pendências objetivas da operação</h3>'+
+      '<p>Itens ativos: '+esc(op.active_budget_items??'—')+
+      ' · Custos/quantidades pendentes: '+esc(op.items_pending_cost_review??'—')+
+      ' · Produtividade não revisada: '+esc(op.items_pending_productivity_review??'—')+
+      ' · Orçamentos sem aprovação completa: '+esc(op.budgets_pending_cost_approval??'—')+'</p>'+
+      '<p>Custos-hora cadastrados: '+esc(op.company_hourly_rates??'—')+
+      ' · Despesas próprias cadastradas: '+esc(op.company_overhead_profiles??'—')+
+      ' · Funcionários ativos nesta base: '+esc(op.active_company_workers??'—')+'</p>'+
+      '<p class="muted tiny">Os cadastros antigos do Supabase não foram importados; esta consulta mostra somente o banco conectado à CIVOLTEN atual.</p>'+
+      '<div class="table-wrap"><table class="table"><thead><tr><th>Preparação</th><th>Estado</th></tr></thead><tbody>'+preparation+'</tbody></table></div>'+
       '<p class="muted tiny">Backup criptografado periódico e login em dois dispositivos: exigem comprovação operacional independente.</p>'+
       '<div class="table-wrap"><table class="table"><thead><tr><th>Verificação</th><th>Situação</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
       '<p class="muted tiny">Somente a conclusão documentada dos requisitos e a confirmação do responsável podem autorizar o uso contratual.</p>');
