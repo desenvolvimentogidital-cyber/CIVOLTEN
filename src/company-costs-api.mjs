@@ -138,7 +138,7 @@ export async function handleCompanyCosts({req,res,sql,user,parts,method,send,rea
    const days=Number(b.workdays_per_month),hours=Number(b.hours_per_day);
    if(!Number.isSafeInteger(days)||days<1||days>31)
     return done(400,{error:'Dias trabalhados por mês devem ficar entre 1 e 31'});
-   if(!Number.isFinite(hours)||hours<1||hours>16||!/^(?:\\d+)(?:[.,]\\d{1,2})?$/.test(String(b.hours_per_day)))
+   if(!Number.isFinite(hours)||hours<1||hours>16||!/^[0-9]+(?:[.,][0-9]{1,2})?$/.test(String(b.hours_per_day)))
     return done(400,{error:'Horas trabalhadas por dia devem ficar entre 1 e 16'});
    const totalCents=Math.round(Number(salary)*100)+Math.round(Number(additional)*100);
    if(totalCents>100000000)return done(400,{error:'Custo mensal completo excede o limite'});
