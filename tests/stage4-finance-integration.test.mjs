@@ -56,6 +56,8 @@ else {
    assert.equal(full.snapshot.issued,false);
    assert.equal(full.snapshot.commercial_release,false);
    assert.equal(full.snapshot.costs.direct_reais,500);
+   assert.equal(full.snapshot.proposal_mode,'mao_de_obra_e_materiais');
+   assert.equal(full.snapshot.items[0].unit_cost,'50.00');
    const input={lock_version:1,category:'material',description:'Tintas e massas fictícias',
     amount:'150.50',incurred_on:'2026-10-28',evidence_ref:'NOTA-QA-2026-A',
     evidence_notes:'Custo de material fictício usado apenas em teste'};
@@ -78,11 +80,20 @@ else {
     lock_version:3,status:'rejeitado',review_notes:'Não reabrir documento já validado'}),409);
    drafts=must(await call(0,base+'/proposal-drafts'),200);
    assert.equal(drafts.drafts[0].stale,true);
-   const draft2=must(await call(1,base+'/proposal-drafts','POST',{...draftBody,lock_version:3}),201);
+   const draft2=must(await call(1,base+'/proposal-drafts','POST',{
+    ...draftBody,lock_version:3,proposal_mode:'somente_mao_de_obra'}),201);
    assert.equal(draft2.version,2);
+   assert.equal(draft2.proposal_mode,'somente_mao_de_obra');
+   assert.equal(draft2.cost_estimate_ready,false);
    drafts=must(await call(0,base+'/proposal-drafts'),200);
    assert.equal(drafts.drafts[0].stale,false);
    assert.equal(drafts.drafts[1].stale,true);
+   const laborDraft=must(await call(0,base+'/proposal-drafts/'+draft2.id),200);
+   assert.equal(laborDraft.snapshot.proposal_mode,'somente_mao_de_obra');
+   assert.equal(laborDraft.snapshot.items[0].unit_cost,null);
+   assert.equal(laborDraft.snapshot.scope_pricing.labor_cost_reference_reais,null);
+   assert.equal(laborDraft.snapshot.costs.total_reais,null);
+   assert.equal(laborDraft.snapshot.issued,false);
    // A rota PDF usa autenticação obrigatória e entrega somente rascunho não emitido.
    const pdfReq=Readable.from([]);
    pdfReq.url='/api/v1/'+base+'/proposal-drafts/'+draft2.id+'/pdf';
