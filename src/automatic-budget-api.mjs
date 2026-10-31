@@ -63,6 +63,17 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
    unestimated_services:workforce.summary?.without_productivity??0,
    assumptions:workforce.assumptions
   },
+  // Internal costs are not added to SIURB prices: doing so can double-count labour.
+  // The workforce API intentionally redacts these figures for read-only roles.
+  company_costs:workforce.costs?{
+   labor_estimated_reais:number(workforce.costs.labor_estimated),
+   company_overhead_estimated_reais:number(workforce.costs.overhead_sequential),
+   combined_estimated_reais:number(workforce.costs.total_sequential),
+   cost_data_complete:!!workforce.costs.available&&scheduleReady,
+   missing_professional_rates:workforce.costs.missing_rates||[],
+   not_added_to_siurb:true,
+   note:'Custo gerencial a partir dos salarios e jornadas cadastrados, sem somar ao custo direto SIURB para evitar duplicidade.'
+  }:null,
   schedule:{
    ready:scheduleReady,
    provisional:!scheduleReady,
