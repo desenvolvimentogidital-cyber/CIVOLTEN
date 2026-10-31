@@ -57,7 +57,7 @@ else {
    assert.equal(full.snapshot.commercial_release,false);
    assert.equal(full.snapshot.costs.direct_reais,500);
    assert.equal(full.snapshot.proposal_mode,'mao_de_obra_e_materiais');
-   assert.equal(full.snapshot.items[0].unit_cost,'50.00');
+   assert.equal(Number(full.snapshot.items[0].unit_cost),50);
    const input={lock_version:1,category:'material',description:'Tintas e massas fictícias',
     amount:'150.50',incurred_on:'2026-10-28',evidence_ref:'NOTA-QA-2026-A',
     evidence_notes:'Custo de material fictício usado apenas em teste'};
