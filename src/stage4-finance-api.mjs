@@ -142,7 +142,25 @@ export async function handleStage4(ctx){
    if(status!==200)return done(409,{error:payload?.error||'Produtividade SIURB indisponível'});
    workforce=payload;
   }
-  const scopePricing=prepareProposalScope(proposalMode,{budgetItems:items,costing,workforce});
+  let saleInputs=null;
+  if(proposalMode===proposalModes.labor){
+   // Preço apenas orientativo: exige tributos e rateio do proprietário
+   // explicitamente informados. Nunca inferir uma alíquota "vigente".
+   const supplied=b.service_tax_pct!==undefined&&b.service_tax_pct!==''||
+    b.owner_allocation_reais!==undefined&&b.owner_allocation_reais!=='';
+   if(supplied){
+    const percent=x=>typeof x==='string'&&/^(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,2})?$/.test(x)&&Number(x)<=60;
+    const money=x=>typeof x==='string'&&/^(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,2})?$/.test(x)&&Number(x)<=100000000;
+    if(!percent(b.service_tax_pct)||!money(b.owner_allocation_reais))
+     return done(400,{error:'Informe tributação de serviços e rateio de pró-labore explicitamente, sem valores presumidos'});
+    const pricing=await sql.query(
+     'SELECT target_margin_pct FROM company_pricing_config WHERE singleton=1',[]);
+    saleInputs={service_tax_pct:b.service_tax_pct,
+      owner_allocation_reais:b.owner_allocation_reais,
+      target_margin_pct:pricing[0]?.target_margin_pct??null};
+   }
+  }
+  const scopePricing=prepareProposalScope(proposalMode,{budgetItems:items,costing,workforce,saleInputs});
   const snapshot=canonical({model:'civolten-proposal-draft-v1',budget:{id:budget.id,code:budget.code,
    title:budget.title,reference_month:budget.reference_month,regime:budget.regime,
    lock_version:budget.lock_version+1},
