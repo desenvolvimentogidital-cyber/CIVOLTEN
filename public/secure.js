@@ -6,7 +6,7 @@ import {showServiceCatalog,showOfficialServiceEdit} from './secure-service-picke
 import {companyCostsDialog,companyCostsSubmit} from './secure-company-costs.js';
 import {saveBudgetForOffline,getOfflineDraft,pendingChanges} from './offline-store.js';
 import {syncOfflineBudget} from './offline-sync.js';
-/* Painel privado CIVOLTEN — desenvolvimento/homologação
+/* Painel privado CIVOLTEN — dados persistidos com validações para operação comercial
  * Jamais usar localStorage para informações comerciais ou tokens de sessão.
  */
 const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleRemaining:null,scheduleWorkforce:null,scheduleWorkforceSettings:null,schedulePlanning:null,scheduleAdvanced:false,finance:null,financeSelected:null,financeDraft:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false,autoBriefing:null};
@@ -31,7 +31,7 @@ function authView(){
  const setup=state.mode==='setup';
  app.innerHTML='<section class="login"><div class="login-card">'+brand()+
  '<h1>'+(setup?'Configuração inicial':'Acesso seguro')+'</h1><p class="muted">'+(setup?'Cadastre o administrador utilizando o código temporário definido na Vercel.':'Entre para acessar os cadastros persistidos no Neon PostgreSQL.')+'</p>'+
- '<div class="notice tiny">Ambiente de desenvolvimento. Não utilizar dados pessoais reais até a homologação de segurança e backup.</div>'+
+ '<div class="notice tiny">Dados persistidos no Neon real. Antes de usar dados pessoais de clientes, conclua backup e homologação de segurança.</div>'+
  '<form id="authForm">'+(setup?field('Código de inicialização','bootstrap_secret','password',true):'')+
  field('Usuário','login','text',true)+field('Senha','password','password',true)+
  '<button class="btn primary block" type="submit">'+(setup?'Criar administrador':'Entrar')+'</button></form>'+
@@ -124,14 +124,14 @@ function dashboard(){
  '<div class="actions"><button type="button" class="btn primary btn-primary" data-action="view" data-view="clientes">Abrir clientes '+ico('chevron')+'</button>'+
  '<button type="button" class="btn" data-action="view" data-view="orcamentos">Ver orçamentos</button></div></section>'+
  '<section class="card dashboard-panel status-panel"><div class="panel-head">'+ico('shield')+'<h2>Controle e segurança</h2></div>'+
- '<span class="tag status-pill">Modo interno de testes</span>'+
- '<p>Suas alterações neste painel são gravadas no banco PostgreSQL. Use dados fictícios enquanto testa as funcionalidades.</p>'+
+ '<span class="tag status-pill">Banco real conectado · liberação comercial pendente</span>'+
+ '<p>Suas alterações neste painel são gravadas no banco PostgreSQL. Cálculos não revisados não são preços nem prazos aprovados. Complete as verificações antes de usar dados pessoais.</p>'+
  '<p class="muted tiny">A emissão comercial de propostas e contratos ainda depende de revisão de custos, tributação e homologação.</p>'+
  (state.user?.role==='administrador'?'<button type="button" class="btn" data-action="release-readiness">Verificar liberação real do sistema</button>':'')+'</section></div>';
 }
 
 function clientPage(){
- return heading('Clientes','Cadastro persistente com histórico no banco de desenvolvimento.','Novo cliente','new-client')+
+ return heading('Clientes','Cadastro persistente com histórico no PostgreSQL Neon.','Novo cliente','new-client')+
  (state.clients.length?listRows(state.clients,[
  {title:'Cliente',render:x=>'<strong>'+esc(x.name)+'</strong>'},
  {title:'Documento',render:x=>esc(x.tax_id||'—')+'<div>'+statusPill(x.status)+'</div>'},
