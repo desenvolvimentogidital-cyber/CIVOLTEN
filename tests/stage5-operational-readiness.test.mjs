@@ -11,7 +11,11 @@ const invoke=async(role='administrador')=>{
   if(q.includes('information_schema.tables'))return requiredTables.map(table_name=>({table_name}));
   if(q.includes('information_schema.columns'))return requiredColumns.map(([table_name,column_name])=>({table_name,column_name}));
   if(q.includes('administrators_pending_password_change'))
-   return [{active_administrators:1,administrators_pending_password_change:1,budgets:1,reference_prices:6988,proposal_drafts:0}];
+   return [{active_administrators:1,administrators_pending_password_change:1,
+    budgets:1,reference_prices:6988,proposal_drafts:0,active_budget_items:2,
+    items_pending_cost_review:2,items_pending_productivity_review:2,
+    budgets_pending_cost_approval:1,company_hourly_rates:0,
+    company_overhead_profiles:0,active_company_workers:0,issued_proposals:0}];
   throw Error('Unexpected SQL');
  }};
  await handleStage5Readiness({req:{},res:{},sql,user:{role},parts:['release-readiness'],method:'GET',
@@ -27,6 +31,16 @@ test('diagnóstico real apresenta contagens agregadas e informa troca de senha p
  assert.equal(r.body.operational.proposal_draft_records,0);
  assert.equal(r.body.operational.account_setup.administrator_present,true);
  assert.equal(r.body.operational.account_setup.administrator_password_change_pending,true);
+ assert.equal(r.body.operational.active_budget_items,2);
+ assert.equal(r.body.operational.items_pending_cost_review,2);
+ assert.equal(r.body.operational.items_pending_productivity_review,2);
+ assert.equal(r.body.operational.budgets_pending_cost_approval,1);
+ assert.equal(r.body.operational.company_hourly_rates,0);
+ assert.equal(r.body.operational.company_overhead_profiles,0);
+ assert.equal(r.body.operational.issued_proposal_records,0);
+ assert.ok(r.body.operational.preparation.some(x=>x.key==='productivity_reviews'&&!x.complete));
+ assert.ok(r.body.operational.preparation.some(x=>x.key==='encrypted_backup'&&!x.complete));
+ assert.equal(r.body.operational.preparation.length,9);
  assert.equal(r.body.operational.backup_automation_verified,false);
  assert.equal(r.body.operational.browser_desktop_mobile_verified,false);
  assert.equal(r.body.schema.ready,true);
