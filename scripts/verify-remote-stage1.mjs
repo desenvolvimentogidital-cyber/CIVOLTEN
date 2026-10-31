@@ -1,10 +1,10 @@
 /* CIVOLTEN — smoke test seguro do backend publicado, sem gravar nenhum dado.
  * Usar somente após Vercel publicar o commit e carregar DATABASE_URL.
  */
-const target=process.env.CIVOLTEN_BASE_URL||'https://civolten-gj91.vercel.app';
+const target=process.env.CIVOLTEN_BASE_URL||'https://civolten.vercel.app';
 const url=new URL(target);
-if(url.protocol!=='https:'||url.hostname!=='civolten-gj91.vercel.app'||url.pathname!=='/'||url.search){
- console.error('Destino inválido. Use exclusivamente https://civolten-gj91.vercel.app');
+if(url.protocol!=='https:'||url.hostname!=='civolten.vercel.app'||url.pathname!=='/'||url.search){
+ console.error('Destino inválido. Use exclusivamente https://civolten.vercel.app');
  process.exit(2);
 }
 // The root of the published app must not open the browser-local demonstration.
