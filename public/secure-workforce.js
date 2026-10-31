@@ -9,12 +9,14 @@ export function workforcePanel(data,esc,planning={}){
  if(!data)return '<div class="card workforce-wait"><h2>Serviços e equipes sugeridas</h2><p class="muted">Consultando os serviços do seu orçamento e calculando a mão de obra necessária…</p></div>';
  if(data.error)return '<div class="card workforce-wait" role="alert"><h2>Não foi possível calcular</h2><p class="danger">'+esc(data.error)+'</p><p class="muted">A lista de serviços no orçamento continua preservada. Atualize a página para tentar novamente.</p></div>';
  const s=data.summary||{},cfg=data.settings||{},items=data.services||[];
+ const validatedSchedule=!!data.resource_schedule?.ready&&!s.partial_estimate&&
+  items.length>0&&items.every(item=>item.reviewed===true);
  const sbox=(label,value,sub)=>'<div class="card workforce-stat"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(sub)+'</small></div>';
  const stats='<div class="workforce-stat-grid">'+
   sbox('Serviços no orçamento',s.total_services??0,'Selecionados no orçamento')+
-  sbox('Profissionais necessários',data.resource_schedule?.ready?data.resource_schedule.peak_workers:'Parcial','Pico simultâneo real do plano')+
-  sbox('Equipes necessárias',data.resource_schedule?.ready?Math.ceil(data.resource_schedule.peak_workers/(cfg.crew_size||4)):'Parcial','Até '+esc(cfg.crew_size||4)+' profissionais por equipe')+
-  sbox('Dias estimados',data.resource_schedule?.ready?data.resource_schedule.workdays:'Parcial','Frentes e profissionais disponíveis')+'</div>';
+  sbox('Profissionais necessários',validatedSchedule?data.resource_schedule.peak_workers:'A revisar','Pico de profissionais após revisão técnica')+
+  sbox('Equipes necessárias',validatedSchedule?Math.ceil(data.resource_schedule.peak_workers/(cfg.crew_size||4)):'A revisar','Até '+esc(cfg.crew_size||4)+' profissionais por equipe')+
+  sbox('Dias estimados',validatedSchedule?data.resource_schedule.workdays:'A revisar','Dias úteis relativos, sujeitos à revisão')+'</div>';
  const services=items.map((item,i)=>{
   const roles=item.roles?.length?item.roles.map(role=>
     '<span class="workforce-role">'+esc(professionLabel(role.name))+' <strong>'+esc(role.workers)+'</strong></span>').join(''):
@@ -78,7 +80,7 @@ export function workforcePanel(data,esc,planning={}){
   (roles.length?'<div class="table-wrap"><table class="table"><thead><tr><th>Profissão</th><th>Profissionais no pico</th>'+
    (cost?'<th>Custo-hora interno</th>':'')+'</tr></thead><tbody>'+occupationRows+'</tbody></table></div>':
    '<p class="muted">Sem composição por profissão. O total de pessoas por função depende da revisão do serviço.</p>')+
-  '<div class="workforce-total-days"><div><span>Duração estimada da sequência</span><strong>'+esc(d.complete?d.sequential_workdays:'Mínimo parcial: '+(d.sequential_workdays??0))+' dias úteis</strong></div></div>'+
+  '<div class="workforce-total-days"><div><span>Duração estimada da sequência</span><strong>'+esc(d.complete&&validatedSchedule?d.sequential_workdays:'Prévia a revisar: '+(d.sequential_workdays??'sem cálculo'))+' dias úteis</strong></div></div>'+
   '<p class="muted tiny">Prazos de simulação por frente, com dependências e limite global de pessoas. Não incluem feriados, clima ou dias tecnológicos não cadastrados.</p></div>';
  const costPanel=cost?'<div class="card workforce-cost-summary"><div class="row"><h2>Custo interno estimado da obra</h2>'+
    '<button type="button" class="btn primary" data-action="company-config">Cadastrar custos e profissionais</button></div>'+
