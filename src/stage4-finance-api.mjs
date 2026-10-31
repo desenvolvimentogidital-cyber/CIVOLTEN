@@ -149,8 +149,8 @@ export async function handleStage4(ctx){
    const supplied=b.service_tax_pct!==undefined&&b.service_tax_pct!==''||
     b.owner_allocation_reais!==undefined&&b.owner_allocation_reais!=='';
    if(supplied){
-    const percent=x=>typeof x==='string'&&/^(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,2})?$/.test(x)&&Number(x)<=60;
-    const money=x=>typeof x==='string'&&/^(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,2})?$/.test(x)&&Number(x)<=100000000;
+    const percent=x=>typeof x==='string'&&/^(?:0|[1-9][0-9]*)(?:[.][0-9]{1,2})?$/.test(x)&&Number(x)<=60;
+    const money=x=>typeof x==='string'&&/^(?:0|[1-9][0-9]*)(?:[.][0-9]{1,2})?$/.test(x)&&Number(x)<=100000000;
     if(!percent(b.service_tax_pct)||!money(b.owner_allocation_reais))
      return done(400,{error:'Informe tributação de serviços e rateio de pró-labore explicitamente, sem valores presumidos'});
     const pricing=await sql.query(
