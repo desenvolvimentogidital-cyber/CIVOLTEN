@@ -14,7 +14,7 @@ export function automaticBudgetPanel(model,esc,{budgetId}={}){
  if(!model.budget||String(model.budget.id)!==String(budgetId))
   return '<div class="card"><p>Atualizando cálculos do orçamento...</p></div>';
  const cost=model.cost||{},workforce=model.workforce||{},schedule=model.schedule||{},
-  services=workforce.services||[],issues=model.issues||[];
+  services=workforce.services||[],issues=model.issues||[],internal=model.company_costs;
  const pending=services.filter(s=>s.workers==null);
  const scheduleRows=(schedule.tasks||[]).map(t=>'<tr><td>'+esc(t.title||'Serviço')+'</td>'+
   '<td>'+val(t.workers,esc)+'</td><td>'+(t.duration==null?'A revisar':val(t.duration,esc)+' dias')+'</td>'+
@@ -38,6 +38,17 @@ export function automaticBudgetPanel(model,esc,{budgetId}={}){
    (schedule.ready?val(schedule.peak_workers,esc):'A confirmar')+'</div></div>'+
   '<div class="card"><div class="muted">Duração em dias úteis</div><div class="metric">'+
    (schedule.ready?val(schedule.workdays,esc):schedule.tentative_workdays!=null?'Prévia: '+val(schedule.tentative_workdays,esc)+' (a revisar)':'Pendente')+'</div></div></div>'+
+  (internal?'<h3>Custo da equipe com dados da sua empresa</h3>'+
+   '<div class="grid">'+
+   '<div class="card"><div class="muted">Mão de obra interna estimada</div><div class="metric">'+
+     esc(internal.labor_estimated_reais==null?'Custo-hora pendente':currency(internal.labor_estimated_reais))+'</div></div>'+
+   '<div class="card"><div class="muted">Despesas internas rateadas</div><div class="metric">'+
+     esc(internal.company_overhead_estimated_reais==null?'Despesas pendentes':currency(internal.company_overhead_estimated_reais))+'</div></div>'+
+   '<div class="card"><div class="muted">Mão de obra + despesas, após validação</div><div class="metric">'+
+     esc(internal.cost_data_complete?currency(internal.combined_estimated_reais):'Aguardando revisão')+'</div></div></div>'+
+   (internal.missing_professional_rates?.length?'<div class="notice">Custo-hora ainda não informado para: '+
+      internal.missing_professional_rates.map(esc).join(', ')+'</div>':'')+
+   '<p class="muted tiny">Esses valores são custos gerenciais do cadastro da empresa. Não são adicionados automaticamente aos preços SIURB, para evitar cobrança dupla de mão de obra e administração.</p>':'')+
   '<h3>Profissionais e atividades gerados dos serviços</h3>'+
   (serviceRows?'<div class="table-wrap"><table><thead><tr><th>Serviço</th><th>Quantidade</th><th>h-h diretas</th><th>Profissionais</th><th>Duração sugerida</th><th>Funções</th></tr></thead><tbody>'+
    serviceRows+'</tbody></table></div>':'<p class="muted">Adicione o primeiro serviço para começar a calcular.</p>')+
