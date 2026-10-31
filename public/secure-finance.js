@@ -57,7 +57,7 @@ export function financePage({state,esc,writeable}){
  return '<div class="row"><div><h1>Propostas e finanças</h1><p class="muted">Etapa 4 — '+esc(budget.code)+'</p></div></div>'+
   '<div class="actions"><button class="btn" data-action="finance-back">Voltar ao orçamento</button>'+
   (edit?'<button class="btn primary" data-action="finance-create-draft">+ Versão de proposta</button><button class="btn" data-action="finance-add-actual">+ Custo realizado</button><button class="btn" data-action="finance-add-receipt">+ Recebimento</button><button class="btn" data-action="finance-add-forecast">+ Custo a completar</button>':'')+'</div>'+
-  '<div class="notice"><strong>Prévia interna, ainda não emitida.</strong> Você escolhe na versão da proposta se a CIVOLTEN fornecerá materiais ou somente mão de obra. Preço final exige aprovação de custos, impostos, BDI e condições contratuais.</div>'+
+  '<div class="notice"><strong>Prévia interna, ainda não emitida.</strong> Você escolhe na versão da proposta se a CIVOLTEN fornecerá materiais ou somente mão de obra. Preço final exige aprovação de custos, impostos, BDI e condições contratuais. A contribuição estimada não significa lucro líquido.</div>'+
   '<div class="grid"><div class="card"><div class="muted">Preço de venda estimado</div><div class="metric">'+m(totals.budget_sell_reais)+'</div></div>'+
   '<div class="card"><div class="muted">Custo direto orçado</div><div class="metric">'+m(totals.budget_direct_reais)+'</div></div>'+
   '<div class="card"><div class="muted">Contribuição orçada indicativa</div><div class="metric">'+m(totals.budget_contribution_reais)+'</div></div>'+
