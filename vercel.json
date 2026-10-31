@@ -20,6 +20,16 @@
       "source": "/index.html",
       "destination": "/secure.html",
       "permanent": false
+    },
+    {
+      "source": "/demo-api.js",
+      "destination": "/secure.html",
+      "permanent": false
+    },
+    {
+      "source": "/app.js",
+      "destination": "/secure.html",
+      "permanent": false
     }
   ]
 }
