@@ -20,5 +20,5 @@ jobs:
           node-version: '22'
       - name: Consultar API real sem alterar dados
         env:
-          CIVOLTEN_BASE_URL: https://civolten-gj91.vercel.app/
+          CIVOLTEN_BASE_URL: https://civolten.vercel.app/
         run: node scripts/verify-remote-stage1.mjs

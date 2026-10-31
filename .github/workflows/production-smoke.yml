@@ -26,5 +26,5 @@ jobs:
           node-version: '22.13.1'
       - name: Verificar produção CIVOLTEN e conexão real com Neon sem gravar registros
         env:
-          CIVOLTEN_BASE_URL: https://civolten-gj91.vercel.app
+          CIVOLTEN_BASE_URL: https://civolten.vercel.app
         run: node scripts/verify-remote-stage1.mjs
