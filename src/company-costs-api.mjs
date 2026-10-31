@@ -16,7 +16,7 @@ const userId=u=>u.id;
 export async function readCompanyCosts(sql){
  const [rates,workers,config]=await Promise.all([
   sql.query('SELECT role_code,role_name,hourly_employer_cost FROM company_labor_rates ORDER BY role_name',[]),
-  sql.query('SELECT id,display_name,role_code,role_name,monthly_employer_cost,active FROM company_workers ORDER BY active DESC,role_name,display_name LIMIT 500',[]),
+  sql.query('SELECT id,display_name,role_code,role_name,monthly_employer_cost,monthly_salary,monthly_additional_cost,workdays_per_month,hours_per_day,active FROM company_workers ORDER BY active DESC,role_name,display_name LIMIT 500',[]),
   sql.query('SELECT monthly_overhead,workdays_per_month FROM company_overhead_config WHERE singleton=1',[])
  ]);
  // Pricing is optional until the additive 0017 migration has been applied.
@@ -51,7 +51,21 @@ export async function handleCompanyCosts({req,res,sql,user,parts,method,send,rea
   };
   const costs=Object.fromEntries(Object.entries(labels).map(([field,label])=>
    [field,Number(cash(b[field],label))]));
-  const taxPct=Number(cash(b.taxes_on_revenue_pct,'Tributos efetivos sobre a receita',60));
+  // Split is an explicit estimate only. Material used in construction services
+  // is NOT automatically a separate sale under Brazilian tax law.
+  const splitRequested=['tax_service_pct','tax_material_pct','material_revenue_share_pct']
+   .some(k=>b[k]!==undefined&&b[k]!==null&&b[k]!=='');
+  let split=null,taxPct;
+  if(splitRequested){
+   const servicePct=Number(cash(b.tax_service_pct,'Tributos estimados sobre serviço',60));
+   const materialPct=Number(cash(b.tax_material_pct,'Tributos estimados sobre venda separada de material',60));
+   const materialShare=Number(cash(b.material_revenue_share_pct,'Parcela de receita de materiais vendidos separadamente (%)',100));
+   const separate=b.materials_separately_billed===true||b.materials_separately_billed==='true';
+   if(materialShare>0&&!separate)return done(400,{error:'Receita separada de materiais exige confirmação de venda e faturamento independentes; material incorporado ao serviço não é venda avulsa'});
+   taxPct=Math.round((servicePct*(100-materialShare)+materialPct*materialShare)*100)/10000;
+   split={service_tax_pct:servicePct,material_tax_pct:materialPct,
+    material_revenue_share_pct:materialShare,materials_separately_billed:separate};
+  }else taxPct=Number(cash(b.taxes_on_revenue_pct,'Tributos efetivos sobre a receita',60));
   const configured=await sql.query(
    'SELECT target_margin_pct,owner_prolabore_monthly FROM company_pricing_config WHERE singleton=1',[]);
   if(!configured.length)return done(409,{error:'Configure margem e pró-labore da CIVOLTEN antes da simulação'});
@@ -68,12 +82,21 @@ export async function handleCompanyCosts({req,res,sql,user,parts,method,send,rea
    scenario:'custo_proprio_informado',source_mode:'own_cost',
    costs,complete_cost_reais:reconciliation.combined_cost,
    taxes_on_revenue_pct:taxPct,
+   tax_breakdown:split?{
+    ...split,
+    service_revenue_estimated:Math.round(indicative.sale_price*(100-split.material_revenue_share_pct))/100,
+    separate_material_revenue_estimated:Math.round(indicative.sale_price*split.material_revenue_share_pct)/100,
+    service_tax_estimated:Math.round(indicative.sale_price*(100-split.material_revenue_share_pct)*split.service_tax_pct)/10000,
+    separate_material_tax_estimated:Math.round(indicative.sale_price*split.material_revenue_share_pct*split.material_tax_pct)/10000,
+    verified_by_accountant:false
+   }:null,
    owner_prolabore_monthly_configured:configured[0].owner_prolabore_monthly,
    price:indicative,reference_siurb_added:false,
    bdi_added:false,stored:false,can_issue:false,commercial_release:false,
    warnings:[
     'Simulação interna não grava ou modifica orçamento, proposta, contrato ou referência SIURB.',
     'Tributos informados pelo responsável devem ser conferidos com o enquadramento da empresa; não são uma alíquota calculada pelo sistema.',
+    'Materiais incorporados a uma obra não são automaticamente receitas tributadas à parte. Se houver venda separada, confirme a classificação fiscal e o enquadramento da empresa com o contador.',
     'Pró-labore e despesas indiretas precisam ser rateados por critério técnico e não podem ser incluídos outra vez no BDI ou na tabela de serviços.',
     'Preço indicativo não é proposta aprovada nem lucro líquido. Exige validações fiscal, técnica e comercial.'
    ]
@@ -106,13 +129,29 @@ export async function handleCompanyCosts({req,res,sql,user,parts,method,send,rea
  if(parts[1]==='workers'&&(method==='POST'&&parts.length===2||method==='PUT'&&parts.length===3&&uuid(parts[2]))){
   const b=await readBody(req),name=textValue(b.display_name,'Nome profissional'),
    role=codeValue(b.role_code),roleName=textValue(b.role_name,'Profissão',140),
-   monthly=cash(b.monthly_employer_cost,'Custo mensal completo',1000000);
+   payrollFields=['monthly_salary','monthly_additional_cost','workdays_per_month','hours_per_day'],
+   hasPayroll=payrollFields.some(key=>b[key]!==undefined&&b[key]!==null&&b[key]!=='');
+  let payroll=null;
+  if(hasPayroll){
+   const salary=cash(b.monthly_salary,'Salário mensal',1000000);
+   const additional=cash(b.monthly_additional_cost,'Encargos e benefícios mensais',1000000);
+   const days=Number(b.workdays_per_month),hours=Number(b.hours_per_day);
+   if(!Number.isSafeInteger(days)||days<1||days>31)
+    return done(400,{error:'Dias trabalhados por mês devem ficar entre 1 e 31'});
+   if(!Number.isFinite(hours)||hours<1||hours>16||!/^[0-9]+(?:[.,][0-9]{1,2})?$/.test(String(b.hours_per_day)))
+    return done(400,{error:'Horas trabalhadas por dia devem ficar entre 1 e 16'});
+   const totalCents=Math.round(Number(salary)*100)+Math.round(Number(additional)*100);
+   if(totalCents>100000000)return done(400,{error:'Custo mensal completo excede o limite'});
+   payroll={salary,additional,days,hours:String(hours),monthly:(totalCents/100).toFixed(2)};
+  }
+  const monthly=payroll?payroll.monthly:cash(b.monthly_employer_cost,'Custo mensal completo',1000000);
+  const extras=payroll?[payroll.salary,payroll.additional,payroll.days,payroll.hours]:[null,null,null,null];
   if(method==='POST'){
-   const rows=await sql.query("WITH created AS (INSERT INTO company_workers(display_name,role_code,role_name,monthly_employer_cost) VALUES($1,$2,$3,$4) RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $5,'company_workers',id,'create' FROM created RETURNING id) SELECT created.* FROM created JOIN logged ON true",[name,role,roleName,monthly,userId(user)]);
+   const rows=await sql.query("WITH created AS (INSERT INTO company_workers(display_name,role_code,role_name,monthly_employer_cost,monthly_salary,monthly_additional_cost,workdays_per_month,hours_per_day) VALUES($1,$2,$3,$4,$6,$7,$8,$9) RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $5,'company_workers',id,'create' FROM created RETURNING id) SELECT created.* FROM created JOIN logged ON true",[name,role,roleName,monthly,userId(user),...extras]);
    return done(201,rows[0]);
   }
   if(typeof b.active!=='boolean')return done(400,{error:'Situação ativo/inativo obrigatória'});
-  const rows=await sql.query("WITH changed AS (UPDATE company_workers SET display_name=$2,role_code=$3,role_name=$4,monthly_employer_cost=$5,active=$6,updated_at=now() WHERE id=$1 RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $7,'company_workers',id,'update' FROM changed RETURNING id) SELECT changed.* FROM changed JOIN logged ON true",[parts[2],name,role,roleName,monthly,b.active,userId(user)]);
+  const rows=await sql.query("WITH changed AS (UPDATE company_workers SET display_name=$2,role_code=$3,role_name=$4,monthly_employer_cost=$5,active=$6,monthly_salary=$8,monthly_additional_cost=$9,workdays_per_month=$10,hours_per_day=$11,updated_at=now() WHERE id=$1 RETURNING *), logged AS (INSERT INTO audit_events(actor_id,entity_type,entity_id,action) SELECT $7,'company_workers',id,'update' FROM changed RETURNING id) SELECT changed.* FROM changed JOIN logged ON true",[parts[2],name,role,roleName,monthly,b.active,userId(user),...extras]);
   return rows.length?done(200,rows[0]):done(404,{error:'Profissional não encontrado'});
  }
  return done(405,{error:'Rota ou método de custos internos não permitido'});

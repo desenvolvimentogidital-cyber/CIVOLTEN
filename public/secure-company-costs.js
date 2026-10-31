@@ -21,7 +21,9 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    '<tr><td>'+esc(r.role_name)+'</td><td>'+esc(cur(r.hourly_employer_cost))+'</td><td><button class="btn" type="button" data-action="company-edit-rate" data-id="'+esc(r.role_code)+'">Editar</button></td></tr>').join('');
   const workers=data.workers.map(w=>'<tr><td>'+esc(w.display_name)+'</td><td>'+esc(w.role_name)+'</td>'+
    '<td>'+esc(cur(w.monthly_employer_cost))+'</td><td>'+esc(w.active?'Ativo':'Inativo')+'</td><td>'+
-   '<button class="btn" type="button" data-action="company-edit-worker" data-id="'+esc(w.id)+'">Editar</button></td></tr>').join('');
+   '<button class="btn" type="button" data-action="company-edit-worker" data-id="'+esc(w.id)+'">Editar</button>'+
+   (w.monthly_salary==null?'<button class="btn" type="button" data-action="company-edit-worker-payroll" data-id="'+esc(w.id)+'">Informar salário e jornada</button>':'')+
+   '</td></tr>').join('');
   show('Custos internos da CIVOLTEN','<div class="notice tiny"><strong>Uso interno:</strong> informe o custo completo da empresa por profissional, incluindo salário, encargos e benefícios. Não é necessário cadastrar profissionais para fazer o cronograma.</div>'+
    '<div class="actions"><button class="btn primary" type="button" data-action="company-edit-overhead">Despesas fixas da empresa</button>'+
    '<button class="btn" type="button" data-action="company-add-worker">+ Cadastrar profissional</button>'+
@@ -34,7 +36,7 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    ' · Dias úteis/mês: '+esc(data.overhead?.workdays_per_month??22)+'. Inclua aluguel, escritório, veículos e pró-labore, sem repetir parcelas já computadas.</p>'+
    '<h3>Custo-hora por profissão</h3><div class="table-wrap"><table><thead><tr><th>Profissão</th><th>Custo-hora</th><th>Ação</th></tr></thead><tbody>'+
    (rateRows+extraRates||'<tr><td colspan="3">Nenhum serviço com profissão identificada.</td></tr>')+'</tbody></table></div>'+
-   '<h3>Base dos profissionais</h3><p class="muted tiny">Cadastro opcional. A média dos custos mensais ativos pode ser usada quando não houver custo-hora específico. Nenhum profissional é alocado automaticamente.</p>'+
+   '<h3>Base dos profissionais</h3><p class="muted tiny">Informe salário mensal, encargos/benefícios, dias e horas efetivamente pagos. Custo-hora = custo mensal completo ÷ dias ÷ horas. A média de cada profissão é usada somente quando não existir uma tarifa específica.</p>'+
    '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Função</th><th>Custo mensal</th><th>Situação</th><th>Ação</th></tr></thead><tbody>'+
    (workers||'<tr><td colspan="5">Nenhum profissional cadastrado.</td></tr>')+'</tbody></table></div>');
   return;
@@ -56,7 +58,12 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    '. Informe abaixo o valor justificável alocado a ESTA obra, sem duplicar administração.</p>'+
    '<form id="company-simulate-form">'+
    fields.map(([label,name])=>input(label,name,'','number','min="0" max="100000000" step="0.01"')).join('')+
-   input('Tributos efetivos sobre a receita (%) — confirme com a contabilidade','taxes_on_revenue_pct','','number','min="0" max="60" step="0.01"')+
+   '<div class="notice tiny"><strong>Alíquotas provisórias informadas por você, não homologadas:</strong> 6% para serviço e 4,5% para eventual venda SEPARADA de materiais. Materiais incorporados à obra não viram automaticamente venda separada.</div>'+
+   input('Tributos sobre a receita de serviços (%)','tax_service_pct','6','number','min="0" max="60" step="0.01"')+
+   input('Tributos sobre venda separada de materiais (%)','tax_material_pct','4.5','number','min="0" max="60" step="0.01"')+
+   input('Participação da receita de materiais vendidos separadamente (%)','material_revenue_share_pct','0','number','min="0" max="100" step="0.01"')+
+   '<div class="field"><label>Os materiais serão vendidos e faturados separadamente do serviço?</label>'+
+   '<select name="materials_separately_billed"><option value="false" selected>Não / ainda não confirmado</option><option value="true">Sim, com receita separada confirmada</option></select></div>'+
    '<p class="muted tiny">Sem impostos confirmados não há formação de preço confiável. Esta operação não altera orçamentos, fichas SIURB, contratos ou cadastros.</p>'+
    '<div class="actions"><button class="btn primary" type="submit">Calcular cenário indicativo</button>'+
    '<button class="btn" type="button" data-action="company-config">Cancelar</button></div></form>');
@@ -86,9 +93,11 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    input('Custo total da empresa por hora (R$)','hourly_employer_cost',r?.hourly_employer_cost??'','number','min="0" step="0.01"')+
    '<p class="muted tiny">Inclua encargos e benefícios no custo-hora. Se já embutidos em outro campo, não some novamente.</p>'+buttons+'</form>');return;
  }
- if(action==='company-add-worker'||action==='company-edit-worker'){
-  const w=action==='company-edit-worker'?data.workers.find(x=>x.id===id):null;
-  if(action==='company-edit-worker'&&!w)throw Error('Profissional não encontrado');
+ if(['company-add-worker','company-edit-worker','company-edit-worker-payroll'].includes(action)){
+  const editing=action!=='company-add-worker';
+  const w=editing?data.workers.find(x=>x.id===id):null;
+  if(editing&&!w)throw Error('Profissional não encontrado');
+  const payroll=action!=='company-edit-worker'||w?.monthly_salary!=null;
   const selectedRole=w?.role_code||roles[0]?.code||'';
   const codeSuggestions=roles.map(r=>'<option value="'+esc(r.code)+'">'+esc(r.name)+'</option>').join('');
   show(w?'Editar profissional':'Cadastrar profissional da empresa',
@@ -97,10 +106,15 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    input('Código da profissão SIURB (ex.: 2020)','role_code',selectedRole,'text','maxlength="40" list="company-role-codes"')+
    '<datalist id="company-role-codes">'+codeSuggestions+'</datalist>'+
    input('Profissão','role_name',w?.role_name||roles.find(r=>r.code===selectedRole)?.name||'','text','maxlength="140"')+
-   input('Custo mensal completo para a empresa (R$)','monthly_employer_cost',w?.monthly_employer_cost??'','number','min="0" step="0.01"')+
+   (payroll?
+    input('Salário mensal pago (R$)','monthly_salary',w?.monthly_salary??'','number','min="0" max="1000000" step="0.01"')+
+    input('Encargos, benefícios e adicionais mensais (R$) — informe 0 somente se confirmado','monthly_additional_cost',w?.monthly_additional_cost??'','number','min="0" max="1000000" step="0.01"')+
+    input('Dias de trabalho pagos por mês','workdays_per_month',w?.workdays_per_month??'','number','min="1" max="31" step="1"')+
+    input('Horas pagas por dia','hours_per_day',w?.hours_per_day??'','number','min="1" max="16" step="0.5"'):
+    input('Custo mensal completo legado da empresa (R$)','monthly_employer_cost',w?.monthly_employer_cost??'','number','min="0" step="0.01"'))+
    (w?'<div class="field"><label>Situação</label><select name="active"><option value="true" '+(w.active?'selected':'')+'>Ativo</option>'+
     '<option value="false" '+(!w.active?'selected':'')+'>Inativo</option></select></div>':'')+
-   '<p class="tiny muted">Não informe CPF, telefone ou dados sensíveis. O registro serve apenas como base de custo e não significa alocação nesta obra.</p>'+buttons+'</form>');return;
+   '<p class="tiny muted">Salário e adicionais compõem o custo mensal; dias e horas definem o custo-hora. A CIVOLTEN não presume encargos nem dias trabalhados. Não informe CPF ou telefone; este cadastro não aloca funcionários automaticamente à obra.</p>'+buttons+'</form>');return;
  }
 }
 export async function companyCostsSubmit(form,{state,api,toast,refresh,dialog,esc}) {
@@ -115,9 +129,12 @@ export async function companyCostsSubmit(form,{state,api,toast,refresh,dialog,es
    '<div class="notice"><strong>Estimativa não contratual</strong><p>Preço de venda indicativo: '+
    esc(cur(scenario.price.sale_price))+'</p><p>Custo completo informado: '+esc(cur(scenario.complete_cost_reais))+
    '</p><p>Margem configurada: '+esc(scenario.price.margin_pct)+'% · Tributos informados: '+
-   esc(scenario.taxes_on_revenue_pct)+'% · Valor indicativo da margem: '+
+   esc(scenario.taxes_on_revenue_pct)+'% ponderados · Valor indicativo da margem: '+
    esc(cur(scenario.price.profit_before_income_tax))+'</p></div>'+
-   '<p class="muted tiny">Nenhum orçamento foi alterado nem documento emitido. Os valores não representam lucro líquido.</p>'+
+   (scenario.tax_breakdown?'<p class="muted tiny">Tributos estimados: serviços '+esc(cur(scenario.tax_breakdown.service_tax_estimated))+
+    ' e materiais de venda separada '+esc(cur(scenario.tax_breakdown.separate_material_tax_estimated))+
+    '. Participação explícita de materiais: '+esc(scenario.tax_breakdown.material_revenue_share_pct)+'%.</p>':'')+
+   '<p class="muted tiny">Nenhum orçamento foi alterado nem documento emitido. As alíquotas não foram homologadas pela contabilidade, e os valores não representam lucro líquido.</p>'+
    '<div class="notice tiny">'+scenario.warnings.map(x=>'<p>'+esc(x)+'</p>').join('')+'</div>'+
    '<div class="actions"><button class="btn" type="button" data-action="company-simulate-sale">Recalcular</button>'+
    '<button class="btn" type="button" data-action="company-config">Voltar aos custos</button></div>');
