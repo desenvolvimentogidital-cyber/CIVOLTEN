@@ -415,6 +415,11 @@ document.addEventListener('click',async e=>{
     const preparation=(op.preparation||[]).map(x=>'<tr><td>'+esc(x.label)+'</td><td>'+
       (x.complete?'<span class="ok">Cadastrado/revisado</span>':'<span class="danger">Pendente</span>')+
       '</td></tr>').join('');
+    const seven=(op.phases||[]).map(p=>'<section class="card">'+
+      '<h4>Fase '+esc(p.phase)+' — '+esc(p.title)+'</h4>'+
+      '<p>'+esc(p.passed)+' de '+esc(p.total)+' verificações com evidência</p>'+
+      '<ul>'+p.checks.map(q=>'<li>'+(q.complete?'<span class="ok">Verificado</span>':'<span class="danger">Pendente</span>')+
+      ' — '+esc(q.label)+'</li>').join('')+'</ul></section>').join('');
     dialog('Liberação operacional CIVOLTEN',
       '<div class="notice"><strong>'+ (report.commercial_release?'Liberado':'Uso comercial ainda não liberado')+
       '</strong><p>Dados deste diagnóstico vêm do banco e das condições de homologação. Não representam assinatura técnica ou autorização para emitir contratos.</p></div>'+
@@ -426,6 +431,9 @@ document.addEventListener('click',async e=>{
       '<p>Orçamentos registrados: '+esc(op.budget_records??'não conferido')+
       ' · Preços de referência: '+esc(op.reference_price_records??'não conferido')+
       ' · Rascunhos de proposta: '+esc(op.proposal_draft_records??'não conferido')+'</p>'+
+      '<h3>As sete fases da implantação</h3>'+
+      '<p class="muted tiny">As verificações usam contagens do Neon e, para aprovações externas, só aceitam evidências independentes; nenhum cadastro substitui homologação.</p>'+
+      seven+
       '<h3>Pendências objetivas da operação</h3>'+
       '<p>Itens ativos: '+esc(op.active_budget_items??'—')+
       ' · Custos/quantidades pendentes: '+esc(op.items_pending_cost_review??'—')+
