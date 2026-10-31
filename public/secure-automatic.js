@@ -37,13 +37,14 @@ export function automaticBudgetPanel(model,esc,{budgetId}={}){
   '<div class="card"><div class="muted">Pico de profissionais sugerido</div><div class="metric">'+
    (schedule.ready?val(schedule.peak_workers,esc):'A confirmar')+'</div></div>'+
   '<div class="card"><div class="muted">Duração em dias úteis</div><div class="metric">'+
-   (schedule.ready?val(schedule.workdays,esc):'Pendente')+'</div></div></div>'+
+   (schedule.ready?val(schedule.workdays,esc):schedule.tentative_workdays!=null?'Prévia: '+val(schedule.tentative_workdays,esc)+' (a revisar)':'Pendente')+'</div></div></div>'+
   '<h3>Profissionais e atividades gerados dos serviços</h3>'+
   (serviceRows?'<div class="table-wrap"><table><thead><tr><th>Serviço</th><th>Quantidade</th><th>h-h diretas</th><th>Profissionais</th><th>Duração sugerida</th><th>Funções</th></tr></thead><tbody>'+
    serviceRows+'</tbody></table></div>':'<p class="muted">Adicione o primeiro serviço para começar a calcular.</p>')+
   (scheduleRows?'<h3>Sequência sugerida da obra</h3><div class="table-wrap"><table><thead><tr><th>Atividade</th><th>Equipe</th><th>Duração</th><th>Posição relativa</th></tr></thead><tbody>'+
    scheduleRows+'</tbody></table></div>':'')+
   '<p class="muted tiny">O planejamento considera frentes, dependências e capacidade simultânea. Os dias são relativos, sem data de início nem feriados e não são prazo contratual.</p>'+
+  (!schedule.all_productivity_reviewed&&services.length?'<div class="notice"><strong>Prazo ainda não validado.</strong> Revise a produtividade de cada serviço; as horas-homem SIURB são referências parciais.</div>':'')+
   (pending.length?'<div class="notice"><strong>'+pending.length+' serviço(s) sem produtividade aproveitável.</strong> Nenhuma equipe ou prazo foi inventado.</div>':'')+
   (issues.length?'<div class="notice"><strong>Conferências necessárias antes de contratar:</strong><ul>'+
     issues.slice(0,12).map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul></div>':'')+

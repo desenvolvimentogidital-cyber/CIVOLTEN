@@ -18,11 +18,15 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
  const plan=workforce.resource_schedule||{};
  const suggestions=workforce.services||[];
  const issues=[];
+ // Horas-homem SIURB não revisadas geram estimativa, nunca prazo validado.
+ const allProductivityReviewed=services.length>0&&suggestions.length===services.length&&
+  suggestions.every(s=>s.reviewed===true&&s.workers!==null);
+ const incompleteProductivity=!!workforce.summary?.partial_estimate||!allProductivityReviewed;
  if(!services.length)issues.push('Adicione um serviço para gerar o resumo automático.');
  if(workforce.has_unestimated_services)
   issues.push('Há serviços sem coeficiente utilizável de horas-homem; equipe e duração não foram inventadas.');
- if(workforce.summary?.partial_estimate)
-  issues.push('Horas-homem SIURB podem ser parciais e precisam de conferência técnica.');
+ if(incompleteProductivity&&services.length)
+  issues.push('Produtividade dos serviços sem revisão técnica integral: o prazo é apenas uma hipótese, não um cronograma validado.');
  if(!plan.ready)issues.push('Cronograma incompleto: faltam composições, dependências ou serviços complementares.');
  for(const missing of plan.missing||[])issues.push(missing.message||missing.title);
  if(!budget.payment_terms||!budget.scope_assumptions||!budget.exclusions)
@@ -31,7 +35,7 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
   issues.push('BDI, custos e documentação de referência ainda contêm pendências de aprovação comercial.');
  const deduped=[...new Set(issues)];
  const bdiMissing=(estimate.errors||[]).some(x=>x.code==='BDI_INPUT'||x.code==='BDI_TAX');
- const scheduleReady=services.length>0&&!!plan.ready;
+ const scheduleReady=services.length>0&&!!plan.ready&&!incompleteProductivity;
  return {
   budget:{id:budget.id,code:budget.code,title:budget.title,status:budget.status,
    lock_version:budget.lock_version,reference_month:budget.reference_month,regime:budget.regime},
@@ -49,6 +53,7 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
    services:suggestions.map(s=>({
     item_id:s.item_id,code:s.code,title:s.title,
     quantity:s.quantity,unit:s.unit,status:s.status,
+    reviewed:s.reviewed===true,source:s.source||null,
     estimated_hh:s.estimated_hh,workers:s.workers,
     days_at_suggested_staff:s.days_at_suggested_staff,
     roles:s.roles||[],warning:s.warning
@@ -60,6 +65,8 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
   },
   schedule:{
    ready:scheduleReady,
+   provisional:!scheduleReady,
+   all_productivity_reviewed:allProductivityReviewed,
    workdays:scheduleReady?plan.workdays:null,
    tentative_workdays:services.length?plan.workdays??null:null,
    peak_workers:scheduleReady?plan.peak_workers:null,
@@ -67,7 +74,7 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
    tasks:plan.tasks||[],dependencies:plan.dependencies||[],
    missing:plan.missing||[],errors:plan.errors||[],
    start_date:null,finish_date:null,
-   note:'Dias úteis relativos; sem data de início, calendário de feriados ou aprovação contratual.'
+   note:'Dias úteis relativos; sem data de início, calendário de feriados ou aprovação contratual. Resultados com coeficientes SIURB não revisados são somente hipóteses.'
   },
   proposal_preview:{
    generated_from_services:true,download_url:'/api/v1/budgets/'+budget.id+'/automatic-briefing/pdf',
