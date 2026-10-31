@@ -51,7 +51,21 @@ export async function handleCompanyCosts({req,res,sql,user,parts,method,send,rea
   };
   const costs=Object.fromEntries(Object.entries(labels).map(([field,label])=>
    [field,Number(cash(b[field],label))]));
-  const taxPct=Number(cash(b.taxes_on_revenue_pct,'Tributos efetivos sobre a receita',60));
+  // Split is an explicit estimate only. Material used in construction services
+  // is NOT automatically a separate sale under Brazilian tax law.
+  const splitRequested=['tax_service_pct','tax_material_pct','material_revenue_share_pct']
+   .some(k=>b[k]!==undefined&&b[k]!==null&&b[k]!=='');
+  let split=null,taxPct;
+  if(splitRequested){
+   const servicePct=Number(cash(b.tax_service_pct,'Tributos estimados sobre serviço',60));
+   const materialPct=Number(cash(b.tax_material_pct,'Tributos estimados sobre venda separada de material',60));
+   const materialShare=Number(cash(b.material_revenue_share_pct,'Parcela de receita de materiais vendidos separadamente (%)',100));
+   const separate=b.materials_separately_billed===true||b.materials_separately_billed==='true';
+   if(materialShare>0&&!separate)return done(400,{error:'Receita separada de materiais exige confirmação de venda e faturamento independentes; material incorporado ao serviço não é venda avulsa'});
+   taxPct=Math.round((servicePct*(100-materialShare)+materialPct*materialShare)*100)/10000;
+   split={service_tax_pct:servicePct,material_tax_pct:materialPct,
+    material_revenue_share_pct:materialShare,materials_separately_billed:separate};
+  }else taxPct=Number(cash(b.taxes_on_revenue_pct,'Tributos efetivos sobre a receita',60));
   const configured=await sql.query(
    'SELECT target_margin_pct,owner_prolabore_monthly FROM company_pricing_config WHERE singleton=1',[]);
   if(!configured.length)return done(409,{error:'Configure margem e pró-labore da CIVOLTEN antes da simulação'});
@@ -68,12 +82,21 @@ export async function handleCompanyCosts({req,res,sql,user,parts,method,send,rea
    scenario:'custo_proprio_informado',source_mode:'own_cost',
    costs,complete_cost_reais:reconciliation.combined_cost,
    taxes_on_revenue_pct:taxPct,
+   tax_breakdown:split?{
+    ...split,
+    service_revenue_estimated:Math.round(indicative.sale_price*(100-split.material_revenue_share_pct))/100,
+    separate_material_revenue_estimated:Math.round(indicative.sale_price*split.material_revenue_share_pct)/100,
+    service_tax_estimated:Math.round(indicative.sale_price*(100-split.material_revenue_share_pct)*split.service_tax_pct)/10000,
+    separate_material_tax_estimated:Math.round(indicative.sale_price*split.material_revenue_share_pct*split.material_tax_pct)/10000,
+    verified_by_accountant:false
+   }:null,
    owner_prolabore_monthly_configured:configured[0].owner_prolabore_monthly,
    price:indicative,reference_siurb_added:false,
    bdi_added:false,stored:false,can_issue:false,commercial_release:false,
    warnings:[
     'Simulação interna não grava ou modifica orçamento, proposta, contrato ou referência SIURB.',
     'Tributos informados pelo responsável devem ser conferidos com o enquadramento da empresa; não são uma alíquota calculada pelo sistema.',
+    'Materiais incorporados a uma obra não são automaticamente receitas tributadas à parte. Se houver venda separada, confirme a classificação fiscal e o enquadramento da empresa com o contador.',
     'Pró-labore e despesas indiretas precisam ser rateados por critério técnico e não podem ser incluídos outra vez no BDI ou na tabela de serviços.',
     'Preço indicativo não é proposta aprovada nem lucro líquido. Exige validações fiscal, técnica e comercial.'
    ]
