@@ -3,6 +3,7 @@
  * Somente admin. O retorno NUNCA é assinatura de aprovação comercial.
  */
 import {validateSchema,evaluateReleaseGates} from './stage5-release-gates.mjs';
+import {summarizeSevenPhases} from './operational-phases.mjs';
 export async function handleStage5Readiness({req,res,user,sql,parts,method,send}){
  if(parts[0]!=='release-readiness')return false;
  const done=(status,data)=>{send(res,status,data);return true};
@@ -18,6 +19,7 @@ export async function handleStage5Readiness({req,res,user,sql,parts,method,send}
    (SELECT count(*)::int FROM app_users WHERE role='administrador' AND is_active=true AND must_change_password=true) AS administrators_pending_password_change,
    (SELECT count(*)::int FROM budgets) AS budgets,
    (SELECT count(*)::int FROM reference_prices) AS reference_prices,
+   (SELECT count(*)::int FROM reference_composition_details) AS reference_compositions,
    (SELECT count(*)::int FROM proposal_draft_snapshots) AS proposal_drafts,
    (SELECT count(*)::int FROM budget_items WHERE deleted_at IS NULL) AS active_budget_items,
    (SELECT count(*)::int FROM budget_items i
@@ -49,6 +51,7 @@ export async function handleStage5Readiness({req,res,user,sql,parts,method,send}
  const pendingProductivity=Number(counts.items_pending_productivity_review)||0;
  const pendingBudgetApproval=Number(counts.budgets_pending_cost_approval)||0;
  // Read-only facts only. A configured value is not proof of a valid tax, salary or proposal.
+ const sevenPhases=summarizeSevenPhases({schema,counts,account:accountSetup});
  const preparation=[
   {key:'administrator_password',label:'Trocar a senha temporária do administrador',
    complete:accountSetup.administrator_present&&!accountSetup.administrator_password_change_pending},
@@ -73,8 +76,11 @@ export async function handleStage5Readiness({req,res,user,sql,parts,method,send}
   gates,
   operational:{
    account_setup:accountSetup,
+   phases:sevenPhases,
+   all_seven_phases_approved:false,
    budget_records:Number(counts.budgets)||0,
    reference_price_records:Number(counts.reference_prices)||0,
+   reference_composition_records:Number(counts.reference_compositions)||0,
    proposal_draft_records:Number(counts.proposal_drafts)||0,
    active_budget_items:totalItems,
    items_pending_cost_review:pendingCost,
