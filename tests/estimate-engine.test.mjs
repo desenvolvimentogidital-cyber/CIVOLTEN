@@ -102,3 +102,33 @@ test('SIURB: custo não conciliado dos insumos bloqueia liberação mesmo com as
  assert.ok(r.errors.some(e=>e.code==='SIURB_INPUTS_UNPRICED'));
  assert.equal(r.direct_cost_reais,18.10);
 });
+
+// Regressão de perda: arredondar por unidade causava perda de R$ 5,00
+// em serviços de grande quantidade e preço muito baixo.
+test('perda percentual é calculada sobre o quantitativo total antes de arredondar centavos',()=>{
+ const input=base();
+ input.items[0].quantity='1000000';
+ input.items[0].unit_cost='0.0001';
+ input.items[0].loss_pct='5';
+ const result=estimateBudget(input);
+ assert.equal(result.ready,true);
+ assert.equal(result.lines[0].base_reais,100);
+ assert.equal(result.lines[0].loss_reais,5);
+ assert.equal(result.lines[0].cost_reais,105);
+ assert.equal(result.lines[0].rounding_adjustment_reais,0);
+ assert.equal(result.direct_cost_reais,105);
+ assert.equal(result.total_reais,105);
+});
+
+test('perdas fracionadas preservam o valor final de cada item em centavos',()=>{
+ const input=base();
+ input.items[0].quantity='3';
+ input.items[0].unit_cost='0.3333';
+ input.items[0].loss_pct='10';
+ const result=estimateBudget(input);
+ assert.equal(result.ready,true);
+ assert.equal(result.direct_cost_reais,1.10);
+ assert.equal(result.lines[0].base_reais,1.00);
+ assert.equal(result.lines[0].loss_reais,0.10);
+ assert.equal(result.lines[0].rounding_adjustment_reais,0);
+});
