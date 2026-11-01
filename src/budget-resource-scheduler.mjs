@@ -12,6 +12,11 @@ export function planResourceSchedule(services=[],options={}){
  const staff=options.available_workers==null?null:Number(options.available_workers);
  if(staff!==null&&(!Number.isSafeInteger(staff)||staff<1||staff>100))
   throw Object.assign(new Error('Disponibilidade global inválida'),{status:400});
+ const registered=options.role_capacity==null?null:new Map(Object.entries(options.role_capacity));
+ if(registered)for(const [code,count] of registered){
+  if(!code||!Number.isSafeInteger(count)||count<0||count>500)
+   throw Object.assign(new Error('Capacidade por profissão inválida'),{status:400});
+ }
  const metadata=new Map((options.fronts||[]).map(x=>[String(x.budget_item_id),x]));
  const steps=services.map((service,i)=>{
   const id=String(service.item_id||service.id),meta=metadata.get(id)||{};
@@ -84,6 +89,21 @@ export function planResourceSchedule(services=[],options={}){
  if(tooMany.length)return {ready:false,reason:'Equipe global insuficiente',
   errors:['A quantidade de profissionais disponíveis não cobre uma atividade: '+tooMany.map(x=>x.title).join(', ')],
   tasks:[],missing,dependencies:edges,workdays:null,available_workers:capacity};
+ const missingRoles=[];
+ if(registered)for(const x of steps){
+  if(!Array.isArray(x.roles)||!x.roles.length){
+   missingRoles.push(x.title+': composição por profissão ausente');continue;
+  }
+  for(const role of x.roles){
+   const code=String(role.code||'').trim(),n=Number(role.workers);
+   if(!code||!Number.isSafeInteger(n)||n<1||n>100||n>Number(registered.get(code)||0))
+    missingRoles.push(x.title+': profissionais de '+String(role.name||code||'função')+
+      ' insuficientes no cadastro');
+  }
+ }
+ if(missingRoles.length)return {ready:false,reason:'Equipe real por profissão insuficiente',
+  errors:[...new Set(missingRoles)],tasks:[],missing,dependencies:edges,workdays:null,
+  staffing_verified:false,execution_mode:mode,available_workers:capacity,commercial_release:false};
  // Compute unconstrained dependency-only early/late schedule (not a resource-constrained critical path).
  const early=new Map(),longest=new Map();
  for(const step of visited){
@@ -106,12 +126,23 @@ export function planResourceSchedule(services=[],options={}){
   for(const x of steps.filter(x=>started.has(x.id)&&started.get(x.id).end<=clock))finished.add(x.id);
   if(finished.size===steps.length)break;
   let running=active.reduce((sum,x)=>sum+x.workers,0),busyFronts=new Set(active.map(x=>x.front));
+  const usedRoles=new Map();
+  if(registered)for(const task of active)for(const role of task.roles){
+   const code=String(role.code);usedRoles.set(code,(usedRoles.get(code)||0)+Number(role.workers));
+  }
   for(const x of visited){
    if(started.has(x.id)||busyFronts.has(x.front)||running+x.workers>capacity||
        (mode==='single_team'&&running>0))continue;
+   if(registered&&x.roles.some(role=>{
+    const code=String(role.code);
+    return (usedRoles.get(code)||0)+Number(role.workers)>Number(registered.get(code)||0);
+   }))continue;
    const prev=predecessors.get(x.id);
    if(!prev.every(d=>started.has(d.predecessor_id)&&started.get(d.predecessor_id).end+d.lag<=clock))continue;
    started.set(x.id,{start:clock,end:clock+x.duration});running+=x.workers;busyFronts.add(x.front);
+   if(registered)for(const role of x.roles){
+    const code=String(role.code);usedRoles.set(code,(usedRoles.get(code)||0)+Number(role.workers));
+   }
   }
   const future=[...started.values()].filter(x=>x.end>clock).map(x=>x.end);
   const blockedUntil=edges.filter(e=>started.has(e.predecessor_id)&&!started.has(e.successor_id))
@@ -147,6 +178,7 @@ export function planResourceSchedule(services=[],options={}){
  return {ready:!incomplete&&!deadlock&&missing.length===0,partial:incomplete||missing.length>0||deadlock,
   tasks:scheduled,dependencies:edges,missing,
   execution_mode:mode,parallel_teams:mode==='separate_teams',
+  staffing_verified:!!registered&&started.size===steps.length&&!deadlock,
   available_workers:capacity,capacity_source:staff===null?
    (mode==='separate_teams'?'hipotese_equipes_distintas_sem_cadastro':'estimativa_uma_equipe'):'informado',
   workdays:days,minimum_known_workdays:days,peak_workers:peakWorkers,peak_roles:peakRoles,
@@ -156,6 +188,8 @@ export function planResourceSchedule(services=[],options={}){
    'Não há dois serviços simultâneos na mesma frente. Entre frentes, a soma do pessoal nunca ultrapassa o limite.',
    mode==='single_team'?'Uma equipe compartilhada: atividades são sequenciais e nenhum profissional é contado duas vezes.':
     'Equipes separadas: simultaneidade somente em frentes independentes e sob o limite global de pessoal.',
+   registered?'As profissões simultâneas foram limitadas pelo número de funcionários ativos cadastrados.':
+    'Equipe ainda é hipotética: informe os funcionários reais para validar disponibilidade por profissão.',
    'Cura/secagem só entram quando declaradas; serviços ausentes bloqueiam o prazo final.'],
   commercial_release:false};
 }
