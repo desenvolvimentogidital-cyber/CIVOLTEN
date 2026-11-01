@@ -154,4 +154,72 @@ CREATE TABLE IF NOT EXISTS account_action_tokens(
 );
 CREATE INDEX IF NOT EXISTS idx_action_tokens_user_purpose
  ON account_action_tokens(user_id,purpose,created_at DESC);
+-- Account identities and session tokens are private tenant resources too.
+ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app_users FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_only ON app_users FOR ALL
+ USING (organization_id=nullif(current_setting('civolten.organization_id',true),'')::uuid)
+ WITH CHECK (organization_id=nullif(current_setting('civolten.organization_id',true),'')::uuid);
+
+ALTER TABLE app_sessions ADD COLUMN IF NOT EXISTS organization_id UUID;
+UPDATE app_sessions s SET organization_id=u.organization_id
+ FROM app_users u WHERE s.user_id=u.id AND s.organization_id IS NULL;
+ALTER TABLE app_sessions ALTER COLUMN organization_id SET NOT NULL;
+ALTER TABLE app_sessions ALTER COLUMN organization_id SET DEFAULT
+ nullif(current_setting('civolten.organization_id',true),'')::uuid;
+CREATE INDEX IF NOT EXISTS idx_app_sessions_org ON app_sessions(organization_id);
+ALTER TABLE app_sessions ADD CONSTRAINT fk_sessions_org_user
+ FOREIGN KEY(user_id,organization_id) REFERENCES app_users(id,organization_id);
+ALTER TABLE app_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app_sessions FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_only ON app_sessions FOR ALL
+ USING (organization_id=nullif(current_setting('civolten.organization_id',true),'')::uuid)
+ WITH CHECK (organization_id=nullif(current_setting('civolten.organization_id',true),'')::uuid);
+
+-- SECURITY DEFINER functions are deliberately narrow: they only return the
+-- minimal data needed to start an authenticated tenant transaction.
+-- Functions are owned by the migrator, not by the no-BYPASSRLS application.
+CREATE OR REPLACE FUNCTION public.civolten_auth_session(p_hash TEXT)
+ RETURNS TABLE(id UUID,login TEXT,role TEXT,must_change_password BOOLEAN,organization_id UUID)
+ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $fn$
+ SELECT u.id,u.login,u.role,u.must_change_password,u.organization_id
+ FROM public.app_sessions s JOIN public.app_users u ON u.id=s.user_id
+ WHERE s.token_hash=p_hash AND s.revoked_at IS NULL AND s.expires_at>now()
+  AND u.is_active=true LIMIT 1
+ $fn$;
+
+CREATE OR REPLACE FUNCTION public.civolten_auth_login(p_login TEXT)
+ RETURNS TABLE(id UUID,login TEXT,password_hash TEXT,role TEXT,must_change_password BOOLEAN,organization_id UUID)
+ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $fn$
+ SELECT id,login,password_hash,role,must_change_password,organization_id
+ FROM public.app_users WHERE login=p_login AND is_active=true LIMIT 1
+ $fn$;
+
+CREATE OR REPLACE FUNCTION public.civolten_auth_user(p_login TEXT,p_purpose TEXT)
+ RETURNS TABLE(id UUID,organization_id UUID)
+ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $fn$
+ SELECT id,organization_id FROM public.app_users
+ WHERE login=p_login AND
+ ((p_purpose='exists') OR
+  (p_purpose='verify' AND email_verified_at IS NULL AND is_active=false) OR
+  (p_purpose='reset' AND email_verified_at IS NOT NULL AND is_active=true))
+ LIMIT 1
+ $fn$;
+
+CREATE OR REPLACE FUNCTION public.civolten_auth_token_org(p_hash TEXT,p_purpose TEXT)
+ RETURNS TABLE(organization_id UUID)
+ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $fn$
+ SELECT u.organization_id FROM public.account_action_tokens t
+ JOIN public.app_users u ON u.id=t.user_id
+ WHERE t.token_hash=p_hash AND t.purpose=p_purpose
+  AND t.consumed_at IS NULL AND t.expires_at>now() LIMIT 1
+ $fn$;
+
+REVOKE ALL ON FUNCTION public.civolten_auth_session(TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.civolten_auth_login(TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.civolten_auth_user(TEXT,TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.civolten_auth_token_org(TEXT,TEXT) FROM PUBLIC;
+-- CI grants EXECUTE only to its disposable app role. A production role must
+-- be granted explicitly, after sign-off and RLS isolation validation.
+
 COMMIT;
