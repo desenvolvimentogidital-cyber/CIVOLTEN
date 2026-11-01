@@ -10,7 +10,7 @@ const other={id:'44444444-4444-4444-8444-444444444444',login:'admin-b@example.te
  organization_id:orgB,role:'orcamentista',must_change_password:false};
 const policies=protectedTables.map(table_name=>({table_name,rls_enabled:true,rls_forced:true,has_policy:true}));
 function mock(role={rolsuper:false,rolbypassrls:false}){
- const queries=[],transactions=[];
+ const queries=[],transactions=[],emails=[];
  const sql={
   async query(q,args=[]){
    queries.push({q,args});
@@ -29,7 +29,7 @@ function mock(role={rolsuper:false,rolbypassrls:false}){
   },
   async transaction(batch){transactions.push(batch);return Promise.all(batch);}
  };
- return {sql,queries,transactions};
+ return {sql,queries,transactions,emails,sender:async args=>{emails.push(args);return {accepted:true}}};
 }
 async function request(db,route,method='GET',body=null,opts={}){
  const req=Readable.from(body?[Buffer.from(JSON.stringify(body))]:[]);
@@ -39,7 +39,7 @@ async function request(db,route,method='GET',body=null,opts={}){
   ...(body?{'content-type':'application/json'}:{}),
   ...(method!=='GET'?{'x-civolten-request':'1'}:{})};
  const res={statusCode:200,setHeader(){},end(text){this.json=JSON.parse(text)}};
- await createApi(db.sql,opts)(req,res);
+ await createApi(db.sql,{...opts,sendAccountEmail:opts.sendAccountEmail||db.sender})(req,res);
  return {status:res.statusCode,body:res.json};
 }
 test('cadastro aberto fica INDISPONÍVEL por padrão, sem sequer consultar banco',async()=>{
@@ -75,10 +75,16 @@ test('cadastro QA com flags exige organização, email, senha forte e transaçã
  const r=await request(db,'auth/signup','POST',{
   organization_name:'Empresa A',login:'contato@example.test',password:'senha-forte-de-qa-123'
  },{multiTenant:true,signupEnabled:true});
- assert.equal(r.status,201,JSON.stringify(r.body));
+ assert.equal(r.status,202,JSON.stringify(r.body));
+ assert.equal(r.body.verification_required,true);
+ assert.equal(db.emails.length,1);
+ assert.equal(db.emails[0].kind,'verify');
+ assert.equal(db.emails[0].to,'contato@example.test');
+ assert.doesNotMatch(JSON.stringify(r.body),/token|password_hash/);
  assert.equal(r.body.email_verified,false);
  assert.equal(r.body.commercial_release,false);
  assert.equal(db.transactions.length,1);
+ assert.equal(db.transactions[0].length,5);
  const sqlTexts=db.queries.map(x=>x.q);
  assert.ok(sqlTexts.some(x=>x.includes('SELECT set_config')));
  assert.ok(sqlTexts.some(x=>x.includes('INSERT INTO organizations')));
