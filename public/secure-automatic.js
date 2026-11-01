@@ -14,7 +14,8 @@ export function automaticBudgetPanel(model,esc,{budgetId}={}){
  if(!model.budget||String(model.budget.id)!==String(budgetId))
   return '<div class="card"><p>Atualizando cálculos do orçamento...</p></div>';
  const cost=model.cost||{},workforce=model.workforce||{},schedule=model.schedule||{},
-  services=workforce.services||[],issues=model.issues||[],internal=model.company_costs;
+  services=workforce.services||[],issues=model.issues||[],internal=model.company_costs,
+  staffing=model.staffing;
  const pending=services.filter(s=>s.workers==null);
  const scheduleRows=(schedule.tasks||[]).map(t=>'<tr><td>'+esc(t.title||'Serviço')+'</td>'+
   '<td>'+val(t.workers,esc)+'</td><td>'+(t.duration==null?'A revisar':val(t.duration,esc)+' dias')+'</td>'+
@@ -49,6 +50,11 @@ export function automaticBudgetPanel(model,esc,{budgetId}={}){
    (internal.missing_professional_rates?.length?'<div class="notice">Custo-hora ainda não informado para: '+
       internal.missing_professional_rates.map(esc).join(', ')+'</div>':'')+
    '<p class="muted tiny">Esses valores são custos gerenciais do cadastro da empresa. Não são adicionados automaticamente aos preços SIURB, para evitar cobrança dupla de mão de obra e administração.</p>':'')+
+  (staffing?'<div class="card"><h3>Profissões reais necessárias para esta obra</h3>'+
+   '<p>Funções SIURB exigidas: <strong>'+val(staffing.required_professions,esc)+
+   '</strong> · Sem funcionário ativo: <strong>'+val(staffing.missing_active_professions,esc)+'</strong>.</p>'+
+   (staffing.missing_active_professions>0?'<p class="notice">Para registrar cronograma-base de execução, cadastre os profissionais reais com os mesmos códigos de função SIURB.</p>':'')+
+   '<button class="btn" type="button" data-action="company-config">Conferir / cadastrar profissionais necessários</button></div>':'')+
   '<h3>Profissionais e atividades gerados dos serviços</h3>'+
   (serviceRows?'<div class="table-wrap"><table><thead><tr><th>Serviço</th><th>Quantidade</th><th>h-h diretas</th><th>Profissionais</th><th>Duração sugerida</th><th>Funções</th></tr></thead><tbody>'+
    serviceRows+'</tbody></table></div>':'<p class="muted">Adicione o primeiro serviço para começar a calcular.</p>')+
