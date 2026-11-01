@@ -28,7 +28,10 @@ export function summarizeSevenPhases({schema={},counts={},account={},evidence={}
    ['Quantidade e custo de todos os itens revisados',n('active_budget_items')>0&&n('items_pending_cost_review')===0],
    ['Modalidades e preço final reconciliados',flag('both_modes_financially_approved')]]},
   {id:5,name:'Cronograma e execução real da obra',checks:[
+   ['Cronograma-base com atividades reais gravado',n('active_schedule_tasks')>0],
+   ['Durações revisadas pelo responsável técnico',n('active_schedule_tasks')>0&&n('tasks_pending_duration_review')===0],
    ['Atividades executivas vinculadas ao orçamento e homologadas',flag('schedule_recorded_and_reviewed')],
+   ['Medições reais validadas registradas',n('validated_work_measurements')>0],
    ['Medição e financeiro integrados e homologados',flag('real_measurements_reconciled')]]},
   {id:6,name:'Propostas, contratos, emissão e aceite',checks:[
    ['Propostas e PDFs homologados em dispositivos reais',flag('proposal_pdf_approved')],
