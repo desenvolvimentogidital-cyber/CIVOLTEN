@@ -3,6 +3,16 @@
  * Nunca faz upload automatico.
  */
 const DB='civolten-drafts-v1',STORE='snapshots';
+const TENANT_LOCK='civolten-isolated-account-offline-locked';
+export function lockOfflineForIsolatedAccounts(){
+ // Browser storage is not encrypted: block old unscoped drafts as soon as a
+ // tenant identity is detected. Do not silently delete unfinished local work.
+ if(typeof localStorage!=='undefined')localStorage.setItem(TENANT_LOCK,'1');
+}
+export function offlineLocked(){
+ try{return typeof localStorage!=='undefined'&&localStorage.getItem(TENANT_LOCK)==='1'}
+ catch{return true}
+}
 const fail=msg=>{throw new Error(msg)};
 const text=v=>String(v??'').trim();
 export function pendingChanges(snapshot){
@@ -42,6 +52,7 @@ export function conflictsWithServer(draft,current){
  });
 }
 export function openOfflineDB(){
+ if(offlineLocked())return Promise.reject(new Error('Cópias offline bloqueadas para contas de empresas diferentes; proteja os dados e utilize o painel online.'));
  if(!('indexedDB' in globalThis))return Promise.reject(new Error('Armazenamento offline indisponível neste navegador'));
  return new Promise((resolve,reject)=>{
   const request=indexedDB.open(DB,1);
