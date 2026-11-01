@@ -30,18 +30,18 @@ if(!db||!/^postgres(?:ql)?:\/\/postgres:[^@]+@(?:127\.0\.0\.1|localhost):5432\/c
    await sql.query("INSERT INTO app_sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '1 hour')",
     [createHash('sha256').update(token).digest('hex'),user]);
    await sql.query("INSERT INTO clients(id,name) VALUES($1,'Autoplan cliente QA isolado')",[client]);
-   await sql.query("INSERT INTO budgets(id,code,client_id,title,reference_month,regime,bdi_pct,created_by) VALUES($1,$2,$3,'Autoplan QA','2026-07','Sem desoneração',0,$4)",
+   await sql.query("INSERT INTO budgets(id,code,client_id,title,reference_month,regime,bdi_pct,created_by) VALUES($1,$2,$3,'Autoplan QA','2025-09','Sem desoneração',0,$4)",
     [budget,'AUTOPLAN-'+budget.slice(0,8),client,user]);
-   await sql.query("INSERT INTO reference_price_versions(id,source,reference_month,regime,scope,source_url,sha256) VALUES($1,'SIURB','2026-07','Sem desoneração','Edificações',$2,$3)",
+   await sql.query("INSERT INTO reference_price_versions(id,source,reference_month,regime,scope,source_url,sha256) VALUES($1,'SIURB','2025-09','Sem desoneração','Edificações',$2,$3)",
     [version,'https://prefeitura.sp.gov.br/teste/'+price,price.replaceAll('-','')+price.replaceAll('-','')]);
    await sql.query("INSERT INTO reference_prices(id,version_id,code,description,unit,unit_cost) VALUES($1,$2,$3,'Serviço QA','UN',100)",
     [price,version,'QA-'+price.slice(0,8)]);
    await sql.query("INSERT INTO reference_composition_details(reference_price_id,labor,other,direct_hh_per_unit) VALUES($1,$2::jsonb,'[]'::jsonb,1.5)",
-    [price,JSON.stringify([{code:'2099',name:'Servente QA',coef:1,unit:'H'},
-      {code:'2020',name:'Pedreiro QA',coef:.5,unit:'H'}])]);
+    [price,JSON.stringify([{code:'qa_autoplan_2099',name:'Servente QA',coef:1,unit:'H'},
+      {code:'qa_autoplan_2020',name:'Pedreiro QA',coef:.5,unit:'H'}])]);
    await sql.query("INSERT INTO budget_items(id,budget_id,position,source_code,source_name,unit,quantity,direct_unit_cost,reference_price_id,direct_labor_hh_unit,labor_review_state) VALUES($1,$2,1,'QA-100','Serviço teste','UN',40,100,$3,1.5,'revisado')",
     [item,budget,price]);
-   for(const [role,name] of [['2099','Servente QA'],['2099','Servente QA'],['2020','Pedreiro QA']]){
+   for(const [role,name] of [['qa_autoplan_2099','Servente QA'],['qa_autoplan_2099','Servente QA'],['qa_autoplan_2020','Pedreiro QA']]){
     await sql.query("INSERT INTO company_workers(display_name,role_code,role_name,monthly_employer_cost) VALUES($1,$2,$3,4000)",
      ['QA '+name+' '+randomUUID().slice(0,5),role,name]);
    }
