@@ -6,7 +6,7 @@ on:
     paths:
       - .github/workflows/audit-siurb-monthly.yml
 permissions:
-  contents: read
+  contents: write
 jobs:
   audit-official-monthly:
     runs-on: ubuntu-latest
@@ -28,5 +28,24 @@ jobs:
           path: |
             artifacts/siurb-monthly-audit.json
             artifacts/siurb-monthly-source-files/
+            data/siurb-monthly-2026-07/
           retention-days: 7
           if-no-files-found: warn
+
+      - name: Publish monthly tariffs only on a separate review branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch='data/siurb-monthly-2026-07-audited-20261031'
+          if git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
+            echo "::notice::Monthly review branch already exists; do not overwrite it."
+            exit 0
+          fi
+          git config user.name 'civolten-siurb-ci'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          git add data/siurb-monthly-2026-07/
+          git diff --cached --quiet && { echo "::error::Mensalista files missing"; exit 1; }
+          git commit -m "data(siurb): audited July 2026 monthly labor reference for review"
+          git push --set-upstream origin "$branch"
+          echo "::notice::Monthly official data preserved for independent review; no production DB mutation."
