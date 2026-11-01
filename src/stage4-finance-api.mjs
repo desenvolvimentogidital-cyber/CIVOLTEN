@@ -43,6 +43,10 @@ export async function handleStage4(ctx){
  if(resource!=='budgets'||!['proposal-drafts','financial-actuals','financial-summary'].includes(sub))return false;
  const done=(code,data)=>{send(res,code,data);return true};
  if(!uuid(budgetId))return done(400,{error:'Orçamento inválido'});
+ // Versioned drafts may include employer payroll and company margin scenarios.
+ // Only authorized internal reviewers/estimators can inspect snapshots and PDFs.
+ if(sub==='proposal-drafts'&&fourth&&!canWrite(user)&&!canReview(user))
+  return done(403,{error:'Detalhes financeiros da proposta reservados à equipe autorizada'});
  const rows=await sql.query(`SELECT b.id,b.code,b.title,b.status,b.lock_version,b.reference_month,b.regime,
    b.validity_days,b.payment_terms,b.scope_assumptions,b.exclusions,b.planned_start,
    c.name AS client_name,c.tax_id AS client_tax_id,

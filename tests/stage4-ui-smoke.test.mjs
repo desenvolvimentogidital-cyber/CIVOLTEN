@@ -29,7 +29,8 @@ test('Etapa 4: consulta não pode ver botões de alteração/revisão',()=>{
  const page=financePage({state:st,esc,writeable:()=>false});
  for(const action of ['finance-create-draft','finance-add-actual','finance-review-actual'])
   assert.equal(page.includes('data-action="'+action+'"'),false);
- assert.ok(page.includes('finance-open-draft'));
+ assert.equal(page.includes('finance-open-draft'),false);
+ assert.ok(page.includes('Acesso restrito'));
 });
 test('Etapa 4: detalhes de proposta oferecem PDF marcado RASCUNHO',()=>{
  const st=fixture();st.financeDraft={id:'00000000-0000-4000-8000-000000000002',
