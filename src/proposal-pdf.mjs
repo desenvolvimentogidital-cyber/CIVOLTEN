@@ -55,18 +55,22 @@ export async function renderProposalPdf(doc,{logoPath}={}){
  const orange=rgb(.96,.73,.28),ink=rgb(.12,.15,.21),muted=rgb(.39,.43,.49),light=rgb(.90,.92,.94),headerInk=rgb(.05,.075,.11);
  // Marca oficial incluída por padrão também na emissão futuramente homologada.
  // logoPath permanece opcional para customização autorizada.
- let officialLogo=null;
+ let officialLogo=null,officialIcon=null;
  try{officialLogo=await pdf.embedPng(await readFile(logoPath?path.resolve(logoPath):new URL('../public/assets/logo.png',import.meta.url)));}
  catch{/* fallback textual caso o recurso não esteja no ambiente */}
+ // Símbolo separado, sempre à esquerda do nome, inclusive nos documentos aprovados.
+ try{officialIcon=await pdf.embedPng(await readFile(new URL('../public/assets/icone.png',import.meta.url)));}
+ catch{/* mantém layout se houver erro de empacotamento; cobertura de teste exige o recurso */}
  let page,y,number=0;
  const start=()=>{
    page=pdf.addPage([595.28,841.89]);number++;
    page.drawRectangle({x:0,y:748,width:595.28,height:93,color:headerInk});
    page.drawRectangle({x:0,y:744,width:595.28,height:4,color:orange});
+   if(officialIcon)page.drawImage(officialIcon,{x:36,y:760,width:50,height:61});
    if(officialLogo){
-     const dims=officialLogo.scaleToFit(286,58);
-     page.drawImage(officialLogo,{x:36,y:762,width:dims.width,height:dims.height});
-   }else page.drawText('CIVOLTEN  |  ELETRICA & CONSTRUCAO CIVIL',{x:36,y:788,size:13,font:bold,color:orange});
+     const dims=officialLogo.scaleToFit(260,53);
+     page.drawImage(officialLogo,{x:99,y:766,width:dims.width,height:dims.height});
+   }else page.drawText('CIVOLTEN  |  ELETRICA & CONSTRUCAO CIVIL',{x:99,y:788,size:13,font:bold,color:orange});
    y=725;page.drawLine({start:{x:36,y},end:{x:559,y},thickness:.8,color:light});y-=20;
  };
  const next=(h=15)=>{if(y-h<72)start()};
