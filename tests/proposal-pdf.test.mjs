@@ -51,3 +51,13 @@ test('proposta comercial aprovada carrega automaticamente a logo original sem pa
  const bytes=await renderProposalPdf(sample());
  assert.ok(bytes.length>9000,'Logomarca deve estar incorporada');
 });
+
+test('símbolo elétrico original antecede a logomarca também no PDF comercial',async()=>{
+ const source=readFileSync(new URL('../src/proposal-pdf.mjs',import.meta.url),'utf8');
+ assert.ok(source.includes('../public/assets/icone.png'));
+ assert.ok(source.includes('page.drawImage(officialIcon,{x:36,y:760,width:50,height:61})'));
+ assert.ok(source.includes('page.drawImage(officialLogo,{x:99,y:766'));
+ assert.ok(source.indexOf('page.drawImage(officialIcon,{x:36')<source.indexOf('page.drawImage(officialLogo,{x:99'));
+ const pdf=await PDFDocument.load(await renderProposalPdf(sample()));
+ assert.ok(pdf.getPageCount()>=1);
+});

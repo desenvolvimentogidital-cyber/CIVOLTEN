@@ -65,11 +65,15 @@ export async function renderProposalDraftPdf(snapshot,{version,sha256}={}){
   page.drawRectangle({x:0,y:H-103,width:W,height:103,color:surface});
   page.drawRectangle({x:0,y:H-107,width:W,height:4,color:copper});
   page.drawRectangle({x:LEFT,y:H-85,width:4,height:59,color:copper});
-  if(logo)page.drawImage(logo,{x:LEFT+14,y:H-83,width:252,height:50});
+  // Marca oficial indivisível: símbolo elétrico ANTES do nome em todas as páginas.
+  // Ambos os PNGs estão versionados em public/assets da CIVOLTEN.
+  if(icone)page.drawImage(icone,{x:LEFT+13,y:H-89,width:54,height:65});
+  if(logo)page.drawImage(logo,{x:LEFT+80,y:H-80,width:272,height:54});
   else{
-   page.drawText('CIVOLTEN',{x:LEFT+15,y:H-59,size:23,font:bold,color:white});
-   page.drawText('ELETRICA & CONSTRUCAO CIVIL',{x:LEFT+16,y:H-79,size:8,font:bold,color:muted});
+   page.drawText('CIVOLTEN',{x:LEFT+80,y:H-56,size:21,font:bold,color:white});
+   page.drawText('ELETRICA & CONSTRUCAO CIVIL',{x:LEFT+80,y:H-76,size:8,font:bold,color:muted});
   }
+  // Uma segunda aplicação suave funciona como marca d'água, não substitui o símbolo no topo.
   if(icone)page.drawImage(icone,{x:RIGHT-92,y:300,width:92,height:112,opacity:.085});
   page.drawRectangle({x:416,y:H-69,width:140,height:25,color:copper});
   page.drawText('MODELO / RASCUNHO',{x:425,y:H-60,size:8,font:bold,color:surface});

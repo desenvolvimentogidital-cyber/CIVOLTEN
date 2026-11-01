@@ -52,3 +52,12 @@ test('proposta de rascunho incorpora logos oficiais, apresenta cores metálicas 
  const pdf=await PDFDocument.load(bytes);
  assert.equal(pdf.getPage(0).getWidth(),595.28);
 });
+
+test('símbolo original aparece à esquerda do nome CIVOLTEN em todas as páginas do rascunho',async()=>{
+ const source=readFileSync(new URL('../src/proposal-draft-pdf.mjs',import.meta.url),'utf8');
+ assert.ok(source.includes('page.drawImage(icone,{x:LEFT+13,y:H-89,width:54,height:65})'));
+ assert.ok(source.includes('page.drawImage(logo,{x:LEFT+80,y:H-80,width:272,height:54})'));
+ assert.ok(source.indexOf('page.drawImage(icone,{x:LEFT+13')<source.indexOf('page.drawImage(logo,{x:LEFT+80'));
+ const pdf=await PDFDocument.load(await renderProposalDraftPdf(sample(),{version:6,sha256:'c'.repeat(64)}));
+ assert.ok(pdf.getPageCount()>=1);
+});
