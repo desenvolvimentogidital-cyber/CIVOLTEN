@@ -135,5 +135,11 @@ CREATE TABLE IF NOT EXISTS auth_login_attempts(
 );
 CREATE INDEX IF NOT EXISTS idx_auth_login_attempts
  ON auth_login_attempts(fingerprint,attempted_at DESC);
+CREATE TABLE IF NOT EXISTS auth_signup_attempts(
+ fingerprint CHAR(64) NOT NULL,
+ attempted_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_auth_signup_attempts
+ ON auth_signup_attempts(fingerprint,attempted_at DESC);
 
 COMMIT;
