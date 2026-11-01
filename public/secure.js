@@ -446,6 +446,9 @@ document.addEventListener('click',async e=>{
       ' · Custos/quantidades pendentes: '+esc(op.items_pending_cost_review??'—')+
       ' · Produtividade não revisada: '+esc(op.items_pending_productivity_review??'—')+
       ' · Orçamentos sem aprovação completa: '+esc(op.budgets_pending_cost_approval??'—')+'</p>'+
+      '<p>Cronograma: '+esc(op.active_schedule_tasks??'—')+' atividades gravadas · '+
+      esc(op.tasks_pending_duration_review??'—')+' durações pendentes · '+
+      esc(op.validated_work_measurements??'—')+' medições reais validadas.</p>'+
       '<p>Custos-hora cadastrados: '+esc(op.company_hourly_rates??'—')+
       ' · Despesas próprias cadastradas: '+esc(op.company_overhead_profiles??'—')+
       ' · Funcionários ativos nesta base: '+esc(op.active_company_workers??'—')+'</p>'+
