@@ -13,7 +13,8 @@ export async function handleWorkforceEstimate({req,res,sql,user,parts,method,sen
  const q=new URL(req.url,'https://civolten-gj91.vercel.app').searchParams;
  const settings={target_days:q.get('target_days')??10,hours_day:q.get('hours_day')??8,
   efficiency_pct:q.get('efficiency_pct')??85,crew_size:q.get('crew_size')??4,
-  available_workers:q.get('available_workers')??null};
+  available_workers:q.get('available_workers')??null,
+  execution_mode:q.get('execution_mode')??'single_team'};
  let check;
  try{check=buildWorkforceEstimate([],settings)}catch(e){if(e.status===400)return done(400,{error:e.message});throw e}
  const budgets=await sql.query("SELECT id,code,status,reference_month,regime,lock_version FROM budgets WHERE id=$1 LIMIT 1",[id]);
@@ -29,7 +30,8 @@ export async function handleWorkforceEstimate({req,res,sql,user,parts,method,sen
   sql.query('SELECT predecessor_item_id,successor_item_id,lag_workdays FROM budget_service_dependencies WHERE budget_id=$1',[id])
  ]);
  const resourceSchedule=planResourceSchedule(result.services,{
-  available_workers:result.settings.available_workers,fronts,dependencies});
+  available_workers:result.settings.available_workers,
+  execution_mode:settings.execution_mode,fronts,dependencies});
  const days=resourceSchedule.workdays;
  const dayCost=costs.overhead?Number(costs.overhead.monthly_overhead)/Number(costs.overhead.workdays_per_month):null;
  const laborCost=management.costs.labor_estimated;
@@ -51,6 +53,10 @@ export async function handleWorkforceEstimate({req,res,sql,user,parts,method,sen
  return done(200,{budget:{id:budget.id,code:budget.code,status:budget.status,
     reference_month:budget.reference_month,regime:budget.regime,lock_version:budget.lock_version},
    ...result,...management,resource_schedule:resourceSchedule,
+   execution_mode:resourceSchedule.execution_mode??settings.execution_mode,
+   mode_note:settings.execution_mode==='separate_teams'?
+    'Equipes diferentes somente em frentes independentes, com limite global; sem funcionários cadastrados é hipótese, não escala real.':
+    'Equipe única compartilhada: tarefas em série, sem duplicar pessoas; prazo apenas estimado.',
    // Do not expose salary or company overhead to read-only users.
    costs:internal?management.costs:null,
    roles:internal?management.roles:management.roles.map(({hourly_cost,cost_source,estimated_cost,...role})=>role)});
