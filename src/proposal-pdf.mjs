@@ -52,14 +52,22 @@ export async function renderProposalPdf(doc,{logoPath}={}){
  const pdf=await PDFDocument.create();
  const font=await pdf.embedFont(StandardFonts.Helvetica);
  const bold=await pdf.embedFont(StandardFonts.HelveticaBold);
- const orange=rgb(.94,.45,.09),ink=rgb(.12,.15,.21),muted=rgb(.39,.43,.49),light=rgb(.94,.94,.94);
+ const orange=rgb(.96,.73,.28),ink=rgb(.12,.15,.21),muted=rgb(.39,.43,.49),light=rgb(.90,.92,.94),headerInk=rgb(.05,.075,.11);
+ // Marca oficial incluída por padrão também na emissão futuramente homologada.
+ // logoPath permanece opcional para customização autorizada.
+ let officialLogo=null;
+ try{officialLogo=await pdf.embedPng(await readFile(logoPath?path.resolve(logoPath):new URL('../public/assets/logo.png',import.meta.url)));}
+ catch{/* fallback textual caso o recurso não esteja no ambiente */}
  let page,y,number=0;
  const start=()=>{
    page=pdf.addPage([595.28,841.89]);number++;
-   y=795;
-   page.drawRectangle({x:32,y:814,width:531,height:4,color:orange});
-   page.drawText('CIVOLTEN   |   ELÉTRICA & CONSTRUÇÃO CIVIL',{x:36,y:794,size:13,font:bold,color:ink});
-   y=765;page.drawLine({start:{x:36,y},end:{x:559,y},thickness:.8,color:light});y-=22;
+   page.drawRectangle({x:0,y:748,width:595.28,height:93,color:headerInk});
+   page.drawRectangle({x:0,y:744,width:595.28,height:4,color:orange});
+   if(officialLogo){
+     const dims=officialLogo.scaleToFit(286,58);
+     page.drawImage(officialLogo,{x:36,y:762,width:dims.width,height:dims.height});
+   }else page.drawText('CIVOLTEN  |  ELETRICA & CONSTRUCAO CIVIL',{x:36,y:788,size:13,font:bold,color:orange});
+   y=725;page.drawLine({start:{x:36,y},end:{x:559,y},thickness:.8,color:light});y-=20;
  };
  const next=(h=15)=>{if(y-h<72)start()};
  const line=(str,{fontFace=font,size=10,color=ink,indent=0,spacing=5}={})=>{
@@ -69,8 +77,6 @@ export async function renderProposalPdf(doc,{logoPath}={}){
  const title=str=>{next(30);y-=6;line(str,{fontFace:bold,size:14,color:orange,spacing:7})};
  const entry=(a,b)=>{next(18);page.drawText(safe(a),{x:36,y,size:10,font,color:muted});page.drawText(safe(b),{x:330,y,size:10,font:bold,color:ink});y-=18};
  start();
- if(logoPath){try{const bytes=await readFile(path.resolve(logoPath));const image=await pdf.embedPng(bytes);
-   const size=image.scaleToFit(128,53);page.drawImage(image,{x:430,y:746,width:size.width,height:size.height})}catch{/* fallback marca textual */}}
  line('PROPOSTA COMERCIAL  |  '+doc.code,{fontFace:bold,size:17,spacing:8});
  line('Versão '+String(doc.version||1)+'  •  Emissão: '+safe(doc.issued_on||new Date().toISOString().slice(0,10)),{color:muted,size:9});
  title('Dados das partes');
