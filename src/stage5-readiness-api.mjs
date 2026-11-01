@@ -29,6 +29,9 @@ export async function handleStage5Readiness({req,res,user,sql,parts,method,send}
    (SELECT count(*)::int FROM siurb_auxiliary_compositions WHERE arithmetically_reconciled IS DISTINCT FROM TRUE) AS siurb_auxiliary_unreconciled,
    (SELECT count(*)::int FROM proposal_draft_snapshots) AS proposal_drafts,
    (SELECT count(*)::int FROM budget_items WHERE deleted_at IS NULL) AS active_budget_items,
+   (SELECT count(*)::int FROM schedule_tasks WHERE archived_at IS NULL) AS active_schedule_tasks,
+   (SELECT count(*)::int FROM schedule_tasks WHERE archived_at IS NULL AND duration_review_state NOT IN ('revisado','validado','aprovado')) AS tasks_pending_duration_review,
+   (SELECT count(*)::int FROM schedule_progress_measurements WHERE review_status='validado') AS validated_work_measurements,
    (SELECT count(*)::int FROM budget_items i
       LEFT JOIN budget_item_cost_reviews r ON r.budget_item_id=i.id
       WHERE i.deleted_at IS NULL
@@ -97,6 +100,9 @@ export async function handleStage5Readiness({req,res,user,sql,parts,method,send}
    siurb_auxiliary_unreconciled:Number(counts.siurb_auxiliary_unreconciled)||0,
    proposal_draft_records:Number(counts.proposal_drafts)||0,
    active_budget_items:totalItems,
+   active_schedule_tasks:Number(counts.active_schedule_tasks)||0,
+   tasks_pending_duration_review:Number(counts.tasks_pending_duration_review)||0,
+   validated_work_measurements:Number(counts.validated_work_measurements)||0,
    items_pending_cost_review:pendingCost,
    items_pending_productivity_review:pendingProductivity,
    budgets_pending_cost_approval:pendingBudgetApproval,
