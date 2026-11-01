@@ -35,6 +35,12 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
   issues.push('BDI, custos e documentação de referência ainda contêm pendências de aprovação comercial.');
  const deduped=[...new Set(issues)];
  const bdiMissing=(estimate.errors||[]).some(x=>x.code==='BDI_INPUT'||x.code==='BDI_TAX');
+ // estimateBudget registra erro por item e continua somando os demais.
+ // Nunca exibir esse subtotal parcial como se fosse o custo total do orçamento.
+ const arithmeticIncomplete=services.length===0||(estimate.errors||[]).some(x=>
+  ['INVALID_ITEM','DIRECT_ADDON','NO_ITEMS'].includes(x.code));
+ if(arithmeticIncomplete&&services.length)
+  issues.push('Existe serviço ou custo adicional com valor inválido; totais parciais foram ocultados até corrigir os lançamentos.');
  const scheduleReady=services.length>0&&!!plan.ready&&!incompleteProductivity;
  return {
   budget:{id:budget.id,code:budget.code,title:budget.title,status:budget.status,
@@ -42,10 +48,11 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
   source:'servicos_persistidos_no_orcamento',
   mode:'calculo_automatico_sem_cadastro_de_equipes',
   cost:{
-   direct_reais:number(estimate.direct_cost_reais),
-   bdi_reais:bdiMissing?null:number(estimate.bdi_amount_reais),
-   contingency_reais:number(estimate.contingency_reais),
-   total_preliminary_reais:bdiMissing?null:number(estimate.total_reais),
+   direct_reais:arithmeticIncomplete?null:number(estimate.direct_cost_reais),
+   bdi_reais:arithmeticIncomplete||bdiMissing?null:number(estimate.bdi_amount_reais),
+   contingency_reais:arithmeticIncomplete?null:number(estimate.contingency_reais),
+   total_preliminary_reais:arithmeticIncomplete||bdiMissing?null:number(estimate.total_reais),
+   calculation_complete:!arithmeticIncomplete,
    price_approved:false,
    blocking_errors:(estimate.errors||[]).map(x=>x.message||String(x)).slice(0,35)
   },
@@ -132,6 +139,9 @@ export async function handleAutomaticBriefing(ctx){
  const briefing=assembleAutomaticBriefing(budget,costs,workforce);
  if(parts.length===3)return done(200,briefing);
  if(!costs.items?.length)return done(409,{error:'Adicione ao menos um serviço antes de gerar a prévia PDF'});
+ if(!briefing.cost.calculation_complete)
+  return done(409,{error:'Existem custos ou quantidades inválidos. Corrija os itens antes de gerar a prévia PDF.',
+   issues:briefing.issues});
  const snapshot={
   model:'civolten-automatic-preview-not-issued',
   budget:{id:budget.id,code:budget.code,title:budget.title,lock_version:budget.lock_version},
