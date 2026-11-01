@@ -80,3 +80,11 @@ test('rascunho de proposta reutiliza premissas do orçamento sem inventar dados 
  assert.doesNotMatch(ui,/placeholder="Ex\.: 6"/);
  assert.match(ui,/nunca gera aprovação contratual automaticamente/);
 });
+
+
+test('cadastro de despesas operacionais explica separação da folha e pró-labore',()=>{
+ const ui=readFileSync(new URL('../public/secure-company-costs.js',import.meta.url),'utf8');
+ assert.match(ui,/Despesas fixas e operacionais/);
+ assert.match(ui,/exceto folha e pró-labore/);
+ assert.match(ui,/Não inclua salários, encargos de funcionários nem pró-labore/);
+});
