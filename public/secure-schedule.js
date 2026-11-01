@@ -15,6 +15,9 @@ export function schedulePage({state,esc,writeable}){
     '<h1>Cronograma automático</h1><p class="muted">Serviços e quantidade de profissionais calculados a partir do orçamento '+esc(state.detail?.code||'')+'.</p></div>'+
     '<button type="button" class="btn" data-action="schedule-back">Voltar ao orçamento</button></div>'+
     workforcePanel(state.scheduleWorkforce,esc,{config:state.schedulePlanning,canEdit:writeable()})+
+    (writeable()&&state.detail?.status==='rascunho'?'<div class="card"><h3>Registrar cronograma-base automaticamente</h3>'+
+     '<p class="muted tiny">Usa somente serviços com produtividade revisada e profissões com funcionários ativos cadastrados. Não inventa equipes ou datas. Salva atividades para validação técnica, sem iniciar a obra.</p>'+
+     '<button type="button" class="btn primary" data-action="schedule-autogenerate">Gerar cronograma-base no banco</button></div>':'')+
     '<div class="schedule-technical-link"><button type="button" class="btn" data-action="schedule-advanced-open">Acompanhamento técnico (opcional)</button>'+
     '<p class="muted tiny">Só para quem quiser registrar equipes reais, medições ou dependências. A estimativa acima não exige nada disso.</p></div>';
  }
@@ -96,6 +99,16 @@ export function schedulePage({state,esc,writeable}){
   diary+inputs+errors+warnings+summary+forecastPanel+productivityPanel+gantt;
 }
 export function scheduleDialog(action,{state,dialog,field,esc}){
+ if(action==='schedule-autogenerate'){
+  dialog('Registrar cronograma-base revisável',
+   '<p class="notice">Serão usadas as profissões dos funcionários ATIVOS e horas-homem já revisadas para cada serviço. A geração é bloqueada quando faltar qualquer uma delas.</p>'+
+   '<form id="schedule-autogenerate-form">'+
+   field('Jornada de trabalho da equipe (horas/dia)','hours_day','number',true,'','min="4" max="12" step="0.5"')+
+   field('Eficiência planejada (%)','efficiency_pct','number',true,'','min="50" max="100" step="1"')+
+   '<p class="muted tiny">Não reserva funcionários, não cria datas contratuais, não marca durações como aprovadas e não registra medições fictícias.</p>'+
+   actions+'</form>');
+  return true;
+ }
  const plan=state.schedulePlan||{},crews=plan.crews||[],tasks=plan.tasks||[];
  if(action==='schedule-add-crew'){
   dialog('Cadastrar equipe','<form id="schedule-crew-form">'+
@@ -199,6 +212,7 @@ export async function scheduleHandleForm(form,{state,api,refresh,toast}){
  else if(form.id==='schedule-task-edit-form'){route='schedule-tasks/'+form.dataset.id;method='PUT';body.action='edit';}
  else if(form.id==='schedule-crew-form')route='schedule-crews';
  else if(form.id==='schedule-task-form')route='schedule-tasks';
+ else if(form.id==='schedule-autogenerate-form')route='schedule-autogenerate';
  else if(form.id==='schedule-dependency-form')route='schedule-dependencies';
  else if(form.id==='schedule-review-form'){
   route='schedule-tasks/'+form.dataset.id;
@@ -207,6 +221,7 @@ export async function scheduleHandleForm(form,{state,api,refresh,toast}){
  await api('budgets/'+budget+'/'+route,method,body);
  document.querySelector('#secure-dialog')?.remove();
  state.schedulePreview=null;
+ if(route==='schedule-autogenerate')state.scheduleAdvanced=true;
  await refresh(true);
  toast('Planejamento salvo no PostgreSQL e registrado no histórico.');
  return true;
