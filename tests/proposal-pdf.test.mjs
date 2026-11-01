@@ -47,7 +47,7 @@ test('PDF rejeita propostas sem hash/versionamento e sem contrato',async()=>{
 
 test('proposta comercial aprovada carrega automaticamente a logo original sem parâmetro externo',async()=>{
  const source=readFileSync(new URL('../src/proposal-pdf.mjs',import.meta.url),'utf8');
- assert.match(source,/assets\\/logo\\.png/);
+ assert.ok(source.includes('../public/assets/logo.png'));
  const bytes=await renderProposalPdf(sample());
  assert.ok(bytes.length>9000,'Logomarca deve estar incorporada');
 });
