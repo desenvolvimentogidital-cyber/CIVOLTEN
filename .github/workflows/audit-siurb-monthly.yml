@@ -1,0 +1,32 @@
+name: SIURB mensalista oficial — verificação de fontes
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/audit-siurb-monthly.yml
+permissions:
+  contents: read
+jobs:
+  audit-official-monthly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Verify exact public monthly labor source files, hash and structure
+        run: python scripts/audit-siurb-monthly.py
+      - name: Save auditable official monthly labor sources only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: siurb-monthly-2026-07-audit
+          path: |
+            artifacts/siurb-monthly-audit.json
+            artifacts/siurb-monthly-source-files/
+          retention-days: 7
+          if-no-files-found: warn
