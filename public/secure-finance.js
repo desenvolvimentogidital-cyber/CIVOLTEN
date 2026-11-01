@@ -9,7 +9,8 @@ export function financePage({state,esc,writeable}){
  if(!model)return '<div class="card"><p>Carregando dados financeiros...</p></div>';
  const {summary,drafts,actuals}=model;
  const budget=summary.budget,edit=writeable()&&budget.status==='rascunho',
-   canApprove=reviewer(state)&&budget.status==='rascunho';
+   canApprove=reviewer(state)&&budget.status==='rascunho',
+   canInspectDraft=reviewer(state)||['administrador','orcamentista'].includes(state.user?.role);
  const errors=summary.estimate.errors||[];
  const totals=summary.comparison;
  const closeout=model.closeout||{metrics:{}},metrics=closeout.metrics||{},
@@ -49,7 +50,7 @@ export function financePage({state,esc,writeable}){
    esc(String(d.created_at||'').slice(0,10))+'</td><td>'+
    (d.stale?'Desatualizado: orçamento modificado':'Atual na versão do orçamento')+'</td>'+
    '<td>'+esc(d.snapshot_sha256.slice(0,14))+'…</td><td>'+
-   '<button class="btn" data-action="finance-open-draft" data-id="'+esc(d.id)+'">Consultar snapshot</button></td></tr>').join('');
+   (canInspectDraft?'<button class="btn" data-action="finance-open-draft" data-id="'+esc(d.id)+'">Consultar snapshot</button>':'Acesso restrito')+'</td></tr>').join('');
  const actualRows=(actuals.costs||[]).map(a=>'<tr><td>'+esc(a.description)+'</td><td>'+m(a.amount)+'</td>'+
   '<td>'+esc(String(a.incurred_on).slice(0,10))+'</td><td>'+esc(a.evidence_ref)+'</td>'+
   '<td>'+esc(a.status)+'</td><td>'+(a.status==='pendente'&&canApprove?
