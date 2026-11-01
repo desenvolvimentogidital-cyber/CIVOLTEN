@@ -191,18 +191,18 @@ CREATE OR REPLACE FUNCTION public.civolten_auth_session(p_hash TEXT)
 CREATE OR REPLACE FUNCTION public.civolten_auth_login(p_login TEXT)
  RETURNS TABLE(id UUID,login TEXT,password_hash TEXT,role TEXT,must_change_password BOOLEAN,organization_id UUID)
  LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $fn$
- SELECT id,login,password_hash,role,must_change_password,organization_id
- FROM public.app_users WHERE login=p_login AND is_active=true LIMIT 1
+ SELECT u.id,u.login,u.password_hash,u.role,u.must_change_password,u.organization_id
+ FROM public.app_users u WHERE u.login=p_login AND u.is_active=true LIMIT 1
  $fn$;
 
 CREATE OR REPLACE FUNCTION public.civolten_auth_user(p_login TEXT,p_purpose TEXT)
  RETURNS TABLE(id UUID,organization_id UUID)
  LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $fn$
- SELECT id,organization_id FROM public.app_users
- WHERE login=p_login AND
+ SELECT u.id,u.organization_id FROM public.app_users u
+ WHERE u.login=p_login AND
  ((p_purpose='exists') OR
-  (p_purpose='verify' AND email_verified_at IS NULL AND is_active=false) OR
-  (p_purpose='reset' AND email_verified_at IS NOT NULL AND is_active=true))
+  (p_purpose='verify' AND u.email_verified_at IS NULL AND u.is_active=false) OR
+  (p_purpose='reset' AND u.email_verified_at IS NOT NULL AND u.is_active=true))
  LIMIT 1
  $fn$;
 
