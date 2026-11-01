@@ -431,6 +431,10 @@ document.addEventListener('click',async e=>{
       '<p>Orçamentos registrados: '+esc(op.budget_records??'não conferido')+
       ' · Preços de referência: '+esc(op.reference_price_records??'não conferido')+
       ' · Rascunhos de proposta: '+esc(op.proposal_draft_records??'não conferido')+'</p>'+
+      '<p>SIURB complementar: '+esc(op.siurb_supplement_source_records??'—')+' fontes · '+
+      esc(op.siurb_supplement_price_records??'—')+' preços horistas/equipamentos/insumos · '+
+      esc(op.siurb_auxiliary_records??'—')+' auxiliares, das quais '+
+      esc(op.siurb_auxiliary_unreconciled??'—')+' ainda não conciliadas.</p>'+
       '<h3>As sete fases da implantação</h3>'+
       '<p class="muted tiny">As verificações usam contagens do Neon e, para aprovações externas, só aceitam evidências independentes; nenhum cadastro substitui homologação.</p>'+
       seven+

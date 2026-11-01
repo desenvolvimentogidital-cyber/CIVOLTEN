@@ -14,7 +14,9 @@ Este plano não transforma demonstrações, estimativas ou testes sintéticos em
 ## Fase 2 — Fontes SIURB (bloqueante)
 - [x] Preços oficiais: 6.988 registros; composições diretas: 6.926 fichas.
 - [x] Relações diretas de horas-homem e profissões: nunca confundir hora-máquina com hora-homem.
-- [ ] Importar, verificar hash/competência/regime e conciliar planilhas suplementares horistas, insumos, equipamentos e composições auxiliares.
+- [x] Importar no Neon 8 fontes oficiais suplementares com SHA-256 verificável: 5.828 preços (horistas, insumos e equipamentos), 232 composições auxiliares; conferir em `siurb_supplement_sources`, `siurb_supplement_prices`, `siurb_auxiliary_compositions`.
+- [x] Expor a tarifa horista de mão de obra direta no detalhe de composição, sem somá-la novamente ao preço integral do serviço SIURB.
+- [ ] Revisar as 10 composições auxiliares com diferenças ou parcelas incompletas e reconciliar dependências/encargos e equipamentos por regime; 222 conciliadas aritmeticamente não equivalem a aprovação técnica/comercial.
 - [ ] Revisar 62 serviços sem ficha direta ou bloquear cálculo de produtividade; conferir coerência de dados em cada obra.
 - [ ] Conferir data-base, regime, localidade e complementos de acordo com a obra; referências de São Paulo não são automaticamente cotações locais.
 **Aceite:** toda parcela deriva de fonte oficial rastreável ou de cotação válida, sem valores ausentes substituídos por zero.
@@ -56,7 +58,7 @@ Este plano não transforma demonstrações, estimativas ou testes sintéticos em
 
 ## Riscos conhecidos
 1. Configuração do backup periódico **não ativada**: só há testes do procedimento no QA.
-2. Produtividade SIURB direta **parcial**: prazo não é contratual sem revisão.
+2. Produtividade SIURB direta **parcial**: prazo não é contratual sem revisão; 10 composições auxiliares seguem sem reconciliação aritmética.
 3. Cadastro de custo-hora, itens e BDI incompleto no Neon atual.
 4. Modo somente mão de obra só gera **preço indicativo**, não emissão comercial.
 5. Integração dos registros legados Supabase não autorizada neste momento.

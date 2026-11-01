@@ -4,6 +4,7 @@
 import {randomUUID} from 'node:crypto';
 import {estimateBudget} from './estimate-engine.mjs';
 import {inspectSiurbComposition} from './siurb-composition-audit.mjs';
+import {compareSiurbDirectLabor} from './siurb-direct-labor-prices.mjs';
 
 const bdiKeys=['administracaoCentral','seguro','garantia','risco','despesasFinanceiras','lucro','tributosSobreReceita'];
 const validUUID=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(x);
@@ -45,9 +46,25 @@ export async function handleStage2(ctx){
        return found[0]||null;
      }
    });
+   const codes=[...new Set((Array.isArray(root.labor)?root.labor:[])
+     .map(x=>String(x?.code||'').trim()).filter(x=>/^[0-9]{3,9}$/.test(x)))].slice(0,100);
+   let tariffs=[],supplementalSourcesAvailable=true;
+   if(codes.length){
+    try{
+     tariffs=await sql.query(
+      "SELECT p.code,p.kind,p.variant,p.unit,p.unit_cost,s.regime,s.reference_month,s.sha256 AS source_sha256 FROM siurb_supplement_prices p JOIN siurb_supplement_sources s ON s.id=p.source_id WHERE s.reference_month=$1 AND s.regime=$2 AND s.kind='horista' AND p.kind='horista' AND p.variant='com_encargos' AND upper(p.unit)='H' AND p.code=ANY($3::text[])",
+      [root.reference_month,root.regime,codes]);
+    }catch(error){
+     if(error?.code!=='42P01')throw error;
+     supplementalSourcesAvailable=false; // Explicit legacy QA databases only.
+    }
+   }
+   const laborReference=compareSiurbDirectLabor({labor:root.labor,tariffs,
+    regime:root.regime,reference_month:root.reference_month});
    return done(res,200,{...root,composition_available:root.labor!==null,
-     inspection,
-     notice:'Fichas oficiais parciais. A expansão não atesta custos nem homologa insumos sem preços de referência.'});
+     inspection,siurb_direct_labor_reference:laborReference,
+     siurb_supplemental_sources_available:supplementalSourcesAvailable,
+     notice:'Tarifas horistas complementares oficiais conferidas por código e regime. O custo direto de mão de obra é parcial e não substitui a composição integral nem homologação técnica.'});
  }
  if(resource==='siurb'&&id==='search'&&method==='GET'){
    const q=parseQuery(req),term=String(q.get('q')||'').trim().slice(0,80);
