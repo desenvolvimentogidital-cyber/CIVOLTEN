@@ -4,7 +4,7 @@
  */
 import {randomBytes,randomUUID,createHash} from 'node:crypto';
 import {accountMailReady,sendAccountEmail} from './account-mail.mjs';
-import {probeTenantRuntime,tenantScopedQueries} from './tenant-db-guard.mjs';
+import {probeTenantRuntime} from './tenant-db-guard.mjs';
 const sha=s=>createHash('sha256').update(s).digest('hex');
 const safeEmail=s=>typeof s==='string'&&s.length<=120&&
  /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s);
@@ -32,8 +32,13 @@ async function rateLimit(db,key,req,login,max=3){
 }
 async function newToken(db,userId,purpose,minutes,organizationId){
  const token=randomBytes(32).toString('hex');
- await db.query("INSERT INTO account_action_tokens(token_hash,user_id,purpose,expires_at,organization_id) VALUES($1,$2,$3,now()+($4::integer*interval '1 minute'),$5)",
-  [sha(token),userId,purpose,minutes,organizationId]);
+ // Rotating a code revokes earlier unconsumed links atomically.
+ await db.transaction([
+  db.query("SELECT set_config('civolten.organization_id',$1,true)",[organizationId]),
+  db.query("UPDATE account_action_tokens SET consumed_at=now() WHERE user_id=$1 AND purpose=$2 AND consumed_at IS NULL",[userId,purpose]),
+  db.query("INSERT INTO account_action_tokens(token_hash,user_id,purpose,expires_at,organization_id) VALUES($1,$2,$3,now()+($4::integer*interval '1 minute'),$5)",
+   [sha(token),userId,purpose,minutes,organizationId])
+ ]);
  return token;
 }
 export async function handleAccountAuth({req,res,db,parts,method,sendResponse,readBody,opts,multiTenant,hashPassword}){
@@ -116,7 +121,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
  const users=await db.query("SELECT id,organization_id FROM civolten_auth_user($1,$2)",[login,'verify']);
  if(parts[1]==='resend-verification'){
   if(users.length){
-   const token=await newToken(tenantScopedQueries(db,users[0].organization_id),users[0].id,'verify',30,users[0].organization_id);
+   const token=await newToken(db,users[0].id,'verify',30,users[0].organization_id);
    await send(opts)({to:login,kind:'verify',token});
   }
   return done(202,generic);
@@ -124,7 +129,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
  if(parts[1]==='request-reset'){
   const active=await db.query("SELECT id,organization_id FROM civolten_auth_user($1,$2)",[login,'reset']);
   if(active.length){
-   const token=await newToken(tenantScopedQueries(db,active[0].organization_id),active[0].id,'reset',20,active[0].organization_id);
+   const token=await newToken(db,active[0].id,'reset',20,active[0].organization_id);
    await send(opts)({to:login,kind:'reset',token});
   }
   return done(202,generic);
