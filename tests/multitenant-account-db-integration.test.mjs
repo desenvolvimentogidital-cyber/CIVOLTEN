@@ -74,7 +74,12 @@ if(!uri||!/^postgres(?:ql)?:\/\/postgres:[^@]+@(?:127\.0\.0\.1|localhost):5432\/
    assert.equal(logged.body.user.role,'administrador');
    const signupB=await http(db,'auth/signup','POST',{organization_name:'Empresa B QA',login:loginB,password:passB},'',deliver);
    assert.equal(signupB.status,202);
-   assert.equal((await http(db,'auth/verify-email','POST',{token:emails[1].token},'',deliver)).status,200);
+   const resent=await http(db,'auth/resend-verification','POST',{login:loginB},'',deliver);
+   assert.equal(resent.status,202);
+   assert.equal(emails[2].kind,'verify');
+   assert.equal((await http(db,'auth/verify-email','POST',{token:emails[1].token},'',deliver)).status,400,
+    'reenviar invalida a confirmação anterior');
+   assert.equal((await http(db,'auth/verify-email','POST',{token:emails[2].token},'',deliver)).status,200);
    const loginBResponse=await http(db,'auth/login','POST',{login:loginB,password:passB},'',deliver);
    assert.equal(loginBResponse.status,200);
    const sessionB=loginBResponse.headers['set-cookie'];
@@ -86,10 +91,10 @@ if(!uri||!/^postgres(?:ql)?:\/\/postgres:[^@]+@(?:127\.0\.0\.1|localhost):5432\/
    assert.deepEqual(onlyB.body,[]);
    const resetStart=await http(db,'auth/request-reset','POST',{login:loginA},'',deliver);
    assert.equal(resetStart.status,202);
-   assert.equal(emails[2].kind,'reset');
-   const reset=await http(db,'auth/reset-password','POST',{token:emails[2].token,new_password:'nova-senha-QA-a-987'},'',deliver);
+   assert.equal(emails[3].kind,'reset');
+   const reset=await http(db,'auth/reset-password','POST',{token:emails[3].token,new_password:'nova-senha-QA-a-987'},'',deliver);
    assert.equal(reset.status,200,JSON.stringify(reset.body));
-   assert.equal((await http(db,'auth/reset-password','POST',{token:emails[2].token,new_password:'otra-senha-qa-A-987'},'',deliver)).status,400);
+   assert.equal((await http(db,'auth/reset-password','POST',{token:emails[3].token,new_password:'otra-senha-qa-A-987'},'',deliver)).status,400);
    assert.equal((await http(db,'auth/login','POST',{login:loginA,password:passA},'',deliver)).status,401);
    assert.equal((await http(db,'clients','GET',null,sessionA,deliver)).status,401,'sessões antigas revogadas');
    assert.equal((await http(db,'auth/login','POST',{login:loginA,password:'nova-senha-QA-a-987'},'',deliver)).status,200);
