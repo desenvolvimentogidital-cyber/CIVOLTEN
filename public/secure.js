@@ -270,6 +270,18 @@ async function refreshAutomaticPlan(){
  render();
 }
 const formData=form=>Object.fromEntries(new FormData(form).entries());
+// Selecting a role code from the official budget composition fills its exact
+// profession name. Never fills pay, staff identity, tax rates or approvals.
+document.addEventListener('change',e=>{
+ const input=e.target;
+ if(!(input instanceof HTMLInputElement)||input.name!=='role_code')return;
+ const form=input.closest('#company-worker-form, #company-worker-edit-form');
+ if(!form)return;
+ const list=form.querySelector('#company-role-codes');
+ const matching=[...(list?.querySelectorAll('option')||[])].find(x=>x.value===input.value);
+ const name=form.querySelector('input[name="role_name"]');
+ if(matching&&name)name.value=matching.getAttribute('label')||matching.textContent||'';
+});
 document.addEventListener('submit',async e=>{
  const form=e.target;if(!form.id)return;e.preventDefault();
  const send=form.querySelector('[type="submit"]');if(send)send.disabled=true;
