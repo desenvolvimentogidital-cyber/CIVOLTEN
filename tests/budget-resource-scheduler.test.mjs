@@ -5,6 +5,78 @@ import {planResourceSchedule} from '../src/budget-resource-scheduler.mjs';
 const a={item_id:'a',title:'Pintura hall',workers:5,days_at_suggested_staff:4,roles:[]};
 const b={item_id:'b',title:'Instalação elétrica quadro',workers:5,days_at_suggested_staff:4,roles:[]};
 const fronts=[{budget_item_id:'a',work_front:'Sala A'},{budget_item_id:'b',work_front:'Sala B'}];
+test('Equipe única: duas frentes independentes utilizam as MESMAS cinco pessoas sem sobreposição',()=>{
+ const p=planResourceSchedule([a,b],{fronts,available_workers:10,execution_mode:'single_team'});
+ assert.equal(p.ready,true);assert.equal(p.execution_mode,'single_team');
+ assert.equal(p.workdays,8);assert.equal(p.peak_workers,5);
+ assert.equal(p.tasks[0].start_workday,0);assert.equal(p.tasks[1].start_workday,4);
+});
+test('Duas equipes distintas podem trabalhar em paralelo, respeitando limite global',()=>{
+ const p=planResourceSchedule([a,b],{fronts,available_workers:10,execution_mode:'separate_teams'});
+ assert.equal(p.workdays,4);assert.equal(p.peak_workers,10);
+ assert.equal(p.tasks[0].start_workday,0);assert.equal(p.tasks[1].start_workday,0);
+ const limited=planResourceSchedule([a,b],{fronts,available_workers:5,execution_mode:'separate_teams'});
+ assert.equal(limited.workdays,8);assert.equal(limited.peak_workers,5);
+});
+test('Equipe única mantém alvenaria, chapisco e reboco em sequência com 5 pessoas',()=>{
+ const walls={item_id:'w',title:'Alvenaria',workers:5,days_at_suggested_staff:5};
+ const coat={item_id:'c',title:'Chapisco',workers:2,days_at_suggested_staff:2};
+ const render={item_id:'r',title:'Reboco',workers:3,days_at_suggested_staff:3};
+ const p=planResourceSchedule([render,coat,walls],{execution_mode:'single_team',available_workers:5});
+ assert.equal(p.ready,true);assert.equal(p.workdays,10);assert.equal(p.peak_workers,5);
+ assert.deepEqual(p.tasks.map(t=>t.stage),['alvenaria','chapisco','reboco']);
+ assert.deepEqual(p.tasks.map(t=>t.start_workday),[0,5,7]);
+});
+test('Equipes separadas não iniciam reboco antes da etapa anterior na MESMA frente',()=>{
+ const p=planResourceSchedule([
+  {item_id:'w1',title:'Alvenaria parede 1',workers:3,days_at_suggested_staff:3},
+  {item_id:'w2',title:'Alvenaria parede 2',workers:3,days_at_suggested_staff:3},
+  {item_id:'c1',title:'Chapisco parede 1',workers:2,days_at_suggested_staff:1},
+  {item_id:'r1',title:'Reboco parede 1',workers:2,days_at_suggested_staff:2}
+ ],{fronts:[
+  {budget_item_id:'w1',work_front:'Parede 1'},
+  {budget_item_id:'w2',work_front:'Parede 2'},
+  {budget_item_id:'c1',work_front:'Parede 1'},
+  {budget_item_id:'r1',work_front:'Parede 1'}],
+  available_workers:6,execution_mode:'separate_teams'});
+ assert.equal(p.ready,true);
+ assert.equal(p.tasks.find(t=>t.id==='w1').start_workday,0);
+ assert.equal(p.tasks.find(t=>t.id==='w2').start_workday,0);
+ assert.equal(p.tasks.find(t=>t.id==='r1').start_workday,4);
+ assert.equal(p.peak_workers,6);
+});
+test('Não aceita modo inválido nem disponibilidades globais inexistentes',()=>{
+ assert.throws(()=>planResourceSchedule([a],{execution_mode:'unlimited'}),/Modo de execução inválido/);
+ assert.throws(()=>planResourceSchedule([a],{execution_mode:'separate_teams',available_workers:0}),/Disponibilidade global inválida/);
+});
+test('Equipes de frentes distintas não duplicam pedreiros cadastrados, mesmo com limite global amplo',()=>{
+ const p1={item_id:'p1',title:'Alvenaria A',workers:2,days_at_suggested_staff:4,
+  roles:[{code:'P',name:'Pedreiro',workers:2}]};
+ const p2={item_id:'p2',title:'Alvenaria B',workers:2,days_at_suggested_staff:4,
+  roles:[{code:'P',name:'Pedreiro',workers:2}]};
+ const separate=[{budget_item_id:'p1',work_front:'Frente A'},{budget_item_id:'p2',work_front:'Frente B'}];
+ const limited=planResourceSchedule([p1,p2],{fronts:separate,available_workers:4,
+  execution_mode:'separate_teams',role_capacity:{P:2}});
+ assert.equal(limited.ready,true);assert.equal(limited.staffing_verified,true);
+ assert.equal(limited.workdays,8);assert.equal(limited.peak_workers,2);
+ const staffed=planResourceSchedule([p1,p2],{fronts:separate,available_workers:4,
+  execution_mode:'separate_teams',role_capacity:{P:4}});
+ assert.equal(staffed.workdays,4);assert.equal(staffed.peak_workers,4);
+});
+test('Profissão ausente e divergência entre cargo e equipe bloqueiam cronograma real',()=>{
+ const a={item_id:'p1',title:'Alvenaria',workers:3,days_at_suggested_staff:4,
+  roles:[{code:'P',name:'Pedreiro',workers:2},{code:'S',name:'Servente',workers:1}]};
+ const missing=planResourceSchedule([a],{execution_mode:'single_team',
+  role_capacity:{P:3}});
+ assert.equal(missing.ready,false);
+ assert.match(missing.errors.join(' '),/Servente/);
+ const mismatch=planResourceSchedule([{...a,workers:2}],{role_capacity:{P:3,S:3}});
+ assert.equal(mismatch.ready,false);
+ assert.match(mismatch.errors.join(' '),/difere do total/);
+ const hypothetical=planResourceSchedule([a],{execution_mode:'single_team'});
+ assert.equal(hypothetical.ready,true);
+ assert.equal(hypothetical.staffing_verified,false);
+});
 test('Duas frentes independentes simultâneas com 10 pessoas terminam em 4 dias',()=>{
  const p=planResourceSchedule([a,b],{fronts,available_workers:10});
  assert.equal(p.workdays,4);assert.equal(p.ready,true);

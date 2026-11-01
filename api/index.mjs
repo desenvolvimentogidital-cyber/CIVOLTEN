@@ -11,6 +11,9 @@ import {handleBudgetPlanning} from '../src/budget-planning-api.mjs';
 import {handleCompanyCosts} from '../src/company-costs-api.mjs';
 import {handleScheduleManagement} from '../src/schedule-management-api.mjs';
 import {handleReviewedAutoplan} from '../src/reviewed-autoplan-api.mjs';
+import {probeTenantRuntime,tenantScopedQueries} from '../src/tenant-db-guard.mjs';
+import {handleAccountAuth,signupConfigured} from '../src/account-auth-api.mjs';
+import {handleBudgetRequiredProfessions} from '../src/budget-required-professions-api.mjs';
 import {handleScheduleProgress} from '../src/schedule-progress-api.mjs';
 import {handleRemainingSchedule} from '../src/schedule-remaining-api.mjs';
 import {handleStage4} from '../src/stage4-finance-api.mjs';
@@ -42,9 +45,11 @@ function validateRequest(req){
  if(String(req.headers['sec-fetch-site']||'').toLowerCase()==='cross-site')throw Object.assign(new Error('Origem bloqueada'),{status:403});
  if(req.headers['x-civolten-request']!=='1')throw Object.assign(new Error('Cabeçalho anti-CSRF obrigatório'),{status:403});
 }
-async function who(req,sql){
+async function who(req,sql,multiTenant=false){
  const token=sessionToken(req);if(!/^[a-f0-9]{64}$/.test(token))return null;
- const data=await sql.query("SELECT u.id,u.login,u.role,u.must_change_password FROM app_sessions s JOIN app_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_active=true LIMIT 1",[hexhash(token)]);
+ const data=await sql.query(multiTenant?
+  "SELECT id,organization_id,login,role,must_change_password FROM civolten_auth_session($1)":
+  "SELECT u.id,u.login,u.role,u.must_change_password FROM app_sessions s JOIN app_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_active=true LIMIT 1",[hexhash(token)]);
  return data[0]||null;
 }
 const writable=user=>user.role==='administrador'||user.role==='orcamentista';
@@ -62,8 +67,10 @@ function getParts(req){
  if(parts[0]==='api'&&parts[1]==='v1')return parts.slice(2);
  return [];
 }
-export function createApi(sql,opts={}){
+export function createApi(database,opts={}){
  return async(req,res)=>{
+  let sql=database;
+  const multiTenant=opts.multiTenant===true||(opts.multiTenant!==false&&process.env.CIVOLTEN_MULTI_TENANT==='true');
   try{
    const method=req.method||'GET',parts=getParts(req);
    const [resource,id,sub]=parts;
@@ -83,9 +90,19 @@ export function createApi(sql,opts={}){
      return response(res,200,{ok:data[0]?.connected===1,database:'connected',mode:'homologacao'});
    }
    if(resource==='auth'&&id==='status'&&method==='GET'){
-     const user=await who(req,sql);return response(res,200,{authenticated:!!user,user});
+     const user=await who(req,database,multiTenant);
+     let signupAvailable=false;
+     if(signupConfigured(opts,multiTenant)){
+      try{signupAvailable=(await probeTenantRuntime(database)).ready===true}
+      catch{signupAvailable=false}
+     }
+     return response(res,200,{authenticated:!!user,user,signup_enabled:signupAvailable});
    }
+   const accountHandled=await handleAccountAuth({req,res,db:database,parts,method,
+     sendResponse:response,readBody,opts,multiTenant,hashPassword});
+   if(accountHandled)return;
    if(resource==='auth'&&id==='bootstrap'&&method==='POST'){
+     if(multiTenant)return response(res,403,{error:'Inicialização legada desativada em contas multiempresa'});
      const secret=opts.bootstrapSecret||process.env.CIVOLTEN_BOOTSTRAP_SECRET;
      if(!secret)return response(res,403,{error:'Configuração administrativa desativada'});
      const b=await readBody(req),got=String(b.bootstrap_secret||'');
@@ -101,24 +118,46 @@ export function createApi(sql,opts={}){
    if(resource==='auth'&&id==='login'&&method==='POST'){
      const b=await readBody(req),login=String(b.login||'').trim().toLowerCase();
      const fingerprint=hexhash(login+'|'+String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'').split(',')[0].trim());
-     const recent=await sql.query("SELECT count(*)::int AS failures FROM audit_events WHERE entity_type='auth' AND action='login_failed' AND created_at>now()-interval '15 minutes' AND metadata->>'fingerprint'=$1",[fingerprint]);
+     const recent=await sql.query(multiTenant?
+         "SELECT count(*)::int AS failures FROM auth_login_attempts WHERE attempted_at>now()-interval '15 minutes' AND fingerprint=$1":
+         "SELECT count(*)::int AS failures FROM audit_events WHERE entity_type='auth' AND action='login_failed' AND created_at>now()-interval '15 minutes' AND metadata->>'fingerprint'=$1",[fingerprint]);
      if(Number(recent[0].failures)>=6)return response(res,429,{error:'Muitas tentativas. Tente mais tarde.'},{'Retry-After':'900'});
-     const data=await sql.query('SELECT id,login,password_hash,role,must_change_password FROM app_users WHERE login=$1 AND is_active=true LIMIT 1',[login]);
+     const data=await sql.query(multiTenant?
+       'SELECT id,login,password_hash,role,must_change_password,organization_id FROM civolten_auth_login($1)':
+       'SELECT id,login,password_hash,role,must_change_password FROM app_users WHERE login=$1 AND is_active=true LIMIT 1',[login]);
      if(!data[0]||!matches(b.password,data[0].password_hash)){
-       await sql.query("INSERT INTO audit_events(entity_type,action,metadata) VALUES('auth','login_failed',jsonb_build_object('fingerprint',$1::text))",[fingerprint]);
+       await sql.query(multiTenant?
+          "INSERT INTO auth_login_attempts(fingerprint) VALUES($1)":
+          "INSERT INTO audit_events(entity_type,action,metadata) VALUES('auth','login_failed',jsonb_build_object('fingerprint',$1::text))",[fingerprint]);
        return response(res,401,{error:'Credenciais inválidas'});
      }
      const token=randomBytes(32).toString('hex'),expires=new Date(Date.now()+8*3600000).toISOString();
-     await sql.query('INSERT INTO app_sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)',[hexhash(token),data[0].id,expires]);
+     const sessionDb=multiTenant?tenantScopedQueries(database,data[0].organization_id):database;
+     await sessionDb.query('INSERT INTO app_sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)',[hexhash(token),data[0].id,expires]);
      return response(res,200,{ok:true,user:{id:data[0].id,login:data[0].login,role:data[0].role,must_change_password:data[0].must_change_password}},{'Set-Cookie':cookie(token,28800)});
    }
    if(resource==='auth'&&id==='logout'&&method==='POST'){
      const token=sessionToken(req);
-     if(token)await sql.query('UPDATE app_sessions SET revoked_at=now() WHERE token_hash=$1',[hexhash(token)]);
+     if(token){
+      if(multiTenant){
+       const current=await who(req,database,true);
+       if(current?.organization_id)
+        await tenantScopedQueries(database,current.organization_id).query(
+         'UPDATE app_sessions SET revoked_at=now() WHERE token_hash=$1',[hexhash(token)]);
+      }else await sql.query('UPDATE app_sessions SET revoked_at=now() WHERE token_hash=$1',[hexhash(token)]);
+     }
      return response(res,200,{ok:true},{'Set-Cookie':cookie('',0)});
    }
-   const user=await who(req,sql);
+   const user=await who(req,database,multiTenant);
    if(!user)return response(res,401,{error:'Sessão necessária'});
+   if(multiTenant){
+    const security=await probeTenantRuntime(database);
+    if(!security.ready)return response(res,503,{
+     error:'Cadastro multiempresa indisponível: banco não possui isolamento completo',
+     code:'TENANT_DB_NOT_ISOLATED',commercial_release:false});
+    try{sql=tenantScopedQueries(database,user.organization_id)}
+    catch{return response(res,503,{error:'Contexto de organização indisponível',code:'TENANT_CONTEXT_REQUIRED'})}
+   }
    if(user.must_change_password && !(resource==='auth'&&id==='change-password'))return response(res,403,{error:'Altere a senha temporária antes de acessar dados do CIVOLTEN',password_change_required:true});
    if(resource==='me'&&method==='GET')return response(res,200,user);
    const stage5Handled=await handleStage5Readiness({req,res,sql,user,parts,method,send:response});
@@ -129,6 +168,8 @@ export function createApi(sql,opts={}){
    if(automaticHandled)return;
    const stage2Handled=await handleStage2({req,res,sql,user,parts,method,send:response,readBody});
    if(stage2Handled)return;
+   const professionsHandled=await handleBudgetRequiredProfessions({req,res,sql,user,parts,method,send:response});
+   if(professionsHandled)return;
    const companyCostsHandled=await handleCompanyCosts({req,res,sql,user,parts,method,send:response,readBody});
    if(companyCostsHandled)return;
    const budgetPlanningHandled=await handleBudgetPlanning({req,res,sql,user,parts,method,send:response,readBody});
@@ -166,7 +207,10 @@ export function createApi(sql,opts={}){
    if(resource==='users'){
      if(user.role!=='administrador')return noAccess(res);
      if(method==='GET'&&!id){
-       return response(res,200,await sql.query("SELECT id,login,role,is_active,must_change_password,created_at,last_login_at FROM app_users ORDER BY created_at ASC LIMIT 100",[]));
+       return response(res,200,await sql.query(multiTenant?
+         "SELECT id,login,role,is_active,must_change_password,created_at,last_login_at FROM app_users WHERE organization_id=$1 ORDER BY created_at ASC LIMIT 100":
+         "SELECT id,login,role,is_active,must_change_password,created_at,last_login_at FROM app_users ORDER BY created_at ASC LIMIT 100",
+         multiTenant?[user.organization_id]:[]));
      }
      if(method==='POST'&&!id){
        const b=await readBody(req);
@@ -176,8 +220,10 @@ export function createApi(sql,opts={}){
        if(!['orcamentista','revisor','consulta'].includes(role))return response(res,400,{error:'Perfil inválido para novo usuário'});
        const password=hashPassword(b.password),userId=randomUUID();
        const result=await sql.query(
-         "WITH added AS (INSERT INTO app_users(id,login,password_hash,role,must_change_password) VALUES($1,$2,$3,$4,true) RETURNING id,login,role,is_active,must_change_password,created_at) SELECT * FROM added",
-         [userId,login,password,role]
+         multiTenant?
+          "WITH added AS (INSERT INTO app_users(id,login,password_hash,role,must_change_password,organization_id) VALUES($1,$2,$3,$4,true,$5) RETURNING id,login,role,is_active,must_change_password,created_at) SELECT * FROM added":
+          "WITH added AS (INSERT INTO app_users(id,login,password_hash,role,must_change_password) VALUES($1,$2,$3,$4,true) RETURNING id,login,role,is_active,must_change_password,created_at) SELECT * FROM added",
+         multiTenant?[userId,login,password,role,user.organization_id]:[userId,login,password,role]
        );
        await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action,metadata) VALUES($1,'app_users',$2,'create',jsonb_build_object('role',$3::text))",[user.id,userId,role]);
        return response(res,201,result[0]);
@@ -188,8 +234,10 @@ export function createApi(sql,opts={}){
        const b=await readBody(req),role=String(b.role||'');
        if(!['orcamentista','revisor','consulta'].includes(role))return response(res,400,{error:'Perfil inválido'});
        if(typeof b.is_active!=='boolean')return response(res,400,{error:'Ativação deve ser verdadeiro ou falso'});
-       const updated=await sql.query("UPDATE app_users SET role=$2,is_active=$3 WHERE id=$1 AND role<>'administrador' RETURNING id,login,role,is_active,created_at,last_login_at",
-          [id,role,b.is_active]);
+       const updated=await sql.query(multiTenant?
+           "UPDATE app_users SET role=$2,is_active=$3 WHERE id=$1 AND organization_id=$4 AND role<>'administrador' RETURNING id,login,role,is_active,created_at,last_login_at":
+           "UPDATE app_users SET role=$2,is_active=$3 WHERE id=$1 AND role<>'administrador' RETURNING id,login,role,is_active,created_at,last_login_at",
+          multiTenant?[id,role,b.is_active,user.organization_id]:[id,role,b.is_active]);
        if(!updated.length)return response(res,404,{error:'Usuário inexistente ou administrador protegido'});
        if(!b.is_active)await sql.query("UPDATE app_sessions SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL",[id]);
        await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action,metadata) VALUES($1,'app_users',$2,'update',jsonb_build_object('role',$3::text,'active',$4::boolean))",[user.id,id,role,b.is_active]);

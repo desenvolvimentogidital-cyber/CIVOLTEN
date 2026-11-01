@@ -134,6 +134,23 @@ test('serviço incompleto mantém pendências e não inventa produtividade',()=>
  assert.ok(b.issues.some(x=>/não foram inventadas/.test(x)));
  assert.equal(b.commercial_release,false);
 });
+test('resumo automático informa profissionais reais faltantes sem bloquear a prévia de orçamento',()=>{
+ const required={summary:{required_professions:2,missing_active_professions:1},
+  professions:[{code:'2099',name:'Servente',active_workers:1,staffed:true},
+    {code:'1037',name:'Eletrotécnico',active_workers:0,staffed:false}]};
+ const brief=assembleAutomaticBriefing(budget,{items:[costItem],estimate:{
+  direct_cost_reais:500,total_reais:500,errors:[]
+ }},{services:[{item_id:itemId,workers:1,roles:[],reviewed:false}],summary:{
+  total_hh:25,estimated_services:1,without_productivity:0,partial_estimate:true
+ },has_unestimated_services:false,resource_schedule:{ready:false,tasks:[],workdays:null,missing:[]}},required);
+ assert.equal(brief.staffing.required_professions,2);
+ assert.equal(brief.staffing.missing_active_professions,1);
+ assert.ok(brief.issues.some(x=>x.includes('sem profissionais ativos')));
+ assert.equal(brief.commercial_release,false);
+ const html=automaticBudgetPanel(brief,v=>String(v),{budgetId:id});
+ assert.match(html,/Conferir \/ cadastrar profissionais necessários/);
+ assert.match(html,/company-config/);
+});
 test('interface recarrega em adição, edição, exclusão e entrada no orçamento',()=>{
  const js=readFileSync(new URL('../public/secure.js',import.meta.url),'utf8');
  const api=readFileSync(new URL('../api/index.mjs',import.meta.url),'utf8');

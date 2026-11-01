@@ -5,6 +5,7 @@
 import {createHash} from 'node:crypto';
 import {handleStage2} from './costing-api.mjs';
 import {handleWorkforceEstimate} from './workforce-estimate-api.mjs';
+import {handleBudgetRequiredProfessions} from './budget-required-professions-api.mjs';
 import {renderProposalDraftPdf} from './proposal-draft-pdf.mjs';
 
 const uuid=value=>typeof value==='string'&&
@@ -12,7 +13,7 @@ const uuid=value=>typeof value==='string'&&
 const number=value=>value===null||value===undefined?null:Number(value);
 const safeString=(value,placeholder)=>typeof value==='string'&&value.trim()?value.trim():placeholder;
 
-export function assembleAutomaticBriefing(budget,costs,workforce){
+export function assembleAutomaticBriefing(budget,costs,workforce,required=null){
  const services=costs.items||[];
  const estimate=costs.estimate||{};
  const plan=workforce.resource_schedule||{};
@@ -33,6 +34,9 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
   issues.push('Escopo, exclusões e/ou condições de pagamento precisam de revisão antes de uma proposta comercial.');
  if((estimate.errors||[]).length)
   issues.push('BDI, custos e documentação de referência ainda contêm pendências de aprovação comercial.');
+ if(required?.summary?.missing_active_professions>0)
+  issues.push(required.summary.missing_active_professions+
+   ' profissão(ões) dos serviços ainda sem profissionais ativos da CIVOLTEN; cadastre a equipe real em Custos internos.');
  const deduped=[...new Set(issues)];
  const bdiMissing=(estimate.errors||[]).some(x=>x.code==='BDI_INPUT'||x.code==='BDI_TAX');
  const scheduleReady=services.length>0&&!!plan.ready&&!incompleteProductivity;
@@ -65,6 +69,12 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
   },
   // Internal costs are not added to SIURB prices: doing so can double-count labour.
   // The workforce API intentionally redacts these figures for read-only roles.
+  staffing:required?{
+   required_professions:required.summary.required_professions,
+   missing_active_professions:required.summary.missing_active_professions,
+   professions:required.professions.map(r=>({code:r.code,name:r.name,active_workers:r.active_workers,staffed:r.staffed})),
+   no_fictitious_workers:true,assigns_workers_to_project:false
+  }:null,
   company_costs:workforce.costs?{
    labor_estimated_reais:number(workforce.costs.labor_estimated),
    company_overhead_estimated_reais:number(workforce.costs.overhead_sequential),
@@ -129,7 +139,10 @@ export async function handleAutomaticBriefing(ctx){
  // table or new schema is necessary; changes to budget items appear immediately.
  const costs=await captured(handleStage2,ctx,['budgets',id,'costs']);
  const workforce=await captured(handleWorkforceEstimate,ctx,['budgets',id,'workforce-estimate']);
- const briefing=assembleAutomaticBriefing(budget,costs,workforce);
+ const internal=['administrador','orcamentista'].includes(user?.role);
+ const required=internal?await captured(handleBudgetRequiredProfessions,ctx,
+  ['budgets',id,'required-professions']):null;
+ const briefing=assembleAutomaticBriefing(budget,costs,workforce,required);
  if(parts.length===3)return done(200,briefing);
  if(!costs.items?.length)return done(409,{error:'Adicione ao menos um serviço antes de gerar a prévia PDF'});
  const snapshot={

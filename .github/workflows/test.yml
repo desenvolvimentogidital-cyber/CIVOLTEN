@@ -66,6 +66,8 @@ jobs:
         run: node --test tests/costing-integration.test.mjs
       - name: Gerar cronograma-base persistido no PostgreSQL real de testes
         run: node --test tests/reviewed-autoplan-db-integration.test.mjs
+      - name: Confirmar profissões SIURB e equipe real sem expor salários
+        run: node --test tests/budget-required-professions-db-integration.test.mjs
       - name: Backup e restauração com dados fictícios já gravados
         shell: bash
         run: |
@@ -117,6 +119,15 @@ jobs:
             echo "PASS encrypted restore $table count=$actual"
           done
           echo "PASS: encrypted archive can be decrypted and restored with its private key; no key persisted"
+      - name: Testar migracao multiempresa apenas no banco descartavel
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -d civolten_test -f db/staged/0020_multi_organization_qa.sql
+      - name: Provar isolamento RLS A versus B com usuario PostgreSQL sem BYPASSRLS
+        run: node --test tests/multitenant-rls-db-integration.test.mjs
+      - name: Exercitar cadastro, verificação, privacidade A/B e reset em PostgreSQL descartável
+        run: node --test tests/multitenant-account-db-integration.test.mjs
 
   smoke-live:
     # Read-only checks against the real public production URL after all code and DB tests.
