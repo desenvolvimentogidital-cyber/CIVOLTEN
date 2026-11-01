@@ -15,8 +15,8 @@ function mock(role={rolsuper:false,rolbypassrls:false}){
   async query(q,args=[]){
    queries.push({q,args});
    if(q.includes('FROM app_sessions s'))return [userA];
-   if(q.includes('FROM pg_roles WHERE rolname=current_user'))return [role];
    if(q.includes('FROM pg_class c JOIN pg_namespace'))return policies;
+   if(q.includes('FROM pg_roles WHERE rolname=current_user'))return [role];
    if(q.includes('FROM app_users WHERE organization_id=$1'))return args[0]===orgA?[userA]:[];
    if(q.includes("UPDATE app_users SET role="))return [];
    if(q.includes('FROM auth_signup_attempts'))return [{attempts:0}];
