@@ -20,13 +20,15 @@ const uuid=value=>typeof value==='string'&&
  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 export function assessTenantRuntime({role,tablePolicies=[]}={}){
  const reasons=[];
- if(!role||role.rolsuper!==false||role.rolbypassrls!==false)
+ if(!role||role.rolsuper!==false||role.rolbypassrls!==false||role.rolcreaterole===true)
   reasons.push('A conexão PostgreSQL não pode ser superusuária ou BYPASSRLS');
  const byName=new Map(tablePolicies.map(x=>[x.table_name,x]));
  for(const name of protectedTables){
   const x=byName.get(name);
-  if(!x?.rls_enabled||!x?.rls_forced||!x?.has_policy)
-   reasons.push('RLS obrigatório ausente ou incompleto em '+name);
+  if(!x?.rls_enabled||!x?.rls_forced||!x?.has_policy||
+      (x.policy_count!==undefined&&Number(x.policy_count)!==1)||
+      x.owned_by_runtime===true)
+   reasons.push('RLS obrigatório ausente, permissivo ou incompleto em '+name);
  }
  return {ready:reasons.length===0,reasons};
 }
@@ -34,10 +36,15 @@ export async function probeTenantRuntime(database){
  if(typeof database?.query!=='function'||typeof database?.transaction!=='function')
   return {ready:false,reasons:['Driver precisa de query() e transaction() com contexto local']};
  const [roles,policies]=await Promise.all([
-  database.query('SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user'),
+  database.query('SELECT rolsuper,rolbypassrls,rolcreaterole FROM pg_roles WHERE rolname=current_user'),
   database.query(`SELECT c.relname AS table_name,c.relrowsecurity AS rls_enabled,
     c.relforcerowsecurity AS rls_forced,
-    EXISTS(SELECT 1 FROM pg_policies p WHERE p.schemaname='public' AND p.tablename=c.relname) AS has_policy
+    c.relowner=(SELECT oid FROM pg_roles WHERE rolname=current_user) AS owned_by_runtime,
+    (SELECT count(*)::int FROM pg_policies p WHERE p.schemaname='public' AND p.tablename=c.relname) AS policy_count,
+    EXISTS(SELECT 1 FROM pg_policies p WHERE p.schemaname='public' AND p.tablename=c.relname
+     AND p.policyname='tenant_only' AND p.cmd='ALL'
+     AND p.qual LIKE '%organization_id%' AND p.qual LIKE '%civolten.organization_id%'
+     AND p.with_check LIKE '%organization_id%' AND p.with_check LIKE '%civolten.organization_id%') AS has_policy
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname='public' AND c.relkind IN ('r','p')`)
  ]);
