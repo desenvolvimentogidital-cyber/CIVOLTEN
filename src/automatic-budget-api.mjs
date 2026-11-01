@@ -81,6 +81,16 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
    not_added_to_siurb:true,
    note:'Custo gerencial a partir dos salarios e jornadas cadastrados, sem somar ao custo direto SIURB para evitar duplicidade.'
   }:null,
+  company_pricing:workforce.company_pricing?{
+   target_margin_pct:number(workforce.company_pricing.target_margin_pct),
+   owner_prolabore_monthly:number(workforce.company_pricing.owner_prolabore_monthly),
+   overhead_configured:!!workforce.company_pricing.overhead_configured,
+   tax_rate_confirmed:false,
+   price_ready:false,
+   sale_price_reais:null,
+   bdi_independent:true,
+   note:'Meta de margem de lucro sobre a venda, editável em Custos internos. Sem tributos confirmados, custos próprios completos e conferência de duplicidades não existe preço comercial automático.'
+  }:null,
   schedule:{
    ready:scheduleReady,
    provisional:!scheduleReady,
