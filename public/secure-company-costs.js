@@ -25,7 +25,7 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    (w.monthly_salary==null?'<button class="btn" type="button" data-action="company-edit-worker-payroll" data-id="'+esc(w.id)+'">Informar salário e jornada</button>':'')+
    '</td></tr>').join('');
   show('Custos internos da CIVOLTEN','<div class="notice tiny"><strong>Uso interno:</strong> informe o custo completo da empresa por profissional, incluindo salário, encargos e benefícios. Não é necessário cadastrar profissionais para fazer o cronograma.</div>'+
-   '<div class="actions"><button class="btn primary" type="button" data-action="company-edit-overhead">Despesas fixas da empresa</button>'+
+   '<div class="actions"><button class="btn primary" type="button" data-action="company-edit-overhead">Despesas fixas e operacionais</button>'+
    '<button class="btn" type="button" data-action="company-add-worker">+ Cadastrar profissional</button>'+
    (state.user?.role==='administrador'?'<button class="btn" type="button" data-action="company-edit-pricing">Margem e pró-labore</button>'+
     '<button class="btn primary" type="button" data-action="company-simulate-sale">Simular preço com custos próprios</button>':'')+'</div>'+
@@ -79,10 +79,10 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
  }
  if(action==='company-edit-overhead'){
   const o=data.overhead||{};
-  show('Despesas fixas mensais','<form id="company-overhead-form">'+
-   input('Despesas fixas totais da empresa por mês (R$)','monthly_overhead',o.monthly_overhead??'','number','min="0" step="0.01"')+
+  show('Despesas fixas e operacionais mensais','<form id="company-overhead-form">'+
+   input('Total mensal de despesas fixas e operacionais, exceto folha e pró-labore (R$)','monthly_overhead',o.monthly_overhead??'','number','min="0" step="0.01"')+
    input('Dias úteis por mês para rateio','workdays_per_month',o.workdays_per_month??22,'number','min="15" max="31" step="1"')+
-   '<p class="tiny muted">O rateio considera a duração estimada da obra. Não significa que esse valor será automaticamente adicionado aos serviços SIURB.</p>'+buttons+'</form>');return;
+   '<p class="tiny muted">Some as despesas gerais da empresa, como aluguel, água, energia, internet, contabilidade, veículos, combustível e manutenção. Não inclua salários, encargos de funcionários nem pró-labore já cadastrados em outros campos. O rateio usa a duração da obra e não é somado automaticamente ao preço completo SIURB.</p>'+buttons+'</form>');return;
  }
  if(action==='company-edit-rate'){
   const r=data.rates.find(x=>x.role_code===id),suggested=roles.find(x=>x.code===id);
