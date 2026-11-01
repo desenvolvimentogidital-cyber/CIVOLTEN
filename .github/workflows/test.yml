@@ -66,6 +66,8 @@ jobs:
         run: node --test tests/costing-integration.test.mjs
       - name: Gerar cronograma-base persistido no PostgreSQL real de testes
         run: node --test tests/reviewed-autoplan-db-integration.test.mjs
+      - name: Confirmar profissões SIURB e equipe real sem expor salários
+        run: node --test tests/budget-required-professions-db-integration.test.mjs
       - name: Backup e restauração com dados fictícios já gravados
         shell: bash
         run: |
