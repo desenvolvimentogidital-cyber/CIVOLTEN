@@ -48,7 +48,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
  const body=await readBody(req);
  if(parts[1]==='verify-email'){
   if(!tokenValid(body.token))return done(400,{error:'Código de verificação inválido'});
-  const eligible=await db.query("SELECT u.organization_id FROM account_action_tokens t JOIN app_users u ON u.id=t.user_id WHERE t.token_hash=$1 AND t.purpose='verify' AND t.consumed_at IS NULL AND t.expires_at>now() LIMIT 1",[sha(body.token)]);
+  const eligible=await db.query("SELECT organization_id FROM civolten_auth_token_org($1,$2)",[sha(body.token),'verify']);
   if(!eligible.length)return done(400,{error:'Código expirado, inválido ou já utilizado'});
   const [,rows]=await db.transaction([
    db.query("SELECT set_config('civolten.organization_id',$1,true)",[eligible[0].organization_id]),
@@ -71,7 +71,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
  if(parts[1]==='reset-password'){
   if(!tokenValid(body.token))return done(400,{error:'Código de redefinição inválido'});
   const passwordHash=hashPassword(body.new_password);
-  const eligible=await db.query("SELECT u.organization_id FROM account_action_tokens t JOIN app_users u ON u.id=t.user_id WHERE t.token_hash=$1 AND t.purpose='reset' AND t.consumed_at IS NULL AND t.expires_at>now() LIMIT 1",[sha(body.token)]);
+  const eligible=await db.query("SELECT organization_id FROM civolten_auth_token_org($1,$2)",[sha(body.token),'reset']);
   if(!eligible.length)return done(400,{error:'Código expirado, inválido ou já utilizado'});
   const [,rows]=await db.transaction([
    db.query("SELECT set_config('civolten.organization_id',$1,true)",[eligible[0].organization_id]),
@@ -100,7 +100,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
  if(parts[1]==='signup'){
   if(!safeOrganization(body.organization_name))return done(400,{error:'Informe nome da empresa (2 a 160 caracteres)'});
   const passwordHash=hashPassword(body.password);
-  const existing=await db.query('SELECT id FROM app_users WHERE login=$1 LIMIT 1',[login]);
+  const existing=await db.query('SELECT id FROM civolten_auth_user($1,$2)',[login,'exists']);
   if(existing.length)return done(202,generic);
   const org=randomUUID(),id=randomUUID(),token=randomBytes(32).toString('hex');
   await db.transaction([
@@ -113,8 +113,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
   await send(opts)({to:login,kind:'verify',token});
   return done(202,{...generic,verification_required:true});
  }
- const users=await db.query("SELECT id,login FROM app_users WHERE login=$1 AND email_verified_at IS NULL AND is_active=false LIMIT 1",
-  [login]);
+ const users=await db.query("SELECT id FROM civolten_auth_user($1,$2)",[login,'verify']);
  if(parts[1]==='resend-verification'){
   if(users.length){
    const token=await newToken(db,users[0].id,'verify',30);
@@ -123,7 +122,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
   return done(202,generic);
  }
  if(parts[1]==='request-reset'){
-  const active=await db.query("SELECT id FROM app_users WHERE login=$1 AND email_verified_at IS NOT NULL AND is_active=true LIMIT 1",[login]);
+  const active=await db.query("SELECT id FROM civolten_auth_user($1,$2)",[login,'reset']);
   if(active.length){
    const token=await newToken(db,active[0].id,'reset',20);
    await send(opts)({to:login,kind:'reset',token});
