@@ -30,10 +30,10 @@ async function rateLimit(db,key,req,login,max=3){
  await db.query("INSERT INTO auth_signup_attempts(fingerprint) VALUES($1)",[fingerprint]);
  return true;
 }
-async function newToken(db,userId,purpose,minutes){
+async function newToken(db,userId,purpose,minutes,organizationId){
  const token=randomBytes(32).toString('hex');
- await db.query("INSERT INTO account_action_tokens(token_hash,user_id,purpose,expires_at) VALUES($1,$2,$3,now()+($4::integer*interval '1 minute'))",
-  [sha(token),userId,purpose,minutes]);
+ await db.query("INSERT INTO account_action_tokens(token_hash,user_id,purpose,expires_at,organization_id) VALUES($1,$2,$3,now()+($4::integer*interval '1 minute'),$5)",
+  [sha(token),userId,purpose,minutes,organizationId]);
  return token;
 }
 export async function handleAccountAuth({req,res,db,parts,method,sendResponse,readBody,opts,multiTenant,hashPassword}){
@@ -107,7 +107,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
    db.query("SELECT set_config('civolten.organization_id',$1,true)",[org]),
    db.query('INSERT INTO organizations(id,name) VALUES($1,$2)',[org,body.organization_name.trim()]),
    db.query("INSERT INTO app_users(id,organization_id,login,password_hash,role,must_change_password,is_active) VALUES($1,$2,$3,$4,'administrador',false,false)",[id,org,login,passwordHash]),
-   db.query("INSERT INTO account_action_tokens(token_hash,user_id,purpose,expires_at) VALUES($1,$2,'verify',now()+interval '30 minutes')",[sha(token),id]),
+   db.query("INSERT INTO account_action_tokens(token_hash,user_id,purpose,expires_at,organization_id) VALUES($1,$2,'verify',now()+interval '30 minutes',$3)",[sha(token),id,org]),
    db.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action,metadata) VALUES($1,'organizations',$2,'signup_pending',jsonb_build_object('email_unverified',true))",[id,org])
   ]);
   await send(opts)({to:login,kind:'verify',token});
@@ -116,7 +116,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
  const users=await db.query("SELECT id FROM civolten_auth_user($1,$2)",[login,'verify']);
  if(parts[1]==='resend-verification'){
   if(users.length){
-   const token=await newToken(tenantScopedQueries(db,users[0].organization_id),users[0].id,'verify',30);
+   const token=await newToken(tenantScopedQueries(db,users[0].organization_id),users[0].id,'verify',30,users[0].organization_id);
    await send(opts)({to:login,kind:'verify',token});
   }
   return done(202,generic);
@@ -124,7 +124,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
  if(parts[1]==='request-reset'){
   const active=await db.query("SELECT id FROM civolten_auth_user($1,$2)",[login,'reset']);
   if(active.length){
-   const token=await newToken(tenantScopedQueries(db,active[0].organization_id),active[0].id,'reset',20);
+   const token=await newToken(tenantScopedQueries(db,active[0].organization_id),active[0].id,'reset',20,active[0].organization_id);
    await send(opts)({to:login,kind:'reset',token});
   }
   return done(202,generic);
