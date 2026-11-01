@@ -94,6 +94,9 @@ export function planResourceSchedule(services=[],options={}){
   if(!Array.isArray(x.roles)||!x.roles.length){
    missingRoles.push(x.title+': composição por profissão ausente');continue;
   }
+  const totalRoles=x.roles.reduce((n,r)=>n+Number(r.workers||0),0);
+  if(totalRoles!==x.workers)
+   missingRoles.push(x.title+': número de profissionais por função difere do total planejado');
   for(const role of x.roles){
    const code=String(role.code||'').trim(),n=Number(role.workers);
    if(!code||!Number.isSafeInteger(n)||n<1||n>100||n>Number(registered.get(code)||0))
