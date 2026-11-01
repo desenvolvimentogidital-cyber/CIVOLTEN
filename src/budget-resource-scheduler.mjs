@@ -4,8 +4,10 @@
  */
 import {constructionStage} from './workforce-sequence.mjs';
 export function planResourceSchedule(services=[],options={}){
- const mode=options.execution_mode??'single_team';
- if(!['single_team','separate_teams'].includes(mode))
+ // Maintain legacy behavior for callers without a selected UI mode;
+ // the workforce UI always sends one of the two explicit modes.
+ const mode=options.execution_mode??'legacy_capacity';
+ if(!['legacy_capacity','single_team','separate_teams'].includes(mode))
   throw Object.assign(new Error('Modo de execução inválido'),{status:400});
  const staff=options.available_workers==null?null:Number(options.available_workers);
  if(staff!==null&&(!Number.isSafeInteger(staff)||staff<1||staff>100))
