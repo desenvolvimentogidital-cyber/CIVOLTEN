@@ -106,7 +106,7 @@ export function planResourceSchedule(services=[],options={}){
   let running=active.reduce((sum,x)=>sum+x.workers,0),busyFronts=new Set(active.map(x=>x.front));
   for(const x of visited){
    if(started.has(x.id)||busyFronts.has(x.front)||running+x.workers>capacity||
-       (mode==='single_team'&&active.length))continue;
+       (mode==='single_team'&&running>0))continue;
    const prev=predecessors.get(x.id);
    if(!prev.every(d=>started.has(d.predecessor_id)&&started.get(d.predecessor_id).end+d.lag<=clock))continue;
    started.set(x.id,{start:clock,end:clock+x.duration});running+=x.workers;busyFronts.add(x.front);
