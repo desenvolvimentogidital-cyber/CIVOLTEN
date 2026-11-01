@@ -7,7 +7,7 @@
  * A bare SET and a following independent query are NOT safe with pooling.
  */
 export const protectedTables=Object.freeze([
- 'clients','projects','budgets','budget_items','budget_item_cost_reviews',
+ 'app_users','app_sessions','clients','projects','budgets','budget_items','budget_item_cost_reviews',
  'budget_costing_profiles','budget_extra_direct_costs',
  'budget_service_planning','budget_service_dependencies','company_workers',
  'company_labor_rates','company_overhead_config','company_pricing_config',
