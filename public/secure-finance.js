@@ -113,6 +113,10 @@ export function financeDialog(action,{state,dialog,esc}){
     '<option value="somente_mao_de_obra">Somente mão de obra (sem fornecimento de materiais)</option>'+ 
     '</select></div>'+ 
     '<p class="muted tiny">A escolha vale para esta versão da proposta. Somente mão de obra exige produtividade revisada e custos-hora cadastrados. O sistema não usa o preço integral SIURB para retirar materiais por porcentagem fictícia.</p>'+ 
+    '<h4>Preço indicativo — somente mão de obra (opcional)</h4>'+
+    '<p class="muted tiny">Para calcular a estimativa de preço, informe os dois campos. Custos e despesas são recuperados do cadastro real; margem vem da configuração da empresa. Os valores não equivalem à aprovação fiscal ou comercial.</p>'+
+    '<div class="field"><label>Tributos sobre a receita de serviços (%) — confirmar com contador</label><input name="service_tax_pct" type="number" min="0" max="60" step="0.01" placeholder="Ex.: 6"></div>'+
+    '<div class="field"><label>Pró-labore rateado para esta obra (R$)</label><input name="owner_allocation_reais" type="number" min="0" max="100000000" step="0.01" placeholder="Informe custo real"></div>'+
     '<div class="field"><label>Escopo completo da proposta</label><textarea name="scope" required minlength="15" maxlength="5000"></textarea></div>'+
     '<div class="field"><label>Exclusões e responsabilidades</label><textarea name="exclusions" required minlength="10" maxlength="3000"></textarea></div>'+
     '<div class="field"><label>Condições de pagamento</label><textarea name="payment_terms" required minlength="10" maxlength="1000"></textarea></div>'+
@@ -158,6 +162,8 @@ export function financeDialog(action,{state,dialog,esc}){
     '<p><strong>Preço calculado não aprovado:</strong> '+(s.costs?.total_reais==null?'A definir após revisões':m(s.costs.total_reais))+'</p>'+ 
     (s.proposal_mode==='somente_mao_de_obra'?'<p><strong>Custo de mão de obra estimado, não preço de venda:</strong> '+
       (s.scope_pricing?.labor_cost_reference_reais==null?'Pendente de produtividade ou custo-hora revisados':m(s.scope_pricing.labor_cost_reference_reais))+'</p>':'')+
+    (s.scope_pricing?.sale_scenario?'<p><strong>Preço de venda indicativo (não aprovado):</strong> '+
+      (s.scope_pricing.sale_scenario.indicative_sale_reais==null?'Não calculado: custos ou impostos incompletos':m(s.scope_pricing.sale_scenario.indicative_sale_reais))+'</p>':'')+
     '<p><strong>Hash:</strong> <code>'+esc(d.snapshot_sha256)+'</code></p>'+
     '<h3>Serviços</h3><ul>'+lines+'</ul>'+
     '<div class="actions"><a class="btn" href="/api/v1/budgets/'+esc(state.detail.id)+'/proposal-drafts/'+esc(d.id)+'/pdf">Baixar PDF RASCUNHO</a><button type="button" class="btn" data-action="close-dialog">Fechar</button></div>');
