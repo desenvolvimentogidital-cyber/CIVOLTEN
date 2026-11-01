@@ -154,6 +154,29 @@ CREATE TABLE IF NOT EXISTS account_action_tokens(
 );
 CREATE INDEX IF NOT EXISTS idx_action_tokens_user_purpose
  ON account_action_tokens(user_id,purpose,created_at DESC);
+-- All organizations are private: cannot read names of other customers.
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_only ON organizations FOR ALL
+ USING (id=nullif(current_setting('civolten.organization_id',true),'')::uuid)
+ WITH CHECK (id=nullif(current_setting('civolten.organization_id',true),'')::uuid);
+
+-- Verification/reset metadata must not be readable across customer accounts.
+ALTER TABLE account_action_tokens ADD COLUMN IF NOT EXISTS organization_id UUID;
+UPDATE account_action_tokens t SET organization_id=u.organization_id
+ FROM app_users u WHERE t.user_id=u.id AND t.organization_id IS NULL;
+ALTER TABLE account_action_tokens ALTER COLUMN organization_id SET NOT NULL;
+ALTER TABLE account_action_tokens ALTER COLUMN organization_id SET DEFAULT
+ nullif(current_setting('civolten.organization_id',true),'')::uuid;
+CREATE INDEX IF NOT EXISTS idx_action_tokens_org ON account_action_tokens(organization_id);
+ALTER TABLE account_action_tokens ADD CONSTRAINT fk_action_tokens_org_user
+ FOREIGN KEY(user_id,organization_id) REFERENCES app_users(id,organization_id);
+ALTER TABLE account_action_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE account_action_tokens FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_only ON account_action_tokens FOR ALL
+ USING (organization_id=nullif(current_setting('civolten.organization_id',true),'')::uuid)
+ WITH CHECK (organization_id=nullif(current_setting('civolten.organization_id',true),'')::uuid);
+
 -- Account identities and session tokens are private tenant resources too.
 ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_users FORCE ROW LEVEL SECURITY;
