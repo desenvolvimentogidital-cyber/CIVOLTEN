@@ -540,7 +540,8 @@ document.addEventListener('click',async e=>{
     ]);
     state.schedulePreview=null;state.scheduleRemaining=null;render();toast('Alteração auditada.');return;
   }
-  if(['schedule-add-crew','schedule-add-task','schedule-add-dependency','schedule-review-task','schedule-add-progress','schedule-review-progress','schedule-edit-crew','schedule-edit-task'].includes(act)){
+  if(['schedule-add-crew','schedule-add-task','schedule-add-dependency','schedule-review-task','schedule-add-progress','schedule-review-progress','schedule-edit-crew','schedule-edit-task','schedule-autogenerate'].includes(act)){
+    if(act==='schedule-autogenerate')state.schedulePlan=await api('budgets/'+state.detail.id+'/schedule-plan');
     state.scheduleTaskId=btn.dataset.id||null;
     scheduleDialog(act,{state,dialog,field,esc});return;
   }
