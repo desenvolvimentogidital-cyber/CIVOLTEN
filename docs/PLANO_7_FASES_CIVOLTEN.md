@@ -40,8 +40,10 @@ Este plano não transforma demonstrações, estimativas ou testes sintéticos em
 
 ## Fase 5 — Cronograma e execução (bloqueante)
 - [x] Motor de sugestões, frentes, dependências e tarefas, histórico e medição técnica do sistema.
-- [ ] Comprovar criação automática de cronograma executivo persistente a partir do orçamento com responsabilidade técnica, datas, feriados e capacidade reais.
+- [x] Criar automaticamente no PostgreSQL atividades de cronograma-base vinculadas a serviços do orçamento, com profissões reais do cadastro ativo e produtividade SIURB revisada, bloqueio por lock_version e trilha de auditoria. Durações permanecem pendentes de revisão.
+- [ ] Comprovar cronograma **executivo aprovado**, com datas, feriados, disponibilidade real por obra, responsabilidades técnicas e vínculo de funcionários; o cronograma-base não faz reserva de pessoas.
 - [ ] Conciliar medições, horas trabalhadas, custos/recebimentos realizados e replanejamento com evidências.
+- [ ] Homologar geração real após cadastro de funcionários e revisão da produtividade (Neon de produção permanece com 0 funcionários até que responsável cadastre).
 **Aceite:** fluxo orçamento → atividades persistentes → execução/medição sem duplicação e sem alocar trabalhador inexistente.
 
 ## Fase 6 — Proposta, contrato e aceite (bloqueante)
