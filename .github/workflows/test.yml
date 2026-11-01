@@ -126,6 +126,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -d civolten_test -f db/staged/0020_multi_organization_qa.sql
       - name: Provar isolamento RLS A versus B com usuario PostgreSQL sem BYPASSRLS
         run: node --test tests/multitenant-rls-db-integration.test.mjs
+      - name: Exercitar cadastro, verificação, privacidade A/B e reset em PostgreSQL descartável
+        run: node --test tests/multitenant-account-db-integration.test.mjs
 
   smoke-live:
     # Read-only checks against the real public production URL after all code and DB tests.
