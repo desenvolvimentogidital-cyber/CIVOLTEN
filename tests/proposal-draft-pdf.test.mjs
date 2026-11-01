@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PDFDocument} from 'pdf-lib';
@@ -38,3 +39,4 @@ test('PDF de rascunho com serviços longos pagina sem truncar',async()=>{
  const pdf=await PDFDocument.load(await renderProposalDraftPdf(d,{version:3,sha256:'f'.repeat(64)}));
  assert.ok(pdf.getPageCount()>1);
 });
+\ntest('proposta de rascunho incorpora logos oficiais, apresenta cores metálicas e não expõe folha nem margem',async()=>{\n const source=readFileSync(new URL('../src/proposal-draft-pdf.mjs',import.meta.url),'utf8');\n assert.match(source,/assets\\/logo\\.png/);\n assert.match(source,/assets\\/icone\\.png/);\n assert.match(source,/Visão voltada ao cliente/);\n assert.doesNotMatch(source,/costRow\\('Pro-labore/);\n assert.doesNotMatch(source,/costRow\\('Meta de margem/);\n const bytes=await renderProposalDraftPdf(sample(),{version:4,sha256:'f'.repeat(64)});\n assert.ok(bytes.length>12000,'Logomarca e símbolo precisam estar incorporados ao PDF');\n const pdf=await PDFDocument.load(bytes);\n assert.equal(pdf.getPage(0).getWidth(),595.28);\n});\n
