@@ -48,6 +48,7 @@ export function tenantScopedQueries(database,organizationId){
  if(typeof database?.transaction!=='function'||typeof database?.query!=='function')
   throw Object.assign(new Error('Conexão sem transação de isolamento'),{status:503});
  return Object.freeze({
+  organizationId,
   async query(statement,params=[]){
    if(typeof statement!=='string'||!statement.trim()||!Array.isArray(params))
     throw Object.assign(new Error('Consulta inválida'),{status:400});
