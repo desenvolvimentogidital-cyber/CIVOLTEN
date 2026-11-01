@@ -10,6 +10,7 @@ import {handleAutomaticBriefing} from '../src/automatic-budget-api.mjs';
 import {handleBudgetPlanning} from '../src/budget-planning-api.mjs';
 import {handleCompanyCosts} from '../src/company-costs-api.mjs';
 import {handleScheduleManagement} from '../src/schedule-management-api.mjs';
+import {handleReviewedAutoplan} from '../src/reviewed-autoplan-api.mjs';
 import {handleScheduleProgress} from '../src/schedule-progress-api.mjs';
 import {handleRemainingSchedule} from '../src/schedule-remaining-api.mjs';
 import {handleStage4} from '../src/stage4-finance-api.mjs';
@@ -136,6 +137,8 @@ export function createApi(sql,opts={}){
    if(manpowerHandled)return;
    const stage3Handled=await handleStage3({req,res,sql,user,parts,method,send:response});
    if(stage3Handled)return;
+   const generatedPlanHandled=await handleReviewedAutoplan({req,res,sql,user,parts,method,send:response,readBody});
+   if(generatedPlanHandled)return;
    const scheduleManagementHandled=await handleScheduleManagement({req,res,sql,user,parts,method,send:response,readBody});
    if(scheduleManagementHandled)return;
    const progressHandled=await handleScheduleProgress({req,res,sql,user,parts,method,send:response,readBody});
