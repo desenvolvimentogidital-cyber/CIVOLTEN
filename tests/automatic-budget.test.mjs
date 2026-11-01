@@ -150,3 +150,19 @@ test('interface recarrega em adição, edição, exclusão e entrada no orçamen
  assert.match(html,/Não calculado|500,00/);
  assert.match(html,/Prazo ainda não validado/);
 });
+
+
+test('valor matematicamente inválido nunca vira total parcial nem PDF aparentemente completo',async()=>{
+ const invalid={...costItem,quantity:'-1'};
+ const workforce={...workforceItem,quantity:'-1'};
+ const result=await request({sql:makeSql([invalid],[workforce])});
+ assert.equal(result.status,200);
+ assert.equal(result.data.cost.calculation_complete,false);
+ assert.equal(result.data.cost.direct_reais,null);
+ assert.equal(result.data.cost.total_preliminary_reais,null);
+ assert.ok(result.data.issues.some(x=>/totais parciais foram ocultados/.test(x)));
+ const pdf=await request({sql:makeSql([invalid],[workforce]),suffix:'/pdf'});
+ assert.equal(pdf.status,409);
+ assert.match(pdf.data.error,/Corrija os itens/);
+ assert.equal(pdf.pdfBuffer,null);
+});
