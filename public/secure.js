@@ -214,6 +214,9 @@ function budgetDetail(){
  automaticBudgetPanel(state.autoBriefing,esc,{budgetId:b.id});
 }
 function render(){
+ // A verification or reset link must work even if another account is logged
+ // into this browser; the token is one-time and no session is switched.
+ if((state.mode==='verify'||state.mode==='reset')&&state.accountToken){authView();return}
  if(!state.user){authView();return}
  if(state.user.must_change_password){forcedPasswordView();return}
  shell();const body=document.querySelector('#private-content');
