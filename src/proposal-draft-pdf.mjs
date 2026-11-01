@@ -71,6 +71,13 @@ export async function renderProposalDraftPdf(snapshot,{version,sha256}={}){
   print('Custo direto de mao de obra (NAO preco de venda): '+
    (snapshot.scope_pricing?.labor_cost_reference_reais==null?'A REVISAR':money(snapshot.scope_pricing.labor_cost_reference_reais)));
   print('Margem, tributos e BDI desta modalidade: NAO APROVADOS.');
+  const scenario=snapshot.scope_pricing?.sale_scenario;
+  if(scenario){
+   print('Custo de pessoal pago e despesas rateadas: '+(scenario.paid_labor_and_overhead_reais==null?'PENDENTE':money(scenario.paid_labor_and_overhead_reais)));
+   print('Pro-labore alocado a esta obra: '+(scenario.owner_allocation_reais==null?'PENDENTE':money(scenario.owner_allocation_reais)));
+   print('Preco de venda INDICATIVO (NAO APROVADO): '+(scenario.indicative_sale_reais==null?'PENDENTE':money(scenario.indicative_sale_reais)),11,true);
+   print('Este valor e apenas uma simulacao com os parametros de tributos e margem informados; sem emissao comercial.',9);
+  }
  }else print('Custo direto SIURB: '+(snapshot.costs?.direct_reais==null?'A REVISAR':money(snapshot.costs.direct_reais)));
  print('BDI estimado: '+(snapshot.costs?.bdi_reais==null?'PENDENTE DE DEFINICAO':money(snapshot.costs.bdi_reais)));
  print('Contingencia: '+(snapshot.costs?.contingency_reais==null?'A DEFINIR':money(snapshot.costs.contingency_reais)));

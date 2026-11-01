@@ -3,13 +3,14 @@
  * official service rates can contain materials, equipment and statutory charges.
  * Staff calculations use registered internal employer cost and reviewed H-H only.
  */
+import {marginOnSale} from './company-pricing-engine.mjs';
 export const proposalModes=Object.freeze({
  full:'mao_de_obra_e_materiais',
  labor:'somente_mao_de_obra'
 });
 const cash=n=>Math.round((n+Number.EPSILON)*100)/100;
 const finite=n=>n!==null&&n!==undefined&&n!==''&&Number.isFinite(Number(n))&&Number(n)>=0;
-export function prepareProposalScope(mode,{budgetItems=[],costing={},workforce=null}={}){
+export function prepareProposalScope(mode,{budgetItems=[],costing={},workforce=null,saleInputs=null}={}){
  if(!Object.values(proposalModes).includes(mode))
   throw Object.assign(new Error('Escolha mão de obra + materiais ou somente mão de obra'),{status:400});
  if(mode===proposalModes.full){
@@ -61,10 +62,42 @@ export function prepareProposalScope(mode,{budgetItems=[],costing={},workforce=n
  if(!workforce?.costs)issues.push('Custo de pessoal disponível somente para perfis internos autorizados.');
  const complete=items.length>0&&issues.length===0;
  const cost=complete?cash(items.reduce((n,i)=>n+i.estimated_labor_cost_reais,0)):null;
+ // A base financeira do serviço é o pessoal remunerado durante o cronograma
+ // aprovado, mais despesas gerais rateadas. Diferente das h-h técnicas e sem
+ // materiais. Nunca somar ambos os modelos de custo entre si.
+ let saleScenario=null;
+ if(saleInputs!==null){
+  const paid=Number(workforce?.costs?.total_sequential);
+  const paidAvailable=workforce?.costs?.available===true&&
+   finite(workforce?.costs?.total_sequential)&&paid>0;
+  const margin=saleInputs.target_margin_pct,
+   tax=saleInputs.service_tax_pct,owner=saleInputs.owner_allocation_reais;
+  const missing=[];
+  if(!complete)missing.push('Produtividade SIURB ou custo-hora técnico pendente');
+  if(!paidAvailable)missing.push('Custos pagos da equipe, despesas e cronograma revisados pendentes');
+  if(!finite(margin))missing.push('Margem da empresa não configurada');
+  if(!finite(tax))missing.push('Tributação efetiva de serviços não informada');
+  if(!finite(owner))missing.push('Pró-labore alocado à obra não informado');
+  if(missing.length)saleScenario={ready:false,missing,indicative_sale_reais:null,
+   includes_materials:false,tax_accountant_approved:false,commercial_release:false};
+  else{
+   const ownerCost=Number(owner),paidCost=cash(paid),base=cash(paidCost+ownerCost);
+   const quoted=marginOnSale({cost_base:base,margin_pct:margin,
+     taxes_on_revenue_pct:tax});
+   saleScenario={ready:quoted.ready,paid_labor_and_overhead_reais:paidCost,
+    owner_allocation_reais:cash(ownerCost),base_company_cost_reais:base,
+    margin_pct:quoted.margin_pct,service_tax_pct:quoted.taxes_on_revenue_pct,
+    indicative_sale_reais:quoted.sale_price,missing:[],
+    includes_materials:false,tax_accountant_approved:false,
+    commercial_release:false,
+    note:'Preço apenas indicativo com custos próprios e parâmetros explicitamente informados. Revisão tributária, responsabilidade técnica e autorização comercial permanecem obrigatórias.'};
+  }
+ }
  return {
   mode,description:'Somente mão de obra — sem fornecimento de materiais',
   price_source:'horas_homem_revisadas_x_custo_hora_proprio',
   items,labor_cost_reference_reais:cost,price_final_reais:null,
+  sale_scenario:saleScenario,
   complete,issues,excludes_materials:true,commercial_release:false,
   note:'O valor calculado é custo direto indicativo da mão de obra própria, NÃO preço final. Tributos, BDI, mobilização, encargos não cadastrados, indiretos e margem requerem aprovação específica. Não foi usado o preço integral SIURB.'
  };
