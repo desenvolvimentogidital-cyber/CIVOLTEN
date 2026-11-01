@@ -119,6 +119,13 @@ jobs:
             echo "PASS encrypted restore $table count=$actual"
           done
           echo "PASS: encrypted archive can be decrypted and restored with its private key; no key persisted"
+      - name: Testar migracao multiempresa apenas no banco descartavel
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -d civolten_test -f db/staged/0020_multi_organization_qa.sql
+      - name: Provar isolamento RLS A versus B com usuario PostgreSQL sem BYPASSRLS
+        run: node --test tests/multitenant-rls-db-integration.test.mjs
 
   smoke-live:
     # Read-only checks against the real public production URL after all code and DB tests.
