@@ -48,7 +48,11 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
  const body=await readBody(req);
  if(parts[1]==='verify-email'){
   if(!tokenValid(body.token))return done(400,{error:'Código de verificação inválido'});
-  const rows=await db.query(`WITH claimed AS (
+  const eligible=await db.query("SELECT u.organization_id FROM account_action_tokens t JOIN app_users u ON u.id=t.user_id WHERE t.token_hash=$1 AND t.purpose='verify' AND t.consumed_at IS NULL AND t.expires_at>now() LIMIT 1",[sha(body.token)]);
+  if(!eligible.length)return done(400,{error:'Código expirado, inválido ou já utilizado'});
+  const [,rows]=await db.transaction([
+   db.query("SELECT set_config('civolten.organization_id',$1,true)",[eligible[0].organization_id]),
+   db.query(`WITH claimed AS (
    UPDATE account_action_tokens SET consumed_at=now()
    WHERE token_hash=$1 AND purpose='verify' AND consumed_at IS NULL AND expires_at>now()
    RETURNING user_id
@@ -59,14 +63,19 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
   ), audited AS (
    INSERT INTO audit_events(actor_id,entity_type,entity_id,action)
    SELECT id,'app_users',id,'email_verified' FROM activated RETURNING id
-  ) SELECT id FROM activated`,[sha(body.token)]);
+  ) SELECT id FROM activated`,[sha(body.token)])
+  ]);
   return rows.length?done(200,{ok:true,verified:true,can_login:true}):
    done(400,{error:'Código expirado, inválido ou já utilizado'});
  }
  if(parts[1]==='reset-password'){
   if(!tokenValid(body.token))return done(400,{error:'Código de redefinição inválido'});
   const passwordHash=hashPassword(body.new_password);
-  const rows=await db.query(`WITH claimed AS (
+  const eligible=await db.query("SELECT u.organization_id FROM account_action_tokens t JOIN app_users u ON u.id=t.user_id WHERE t.token_hash=$1 AND t.purpose='reset' AND t.consumed_at IS NULL AND t.expires_at>now() LIMIT 1",[sha(body.token)]);
+  if(!eligible.length)return done(400,{error:'Código expirado, inválido ou já utilizado'});
+  const [,rows]=await db.transaction([
+   db.query("SELECT set_config('civolten.organization_id',$1,true)",[eligible[0].organization_id]),
+   db.query(`WITH claimed AS (
    UPDATE account_action_tokens SET consumed_at=now()
    WHERE token_hash=$1 AND purpose='reset' AND consumed_at IS NULL AND expires_at>now()
    RETURNING user_id
@@ -80,7 +89,8 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
   ), audited AS (
    INSERT INTO audit_events(actor_id,entity_type,entity_id,action)
    SELECT id,'app_users',id,'password_reset' FROM updated RETURNING id
-  ) SELECT id FROM updated`,[sha(body.token),passwordHash]);
+  ) SELECT id FROM updated`,[sha(body.token),passwordHash])
+  ]);
   return rows.length?done(200,{ok:true,password_changed:true,all_sessions_revoked:true}):
    done(400,{error:'Código expirado, inválido ou já utilizado'});
  }
