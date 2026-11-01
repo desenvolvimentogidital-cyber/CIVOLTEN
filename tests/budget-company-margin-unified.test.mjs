@@ -70,3 +70,13 @@ test('margem sobre faturamento não é acréscimo simples de 30% nem inclui impo
  const source=reconcileCostSources({source_mode:'reference',reference_direct_cost:10000,internal_labor_cost:2000});
  assert.equal(source.combined_cost,null,'não incluir mão de obra de novo na SIURB');
 });
+
+
+test('rascunho de proposta reutiliza premissas do orçamento sem inventar dados contratuais',()=>{
+ const ui=readFileSync(new URL('../public/secure-finance.js',import.meta.url),'utf8');
+ assert.match(ui,/esc\(state\.detail\?\.scope_assumptions\|\|''\)/);
+ assert.match(ui,/esc\(state\.detail\?\.exclusions\|\|''\)/);
+ assert.match(ui,/esc\(state\.detail\?\.payment_terms\|\|''\)/);
+ assert.doesNotMatch(ui,/placeholder="Ex\.: 6"/);
+ assert.match(ui,/nunca gera aprovação contratual automaticamente/);
+});
