@@ -98,7 +98,7 @@ export function createApi(database,opts={}){
      if(!security.ready)return response(res,503,{error:'Credencial PostgreSQL ou RLS não permite cadastro seguro',code:'TENANT_DB_NOT_ISOLATED'});
      const b=await readBody(req),name=requireField(b.organization_name,'Nome da empresa',160),
        login=requireField(b.login,'E-mail',120).toLowerCase();
-     if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(login))return response(res,400,{error:'Informe e-mail válido'});
+     if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(login))return response(res,400,{error:'Informe e-mail válido'});
      const passwordHash=hashPassword(b.password);
      const fingerprint=hexhash(login+'|'+String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'').split(',')[0].trim());
      const previous=await database.query("SELECT count(*)::int AS attempts FROM auth_signup_attempts WHERE fingerprint=$1 AND attempted_at>now()-interval '1 hour'",[fingerprint]);
