@@ -105,11 +105,15 @@ export function createApi(database,opts={}){
    if(resource==='auth'&&id==='login'&&method==='POST'){
      const b=await readBody(req),login=String(b.login||'').trim().toLowerCase();
      const fingerprint=hexhash(login+'|'+String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'').split(',')[0].trim());
-     const recent=await sql.query("SELECT count(*)::int AS failures FROM audit_events WHERE entity_type='auth' AND action='login_failed' AND created_at>now()-interval '15 minutes' AND metadata->>'fingerprint'=$1",[fingerprint]);
+     const recent=await sql.query(multiTenant?
+         "SELECT count(*)::int AS failures FROM auth_login_attempts WHERE attempted_at>now()-interval '15 minutes' AND fingerprint=$1":
+         "SELECT count(*)::int AS failures FROM audit_events WHERE entity_type='auth' AND action='login_failed' AND created_at>now()-interval '15 minutes' AND metadata->>'fingerprint'=$1",[fingerprint]);
      if(Number(recent[0].failures)>=6)return response(res,429,{error:'Muitas tentativas. Tente mais tarde.'},{'Retry-After':'900'});
      const data=await sql.query('SELECT id,login,password_hash,role,must_change_password FROM app_users WHERE login=$1 AND is_active=true LIMIT 1',[login]);
      if(!data[0]||!matches(b.password,data[0].password_hash)){
-       await sql.query("INSERT INTO audit_events(entity_type,action,metadata) VALUES('auth','login_failed',jsonb_build_object('fingerprint',$1::text))",[fingerprint]);
+       await sql.query(multiTenant?
+          "INSERT INTO auth_login_attempts(fingerprint) VALUES($1)":
+          "INSERT INTO audit_events(entity_type,action,metadata) VALUES('auth','login_failed',jsonb_build_object('fingerprint',$1::text))",[fingerprint]);
        return response(res,401,{error:'Credenciais inválidas'});
      }
      const token=randomBytes(32).toString('hex'),expires=new Date(Date.now()+8*3600000).toISOString();
@@ -180,7 +184,10 @@ export function createApi(database,opts={}){
    if(resource==='users'){
      if(user.role!=='administrador')return noAccess(res);
      if(method==='GET'&&!id){
-       return response(res,200,await sql.query("SELECT id,login,role,is_active,must_change_password,created_at,last_login_at FROM app_users ORDER BY created_at ASC LIMIT 100",[]));
+       return response(res,200,await sql.query(multiTenant?
+         "SELECT id,login,role,is_active,must_change_password,created_at,last_login_at FROM app_users WHERE organization_id=$1 ORDER BY created_at ASC LIMIT 100":
+         "SELECT id,login,role,is_active,must_change_password,created_at,last_login_at FROM app_users ORDER BY created_at ASC LIMIT 100",
+         multiTenant?[user.organization_id]:[]));
      }
      if(method==='POST'&&!id){
        const b=await readBody(req);
@@ -190,8 +197,10 @@ export function createApi(database,opts={}){
        if(!['orcamentista','revisor','consulta'].includes(role))return response(res,400,{error:'Perfil inválido para novo usuário'});
        const password=hashPassword(b.password),userId=randomUUID();
        const result=await sql.query(
-         "WITH added AS (INSERT INTO app_users(id,login,password_hash,role,must_change_password) VALUES($1,$2,$3,$4,true) RETURNING id,login,role,is_active,must_change_password,created_at) SELECT * FROM added",
-         [userId,login,password,role]
+         multiTenant?
+          "WITH added AS (INSERT INTO app_users(id,login,password_hash,role,must_change_password,organization_id) VALUES($1,$2,$3,$4,true,$5) RETURNING id,login,role,is_active,must_change_password,created_at) SELECT * FROM added":
+          "WITH added AS (INSERT INTO app_users(id,login,password_hash,role,must_change_password) VALUES($1,$2,$3,$4,true) RETURNING id,login,role,is_active,must_change_password,created_at) SELECT * FROM added",
+         multiTenant?[userId,login,password,role,user.organization_id]:[userId,login,password,role]
        );
        await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action,metadata) VALUES($1,'app_users',$2,'create',jsonb_build_object('role',$3::text))",[user.id,userId,role]);
        return response(res,201,result[0]);
@@ -202,8 +211,10 @@ export function createApi(database,opts={}){
        const b=await readBody(req),role=String(b.role||'');
        if(!['orcamentista','revisor','consulta'].includes(role))return response(res,400,{error:'Perfil inválido'});
        if(typeof b.is_active!=='boolean')return response(res,400,{error:'Ativação deve ser verdadeiro ou falso'});
-       const updated=await sql.query("UPDATE app_users SET role=$2,is_active=$3 WHERE id=$1 AND role<>'administrador' RETURNING id,login,role,is_active,created_at,last_login_at",
-          [id,role,b.is_active]);
+       const updated=await sql.query(multiTenant?
+           "UPDATE app_users SET role=$2,is_active=$3 WHERE id=$1 AND organization_id=$4 AND role<>'administrador' RETURNING id,login,role,is_active,created_at,last_login_at":
+           "UPDATE app_users SET role=$2,is_active=$3 WHERE id=$1 AND role<>'administrador' RETURNING id,login,role,is_active,created_at,last_login_at",
+          multiTenant?[id,role,b.is_active,user.organization_id]:[id,role,b.is_active]);
        if(!updated.length)return response(res,404,{error:'Usuário inexistente ou administrador protegido'});
        if(!b.is_active)await sql.query("UPDATE app_sessions SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL",[id]);
        await sql.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action,metadata) VALUES($1,'app_users',$2,'update',jsonb_build_object('role',$3::text,'active',$4::boolean))",[user.id,id,role,b.is_active]);
