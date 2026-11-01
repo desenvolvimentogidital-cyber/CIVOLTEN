@@ -4,7 +4,7 @@
  */
 import {randomBytes,randomUUID,createHash} from 'node:crypto';
 import {accountMailReady,sendAccountEmail} from './account-mail.mjs';
-import {probeTenantRuntime} from './tenant-db-guard.mjs';
+import {probeTenantRuntime,tenantScopedQueries} from './tenant-db-guard.mjs';
 const sha=s=>createHash('sha256').update(s).digest('hex');
 const safeEmail=s=>typeof s==='string'&&s.length<=120&&
  /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s);
@@ -116,7 +116,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
  const users=await db.query("SELECT id FROM civolten_auth_user($1,$2)",[login,'verify']);
  if(parts[1]==='resend-verification'){
   if(users.length){
-   const token=await newToken(db,users[0].id,'verify',30);
+   const token=await newToken(tenantScopedQueries(db,users[0].organization_id),users[0].id,'verify',30);
    await send(opts)({to:login,kind:'verify',token});
   }
   return done(202,generic);
@@ -124,7 +124,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
  if(parts[1]==='request-reset'){
   const active=await db.query("SELECT id FROM civolten_auth_user($1,$2)",[login,'reset']);
   if(active.length){
-   const token=await newToken(db,active[0].id,'reset',20);
+   const token=await newToken(tenantScopedQueries(db,active[0].organization_id),active[0].id,'reset',20);
    await send(opts)({to:login,kind:'reset',token});
   }
   return done(202,generic);
