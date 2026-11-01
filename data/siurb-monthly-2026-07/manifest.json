@@ -1,0 +1,23 @@
+{
+  "reference_month": "2026-07",
+  "commercial_release": false,
+  "sources": [
+    {
+      "regime": "sem",
+      "kind": "mensalista",
+      "source_sha256": "bc626fa62afd8936e3f94ed4e4d5f6182df646b5f545b62a9ab5ada2d86d0d24",
+      "source_url": "https://smartsampa.prefeitura.sp.gov.br/documents/d/obras/onerada-sem-des-mobra-mensalista-julho-2026-1-xlsx",
+      "file": "sem-mensalista.json",
+      "rows": 98
+    },
+    {
+      "regime": "com",
+      "kind": "mensalista",
+      "source_sha256": "af12c7753d72f708ca2c9f23f83fd312f7062bff694a45f808823674b83f9caf",
+      "source_url": "https://smartsampa.prefeitura.sp.gov.br/documents/d/obras/desonerada-com-des-mobra-mensalista-julho-2026-1-xlsx",
+      "file": "com-mensalista.json",
+      "rows": 98
+    }
+  ],
+  "prices": 196
+}\n
