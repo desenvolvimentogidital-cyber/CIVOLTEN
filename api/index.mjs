@@ -48,7 +48,7 @@ function validateRequest(req){
 async function who(req,sql,multiTenant=false){
  const token=sessionToken(req);if(!/^[a-f0-9]{64}$/.test(token))return null;
  const data=await sql.query(multiTenant?
-  "SELECT u.id,u.organization_id,u.login,u.role,u.must_change_password FROM app_sessions s JOIN app_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_active=true LIMIT 1":
+  "SELECT id,organization_id,login,role,must_change_password FROM civolten_auth_session($1)":
   "SELECT u.id,u.login,u.role,u.must_change_password FROM app_sessions s JOIN app_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_active=true LIMIT 1",[hexhash(token)]);
  return data[0]||null;
 }
@@ -102,6 +102,7 @@ export function createApi(database,opts={}){
      sendResponse:response,readBody,opts,multiTenant,hashPassword});
    if(accountHandled)return;
    if(resource==='auth'&&id==='bootstrap'&&method==='POST'){
+     if(multiTenant)return response(res,403,{error:'Inicialização legada desativada em contas multiempresa'});
      const secret=opts.bootstrapSecret||process.env.CIVOLTEN_BOOTSTRAP_SECRET;
      if(!secret)return response(res,403,{error:'Configuração administrativa desativada'});
      const b=await readBody(req),got=String(b.bootstrap_secret||'');
@@ -121,7 +122,9 @@ export function createApi(database,opts={}){
          "SELECT count(*)::int AS failures FROM auth_login_attempts WHERE attempted_at>now()-interval '15 minutes' AND fingerprint=$1":
          "SELECT count(*)::int AS failures FROM audit_events WHERE entity_type='auth' AND action='login_failed' AND created_at>now()-interval '15 minutes' AND metadata->>'fingerprint'=$1",[fingerprint]);
      if(Number(recent[0].failures)>=6)return response(res,429,{error:'Muitas tentativas. Tente mais tarde.'},{'Retry-After':'900'});
-     const data=await sql.query('SELECT id,login,password_hash,role,must_change_password FROM app_users WHERE login=$1 AND is_active=true LIMIT 1',[login]);
+     const data=await sql.query(multiTenant?
+       'SELECT id,login,password_hash,role,must_change_password,organization_id FROM civolten_auth_login($1)':
+       'SELECT id,login,password_hash,role,must_change_password FROM app_users WHERE login=$1 AND is_active=true LIMIT 1',[login]);
      if(!data[0]||!matches(b.password,data[0].password_hash)){
        await sql.query(multiTenant?
           "INSERT INTO auth_login_attempts(fingerprint) VALUES($1)":
@@ -129,12 +132,20 @@ export function createApi(database,opts={}){
        return response(res,401,{error:'Credenciais inválidas'});
      }
      const token=randomBytes(32).toString('hex'),expires=new Date(Date.now()+8*3600000).toISOString();
-     await sql.query('INSERT INTO app_sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)',[hexhash(token),data[0].id,expires]);
+     const sessionDb=multiTenant?tenantScopedQueries(database,data[0].organization_id):database;
+     await sessionDb.query('INSERT INTO app_sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)',[hexhash(token),data[0].id,expires]);
      return response(res,200,{ok:true,user:{id:data[0].id,login:data[0].login,role:data[0].role,must_change_password:data[0].must_change_password}},{'Set-Cookie':cookie(token,28800)});
    }
    if(resource==='auth'&&id==='logout'&&method==='POST'){
      const token=sessionToken(req);
-     if(token)await sql.query('UPDATE app_sessions SET revoked_at=now() WHERE token_hash=$1',[hexhash(token)]);
+     if(token){
+      if(multiTenant){
+       const current=await who(req,database,true);
+       if(current?.organization_id)
+        await tenantScopedQueries(database,current.organization_id).query(
+         'UPDATE app_sessions SET revoked_at=now() WHERE token_hash=$1',[hexhash(token)]);
+      }else await sql.query('UPDATE app_sessions SET revoked_at=now() WHERE token_hash=$1',[hexhash(token)]);
+     }
      return response(res,200,{ok:true},{'Set-Cookie':cookie('',0)});
    }
    const user=await who(req,database,multiTenant);
