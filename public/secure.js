@@ -170,7 +170,10 @@ function budgetPage(){
 }
 function budgetDetail(){
  const b=state.detail;if(!b)return empty('Orçamento não encontrado.');
- const sum=(b.items||[]).reduce((a,x)=>a+Number(x.quantity)*Number(x.direct_unit_cost),0);
+ // Um único motor monetário (PostgreSQL + estimateBudget) para todas as telas.
+ // Não mostrar o BDI legado como se fosse a mesma coisa que a margem de 30%.
+ const summary=state.autoBriefing?.budget?.id===b.id?state.autoBriefing.cost:null;
+ const money=value=>value==null?'A revisar':BRL(value);
  return heading(b.title,b.code+' • '+(b.client_name||'Cliente')+' • orçamento de desenvolvimento')+
  '<div class="actions"><button class="btn" data-action="back-budget">Voltar</button>'+
  '<button class="btn primary" data-action="open-costing">Conferir custos e BDI</button>'+
@@ -179,9 +182,11 @@ function budgetDetail(){
  '<button type="button" class="btn" data-action="offline-sync">Sincronizar rascunho offline</button>'+
  '<a class="btn" href="/offline.html">Abrir modo offline</a>'+
  '<button class="btn" data-action="open-finance">Propostas e finanças</button>'+ (writeable()?'<button class="btn" data-action="new-item">+ Adicionar serviço</button>':'')+'</div>'+
- '<div class="grid"><div class="card"><div class="muted">Custo direto preliminar</div><div class="metric">'+BRL(sum)+'</div></div>'+
- '<div class="card"><div class="muted">BDI configurado</div><div class="metric">'+esc(b.bdi_pct)+'%</div></div>'+
- '<div class="card"><div class="muted">Prévia aritmética (não validada)</div><div class="metric">'+BRL(sum*(1+Number(b.bdi_pct)/100))+'</div></div></div>'+
+ '<div class="grid"><div class="card"><div class="muted">Custo direto apurado</div><div class="metric">'+money(summary?.direct_reais)+'</div></div>'+
+ '<div class="card"><div class="muted">BDI analítico (não é lucro de 30%)</div><div class="metric">'+money(summary?.bdi_reais)+'</div></div>'+
+ '<div class="card"><div class="muted">Contingência financeira</div><div class="metric">'+money(summary?.contingency_reais)+'</div></div>'+
+ '<div class="card"><div class="muted">Total preliminar do motor de custos</div><div class="metric">'+money(summary?.total_preliminary_reais)+'</div></div></div>'+
+ '<p class="muted tiny">Os valores vêm da mesma API de engenharia de custos. Sem composição BDI ou serviço válido, o total aparece como pendente; a meta de margem da empresa é separada.</p>'+
  '<div class="notice"><strong>Não emitir proposta.</strong> A composição detalhada, BDI, encargos, produtividade e prazo ainda requerem conferência. Esta prévia não representa preço aprovado.</div>'+
  ((b.items||[]).length?listRows(b.items,[
  {title:'Serviço',render:x=>esc(x.source_name)},
@@ -233,7 +238,7 @@ function modalBudget(x={}){
  field('Título do orçamento','title','text',true,x.title)+
  field('Data-base (AAAA-MM)','reference_month','month',true,x.reference_month||'2026-07')+
  '<div class="field"><label>Regime</label><select name="regime"><option '+(x.regime==='Sem desoneração'?'selected':'')+'>Sem desoneração</option><option '+(x.regime==='Com desoneração'?'selected':'')+'>Com desoneração</option></select></div>'+
- field('BDI preliminar (%)','bdi_pct','number',true,x.bdi_pct??25,'step="0.01" min="0" max="100"')+(x.id?'<input type="hidden" name="lock_version" value="'+esc(x.lock_version)+'">':'')+submitButtons;
+ field('BDI legado (%) — não confundir com meta de lucro da empresa','bdi_pct','number',true,x.bdi_pct??0,'step="0.01" min="0" max="100"')+(x.id?'<input type="hidden" name="lock_version" value="'+esc(x.lock_version)+'">':'')+submitButtons;
  dialog(x.id?'Editar orçamento':'Novo orçamento','<form id="budget-form" data-id="'+esc(x.id||'')+'">'+form+'</form>');
 }
 function modalItem(x={},forceManual=false){

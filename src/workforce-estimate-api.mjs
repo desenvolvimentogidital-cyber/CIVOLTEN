@@ -53,5 +53,14 @@ export async function handleWorkforceEstimate({req,res,sql,user,parts,method,sen
    ...result,...management,resource_schedule:resourceSchedule,
    // Do not expose salary or company overhead to read-only users.
    costs:internal?management.costs:null,
+   // Meta de margem configurada, separada de BDI e da receita tributável.
+   // Nunca supor alíquotas ou somar pró-labore ao valor SIURB automaticamente.
+   company_pricing:internal?{
+    target_margin_pct:costs.pricing?.target_margin_pct==null?null:Number(costs.pricing.target_margin_pct),
+    owner_prolabore_monthly:costs.pricing?.owner_prolabore_monthly==null?null:Number(costs.pricing.owner_prolabore_monthly),
+    overhead_configured:!!costs.overhead,
+    tax_rate_confirmed:false,
+    price_ready:false
+   }:null,
    roles:internal?management.roles:management.roles.map(({hourly_cost,cost_source,estimated_cost,...role})=>role)});
 }

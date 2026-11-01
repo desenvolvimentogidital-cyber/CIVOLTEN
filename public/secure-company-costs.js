@@ -25,7 +25,7 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    (w.monthly_salary==null?'<button class="btn" type="button" data-action="company-edit-worker-payroll" data-id="'+esc(w.id)+'">Informar salário e jornada</button>':'')+
    '</td></tr>').join('');
   show('Custos internos da CIVOLTEN','<div class="notice tiny"><strong>Uso interno:</strong> informe o custo completo da empresa por profissional, incluindo salário, encargos e benefícios. Não é necessário cadastrar profissionais para fazer o cronograma.</div>'+
-   '<div class="actions"><button class="btn primary" type="button" data-action="company-edit-overhead">Despesas fixas da empresa</button>'+
+   '<div class="actions"><button class="btn primary" type="button" data-action="company-edit-overhead">Despesas fixas e operacionais</button>'+
    '<button class="btn" type="button" data-action="company-add-worker">+ Cadastrar profissional</button>'+
    (state.user?.role==='administrador'?'<button class="btn" type="button" data-action="company-edit-pricing">Margem e pró-labore</button>'+
     '<button class="btn primary" type="button" data-action="company-simulate-sale">Simular preço com custos próprios</button>':'')+'</div>'+
@@ -58,9 +58,9 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    '. Informe abaixo o valor justificável alocado a ESTA obra, sem duplicar administração.</p>'+
    '<form id="company-simulate-form">'+
    fields.map(([label,name])=>input(label,name,'','number','min="0" max="100000000" step="0.01"')).join('')+
-   '<div class="notice tiny"><strong>Alíquotas provisórias informadas por você, não homologadas:</strong> 6% para serviço e 4,5% para eventual venda SEPARADA de materiais. Materiais incorporados à obra não viram automaticamente venda separada.</div>'+
-   input('Tributos sobre a receita de serviços (%)','tax_service_pct','6','number','min="0" max="60" step="0.01"')+
-   input('Tributos sobre venda separada de materiais (%)','tax_material_pct','4.5','number','min="0" max="60" step="0.01"')+
+   '<div class="notice tiny"><strong>Não presumir impostos:</strong> informe a alíquota efetiva confirmada para sua empresa. O sistema não define automaticamente Simples Nacional, ISS, ICMS ou outros tributos. Se não houver venda independente de materiais, mantenha a participação em 0%.</div>'+
+   input('Tributos sobre a receita de serviços (%) — alíquota a confirmar','tax_service_pct','','number','min="0" max="60" step="0.01" placeholder="Preencher após conferência contábil"')+
+   input('Tributos sobre venda separada de materiais (%) — 0 se não houver venda separada','tax_material_pct','0','number','min="0" max="60" step="0.01"')+
    input('Participação da receita de materiais vendidos separadamente (%)','material_revenue_share_pct','0','number','min="0" max="100" step="0.01"')+
    '<div class="field"><label>Os materiais serão vendidos e faturados separadamente do serviço?</label>'+
    '<select name="materials_separately_billed"><option value="false" selected>Não / ainda não confirmado</option><option value="true">Sim, com receita separada confirmada</option></select></div>'+
@@ -79,10 +79,10 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
  }
  if(action==='company-edit-overhead'){
   const o=data.overhead||{};
-  show('Despesas fixas mensais','<form id="company-overhead-form">'+
-   input('Despesas fixas totais da empresa por mês (R$)','monthly_overhead',o.monthly_overhead??'','number','min="0" step="0.01"')+
+  show('Despesas fixas e operacionais mensais','<form id="company-overhead-form">'+
+   input('Total mensal de despesas fixas e operacionais, exceto folha e pró-labore (R$)','monthly_overhead',o.monthly_overhead??'','number','min="0" step="0.01"')+
    input('Dias úteis por mês para rateio','workdays_per_month',o.workdays_per_month??22,'number','min="15" max="31" step="1"')+
-   '<p class="tiny muted">O rateio considera a duração estimada da obra. Não significa que esse valor será automaticamente adicionado aos serviços SIURB.</p>'+buttons+'</form>');return;
+   '<p class="tiny muted">Some as despesas gerais da empresa, como aluguel, água, energia, internet, contabilidade, veículos, combustível e manutenção. Não inclua salários, encargos de funcionários nem pró-labore já cadastrados em outros campos. O rateio usa a duração da obra e não é somado automaticamente ao preço completo SIURB.</p>'+buttons+'</form>');return;
  }
  if(action==='company-edit-rate'){
   const r=data.rates.find(x=>x.role_code===id),suggested=roles.find(x=>x.code===id);

@@ -116,13 +116,13 @@ export function financeDialog(action,{state,dialog,esc}){
     '<p class="muted tiny">A escolha vale para esta versão da proposta. Somente mão de obra exige produtividade revisada e custos-hora cadastrados. O sistema não usa o preço integral SIURB para retirar materiais por porcentagem fictícia.</p>'+ 
     '<h4>Preço indicativo — somente mão de obra (opcional)</h4>'+
     '<p class="muted tiny">Para calcular a estimativa de preço, informe os dois campos. Custos e despesas são recuperados do cadastro real; margem vem da configuração da empresa. Os valores não equivalem à aprovação fiscal ou comercial.</p>'+
-    '<div class="field"><label>Tributos sobre a receita de serviços (%) — confirmar com contador</label><input name="service_tax_pct" type="number" min="0" max="60" step="0.01" placeholder="Ex.: 6"></div>'+
+    '<div class="field"><label>Tributos sobre a receita de serviços (%) — confirmar com contador</label><input name="service_tax_pct" type="number" min="0" max="60" step="0.01" placeholder="Informar a alíquota efetiva confirmada"></div>'+
     '<div class="field"><label>Pró-labore rateado para esta obra (R$)</label><input name="owner_allocation_reais" type="number" min="0" max="100000000" step="0.01" placeholder="Informe custo real"></div>'+
-    '<div class="field"><label>Escopo completo da proposta</label><textarea name="scope" required minlength="15" maxlength="5000"></textarea></div>'+
-    '<div class="field"><label>Exclusões e responsabilidades</label><textarea name="exclusions" required minlength="10" maxlength="3000"></textarea></div>'+
-    '<div class="field"><label>Condições de pagamento</label><textarea name="payment_terms" required minlength="10" maxlength="1000"></textarea></div>'+
+    '<div class="field"><label>Escopo completo da proposta</label><textarea name="scope" required minlength="15" maxlength="5000">'+esc(state.detail?.scope_assumptions||'')+'</textarea></div>'+
+    '<div class="field"><label>Exclusões e responsabilidades</label><textarea name="exclusions" required minlength="10" maxlength="3000">'+esc(state.detail?.exclusions||'')+'</textarea></div>'+
+    '<div class="field"><label>Condições de pagamento</label><textarea name="payment_terms" required minlength="10" maxlength="1000">'+esc(state.detail?.payment_terms||'')+'</textarea></div>'+
     field('Validade em dias','validity_days','number',true,30,'min="1" max="365" step="1"')+
-    '<p class="muted tiny">Gera apenas uma versão interna auditável, nunca uma proposta emitida.</p>'+buttons+'</form>');
+    '<p class="muted tiny">O escopo, as exclusões e o pagamento são recuperados do orçamento quando disponíveis. Confira e complete as informações antes de salvar; nunca gera aprovação contratual automaticamente.</p>'+buttons+'</form>');
   return true;
  }
  if(action==='finance-add-actual'){
