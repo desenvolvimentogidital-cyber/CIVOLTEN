@@ -49,6 +49,7 @@ if(!uri||!/^postgres(?:ql)?:\/\/postgres:[^@]+@(?:127\.0\.0\.1|localhost):5432\/
    await owner.query('GRANT USAGE ON SCHEMA public TO civolten_email_qa');
    await owner.query('GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO civolten_email_qa');
    await owner.query('GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO civolten_email_qa');
+   await owner.query('GRANT EXECUTE ON FUNCTION public.civolten_auth_session(TEXT),public.civolten_auth_login(TEXT),public.civolten_auth_user(TEXT,TEXT),public.civolten_auth_token_org(TEXT,TEXT) TO civolten_email_qa');
    const restricted=new URL(uri);restricted.username=role;restricted.password=password;
    pool=new pg.Pool({connectionString:restricted.href,max:3});
    const db=scoped(pool);
