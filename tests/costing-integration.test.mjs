@@ -1,5 +1,6 @@
 import './stage2-synthetic-journey.test.mjs';
 import './stage3-db-integration.test.mjs';
+import './reviewed-autoplan-db-integration.test.mjs';
 import './stage3-management.test.mjs';
 import './stage3-progress-integration.test.mjs';
 import './stage4-finance-integration.test.mjs';
