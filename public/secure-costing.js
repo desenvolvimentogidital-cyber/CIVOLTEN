@@ -148,17 +148,17 @@ export async function costHandleClick(btn,{state,api,dialog,field,esc,refresh,to
    const table=rows=>'<div class="table-wrap"><table><thead><tr><th>Código</th><th>Descrição</th><th>Unidade</th><th>Coeficiente</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4">Nenhum item direto listado</td></tr>')+'</tbody></table></div>';
    const supplement=x.siurb_direct_labor_reference||{};
    const tariffRows=(supplement.components||[]).map(z=>'<tr><td>'+esc(z.code)+'</td><td>'+esc(z.name)+
-     '</td><td>'+esc(z.coefficient??'A revisar')+'</td><td>'+
+     '</td><td>'+esc(z.tariff_source_kind==='mensalista'?'Mensalista':z.tariff_source_kind==='horista'?'Horista':'—')+'</td><td>'+esc(z.coefficient??'A revisar')+'</td><td>'+
      (z.hourly_tariff_with_charges_reais==null?'Tarifa não encontrada':fmt(z.hourly_tariff_with_charges_reais))+
      '</td><td>'+(z.direct_labor_cost_reais_per_unit==null?'A revisar':fmt(z.direct_labor_cost_reais_per_unit))+
      '</td><td>'+esc(z.source_sha256?.slice(0,12)||'—')+'</td></tr>').join('');
-   const tariffPanel='<h2>Tarifas horistas SIURB oficiais — mão de obra direta</h2>'+
-     '<div class="notice tiny">Custo direto por unidade, usando tarifas SIURB COM encargos na mesma data-base e regime. Não inclui mão de obra de auxiliares, materiais nem equipamentos. Não somar ao preço integral SIURB.</div>'+
+   const tariffPanel='<h2>Tarifas SIURB oficiais — horistas e mensalistas</h2>'+
+     '<div class="notice tiny">Custo direto por unidade, usando as tarifas SIURB horistas ou mensalistas COM encargos na mesma data-base e regime, ambas já expressas em R$/hora. Não inclui mão de obra de auxiliares, materiais nem equipamentos. Não somar ao preço integral SIURB.</div>'+
      '<p><strong>Subtotal direto de mão de obra:</strong> '+
        (supplement.direct_labor_cost_reais_per_service_unit==null?'Não determinado; há referências pendentes':fmt(supplement.direct_labor_cost_reais_per_service_unit))+
        ' / '+esc(x.unit)+'</p>'+
-     '<div class="table-wrap"><table><thead><tr><th>Código</th><th>Profissão</th><th>H-h/unid.</th><th>Tarifa/h</th><th>Custo/unid.</th><th>SHA fonte</th></tr></thead><tbody>'+
-       (tariffRows||'<tr><td colspan="6">Sem profissionais diretos registrados na ficha.</td></tr>')+'</tbody></table></div>';
+     '<div class="table-wrap"><table><thead><tr><th>Código</th><th>Profissão</th><th>Tipo</th><th>H-h/unid.</th><th>Tarifa/h</th><th>Custo/unid.</th><th>SHA fonte</th></tr></thead><tbody>'+
+       (tariffRows||'<tr><td colspan="7">Sem profissionais diretos registrados na ficha.</td></tr>')+'</tbody></table></div>';
    const audit=x.inspection||{};
    const audited=(audit.nodes||[]).map(z=>'<tr><td>'+esc(z.path||z.code)+'</td><td>'+esc(z.kind)+'</td><td>'+esc(z.unit)+'</td><td>'+esc(z.coefficient)+'</td><td>'+esc(z.status)+'</td></tr>').join('');
    const auditTable='<h2>Auditoria de auxiliares e insumos</h2><p class="notice"><strong>Não homologada para custo comercial.</strong> Componentes sem preço reconciliado: '+esc(audit.unpriced_components??'não apurado')+'. Esta lista não substitui a planilha oficial de insumos e mão de obra.</p>'+

@@ -15,7 +15,8 @@ Este plano não transforma demonstrações, estimativas ou testes sintéticos em
 - [x] Preços oficiais: 6.988 registros; composições diretas: 6.926 fichas.
 - [x] Relações diretas de horas-homem e profissões: nunca confundir hora-máquina com hora-homem.
 - [x] Importar no Neon 8 fontes oficiais suplementares com SHA-256 verificável: 5.828 preços (horistas, insumos e equipamentos), 232 composições auxiliares; conferir em `siurb_supplement_sources`, `siurb_supplement_prices`, `siurb_auxiliary_compositions`.
-- [x] Expor a tarifa horista de mão de obra direta no detalhe de composição, sem somá-la novamente ao preço integral do serviço SIURB.
+- [x] Importar as duas tabelas oficiais mensalistas de julho/2026: 49 funções por regime, com 196 tarifas horárias com/sem encargos, fontes e hashes preservados. A união de mensalistas e horistas cobre todas as 6.317 ocorrências de funções diretas por regime, sem preencher valores aproximados.
+- [x] Expor tarifas horistas e mensalistas oficiais de mão de obra direta no detalhe de composição, sem somá-las novamente ao preço integral SIURB.
 - [ ] Revisar as 10 composições auxiliares com diferenças ou parcelas incompletas e reconciliar dependências/encargos e equipamentos por regime; 222 conciliadas aritmeticamente não equivalem a aprovação técnica/comercial.
 - [ ] Revisar 62 serviços sem ficha direta ou bloquear cálculo de produtividade; conferir coerência de dados em cada obra.
 - [ ] Conferir data-base, regime, localidade e complementos de acordo com a obra; referências de São Paulo não são automaticamente cotações locais.

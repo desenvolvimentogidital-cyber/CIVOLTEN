@@ -435,6 +435,9 @@ document.addEventListener('click',async e=>{
       esc(op.siurb_supplement_price_records??'—')+' preços horistas/equipamentos/insumos · '+
       esc(op.siurb_auxiliary_records??'—')+' auxiliares, das quais '+
       esc(op.siurb_auxiliary_unreconciled??'—')+' ainda não conciliadas.</p>'+
+      '<p>Mão de obra mensalista SIURB: '+esc(op.siurb_monthly_source_records??'—')+
+      ' fontes · '+esc(op.siurb_monthly_hourly_price_records??'—')+
+      ' preços horários com/sem encargos, disponíveis para conferência.</p>'+
       '<h3>As sete fases da implantação</h3>'+
       '<p class="muted tiny">As verificações usam contagens do Neon e, para aprovações externas, só aceitam evidências independentes; nenhum cadastro substitui homologação.</p>'+
       seven+

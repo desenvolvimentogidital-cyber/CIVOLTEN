@@ -65,7 +65,7 @@ for regime,slug in sources:
   "source":{"url":url,"sha256":meta["source_sha256"]},
   "rows":prices,"commercially_approved":False}
  (monthly_export/(regime+"-mensalista.json")).write_text(
-   json.dumps(monthly_group,ensure_ascii=False,separators=(",",":"))+"\\n",
+   json.dumps(monthly_group,ensure_ascii=False,separators=(",",":")),
    encoding="utf-8")
  meta["normalized_prices"]=len(prices)
  records.append(meta)
@@ -85,5 +85,5 @@ monthly_manifest={"reference_month":"2026-07","commercial_release":False,
   "file":x["regime"]+"-mensalista.json","rows":x["normalized_prices"]}
   for x in records],"prices":sum(x["normalized_prices"] for x in records)}
 (monthly_export/"manifest.json").write_text(
- json.dumps(monthly_manifest,ensure_ascii=False,indent=2)+"\\n",encoding="utf-8")
+ json.dumps(monthly_manifest,ensure_ascii=False,indent=2),encoding="utf-8")
 print("Duas fontes mensalistas oficiais normalizadas; 196 precos horarios verificaveis. Nada gravado no Neon.")

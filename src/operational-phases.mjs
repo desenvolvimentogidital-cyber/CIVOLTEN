@@ -14,6 +14,7 @@ export function summarizeSevenPhases({schema={},counts={},account={},evidence={}
    ['Preços oficiais carregados',n('reference_prices')>0],
    ['Fichas de composição carregadas',n('reference_compositions')>0],
    ['Oito fontes e 5.828 tarifas/insumos complementares identificados',n('siurb_supplement_source_records')===8&&n('siurb_supplement_price_records')===5828&&n('siurb_auxiliary_records')===232],
+   ['Duas fontes mensalistas e 196 custos horários oficiais importados',n('siurb_monthly_source_records')===2&&n('siurb_monthly_hourly_price_records')===196],
    ['Todas as composições auxiliares reconciliadas',n('siurb_auxiliary_records')>0&&n('siurb_auxiliary_unreconciled')===0],
    ['Componentes auxiliares, preços horistas e equipamentos reconciliados e validados tecnicamente',flag('siurb_supplements_reconciled')],
    ['Conferência das composições dos serviços do orçamento',n('active_budget_items')>0&&n('items_pending_cost_review')===0],

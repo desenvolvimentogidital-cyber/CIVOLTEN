@@ -52,7 +52,7 @@ export async function handleStage2(ctx){
    if(codes.length){
     try{
      tariffs=await sql.query(
-      "SELECT p.code,p.kind,p.variant,p.unit,p.unit_cost,s.regime,s.reference_month,s.sha256 AS source_sha256 FROM siurb_supplement_prices p JOIN siurb_supplement_sources s ON s.id=p.source_id WHERE s.reference_month=$1 AND s.regime=$2 AND s.kind='horista' AND p.kind='horista' AND p.variant='com_encargos' AND upper(p.unit)='H' AND p.code=ANY($3::text[])",
+       "SELECT p.code,p.kind,p.variant,p.unit,p.unit_cost,s.regime,s.reference_month,s.sha256 AS source_sha256 FROM siurb_supplement_prices p JOIN siurb_supplement_sources s ON s.id=p.source_id WHERE s.reference_month=$1 AND s.regime=$2 AND s.kind='horista' AND p.kind='horista' AND p.variant='com_encargos' AND upper(p.unit)='H' AND p.code=ANY($3::text[]) UNION ALL SELECT p.code,'mensalista'::text AS kind,p.variant,p.unit,p.unit_cost,s.regime,s.reference_month,s.sha256 AS source_sha256 FROM siurb_monthly_labor_prices p JOIN siurb_monthly_labor_sources s ON s.id=p.source_id WHERE s.reference_month=$1 AND s.regime=$2 AND p.variant='com_encargos' AND p.unit='H' AND p.code=ANY($3::text[])",
       [root.reference_month,root.regime,codes]);
     }catch(error){
      if(error?.code!=='42P01')throw error;
@@ -64,7 +64,7 @@ export async function handleStage2(ctx){
    return done(res,200,{...root,composition_available:root.labor!==null,
      inspection,siurb_direct_labor_reference:laborReference,
      siurb_supplemental_sources_available:supplementalSourcesAvailable,
-     notice:'Tarifas horistas complementares oficiais conferidas por código e regime. O custo direto de mão de obra é parcial e não substitui a composição integral nem homologação técnica.'});
+     notice:'Tarifas oficiais horistas e mensalistas conferidas por código e regime. O custo direto de mão de obra é parcial e não substitui a composição integral nem homologação técnica.'});
  }
  if(resource==='siurb'&&id==='search'&&method==='GET'){
    const q=parseQuery(req),term=String(q.get('q')||'').trim().slice(0,80);
