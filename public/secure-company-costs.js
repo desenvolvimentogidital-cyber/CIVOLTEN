@@ -9,8 +9,14 @@ const clean=dialog=>{document.querySelector('#secure-dialog')?.remove();return d
 export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
  const show=clean(dialog);
  if(!state.detail?.id)throw Error('Abra um orçamento primeiro');
- const data=await api('company-costs');
- const roles=(state.scheduleWorkforce?.roles||[]),names=new Map(roles.map(x=>[x.code,x.name]));
+ const [data,required]=await Promise.all([
+  api('company-costs'),
+  api('budgets/'+state.detail.id+'/required-professions')
+ ]);
+ // Always discover roles from SAVED service compositions, even when productivity
+ // is not yet approved. This avoids the blank/stale workforce-preview catalog.
+ const roles=(required.professions||[]).map(r=>({...r,code:r.code,name:r.name}));
+ const names=new Map(roles.map(x=>[x.code,x.name]));
  if(action==='company-config'){
   const rateRows=roles.map(r=>{
    const rate=data.rates.find(x=>x.role_code===r.code);
@@ -36,6 +42,18 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    ' · Dias úteis/mês: '+esc(data.overhead?.workdays_per_month??22)+'. Inclua aluguel, escritório, veículos e pró-labore, sem repetir parcelas já computadas.</p>'+
    '<h3>Custo-hora por profissão</h3><div class="table-wrap"><table><thead><tr><th>Profissão</th><th>Custo-hora</th><th>Ação</th></tr></thead><tbody>'+
    (rateRows+extraRates||'<tr><td colspan="3">Nenhum serviço com profissão identificada.</td></tr>')+'</tbody></table></div>'+
+   '<h3>Profissões exigidas pelos serviços deste orçamento</h3>'+
+   '<p class="muted tiny">Fonte: fichas SIURB de '+esc(required.budget?.reference_month||'')+', '+esc(required.budget?.regime||'')+
+   '. Profissões necessárias: '+esc(required.summary?.required_professions??0)+
+   ' · Sem funcionário ativo: '+esc(required.summary?.missing_active_professions??0)+
+   ' · Serviços sem composição: '+esc(required.summary?.items_without_composition??0)+
+   ' · Produtividade pendente: '+esc(required.summary?.services_pending_productivity_review??0)+'.</p>'+
+   (roles.length?'<div class="table-wrap"><table><thead><tr><th>Código</th><th>Profissão SIURB</th><th>Funcionários ativos</th><th>Ação</th></tr></thead><tbody>'+
+    roles.map(role=>'<tr><td>'+esc(role.code)+'</td><td>'+esc(role.name)+'</td><td>'+
+     esc(role.active_workers)+' </td><td><button class="btn" type="button" data-action="company-add-worker-role" data-id="'+esc(role.code)+'">Cadastrar nesta função</button></td></tr>').join('')+
+    '</tbody></table></div>':'<div class="notice">Nenhuma profissão encontrada nas composições atuais.</div>')+
+   (required.issues?.length?'<div class="notice"><strong>Pendências do cadastro por orçamento:</strong><ul>'+
+    required.issues.slice(0,8).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>':'')+
    '<h3>Base dos profissionais</h3><p class="muted tiny">Informe salário mensal, encargos/benefícios, dias e horas efetivamente pagos. Custo-hora = custo mensal completo ÷ dias ÷ horas. A média de cada profissão é usada somente quando não existir uma tarifa específica.</p>'+
    '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Função</th><th>Custo mensal</th><th>Situação</th><th>Ação</th></tr></thead><tbody>'+
    (workers||'<tr><td colspan="5">Nenhum profissional cadastrado.</td></tr>')+'</tbody></table></div>');
@@ -93,13 +111,14 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    input('Custo total da empresa por hora (R$)','hourly_employer_cost',r?.hourly_employer_cost??'','number','min="0" step="0.01"')+
    '<p class="muted tiny">Inclua encargos e benefícios no custo-hora. Se já embutidos em outro campo, não some novamente.</p>'+buttons+'</form>');return;
  }
- if(['company-add-worker','company-edit-worker','company-edit-worker-payroll'].includes(action)){
-  const editing=action!=='company-add-worker';
+ if(['company-add-worker','company-add-worker-role','company-edit-worker','company-edit-worker-payroll'].includes(action)){
+  const editing=!['company-add-worker','company-add-worker-role'].includes(action);
   const w=editing?data.workers.find(x=>x.id===id):null;
   if(editing&&!w)throw Error('Profissional não encontrado');
   const payroll=action!=='company-edit-worker'||w?.monthly_salary!=null;
-  const selectedRole=w?.role_code||roles[0]?.code||'';
-  const codeSuggestions=roles.map(r=>'<option value="'+esc(r.code)+'">'+esc(r.name)+'</option>').join('');
+  const selectedRole=w?.role_code||(action==='company-add-worker-role'?roles.find(r=>r.code===id)?.code:null)||
+   roles.find(r=>r.active_workers===0)?.code||roles[0]?.code||'';
+  const codeSuggestions=roles.map(r=>'<option value="'+esc(r.code)+'" label="'+esc(r.name)+'"></option>').join('');
   show(w?'Editar profissional':'Cadastrar profissional da empresa',
    '<form id="'+(w?'company-worker-edit-form':'company-worker-form')+'" '+(w?'data-id="'+esc(w.id)+'"':'')+'>'+
    input('Nome profissional','display_name',w?.display_name||'','text','maxlength="160"')+
