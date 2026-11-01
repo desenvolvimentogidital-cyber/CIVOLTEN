@@ -1,0 +1,68 @@
+{
+  "reference_month": "2026-07",
+  "commercial_release": false,
+  "source_page": "https://prefeitura.sp.gov.br/web/obras/w/tabelas_de_custos/355179",
+  "counts": {
+    "prices": 5828,
+    "auxiliaries": 232,
+    "auxiliaries_reconciled": 222
+  },
+  "sources": [
+    {
+      "regime": "sem",
+      "kind": "horista",
+      "file": "sem-horista.json",
+      "source_sha256": "ecba70b7a8fae694749f8f1f9f7b08bb4adc7e3a3f575c32c91e68202895855b",
+      "rows": 184
+    },
+    {
+      "regime": "sem",
+      "kind": "equipamentos",
+      "file": "sem-equipamentos.json",
+      "source_sha256": "f34aa8c7b79dea84b6e8c51214c1b3bb20eef23a10233db8ec617ab694cc4453",
+      "rows": 258
+    },
+    {
+      "regime": "sem",
+      "kind": "insumos",
+      "file": "sem-insumos.json",
+      "source_sha256": "fde26b9880c9d45e60f3d7bf07b2b0958c72f4278f6757f1bc34fac26a5d1e0e",
+      "rows": 2472
+    },
+    {
+      "regime": "sem",
+      "kind": "auxiliares",
+      "file": "sem-auxiliares.json",
+      "source_sha256": "fe34f520a32f3d957213f9768fdb22242cf45c158666d99bb4bab3716d97c72a",
+      "rows": 116
+    },
+    {
+      "regime": "com",
+      "kind": "horista",
+      "file": "com-horista.json",
+      "source_sha256": "ff46f9688d23bc496c905ddc530f4d2ccda7f5a53a83807845bc24947d87531d",
+      "rows": 184
+    },
+    {
+      "regime": "com",
+      "kind": "equipamentos",
+      "file": "com-equipamentos.json",
+      "source_sha256": "58cff1ef786a94b4dfca404cacfb8d6928f2da320aea88b9649d1d18d1303564",
+      "rows": 258
+    },
+    {
+      "regime": "com",
+      "kind": "insumos",
+      "file": "com-insumos.json",
+      "source_sha256": "30cdc474672705af43a5edcd0a567f167193493285d23eb081fd03a132740e5d",
+      "rows": 2472
+    },
+    {
+      "regime": "com",
+      "kind": "auxiliares",
+      "file": "com-auxiliares.json",
+      "source_sha256": "b148c7efb903196b30e63ee3ec54cd2fe6708b815d62f4fbcd7e3b77c05ac4e7",
+      "rows": 116
+    }
+  ]
+}
