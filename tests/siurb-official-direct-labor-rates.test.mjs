@@ -19,6 +19,19 @@ test('Tarifa horista SIURB calcula apenas a mao de obra direta por unidade',()=>
  assert.equal(r.full_service_composition_reconciled,false);
  assert.equal(r.commercially_approved,false);
 });
+test('mensalista oficial e custo horario ja informado na tabela, sem dividir por dias ou meses',()=>{
+ const monthly={code:'1037',kind:'mensalista',variant:'com_encargos',unit:'H',
+   unit_cost:'56.9900',regime,reference_month:month,
+   source_sha256:'bc626fa62afd8936'+'b'.repeat(48)};
+ const model=compareSiurbDirectLabor({regime,reference_month:month,
+   labor:[{code:'1037',name:'Eletrotécnico montador',coef:2,unit:'H'}],
+   tariffs:[monthly]});
+ assert.equal(model.direct_labor_cost_reais_per_service_unit,113.98);
+ assert.equal(model.components[0].tariff_source_kind,'mensalista');
+ assert.equal(model.components[0].hourly_tariff_with_charges_reais,56.99);
+ assert.equal(model.commercially_approved,false);
+});
+
 test('Mao de obra sem tarifa, coeficiente valido ou regime correspondente nao usa zero e nao apresenta total',()=>{
  for(const [tariffs,part] of [
   [[],labor],
@@ -62,7 +75,7 @@ test('Interface diferencia tarifa horista direta do preco de servico com materia
    inspection:{nodes:[]},siurb_direct_labor_reference:supplement}),
   dialog:(_title,body)=>{html=body},esc:x=>String(x??'')});
  assert.equal(result,true);
- assert.match(html,/Tarifas horistas SIURB oficiais/);
+ assert.match(html,/Tarifas SIURB oficiais — horistas e mensalistas/);
  assert.match(html,/27,12/);
  assert.match(html,/12,20/);
  assert.match(html,/Não somar ao preço integral SIURB/);
