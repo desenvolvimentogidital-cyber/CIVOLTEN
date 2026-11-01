@@ -14,6 +14,7 @@ const invoke=async(role='administrador')=>{
    return [{active_administrators:1,administrators_pending_password_change:1,
     budgets:1,reference_prices:6988,reference_compositions:6926,
     siurb_supplement_source_records:8,siurb_supplement_price_records:5828,
+    siurb_monthly_source_records:2,siurb_monthly_hourly_price_records:196,
     siurb_auxiliary_records:232,siurb_auxiliary_reconciled:222,siurb_auxiliary_unreconciled:10,
     proposal_drafts:0,active_budget_items:2,
     items_pending_cost_review:2,items_pending_productivity_review:2,
@@ -34,10 +35,13 @@ test('diagnóstico real apresenta contagens agregadas e informa troca de senha p
  assert.equal(r.body.operational.reference_composition_records,6926);
  assert.equal(r.body.operational.siurb_supplement_source_records,8);
  assert.equal(r.body.operational.siurb_supplement_price_records,5828);
+ assert.equal(r.body.operational.siurb_monthly_source_records,2);
+ assert.equal(r.body.operational.siurb_monthly_hourly_price_records,196);
  assert.equal(r.body.operational.siurb_auxiliary_records,232);
  assert.equal(r.body.operational.siurb_auxiliary_unreconciled,10);
  assert.equal(r.body.operational.phases[1].checks[2].complete,true);
- assert.equal(r.body.operational.phases[1].checks[3].complete,false);
+ assert.equal(r.body.operational.phases[1].checks[3].complete,true);
+ assert.equal(r.body.operational.phases[1].checks[4].complete,false);
  assert.equal(r.body.operational.phases.length,7);
  assert.equal(r.body.operational.all_seven_phases_approved,false);
  assert.equal(r.body.operational.phases[0].status,'pendente');
