@@ -58,9 +58,9 @@ export async function companyCostsDialog(action,{state,api,dialog,esc,id}){
    '. Informe abaixo o valor justificável alocado a ESTA obra, sem duplicar administração.</p>'+
    '<form id="company-simulate-form">'+
    fields.map(([label,name])=>input(label,name,'','number','min="0" max="100000000" step="0.01"')).join('')+
-   '<div class="notice tiny"><strong>Alíquotas provisórias informadas por você, não homologadas:</strong> 6% para serviço e 4,5% para eventual venda SEPARADA de materiais. Materiais incorporados à obra não viram automaticamente venda separada.</div>'+
-   input('Tributos sobre a receita de serviços (%)','tax_service_pct','6','number','min="0" max="60" step="0.01"')+
-   input('Tributos sobre venda separada de materiais (%)','tax_material_pct','4.5','number','min="0" max="60" step="0.01"')+
+   '<div class="notice tiny"><strong>Não presumir impostos:</strong> informe a alíquota efetiva confirmada para sua empresa. O sistema não define automaticamente Simples Nacional, ISS, ICMS ou outros tributos. Se não houver venda independente de materiais, mantenha a participação em 0%.</div>'+
+   input('Tributos sobre a receita de serviços (%) — alíquota a confirmar','tax_service_pct','','number','min="0" max="60" step="0.01" placeholder="Preencher após conferência contábil"')+
+   input('Tributos sobre venda separada de materiais (%) — 0 se não houver venda separada','tax_material_pct','0','number','min="0" max="60" step="0.01"')+
    input('Participação da receita de materiais vendidos separadamente (%)','material_revenue_share_pct','0','number','min="0" max="100" step="0.01"')+
    '<div class="field"><label>Os materiais serão vendidos e faturados separadamente do serviço?</label>'+
    '<select name="materials_separately_billed"><option value="false" selected>Não / ainda não confirmado</option><option value="true">Sim, com receita separada confirmada</option></select></div>'+
