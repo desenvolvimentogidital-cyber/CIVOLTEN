@@ -13,7 +13,9 @@ export function summarizeSevenPhases({schema={},counts={},account={},evidence={}
   {id:2,name:'Tabela SIURB: preços, composições e produtividade',checks:[
    ['Preços oficiais carregados',n('reference_prices')>0],
    ['Fichas de composição carregadas',n('reference_compositions')>0],
-   ['Componentes auxiliares, preços horistas e equipamentos reconciliados',flag('siurb_supplements_reconciled')],
+   ['Oito fontes e 5.828 tarifas/insumos complementares identificados',n('siurb_supplement_source_records')===8&&n('siurb_supplement_price_records')===5828&&n('siurb_auxiliary_records')===232],
+   ['Todas as composições auxiliares reconciliadas',n('siurb_auxiliary_records')>0&&n('siurb_auxiliary_unreconciled')===0],
+   ['Componentes auxiliares, preços horistas e equipamentos reconciliados e validados tecnicamente',flag('siurb_supplements_reconciled')],
    ['Conferência das composições dos serviços do orçamento',n('active_budget_items')>0&&n('items_pending_cost_review')===0],
    ['Produtividade por serviço revisada tecnicamente',n('active_budget_items')>0&&n('items_pending_productivity_review')===0]]},
   {id:3,name:'Custos reais, encargos e tributos da empresa',checks:[
