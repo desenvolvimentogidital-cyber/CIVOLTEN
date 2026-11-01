@@ -91,7 +91,12 @@ export function createApi(database,opts={}){
    }
    if(resource==='auth'&&id==='status'&&method==='GET'){
      const user=await who(req,database,multiTenant);
-     return response(res,200,{authenticated:!!user,user,signup_enabled:signupConfigured(opts,multiTenant)});
+     let signupAvailable=false;
+     if(signupConfigured(opts,multiTenant)){
+      try{signupAvailable=(await probeTenantRuntime(database)).ready===true}
+      catch{signupAvailable=false}
+     }
+     return response(res,200,{authenticated:!!user,user,signup_enabled:signupAvailable});
    }
    const accountHandled=await handleAccountAuth({req,res,db:database,parts,method,
      sendResponse:response,readBody,opts,multiTenant,hashPassword});
