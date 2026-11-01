@@ -81,8 +81,8 @@ test('cadastro QA com flags exige organização, email, senha forte e transaçã
  assert.equal(db.emails[0].kind,'verify');
  assert.equal(db.emails[0].to,'contato@example.test');
  assert.doesNotMatch(JSON.stringify(r.body),/token|password_hash/);
- assert.equal(r.body.email_verified,false);
- assert.equal(r.body.commercial_release,false);
+ assert.equal(r.body.verification_required,true);
+ assert.equal(r.body.account_created,undefined);
  assert.equal(db.transactions.length,1);
  assert.equal(db.transactions[0].length,5);
  const sqlTexts=db.queries.map(x=>x.q);
