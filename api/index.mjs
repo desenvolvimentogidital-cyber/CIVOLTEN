@@ -11,6 +11,7 @@ import {handleBudgetPlanning} from '../src/budget-planning-api.mjs';
 import {handleCompanyCosts} from '../src/company-costs-api.mjs';
 import {handleScheduleManagement} from '../src/schedule-management-api.mjs';
 import {handleReviewedAutoplan} from '../src/reviewed-autoplan-api.mjs';
+import {handleBudgetRequiredProfessions} from '../src/budget-required-professions-api.mjs';
 import {handleScheduleProgress} from '../src/schedule-progress-api.mjs';
 import {handleRemainingSchedule} from '../src/schedule-remaining-api.mjs';
 import {handleStage4} from '../src/stage4-finance-api.mjs';
@@ -129,6 +130,8 @@ export function createApi(sql,opts={}){
    if(automaticHandled)return;
    const stage2Handled=await handleStage2({req,res,sql,user,parts,method,send:response,readBody});
    if(stage2Handled)return;
+   const professionsHandled=await handleBudgetRequiredProfessions({req,res,sql,user,parts,method,send:response});
+   if(professionsHandled)return;
    const companyCostsHandled=await handleCompanyCosts({req,res,sql,user,parts,method,send:response,readBody});
    if(companyCostsHandled)return;
    const budgetPlanningHandled=await handleBudgetPlanning({req,res,sql,user,parts,method,send:response,readBody});
