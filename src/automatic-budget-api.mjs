@@ -33,7 +33,6 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
   issues.push('Escopo, exclusões e/ou condições de pagamento precisam de revisão antes de uma proposta comercial.');
  if((estimate.errors||[]).length)
   issues.push('BDI, custos e documentação de referência ainda contêm pendências de aprovação comercial.');
- const deduped=[...new Set(issues)];
  const bdiMissing=(estimate.errors||[]).some(x=>x.code==='BDI_INPUT'||x.code==='BDI_TAX');
  // estimateBudget registra erro por item e continua somando os demais.
  // Nunca exibir esse subtotal parcial como se fosse o custo total do orçamento.
@@ -42,6 +41,7 @@ export function assembleAutomaticBriefing(budget,costs,workforce){
  if(arithmeticIncomplete&&services.length)
   issues.push('Existe serviço ou custo adicional com valor inválido; totais parciais foram ocultados até corrigir os lançamentos.');
  const scheduleReady=services.length>0&&!!plan.ready&&!incompleteProductivity;
+ const deduped=[...new Set(issues)];
  return {
   budget:{id:budget.id,code:budget.code,title:budget.title,status:budget.status,
    lock_version:budget.lock_version,reference_month:budget.reference_month,regime:budget.regime},
