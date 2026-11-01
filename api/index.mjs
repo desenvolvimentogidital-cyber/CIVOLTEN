@@ -12,6 +12,7 @@ import {handleCompanyCosts} from '../src/company-costs-api.mjs';
 import {handleScheduleManagement} from '../src/schedule-management-api.mjs';
 import {handleReviewedAutoplan} from '../src/reviewed-autoplan-api.mjs';
 import {probeTenantRuntime,tenantScopedQueries} from '../src/tenant-db-guard.mjs';
+import {handleAccountAuth,signupConfigured} from '../src/account-auth-api.mjs';
 import {handleBudgetRequiredProfessions} from '../src/budget-required-professions-api.mjs';
 import {handleScheduleProgress} from '../src/schedule-progress-api.mjs';
 import {handleRemainingSchedule} from '../src/schedule-remaining-api.mjs';
@@ -90,32 +91,11 @@ export function createApi(database,opts={}){
    }
    if(resource==='auth'&&id==='status'&&method==='GET'){
      const user=await who(req,database,multiTenant);
-     return response(res,200,{authenticated:!!user,user,signup_enabled:false});
+     return response(res,200,{authenticated:!!user,user,signup_enabled:signupConfigured(opts,multiTenant)});
    }
-   if(resource==='auth'&&id==='signup'&&method==='POST'){
-     const enabled=multiTenant&&(opts.signupEnabled===true||
-       (opts.signupEnabled!==false&&process.env.CIVOLTEN_SIGNUP_ENABLED==='true'));
-     if(!enabled)return response(res,503,{error:'Cadastro público ainda não liberado: isolamento e verificação de contas em homologação',code:'SIGNUP_NOT_RELEASED'});
-     const security=await probeTenantRuntime(database);
-     if(!security.ready)return response(res,503,{error:'Credencial PostgreSQL ou RLS não permite cadastro seguro',code:'TENANT_DB_NOT_ISOLATED'});
-     const b=await readBody(req),name=requireField(b.organization_name,'Nome da empresa',160),
-       login=requireField(b.login,'E-mail',120).toLowerCase();
-     if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(login))return response(res,400,{error:'Informe e-mail válido'});
-     const passwordHash=hashPassword(b.password);
-     const fingerprint=hexhash(login+'|'+String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'').split(',')[0].trim());
-     const previous=await database.query("SELECT count(*)::int AS attempts FROM auth_signup_attempts WHERE fingerprint=$1 AND attempted_at>now()-interval '1 hour'",[fingerprint]);
-     if(Number(previous[0]?.attempts)>=3)return response(res,429,{error:'Limite de cadastros atingido. Tente mais tarde.'},{'Retry-After':'3600'});
-     await database.query('INSERT INTO auth_signup_attempts(fingerprint) VALUES($1)',[fingerprint]);
-     const organizationId=randomUUID(),userId=randomUUID();
-     await database.transaction([
-      database.query("SELECT set_config('civolten.organization_id',$1,true)",[organizationId]),
-      database.query('INSERT INTO organizations(id,name) VALUES($1,$2)',[organizationId,name]),
-      database.query("INSERT INTO app_users(id,organization_id,login,password_hash,role,must_change_password,is_active) VALUES($1,$2,$3,$4,'administrador',false,true)",[userId,organizationId,login,passwordHash]),
-      database.query("INSERT INTO audit_events(actor_id,entity_type,entity_id,action,metadata) VALUES($1,'organizations',$2,'signup',jsonb_build_object('email_unverified',true))",[userId,organizationId])
-     ]);
-     return response(res,201,{ok:true,account_created:true,login,
-      email_verified:false,commercial_release:false});
-   }
+   const accountHandled=await handleAccountAuth({req,res,db:database,parts,method,
+     sendResponse:response,readBody,opts,multiTenant,hashPassword});
+   if(accountHandled)return;
    if(resource==='auth'&&id==='bootstrap'&&method==='POST'){
      const secret=opts.bootstrapSecret||process.env.CIVOLTEN_BOOTSTRAP_SECRET;
      if(!secret)return response(res,403,{error:'Configuração administrativa desativada'});
