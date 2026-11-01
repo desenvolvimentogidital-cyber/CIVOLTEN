@@ -11,6 +11,7 @@ import {handleBudgetPlanning} from '../src/budget-planning-api.mjs';
 import {handleCompanyCosts} from '../src/company-costs-api.mjs';
 import {handleScheduleManagement} from '../src/schedule-management-api.mjs';
 import {handleReviewedAutoplan} from '../src/reviewed-autoplan-api.mjs';
+import {probeTenantRuntime,tenantScopedQueries} from '../src/tenant-db-guard.mjs';
 import {handleBudgetRequiredProfessions} from '../src/budget-required-professions-api.mjs';
 import {handleScheduleProgress} from '../src/schedule-progress-api.mjs';
 import {handleRemainingSchedule} from '../src/schedule-remaining-api.mjs';
@@ -45,7 +46,7 @@ function validateRequest(req){
 }
 async function who(req,sql){
  const token=sessionToken(req);if(!/^[a-f0-9]{64}$/.test(token))return null;
- const data=await sql.query("SELECT u.id,u.login,u.role,u.must_change_password FROM app_sessions s JOIN app_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_active=true LIMIT 1",[hexhash(token)]);
+ const data=await sql.query("SELECT u.id,u.organization_id,u.login,u.role,u.must_change_password FROM app_sessions s JOIN app_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_active=true LIMIT 1",[hexhash(token)]);
  return data[0]||null;
 }
 const writable=user=>user.role==='administrador'||user.role==='orcamentista';
@@ -63,8 +64,10 @@ function getParts(req){
  if(parts[0]==='api'&&parts[1]==='v1')return parts.slice(2);
  return [];
 }
-export function createApi(sql,opts={}){
+export function createApi(database,opts={}){
  return async(req,res)=>{
+  let sql=database;
+  const multiTenant=opts.multiTenant===true||(opts.multiTenant!==false&&process.env.CIVOLTEN_MULTI_TENANT==='true');
   try{
    const method=req.method||'GET',parts=getParts(req);
    const [resource,id,sub]=parts;
@@ -118,8 +121,16 @@ export function createApi(sql,opts={}){
      if(token)await sql.query('UPDATE app_sessions SET revoked_at=now() WHERE token_hash=$1',[hexhash(token)]);
      return response(res,200,{ok:true},{'Set-Cookie':cookie('',0)});
    }
-   const user=await who(req,sql);
+   const user=await who(req,database);
    if(!user)return response(res,401,{error:'Sessão necessária'});
+   if(multiTenant){
+    const security=await probeTenantRuntime(database);
+    if(!security.ready)return response(res,503,{
+     error:'Cadastro multiempresa indisponível: banco não possui isolamento completo',
+     code:'TENANT_DB_NOT_ISOLATED',commercial_release:false});
+    try{sql=tenantScopedQueries(database,user.organization_id)}
+    catch{return response(res,503,{error:'Contexto de organização indisponível',code:'TENANT_CONTEXT_REQUIRED'})}
+   }
    if(user.must_change_password && !(resource==='auth'&&id==='change-password'))return response(res,403,{error:'Altere a senha temporária antes de acessar dados do CIVOLTEN',password_change_required:true});
    if(resource==='me'&&method==='GET')return response(res,200,user);
    const stage5Handled=await handleStage5Readiness({req,res,sql,user,parts,method,send:response});
