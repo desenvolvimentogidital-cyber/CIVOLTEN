@@ -24,7 +24,8 @@ Este plano não transforma demonstrações, estimativas ou testes sintéticos em
 
 ## Fase 3 — Custos próprios e tributação (bloqueante)
 - [x] Cadastro de salário mensal, adicionais, dias/hora pagos, tarifa por profissão, despesas fixas, margem e pró-labore.
-- [ ] Cadastrar custos reais da equipe e despesas; o Neon principal não tinha trabalhadores ou tarifas na última conferência.
+- [x] Consulta automática das profissões SIURB exigidas pelos serviços do orçamento: compara códigos horistas/mensalistas à equipe real, destaca ausências e oferece cadastro direto sem digitar código/descrição novamente. O resumo automático do orçamento também sinaliza profissões sem funcionários ativos.
+- [ ] Cadastrar trabalhadores, salários, jornadas e despesas reais da CIVOLTEN; a orientação automática apenas facilita o preenchimento e NÃO cria colaboradores fictícios.
 - [ ] Revisar encargos, benefícios, dias úteis, produtividade, valores de material/equipamento e critérios de rateio.
 - [ ] Contador confirmar o tratamento de tributos de serviços e eventual venda **separada** de materiais; 6% e 4,5% são hipóteses editáveis, não fatos homologados.
 - [ ] Conciliar BDI, prolabore, tributos e indiretos para evitar cobrança dupla.
