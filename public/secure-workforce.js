@@ -44,6 +44,13 @@ export function workforcePanel(data,esc,planning={}){
  const form='<details class="workforce-adjust"><summary>Ajustar prazo e jornada (opcional)</summary>'+
   '<form id="workforce-settings-form" class="workforce-settings">'+
   '<div class="workforce-fields">'+
+  '<div class="field"><label for="wf-mode">Modo de execução</label>'+
+  '<select id="wf-mode" name="execution_mode" required>'+
+  '<option value="single_team" '+((data.execution_mode??data.resource_schedule?.execution_mode??'single_team')==='single_team'?'selected':'')+
+  '>Equipe única — fazer um serviço por vez</option>'+
+  '<option value="separate_teams" '+((data.execution_mode??data.resource_schedule?.execution_mode)==='separate_teams'?'selected':'')+
+  '>Equipes separadas — executar frentes independentes simultaneamente</option>'+
+  '</select><small class="muted">A precedência técnica alvenaria → chapisco → reboco permanece em ambos os modos. A mesma equipe nunca ocupa dois serviços ao mesmo tempo.</small></div>'+
   '<div class="field"><label for="wf-available">Profissionais disponíveis (sem contar você)</label>'+
   '<input id="wf-available" type="number" name="available_workers" min="1" max="100" step="1" value="'+esc(cfg.available_workers??'')+
   '" placeholder="Ex.: 5 ou 10"><small class="muted">Opcional. Limite por frente/atividade; não pressupõe funcionários atuando ao mesmo tempo em frentes diferentes.</small></div>'+
@@ -76,7 +83,8 @@ export function workforcePanel(data,esc,planning={}){
   '<ol class="workforce-sequence-list">'+sequenceCards+'</ol>'+missingCards+
   '<p class="muted tiny">'+esc(execution.planning_note||'Confirmar precedências e tempo de cura/secagem com o responsável técnico.')+'</p></section>';
  const workforceSummary='<div class="card workforce-final-summary"><h2>Resumo final da mão de obra</h2>'+
-  '<p class="muted tiny">Os mesmos profissionais podem trabalhar em serviços diferentes. Não somamos o mesmo funcionário duas vezes quando os serviços são sequenciais.</p>'+
+  '<p class="muted tiny">Modo: '+esc(data.execution_mode==='separate_teams'?'equipes separadas com frentes simultâneas':'uma única equipe compartilhada e serviços sequenciais')+
+  '. Os mesmos profissionais podem trabalhar em serviços diferentes. Não somamos o mesmo funcionário duas vezes quando os serviços são sequenciais.</p>'+
   (roles.length?'<div class="table-wrap"><table class="table"><thead><tr><th>Profissão</th><th>Profissionais no pico</th>'+
    (cost?'<th>Custo-hora interno</th>':'')+'</tr></thead><tbody>'+occupationRows+'</tbody></table></div>':
    '<p class="muted">Sem composição por profissão. O total de pessoas por função depende da revisão do serviço.</p>')+
@@ -100,7 +108,8 @@ export function workforcePanel(data,esc,planning={}){
   'Os coeficientes de mão de obra SIURB são parciais; o prazo e as profissões devem ser conferidos na obra. A soma simultânea é limitada pelo efetivo global configurado no cronograma.'+
   (s.without_productivity?'<p class="danger"><strong>'+esc(s.without_productivity)+
   ' serviço(s) sem coeficiente:</strong> o total de equipes pode estar subestimado.</p>':'')+
-  '<p>Os serviços dependentes são planejados em sequência; o mesmo profissional pode executar etapas diferentes. Não foram computadas esperas de cura ou secagem.</p></div>';
+  '<p>'+esc(data.mode_note||'Os serviços dependentes são planejados em sequência; o mesmo profissional pode executar etapas diferentes.')+
+  ' O mesmo profissional não pode ocupar duas equipes simultâneas. Feriados, cura e secagem só entram quando informados.</p></div>';
  return '<section class="workforce-section" aria-label="Cronograma automático do orçamento">'+
   '<div class="workforce-intro"><div><div class="breadcrumb">SERVIÇOS IMPORTADOS DO ORÇAMENTO</div>'+
   '<h2>Profissionais e equipes necessários</h2>'+
