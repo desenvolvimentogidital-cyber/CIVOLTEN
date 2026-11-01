@@ -113,7 +113,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
   await send(opts)({to:login,kind:'verify',token});
   return done(202,{...generic,verification_required:true});
  }
- const users=await db.query("SELECT id FROM civolten_auth_user($1,$2)",[login,'verify']);
+ const users=await db.query("SELECT id,organization_id FROM civolten_auth_user($1,$2)",[login,'verify']);
  if(parts[1]==='resend-verification'){
   if(users.length){
    const token=await newToken(tenantScopedQueries(db,users[0].organization_id),users[0].id,'verify',30,users[0].organization_id);
@@ -122,7 +122,7 @@ export async function handleAccountAuth({req,res,db,parts,method,sendResponse,re
   return done(202,generic);
  }
  if(parts[1]==='request-reset'){
-  const active=await db.query("SELECT id FROM civolten_auth_user($1,$2)",[login,'reset']);
+  const active=await db.query("SELECT id,organization_id FROM civolten_auth_user($1,$2)",[login,'reset']);
   if(active.length){
    const token=await newToken(tenantScopedQueries(db,active[0].organization_id),active[0].id,'reset',20,active[0].organization_id);
    await send(opts)({to:login,kind:'reset',token});
