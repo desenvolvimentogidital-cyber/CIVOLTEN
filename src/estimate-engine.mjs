@@ -45,11 +45,13 @@ export function estimateBudget(input){
    const freight=scaled(entry.freight_unit_cost??0,4,'Frete unitário do item '+(i+1));
    const other=scaled(entry.other_unit_cost??0,4,'Outros custos unitários do item '+(i+1));
    if(quantity<=0n||unitCost<=0n)invalid('Quantidade e custo unitário devem ser positivos');
-   const lossUnit=roundDiv(unitCost*loss,10000n);
-   const grossUnitCost=unitCost+lossUnit+freight+other;
-   cost=roundDiv(quantity*grossUnitCost,100000000n);
+   // Calcular a perda antes do arredondamento monetário: arredondar por
+   // unidade elimina frações que podem virar reais em grandes quantitativos.
+   // quantidade: 1e6; custo unitário: 1e4; percentual: 1e2.
+   const costWithLoss=unitCost*(10000n+loss)+(freight+other)*10000n;
+   cost=roundDiv(quantity*costWithLoss,1000000000000n);
    const baseCost=roundDiv(quantity*unitCost,100000000n);
-   const lossCost=roundDiv(quantity*lossUnit,100000000n);
+   const lossCost=roundDiv(quantity*unitCost*loss,1000000000000n);
    const freightCost=roundDiv(quantity*freight,100000000n);
    const otherCost=roundDiv(quantity*other,100000000n);
    breakdown={base_reais:reais(baseCost),loss_reais:reais(lossCost),freight_reais:reais(freightCost),other_reais:reais(otherCost),
