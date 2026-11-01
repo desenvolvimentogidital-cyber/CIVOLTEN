@@ -14,7 +14,8 @@ function mock(role={rolsuper:false,rolbypassrls:false}){
  const sql={
   async query(q,args=[]){
    queries.push({q,args});
-   if(q.includes('FROM app_sessions s'))return [userA];
+   if(q.includes('FROM app_sessions s')||q.includes('FROM civolten_auth_session('))return [userA];
+   if(q.includes('FROM civolten_auth_user('))return [];
    if(q.includes('FROM pg_class c JOIN pg_namespace'))return policies;
    if(q.includes('FROM pg_roles WHERE rolname=current_user'))return [role];
    if(q.includes('FROM app_users WHERE organization_id=$1'))return args[0]===orgA?[userA]:[];
