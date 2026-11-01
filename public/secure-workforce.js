@@ -10,7 +10,8 @@ export function workforcePanel(data,esc,planning={}){
  if(data.error)return '<div class="card workforce-wait" role="alert"><h2>Não foi possível calcular</h2><p class="danger">'+esc(data.error)+'</p><p class="muted">A lista de serviços no orçamento continua preservada. Atualize a página para tentar novamente.</p></div>';
  const s=data.summary||{},cfg=data.settings||{},items=data.services||[];
  const validatedSchedule=!!data.resource_schedule?.ready&&!s.partial_estimate&&
-  items.length>0&&items.every(item=>item.reviewed===true);
+  items.length>0&&items.every(item=>item.reviewed===true)&&
+  data.staffing_verified===true;
  const sbox=(label,value,sub)=>'<div class="card workforce-stat"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(sub)+'</small></div>';
  const stats='<div class="workforce-stat-grid">'+
   sbox('Serviços no orçamento',s.total_services??0,'Selecionados no orçamento')+
@@ -51,6 +52,13 @@ export function workforcePanel(data,esc,planning={}){
   '<option value="separate_teams" '+((data.execution_mode??data.resource_schedule?.execution_mode)==='separate_teams'?'selected':'')+
   '>Equipes separadas — executar frentes independentes simultaneamente</option>'+
   '</select><small class="muted">A precedência técnica alvenaria → chapisco → reboco permanece em ambos os modos. A mesma equipe nunca ocupa dois serviços ao mesmo tempo.</small></div>'+
+  '<div class="field"><label for="wf-staff-mode">Origem da equipe</label>'+
+  '<select id="wf-staff-mode" name="staff_mode">'+
+  '<option value="hypothetical" '+(data.staff_mode!=='registered'?'selected':'')+
+  '>Dimensionamento teórico SIURB</option>'+
+  '<option value="registered" '+(data.staff_mode==='registered'?'selected':'')+
+  '>Somente funcionários ativos cadastrados</option></select>'+
+  '<small class="muted">A segunda opção confere pedreiros, serventes, eletricistas e outras profissões por quantidade disponível. Não reserva funcionários nem aprova o prazo.</small></div>'+
   '<div class="field"><label for="wf-available">Profissionais disponíveis (sem contar você)</label>'+
   '<input id="wf-available" type="number" name="available_workers" min="1" max="100" step="1" value="'+esc(cfg.available_workers??'')+
   '" placeholder="Ex.: 5 ou 10"><small class="muted">Opcional. Limite por frente/atividade; não pressupõe funcionários atuando ao mesmo tempo em frentes diferentes.</small></div>'+
@@ -109,7 +117,11 @@ export function workforcePanel(data,esc,planning={}){
   (s.without_productivity?'<p class="danger"><strong>'+esc(s.without_productivity)+
   ' serviço(s) sem coeficiente:</strong> o total de equipes pode estar subestimado.</p>':'')+
   '<p>'+esc(data.mode_note||'Os serviços dependentes são planejados em sequência; o mesmo profissional pode executar etapas diferentes.')+
-  ' O mesmo profissional não pode ocupar duas equipes simultâneas. Feriados, cura e secagem só entram quando informados.</p></div>';
+  ' O mesmo profissional não pode ocupar duas equipes simultâneas. Feriados, cura e secagem só entram quando informados.</p>'+
+  ((data.resource_schedule?.errors||[]).length?
+   '<p class="danger">'+data.resource_schedule.errors.map(esc).join('; ')+'</p>':'')+
+  (data.staff_mode!=='registered'?'<p class="muted tiny">Duração teórica: a disponibilidade real por profissão ainda não foi comprovada.</p>':'')+
+  '</div>';
  return '<section class="workforce-section" aria-label="Cronograma automático do orçamento">'+
   '<div class="workforce-intro"><div><div class="breadcrumb">SERVIÇOS IMPORTADOS DO ORÇAMENTO</div>'+
   '<h2>Profissionais e equipes necessários</h2>'+
