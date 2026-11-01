@@ -7,7 +7,7 @@
  * A bare SET and a following independent query are NOT safe with pooling.
  */
 export const protectedTables=Object.freeze([
- 'app_users','app_sessions','clients','projects','budgets','budget_items','budget_item_cost_reviews',
+ 'organizations','app_users','app_sessions','account_action_tokens','clients','projects','budgets','budget_items','budget_item_cost_reviews',
  'budget_costing_profiles','budget_extra_direct_costs',
  'budget_service_planning','budget_service_dependencies','company_workers',
  'company_labor_rates','company_overhead_config','company_pricing_config',
@@ -43,8 +43,10 @@ export async function probeTenantRuntime(database){
     (SELECT count(*)::int FROM pg_policies p WHERE p.schemaname='public' AND p.tablename=c.relname) AS policy_count,
     EXISTS(SELECT 1 FROM pg_policies p WHERE p.schemaname='public' AND p.tablename=c.relname
      AND p.policyname='tenant_only' AND p.cmd='ALL'
-     AND p.qual LIKE '%organization_id%' AND p.qual LIKE '%civolten.organization_id%'
-     AND p.with_check LIKE '%organization_id%' AND p.with_check LIKE '%civolten.organization_id%') AS has_policy
+     AND p.qual LIKE '%civolten.organization_id%'
+     AND p.with_check LIKE '%civolten.organization_id%'
+     AND (c.relname='organizations' OR
+       (p.qual LIKE '%organization_id%' AND p.with_check LIKE '%organization_id%'))) AS has_policy
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname='public' AND c.relkind IN ('r','p')`)
  ]);
