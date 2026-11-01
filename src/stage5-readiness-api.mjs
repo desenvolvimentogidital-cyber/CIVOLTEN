@@ -15,8 +15,8 @@ export async function handleStage5Readiness({req,res,user,sql,parts,method,send}
   // Aggregated operational status only. No names, passwords, private amounts,
   // customer details or credentials are returned from this endpoint.
   sql.query(`SELECT
-   (SELECT count(*)::int FROM app_users WHERE role='administrador' AND is_active=true) AS active_administrators,
-   (SELECT count(*)::int FROM app_users WHERE role='administrador' AND is_active=true AND must_change_password=true) AS administrators_pending_password_change,
+   (SELECT count(*)::int FROM app_users WHERE ${sql.organizationId?'organization_id=$1 AND ':''}role='administrador' AND is_active=true) AS active_administrators,
+   (SELECT count(*)::int FROM app_users WHERE ${sql.organizationId?'organization_id=$1 AND ':''}role='administrador' AND is_active=true AND must_change_password=true) AS administrators_pending_password_change,
    (SELECT count(*)::int FROM budgets) AS budgets,
    (SELECT count(*)::int FROM reference_prices) AS reference_prices,
    (SELECT count(*)::int FROM reference_composition_details) AS reference_compositions,
@@ -45,7 +45,7 @@ export async function handleStage5Readiness({req,res,user,sql,parts,method,send}
    (SELECT count(*)::int FROM company_labor_rates) AS company_hourly_rates,
    (SELECT count(*)::int FROM company_overhead_config WHERE singleton=1) AS company_overhead_profiles,
    (SELECT count(*)::int FROM company_workers WHERE active=true) AS active_company_workers,
-   (SELECT count(*)::int FROM proposals) AS issued_proposals`,[])
+   (SELECT count(*)::int FROM proposals) AS issued_proposals`,sql.organizationId?[sql.organizationId]:[])
  ]);
  const schema=validateSchema({tables,columns});
  const evidence=schema.ready?{schema_ready:{passed:true,reference:'consulta interna information_schema'}}:{};
