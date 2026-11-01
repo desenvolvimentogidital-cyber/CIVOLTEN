@@ -44,9 +44,11 @@ function validateRequest(req){
  if(String(req.headers['sec-fetch-site']||'').toLowerCase()==='cross-site')throw Object.assign(new Error('Origem bloqueada'),{status:403});
  if(req.headers['x-civolten-request']!=='1')throw Object.assign(new Error('Cabeçalho anti-CSRF obrigatório'),{status:403});
 }
-async function who(req,sql){
+async function who(req,sql,multiTenant=false){
  const token=sessionToken(req);if(!/^[a-f0-9]{64}$/.test(token))return null;
- const data=await sql.query("SELECT u.id,u.organization_id,u.login,u.role,u.must_change_password FROM app_sessions s JOIN app_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_active=true LIMIT 1",[hexhash(token)]);
+ const data=await sql.query(multiTenant?
+  "SELECT u.id,u.organization_id,u.login,u.role,u.must_change_password FROM app_sessions s JOIN app_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_active=true LIMIT 1":
+  "SELECT u.id,u.login,u.role,u.must_change_password FROM app_sessions s JOIN app_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_active=true LIMIT 1",[hexhash(token)]);
  return data[0]||null;
 }
 const writable=user=>user.role==='administrador'||user.role==='orcamentista';
@@ -87,7 +89,7 @@ export function createApi(database,opts={}){
      return response(res,200,{ok:data[0]?.connected===1,database:'connected',mode:'homologacao'});
    }
    if(resource==='auth'&&id==='status'&&method==='GET'){
-     const user=await who(req,database);
+     const user=await who(req,database,multiTenant);
      return response(res,200,{authenticated:!!user,user,signup_enabled:false});
    }
    if(resource==='auth'&&id==='signup'&&method==='POST'){
@@ -150,7 +152,7 @@ export function createApi(database,opts={}){
      if(token)await sql.query('UPDATE app_sessions SET revoked_at=now() WHERE token_hash=$1',[hexhash(token)]);
      return response(res,200,{ok:true},{'Set-Cookie':cookie('',0)});
    }
-   const user=await who(req,database);
+   const user=await who(req,database,multiTenant);
    if(!user)return response(res,401,{error:'Sessão necessária'});
    if(multiTenant){
     const security=await probeTenantRuntime(database);
