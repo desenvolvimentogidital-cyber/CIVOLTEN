@@ -9,7 +9,7 @@ import {syncOfflineBudget} from './offline-sync.js';
 /* Painel privado CIVOLTEN — dados persistidos com validações para operação comercial
  * Jamais usar localStorage para informações comerciais ou tokens de sessão.
  */
-const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleRemaining:null,scheduleWorkforce:null,scheduleWorkforceSettings:null,schedulePlanning:null,scheduleAdvanced:false,finance:null,financeSelected:null,financeDraft:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',busy:false,autoBriefing:null};
+const state={user:null,view:'inicio',clients:[],projects:[],budgets:[],detail:null,users:[],costs:null,costCatalog:[],schedulePlan:null,schedulePreview:null,scheduleProgress:null,scheduleRemaining:null,scheduleWorkforce:null,scheduleWorkforceSettings:null,schedulePlanning:null,scheduleAdvanced:false,finance:null,financeSelected:null,financeDraft:null,scheduleSettings:null,scheduleTaskId:null,mode:'login',signupEnabled:false,accountToken:null,busy:false,autoBriefing:null};
 const app=document.querySelector('#secure-app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const BRL=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
@@ -28,15 +28,34 @@ async function api(path,method='GET',payload){
 }
 function brand(){return '<img src="/assets/logo.png" alt="CIVOLTEN" class="logo">'}
 function authView(){
- const setup=state.mode==='setup';
+ const mode=state.mode,setup=mode==='setup';
+ const titles={login:'Acesso seguro',setup:'Configuração inicial',signup:'Criar conta',
+  verify:'Confirmar e-mail',resend:'Reenviar confirmação',forgot:'Recuperar senha',reset:'Definir nova senha'};
+ let form;
+ if(mode==='signup')form='<form id="signupForm">'+field('Empresa','organization_name','text',true)+
+  field('E-mail','login','email',true)+field('Senha (12 a 128 caracteres)','password','password',true,'','minlength="12" maxlength="128" autocomplete="new-password"')+
+  '<button class="btn primary block" type="submit">Criar conta</button></form>';
+ else if(mode==='verify')form='<form id="verifyForm"><p>O código de confirmação vale 30 minutos.</p>'+
+  '<button class="btn primary block" type="submit" '+(state.accountToken?'':'disabled')+'>Confirmar e-mail</button></form>';
+ else if(mode==='reset')form='<form id="resetForm">'+
+  field('Nova senha (mínimo 12 caracteres)','new_password','password',true,'','minlength="12" maxlength="128" autocomplete="new-password"')+
+  '<button class="btn primary block" type="submit" '+(state.accountToken?'':'disabled')+'>Alterar senha</button></form>';
+ else if(mode==='forgot'||mode==='resend')form='<form id="'+(mode==='forgot'?'forgotForm':'resendForm')+'">'+
+  field('E-mail','login','email',true)+'<button class="btn primary block" type="submit">'+
+  (mode==='forgot'?'Solicitar recuperação':'Reenviar confirmação')+'</button></form>';
+ else form='<form id="authForm">'+(setup?field('Código de inicialização','bootstrap_secret','password',true):'')+
+  field(setup?'Usuário':'E-mail ou usuário','login','text',true)+field('Senha','password','password',true)+
+  '<button class="btn primary block" type="submit">'+(setup?'Criar administrador':'Entrar')+'</button></form>';
  app.innerHTML='<section class="login"><div class="login-card">'+brand()+
- '<h1>'+(setup?'Configuração inicial':'Acesso seguro')+'</h1><p class="muted">'+(setup?'Cadastre o administrador utilizando o código temporário definido na Vercel.':'Entre para acessar os cadastros persistidos no Neon PostgreSQL.')+'</p>'+
- '<div class="notice tiny">Dados persistidos no Neon real. Antes de usar dados pessoais de clientes, conclua backup e homologação de segurança.</div>'+
- '<form id="authForm">'+(setup?field('Código de inicialização','bootstrap_secret','password',true):'')+
- field('Usuário','login','text',true)+field('Senha','password','password',true)+
- '<button class="btn primary block" type="submit">'+(setup?'Criar administrador':'Entrar')+'</button></form>'+
- '<p class="muted tiny">O sistema não envia senhas nem dados para o armazenamento local do navegador.</p>'+
- (setup?'<button class="btn block" type="button" data-action="login-view">Voltar ao login</button>':'<p class="muted tiny">O administrador já está cadastrado. Entre com suas credenciais; se a senha for temporária, será solicitada a troca.</p>')+'</div></section>';
+  '<h1>'+esc(titles[mode]||titles.login)+'</h1>'+
+  '<p class="muted">'+(setup?'Cadastre o administrador usando o código temporário da Vercel.':
+  'Seus clientes e orçamentos ficam separados por organização após a homologação.')+'</p>'+
+  form+'<div class="actions">'+(mode==='login'&&state.signupEnabled?
+  '<button class="btn" type="button" data-action="auth-signup">Criar conta</button>'+
+  '<button class="btn" type="button" data-action="auth-forgot">Esqueci minha senha</button>'+
+  '<button class="btn" type="button" data-action="auth-resend">Reenviar confirmação</button>':'')+
+  (mode!=='login'?'<button class="btn" type="button" data-action="login-view">Voltar ao login</button>':'')+
+  '</div><p class="tiny muted">Não compartilhe sua senha ou códigos recebidos por e-mail.</p></div></section>';
 }
 function forcedPasswordView(){
  app.innerHTML='<section class="login"><div class="login-card">'+brand()+
@@ -292,6 +311,21 @@ document.addEventListener('submit',async e=>{
    const result=await api('auth/'+(setup?'bootstrap':'login'),'POST',setup?{bootstrap_secret:b.bootstrap_secret,login:b.login,password:b.password}:{login:b.login,password:b.password});
    form.reset();if(setup){state.mode='login';toast('Administrador criado. Faça login.');authView()}else{state.user=result.user;if(!state.user.must_change_password)await loadLists();state.view='inicio';render()}return;
   }
+  if(['signupForm','verifyForm','resetForm','forgotForm','resendForm'].includes(form.id)){
+   const route={signupForm:'signup',verifyForm:'verify-email',resetForm:'reset-password',
+    forgotForm:'request-reset',resendForm:'resend-verification'}[form.id];
+   const payload=form.id==='verifyForm'?{token:state.accountToken}:
+    form.id==='resetForm'?{token:state.accountToken,new_password:b.new_password}:b;
+   await api('auth/'+route,'POST',payload);
+   if(['verifyForm','resetForm'].includes(form.id)){
+     state.accountToken=null;history.replaceState(null,'','/secure.html');
+   }
+   state.mode='login';authView();
+   toast(form.id==='verifyForm'?'E-mail confirmado. Agora entre na conta.':
+    form.id==='resetForm'?'Senha redefinida. Entre com a senha nova.':
+    'Se o e-mail estiver elegível, as instruções serão enviadas.');
+   return;
+  }
   if(form.id.startsWith('finance-')){
     await financeHandleForm(form,{state,api,toast,refresh:async()=>{
       const base='budgets/'+state.detail.id+'/';
@@ -394,6 +428,11 @@ document.addEventListener('click',async e=>{
  try{
   if(act==='retry'){await init();return}
   if(act==='automatic-refresh'){state.autoBriefing=null;render();await refreshAutomaticBriefing();return}
+  if(['auth-signup','auth-forgot','auth-resend'].includes(act)){
+   if(!state.signupEnabled)throw Error('Cadastro ainda não liberado');
+   state.mode=act==='auth-signup'?'signup':act==='auth-forgot'?'forgot':'resend';
+   render();return;
+  }
   if(act==='login-view'||act==='setup-view'){state.mode=act==='setup-view'?'setup':'login';render();return}
   if(act==='theme'){const order=['auto','light','dark'],next=order[(order.indexOf(localStorage.getItem('civolten-theme')||'auto')+1)%3];localStorage.setItem('civolten-theme',next);theme();render();toast('Aparência: '+(next==='auto'?'automático':next==='light'?'claro':'escuro'));return}
   if(act==='close-dialog'){document.querySelector('#secure-dialog')?.remove();return}
@@ -599,7 +638,12 @@ document.addEventListener('click',async e=>{
 });
 async function init(){
  theme();
- try{const status=await api('auth/status');if(status.authenticated){state.user=status.user;if(!state.user.must_change_password)await loadLists()}}
+ const fragment=new URLSearchParams(location.hash.slice(1));
+ const verify=fragment.get('verify'),reset=fragment.get('reset');
+ if(verify&&/^[a-f0-9]{64}$/.test(verify)){state.accountToken=verify;state.mode='verify'}
+ else if(reset&&/^[a-f0-9]{64}$/.test(reset)){state.accountToken=reset;state.mode='reset'}
+ try{const status=await api('auth/status');state.signupEnabled=status.signup_enabled===true;
+  if(status.authenticated){state.user=status.user;if(!state.user.must_change_password)await loadLists()}}
  catch(err){console.warn('[CIVOLTEN] Painel seguro indisponível:',err.message);app.innerHTML='<section class="login"><div class="login-card">'+brand()+'<h1>API indisponível</h1><p class="error">'+esc(err.message)+'</p><div class="actions"><button class="btn primary" data-action="retry">Tentar novamente</button><a class="btn" href="/offline.html">Abrir rascunhos offline</a></div></div></section>';return}
  render();
 }
