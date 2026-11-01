@@ -25,9 +25,20 @@ if(!uri||!/^postgres(?:ql)?:\/\/postgres:[^@]+@(?:127\.0\.0\.1|localhost):5432\/
     [clientA,A,u,clientB,B,v]);
    await query("INSERT INTO budgets(id,organization_id,client_id,code,title,reference_month,regime,bdi_pct,created_by) VALUES ($1,$2,$3,$4,'Obra A','2026-07','Sem desoneração',0,$5),($6,$7,$8,$9,'Obra B','2026-07','Sem desoneração',0,$10)",
     [budgetA,A,clientA,'RL-A-'+budgetA.slice(0,8),u,budgetB,B,clientB,'RL-B-'+budgetB.slice(0,8),v]);
+   await query("INSERT INTO app_sessions(token_hash,user_id,organization_id,expires_at) VALUES($1,$2,$3,now()+interval '1 hour'),($4,$5,$6,now()+interval '1 hour')",['a'.repeat(64),u,A,'b'.repeat(64),v,B]);
+   await query("INSERT INTO account_action_tokens(token_hash,user_id,organization_id,purpose,expires_at) VALUES($1,$2,$3,'verify',now()+interval '1 hour'),($4,$5,$6,'verify',now()+interval '1 hour')",['c'.repeat(64),u,A,'d'.repeat(64),v,B]);
    await conn.query('BEGIN');
    await conn.query('SET LOCAL ROLE civolten_rls_qa');
    await conn.query("SELECT set_config('civolten.organization_id',$1,true)",[A]);
+   for(const [table,id] of [
+    ['organizations',A],['app_users',u],['app_sessions','a'.repeat(64)],
+    ['account_action_tokens','c'.repeat(64)]
+   ]){
+    const key=table==='organizations'||table==='app_users'?'id':'token_hash';
+    const rows=(await conn.query('SELECT '+key+' FROM '+table)).rows;
+    assert.equal(rows.length,1,table+' isolada');
+    assert.equal(rows[0][key],id,table+' pertence à A');
+   }
    let clients=(await conn.query('SELECT id,organization_id FROM clients ORDER BY name')).rows;
    assert.equal(clients.length,1);
    assert.equal(clients[0].id,clientA);
