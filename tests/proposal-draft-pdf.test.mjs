@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PDFDocument} from 'pdf-lib';
@@ -37,4 +38,17 @@ test('PDF de rascunho com serviços longos pagina sem truncar',async()=>{
   code:'QA-'+i,quantity:'10',unit:'M2',unit_cost:'15.00'}));
  const pdf=await PDFDocument.load(await renderProposalDraftPdf(d,{version:3,sha256:'f'.repeat(64)}));
  assert.ok(pdf.getPageCount()>1);
+});
+
+test('proposta de rascunho incorpora logos oficiais, apresenta cores metálicas e não expõe folha nem margem',async()=>{
+ const source=readFileSync(new URL('../src/proposal-draft-pdf.mjs',import.meta.url),'utf8');
+ assert.ok(source.includes('../public/assets/logo.png'));
+ assert.ok(source.includes('../public/assets/icone.png'));
+ assert.match(source,/Visão voltada ao cliente/);
+ assert.ok(!source.includes("costRow('Pro-labore"));
+ assert.ok(!source.includes("costRow('Meta de margem"));
+ const bytes=await renderProposalDraftPdf(sample(),{version:4,sha256:'f'.repeat(64)});
+ assert.ok(bytes.length>12000,'Logomarca e símbolo precisam estar incorporados ao PDF');
+ const pdf=await PDFDocument.load(bytes);
+ assert.equal(pdf.getPage(0).getWidth(),595.28);
 });

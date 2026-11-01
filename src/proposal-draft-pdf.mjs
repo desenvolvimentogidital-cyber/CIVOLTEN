@@ -3,11 +3,14 @@
  * Não utiliza cadastros fictícios, preços de venda presumidos nem e-mail.
  */
 import {PDFDocument,StandardFonts,rgb,degrees} from 'pdf-lib';
+import {readFile} from 'node:fs/promises';
 
 const W=595.28,H=841.89,LEFT=38,RIGHT=557,CONTENT=RIGHT-LEFT;
-const navy=rgb(.105,.149,.196),copper=rgb(.79,.39,.18);
-const pale=rgb(.953,.960,.968),lineColor=rgb(.84,.87,.89);
-const dark=rgb(.15,.20,.25),muted=rgb(.39,.44,.49),white=rgb(1,1,1);
+// Identidade oficial CIVOLTEN: grafite/preto, dourado metálico, prata.
+const navy=rgb(.98,.75,.31),copper=rgb(.90,.57,.13);
+const surface=rgb(.06,.09,.14),pageBg=rgb(.035,.055,.081);
+const pale=rgb(.105,.15,.205),lineColor=rgb(.25,.31,.38);
+const dark=rgb(.97,.98,.99),muted=rgb(.75,.79,.84),white=rgb(1,1,1);
 const safe=v=>String(v??'').replace(/[^\x20-\x7E\u00A0-\u00FF]/g,' ').replace(/\s+/g,' ').trim();
 const currency=v=>{
  if(v===null||v===undefined||v==='')return 'A REVISAR';
@@ -51,16 +54,25 @@ export async function renderProposalDraftPdf(snapshot,{version,sha256}={}){
  const pdf=await PDFDocument.create();
  const normal=await pdf.embedFont(StandardFonts.Helvetica);
  const bold=await pdf.embedFont(StandardFonts.HelveticaBold);
+ // Imagens oficiais já versionadas no projeto; nunca usar ícones inventados.
+ let logo=null,icone=null;
+ try{logo=await pdf.embedPng(await readFile(new URL('../public/assets/logo.png',import.meta.url)));}catch{/* mantém alternativa textual se o empacotamento omitir o arquivo */}
+ try{icone=await pdf.embedPng(await readFile(new URL('../public/assets/icone.png',import.meta.url)));}catch{/* alternativa sem símbolo */}
  let page,y,number=0;
  function begin(){
   page=pdf.addPage([W,H]);number++;
-  page.drawRectangle({x:0,y:H-103,width:W,height:103,color:navy});
+  page.drawRectangle({x:0,y:0,width:W,height:H,color:pageBg});
+  page.drawRectangle({x:0,y:H-103,width:W,height:103,color:surface});
   page.drawRectangle({x:0,y:H-107,width:W,height:4,color:copper});
-  page.drawRectangle({x:LEFT,y:H-82,width:4,height:48,color:copper});
-  page.drawText('CIVOLTEN',{x:LEFT+15,y:H-59,size:23,font:bold,color:white});
-  page.drawText('ELETRICA  &  CONSTRUCAO CIVIL',{x:LEFT+16,y:H-79,size:8,font:bold,color:lineColor});
+  page.drawRectangle({x:LEFT,y:H-85,width:4,height:59,color:copper});
+  if(logo)page.drawImage(logo,{x:LEFT+14,y:H-83,width:252,height:50});
+  else{
+   page.drawText('CIVOLTEN',{x:LEFT+15,y:H-59,size:23,font:bold,color:white});
+   page.drawText('ELETRICA & CONSTRUCAO CIVIL',{x:LEFT+16,y:H-79,size:8,font:bold,color:muted});
+  }
+  if(icone)page.drawImage(icone,{x:RIGHT-92,y:300,width:92,height:112,opacity:.085});
   page.drawRectangle({x:416,y:H-69,width:140,height:25,color:copper});
-  page.drawText('MODELO / RASCUNHO',{x:425,y:H-60,size:8,font:bold,color:white});
+  page.drawText('MODELO / RASCUNHO',{x:425,y:H-60,size:8,font:bold,color:surface});
   page.drawText('NAO EMITIDO',{x:63,y:390,size:51,font:bold,color:copper,opacity:.095,rotate:degrees(32)});
   y=H-134;
  }
@@ -99,7 +111,7 @@ export async function renderProposalDraftPdf(snapshot,{version,sha256}={}){
   page.drawRectangle({x:LEFT,y:y-26,width:CONTENT,height:26,color:navy});
   const top=y-17;
   for(const [x,t] of [[LEFT+10,'SERVICO / DESCRICAO'],[LEFT+283,'QTD'],[LEFT+342,'UN'],[LEFT+392,'UNITARIO'],[LEFT+470,'VALOR']])
-   page.drawText(t,{x,y:top,size:7.3,font:bold,color:white});
+   page.drawText(t,{x,y:top,size:7.3,font:bold,color:surface});
   y-=26;
  }
  function tableRow(item,index,laborOnly){
@@ -156,24 +168,14 @@ export async function renderProposalDraftPdf(snapshot,{version,sha256}={}){
  y-=8;tableHeader();
  for(const [index,item] of snapshot.items.entries())tableRow(item,index,laborOnly);
  y-=8;section('03  RESUMO FINANCEIRO - VALORES NAO APROVADOS');
+ // Visão voltada ao cliente: nunca exibir salário, custo próprio, BDI interno,
+ // pró-labore ou margem empresarial no corpo da proposta.
  if(laborOnly){
-  costRow('Materiais', 'NAO INCLUSOS');
-  costRow('Custo direto de mao de obra (nao e preco de venda)',currency(snapshot.scope_pricing?.labor_cost_reference_reais));
-  const sc=snapshot.scope_pricing?.sale_scenario;
-  if(sc){
-   costRow('Equipe, encargos e despesas rateadas',currency(sc.paid_labor_and_overhead_reais));
-   costRow('Pro-labore alocado a obra',currency(sc.owner_allocation_reais));
-   if(sc.margin_pct!==undefined)costRow('Meta de margem (sobre receita)',String(sc.margin_pct)+'%');
-   costRow('Preco indicativo - nao aprovado',currency(sc.indicative_sale_reais),{highlight:true});
-  }else costRow('Preco de venda','A REVISAR',{highlight:true});
- }else{
-  costRow('Custo direto dos servicos',currency(snapshot.costs?.direct_reais));
-  costRow('BDI analitico (inclui parcelas de lucro configuradas)',currency(snapshot.costs?.bdi_reais));
-  costRow('Contingencia adicional declarada',currency(snapshot.costs?.contingency_reais));
-  costRow('TOTAL PRELIMINAR - NAO APROVADO',currency(snapshot.costs?.total_reais),{highlight:true});
- }
+  costRow('FORNECIMENTO DE MATERIAIS','NAO INCLUSO');
+  costRow('VALOR DE VENDA INDICATIVO - NAO APROVADO',currency(snapshot.scope_pricing?.sale_scenario?.indicative_sale_reais),{highlight:true});
+ }else costRow('VALOR GLOBAL PRELIMINAR - NAO APROVADO',currency(snapshot.costs?.total_reais),{highlight:true});
  y-=5;
- paragraph('BDI e meta de margem da empresa nao devem ser somados novamente sobre a mesma base; tributos e custos reais exigem conferencia.',{
+ paragraph('Valores e tributos devem ser confirmados antes da emissao. Custos internos e metas empresariais nao fazem parte desta proposta.',{
   size:8,leading:13,color:muted
  });
  section('04  CONDICOES DE PAGAMENTO');
@@ -205,7 +207,7 @@ export async function renderProposalDraftPdf(snapshot,{version,sha256}={}){
  paragraph('Controle: versao '+version+'  |  SHA-256 '+sha256,{size:7.1,leading:13,color:muted});
  const pages=pdf.getPages();
  for(const [i,p] of pages.entries()){
-  p.drawLine({start:{x:LEFT,y:45},end:{x:RIGHT,y:45},thickness:0.8,color:lineColor});
+  p.drawLine({start:{x:LEFT,y:45},end:{x:RIGHT,y:45},thickness:0.8,color:copper});
   p.drawText('CIVOLTEN  |  RASCUNHO SEM VALIDADE COMERCIAL',{
    x:LEFT,y:28,size:7.3,font:bold,color:muted
   });
