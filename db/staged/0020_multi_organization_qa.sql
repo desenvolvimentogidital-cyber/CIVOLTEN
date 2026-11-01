@@ -10,6 +10,8 @@ INSERT INTO organizations(id,name)
  VALUES('00000000-0000-4000-8000-000000000001','CIVOLTEN (registros legados)')
  ON CONFLICT(id) DO NOTHING;
 
+-- Existing internal users remain active; new signups must verify e-mail.
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS organization_id UUID
  NOT NULL DEFAULT '00000000-0000-4000-8000-000000000001'
  REFERENCES organizations(id) ON DELETE RESTRICT;
@@ -142,4 +144,14 @@ CREATE TABLE IF NOT EXISTS auth_signup_attempts(
 CREATE INDEX IF NOT EXISTS idx_auth_signup_attempts
  ON auth_signup_attempts(fingerprint,attempted_at DESC);
 
+CREATE TABLE IF NOT EXISTS account_action_tokens(
+ token_hash CHAR(64) PRIMARY KEY,
+ user_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+ purpose TEXT NOT NULL CHECK(purpose IN ('verify','reset')),
+ created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ expires_at TIMESTAMPTZ NOT NULL,
+ consumed_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_action_tokens_user_purpose
+ ON account_action_tokens(user_id,purpose,created_at DESC);
 COMMIT;
