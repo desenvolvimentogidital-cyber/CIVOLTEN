@@ -114,7 +114,7 @@ async function readFile(file,options){
   if(file.size>90*1024*1024)throw new Error('ZIP grande para o celular. Extraia o Excel de composições e importe apenas o XLSX.');
   const JSZip=await ensureZIP(),zip=await JSZip.loadAsync(file);
   const entries=Object.values(zip.files).filter(x=>!x.dir&&/\.(xlsx|xls|csv)$/i.test(x.name))
-   .filter(x=>!/(INSTRUCOES|LEIA.ME|MANUTENCOES|FAMILIAS|PERCENTUAL|CATALOGO|PARAMETRIC)/i.test(x.name))
+   .filter(x=>!/(INSTRUCOES|LEIA.ME|MANUTENCOES|FAMILIAS|PERCENTUAL|CATALOGO|PARAMETRIC|MAO_DE_OBRA)/i.test(x.name))
    .filter(x=>options.kind==='insumos'?/INSUM|PRECO|SINAPI|SP/i.test(x.name):/COMP|CUSTO|SINAPI|SP/i.test(x.name))
    .filter(x=>!inferSheetUF('',x.name)||inferSheetUF('',x.name)===options.uf)
    .sort((a,b)=>Number(inferSheetUF('',b.name)===options.uf)-Number(inferSheetUF('',a.name)===options.uf))
@@ -125,7 +125,8 @@ async function readFile(file,options){
    try{
     const blob=await entry.async('uint8array');
     if(blob.length>35*1024*1024)throw new Error('Planilha interna muito grande: '+entry.name);
-    const book=window.XLSX.read(blob,{type:'array',cellDates:false});
+    const limited=/REFER[EÊ]NCIA/i.test(entry.name)?{sheets:options.kind==='insumos'?['ISD','ICD']:['Analítico',options.regime==='desonerada'?'CCD':'CSD']}:{};
+    const book=window.XLSX.read(blob,{type:'array',cellDates:false,dense:true,cellFormula:false,cellHTML:false,cellText:false,...limited});
     const parsed=parseWorkbook(book,options,entry.name);
     headers+=parsed.headers;
     for(const item of parsed.items)if(!all.has(item.id)||all.get(item.id).cost==null&&item.cost!=null)all.set(item.id,item);
@@ -135,7 +136,8 @@ async function readFile(file,options){
  }
  if(!/\.(xls|xlsx|csv)$/i.test(file.name))throw new Error('Selecione ZIP, XLSX, XLS ou CSV.');
  if(file.size>45*1024*1024)throw new Error('Arquivo grande para importação direta no celular. Selecione o Excel de São Paulo ou divida o arquivo.');
- const book=window.XLSX.read(new Uint8Array(await file.arrayBuffer()),{type:'array',cellDates:false});
+ const limited=/REFER[EÊ]NCIA/i.test(file.name)?{sheets:options.kind==='insumos'?['ISD','ICD']:['Analítico',options.regime==='desonerada'?'CCD':'CSD']}:{};
+ const book=window.XLSX.read(new Uint8Array(await file.arrayBuffer()),{type:'array',cellDates:false,dense:true,cellFormula:false,cellHTML:false,cellText:false,...limited});
  return {...parseWorkbook(book,options,file.name),errors:[]};
 }
 function openDB(){
