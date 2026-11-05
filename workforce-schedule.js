@@ -288,8 +288,14 @@ wizardStep2=function(){
  let html=step2Original();
  if(!s.wizard)return html;
  const schedule=ensureSchedule(s.wizard),view=calculate(s.wizard);
+ const hours=view.staffing.reduce((sum,role)=>sum+role.hours,0);
+ const staffLabel=view.staffing.map(role=>role.assigned+' '+role.name).join(' · ');
  const card='<div class="form-card"><h3 class="card-title">'+I('calendar')+' Cronograma e dimensionamento</h3>'+
- '<p class="wp-muted">Prazo desejado: '+view.days+' dias úteis · previsão com a equipe: '+view.projectDays+' dias. Serviços sem produtividade: '+view.missing+'.</p>'+
+ '<p class="wp-muted">Prazo desejado: '+view.days+' dias úteis · previsão com a equipe: '+view.projectDays+' dias úteis.</p>'+
+ (view.staffing.length?'<div class="wp-headline"><span>Profissionais sugeridos</span><strong>'+esc(staffLabel)+'</strong></div>'+
+ '<p class="wp-muted">Carga de execução: '+hours.toLocaleString('pt-BR',{maximumFractionDigits:2})+' horas-homem · '+view.productive+' horas produtivas/pessoa/dia.</p>':'')+
+ (view.missing?'<p class="wp-warning">'+view.missing+' serviço(s) sem produtividade conferida. Equipe e prazo da obra ainda estão incompletos.</p>':'')+
+ '<p class="wp-muted">Os dados são estimativas internas. Confirme o cronograma para incluir equipe e prazo na proposta do cliente.</p>'+
  '<button class="btn btn-outline block" type="button" data-action="wf-open">Abrir cronograma e ajustar equipe</button></div>';
  const anchor=html.lastIndexOf('<div class="form-actions">');
  return anchor>=0?html.slice(0,anchor)+card+html.slice(anchor):card+html;
@@ -392,5 +398,6 @@ document.addEventListener('click',e=>{
 },true);
 const style=document.createElement('style');
 style.textContent='.wp-panel{margin:12px 0}.wp-panel h3{font-size:17px;margin:7px 0 12px}.wp-muted{font-size:12px;line-height:1.5;color:#746b5a;margin:8px 0}.wp-warning{background:#fff0df;color:#8a3c14;font-size:12px;border-radius:11px;padding:11px;margin:9px 0;line-height:1.5}.wp-headline{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:13px;background:#fff3d9;border-radius:12px;font-size:13px;margin:12px 0}.wp-headline strong{font-size:15px}.wp-line{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #e8e3da;padding:10px 0}.wp-line span{flex:1}.wp-line span:last-child{text-align:right}.wp-line b{display:block;font-size:12px}.wp-line small{display:block;color:#726b5e;font-size:10px}.wp-role{padding:13px 0;border-bottom:1px solid #e0d8ca}.wp-role strong{font-size:14px}.wp-role div{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;font-size:11px;color:#666}.wp-role small{display:block;color:#666;font-size:11px}.wp-role input{max-width:90px}.wp-check{display:flex;gap:10px;align-items:flex-start;margin:11px 0;font-size:12px}.wp-check input{accent-color:#bc8b24;min-width:19px;min-height:19px}.wp-schedule-row{padding:12px 0;border-bottom:1px solid #eee}.wp-schedule-row b{display:block;font-size:13px}.wp-schedule-row small{display:block;color:#6c6354;font-size:11px;margin-top:5px}.wp-gantt-track{position:relative;display:block;height:13px;border-radius:6px;background:#eee9df;margin:9px 0 2px;overflow:hidden}.wp-gantt-bar{display:block;position:absolute;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,#bf8d24,#eac16e)}';
+window.CIVOLTENSchedule={calculate};
 document.head.append(style);
 })();
