@@ -22,13 +22,23 @@ host.innerHTML=[
 '<button id="cv-cloud-signup" class="cv-secondary" type="button">Criar conta</button></div>',
 '<div id="cv-cloud-actions" hidden><small id="cv-cloud-user"></small>',
 '<button id="cv-cloud-upload" type="button">Salvar backup deste celular na nuvem</button>',
+'<label style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:600"><input id="cv-cloud-auto" type="checkbox" style="width:19px;height:19px">Backup automático após salvar alterações (opcional)</label>',
 '<button id="cv-cloud-restore" class="cv-secondary" type="button">Restaurar backup da nuvem neste celular</button>',
 '<button id="cv-cloud-logout" class="cv-secondary" type="button">Sair da conta</button></div>',
 '<div id="cv-cloud-status" role="status" aria-live="polite"></div></section></dialog>'
 ].join('');
 document.body.append(host);
 const by=id=>host.querySelector('#'+id),dlg=by('cv-cloud-box'),status=by('cv-cloud-status'),actions=by('cv-cloud-actions'),login=by('cv-cloud-login');
-let busy=false;
+let busy=false,autoBusy=false,scheduled=null,currentUserId=null;
+const KEY_AUTO='civolten_cloud_auto_',KEY_REV='civolten_cloud_ack_revision_',KEY_SHA='civolten_cloud_ack_sha_',KEY_OWNER='civolten_cloud_device_owner_v1';
+const keyed=(base)=>base+currentUserId;
+const readAck=()=>{const raw=localStorage.getItem(keyed(KEY_REV));return raw===null?null:Number(raw)};
+const isAuto=()=>!!currentUserId&&localStorage.getItem(keyed(KEY_AUTO))==='1';
+async function digest(raw){const bytes=new TextEncoder().encode(raw);const hash=await crypto.subtle.digest('SHA-256',bytes);return Array.from(new Uint8Array(hash),v=>v.toString(16).padStart(2,'0')).join('');}
+async function rememberBackup(revision,raw){if(!currentUserId)throw new Error('Sessão não identificada');const sha=await digest(raw);localStorage.setItem(keyed(KEY_SHA),sha);localStorage.setItem(keyed(KEY_REV),String(revision));localStorage.setItem(KEY_OWNER,currentUserId);}
+function checkDeviceOwner(){const bound=localStorage.getItem(KEY_OWNER);if(bound&&bound!==currentUserId)throw new Error('Este navegador contém dados vinculados a outra conta. Use outro perfil/navegador para evitar misturar informações de empresas.');}
+function scheduleAuto(){clearTimeout(scheduled);if(isAuto())scheduled=setTimeout(()=>{autoUpload().catch(e=>note(e.message||'Falha no backup automático. Seus dados continuam no aparelho.'));},1200);}
+
 const note=m=>{status.textContent=String(m)};
 const setBusy=v=>{busy=v;for(const b of host.querySelectorAll('button'))b.disabled=v};
 function localData(){
@@ -48,9 +58,13 @@ async function refresh(){
  if(!auth){note('Neon Auth não configurado neste ambiente.');return;}
  const {data,error}=await auth.getSession();
  const user=data?.user||null;
+ currentUserId=user?.id||null;
  login.hidden=!!user;actions.hidden=!user;
+ by('cv-cloud-auto').checked=isAuto();
+ if(user){try{checkDeviceOwner()}catch(e){actions.hidden=true;note(e.message);return;}}
  by('cv-cloud-user').textContent=user?'Conta: '+user.email:'';
- note(error?error.message:(user?'Conectado. Escolha salvar ou restaurar com confirmação.':'Entre ou crie uma conta para guardar backups.'));
+ note(error?error.message:(user?'Conectado. Backup manual disponível. A automação é opcional e nunca substitui dados de outro aparelho sem revisão.':'Entre ou crie uma conta para guardar backups.'));
+ if(user&&isAuto())scheduleAuto();
 }
 async function token(){
  const {data,error}=await auth.token();
@@ -80,16 +94,22 @@ async function sign(signUp){
 async function upload(){
  if(busy)return;setBusy(true);
  try{
+  checkDeviceOwner();
   const local=localData(),current=await remote('GET');
+  const ack=readAck();
+  if(current.revision>0&&ack!==current.revision)throw new Error('A nuvem já possui dados que este navegador não sincronizou. Restaure e confira o backup antes de tentar substituir.');
   const detail='Dados deste celular: '+count(local)+'. '+(current.data?'Já existe um backup de '+count(current.data)+'. Será registrada uma nova versão.':'Este será o primeiro backup.')+'\nDeseja salvar este aparelho na nuvem?';
   if(!confirm(detail)){note('Operação cancelada.');return;}
+  const raw=JSON.stringify(local);
   const updated=await remote('PUT',{expectedRevision:current.revision,data:local});
+  await rememberBackup(updated.revision,raw);
   note('Backup salvo (versão '+updated.revision+'). Dados locais preservados.');
  }catch(e){note(e.message||'Erro ao enviar backup.');}finally{setBusy(false);}
 }
 async function restore(){
  if(busy)return;setBusy(true);
  try{
+  checkDeviceOwner();
   const cloud=await remote('GET');
   if(!cloud.data){note('Ainda não existe backup na nuvem.');return;}
   const local=localData();
@@ -97,7 +117,9 @@ async function restore(){
    note('Restauração cancelada.');return;
   }
   exportBeforeReplace(local);
-  localStorage.setItem(STORAGE,JSON.stringify(cloud.data));
+  const raw=JSON.stringify(cloud.data);
+  localStorage.setItem(STORAGE,raw);
+  await rememberBackup(cloud.revision,raw);
   note('Restauração concluída.');location.reload();
  }catch(e){note(e.message||'Não foi possível restaurar.');}finally{setBusy(false);}
 }
@@ -108,3 +130,45 @@ by('cv-cloud-signup').addEventListener('click',()=>sign(true));
 by('cv-cloud-upload').addEventListener('click',upload);
 by('cv-cloud-restore').addEventListener('click',restore);
 by('cv-cloud-logout').addEventListener('click',async()=>{setBusy(true);try{await auth.signOut();await refresh();}catch(e){note(e.message)}finally{setBusy(false)}});
+
+
+// O backup automático só começa após consentimento, e só atualiza revisões
+// já conhecidas deste aparelho. Divergência nunca sobrescreve dados remotos.
+async function autoUpload(){
+ if(!isAuto()||busy||autoBusy)return;
+ autoBusy=true;
+ try{
+  checkDeviceOwner();
+  const local=localData(),raw=JSON.stringify(local),sha=await digest(raw);
+  if(sha===localStorage.getItem(keyed(KEY_SHA)))return;
+  const current=await remote('GET'),ack=readAck();
+  if(current.revision>0&&ack!==current.revision){
+   note('CONFLITO: a nuvem tem uma versão nova. Backup automático suspenso para evitar sobrescrever informações. Abra Nuvem e restaure após conferir seus dados.');
+   return;
+  }
+  const updated=await remote('PUT',{expectedRevision:current.revision,data:local});
+  await rememberBackup(updated.revision,raw);
+  note('Backup automático concluído • versão '+updated.revision);
+  if(JSON.stringify(localData())!==raw)scheduleAuto();
+ }catch(e){note('Backup pendente (dados locais preservados): '+(e.message||'erro na conexão'));}
+ finally{autoBusy=false;}
+}
+by('cv-cloud-auto').addEventListener('change',async event=>{
+ if(!currentUserId){event.target.checked=false;return note('Entre na sua conta para ativar o backup.');}
+ if(event.target.checked){
+  try{
+   checkDeviceOwner();
+   if(!confirm('Ativar backup automático de novos dados neste aparelho? Se já houver alterações de outro aparelho, a operação será BLOQUEADA até a conferência.'))
+    {event.target.checked=false;return;}
+   localStorage.setItem(keyed(KEY_AUTO),'1');
+   scheduleAuto();
+   note('Backup automático ativado. Os dados locais continuam disponíveis offline.');
+  }catch(e){event.target.checked=false;note(e.message);}
+ }else{
+  localStorage.removeItem(keyed(KEY_AUTO));clearTimeout(scheduled);
+  note('Backup automático desativado; os dados locais foram mantidos.');
+ }
+});
+window.addEventListener('civolten:local-saved',()=>scheduleAuto());
+window.addEventListener('online',()=>scheduleAuto());
+window.addEventListener('pageshow',()=>{if(isAuto())scheduleAuto();});
