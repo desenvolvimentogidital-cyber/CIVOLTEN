@@ -39,8 +39,20 @@
   for(const o of [...fixedCodes,...jobCodes]){
    if(o.code==='das-mei'&&db.company?.taxRegime!=='MEI')continue;
    if(existing.some(e=>e.presetCode===o.code))continue;
-   if(o.code==='prolabore'&&existing.some(e=>normalize(e.name).includes('pro-labore')||normalize(e.name).includes('prolabore')))continue;
-   if(o.code==='das-mei'&&existing.some(e=>normalize(e.name).includes('das mei')))continue;
+   const owned= o.code==='prolabore'?existing.find(e=>normalize(e.name).includes('pro-labore')||normalize(e.name).includes('prolabore')):null;
+   if(owned){
+    owned.scope='fixed';owned.kind='owner-target';owned.presetCode='prolabore';
+    owned.cost=10000; // meta expressamente solicitada pelo usuário
+    continue;
+   }
+   const das=o.code==='das-mei'?existing.find(e=>normalize(e.name).includes('das mei')):null;
+   if(das){das.scope='fixed';das.presetCode='das-mei';continue;}
+   const meal=o.code==='almoco'?existing.find(e=>/almoco|almoco da equipe/.test(normalize(e.name))&&/refeicao/i.test(normalize(e.unit))):null;
+   if(meal){
+    meal.scope='job';meal.autoApply=true;meal.presetCode='almoco';
+    meal.presetQty=amount(meal.presetQty)||1;meal.presetPeople=1;meal.presetDays=1;
+    continue;
+   }
    const isFixed=fixedCodes.some(f=>f.code===o.code);
    existing.push({id:'expense-'+o.code, name:o.name,category:o.category,cost:o.code==='das-mei'&&amount(db.company?.das)>0?amount(db.company.das):o.cost,
     unit:o.unit,scope:isFixed?'fixed':'job',kind:o.kind||'expense',autoApply:!!o.applyDefault,
@@ -126,9 +138,13 @@
  startNew=function(){
   priorStart();
   if(s.wizard&&!s.wizard.id){
-   if(!s.wizard.costModel)snapshot(s.wizard);
-   defaultJobEntries(s.wizard);
-   keepTemp();render();
+   // Não migrar silenciosamente orçamentos antigos já iniciados.
+   const fresh=!s.wizard.title&&!s.wizard.clientId&&!(s.wizard.items||[]).length&&!(s.wizard.expenseItems||[]).length;
+   if(!s.wizard.costModel&&fresh)snapshot(s.wizard);
+   if(s.wizard.costModel==='fixed_hourly_v1'){
+    defaultJobEntries(s.wizard);
+    keepTemp();render();
+   }
   }
  };
  const priorModal=modalUI,priorModalSubmit=modalSubmit;
