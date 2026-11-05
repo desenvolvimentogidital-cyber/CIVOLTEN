@@ -48,6 +48,20 @@ Os arquivos oficiais "Insumos" e "Mão de Obra" são disponibilizados via proxy 
 Dados comerciais continuam no armazenamento local do navegador sem login/servidor sincronizado. Faça backups e não dependa exclusivamente desta versão para operação crítica.
 
 
+## Automatização de orçamento — etapa novembro/2026
+
+**Novos modelos de produtividade:** Em **Mais → Serviços → Novo/Editar**, cadastre até três funções/profissionais da equipe padrão, as horas de cada um para executar UMA unidade do serviço e a quantidade de profissionais. É possível escolher um material padrão e a quantidade por unidade. O aplicativo calcula o custo real da equipe com os salários, encargos e horas produtivas registrados em **Profissionais**. Dados existentes são mantidos.
+
+**Ao escolher o serviço:** A pesquisa procura na SIURB importada e na biblioteca CIVOLTEN; a unidade e os custos conferidos são preenchidos. Para serviços com equipe padrão cadastrada, mão de obra é calculada automaticamente, e o item salva uma fotografia das horas, taxas e profissionais usados. Mudanças posteriores no catálogo não devem reescrever automaticamente os orçamentos antigos.
+
+**Regra de referência:** o custo efetivo dos profissionais e insumos cadastrados é a base do **custo real**. Se a parcela de mão de obra/material da SIURB estiver **separada e conferida** e for mais alta, ela eleva a base do **preço sugerido** somente quando o escopo corresponder ao da proposta. Isso não aumenta artificialmente o custo real nem mascara o lucro. Não há comparação do custo global SIURB com um orçamento de apenas mão de obra.
+
+**Produção e despesas:** A etapa Itens mostra horas-homem e jornadas equivalentes de 8h quando há produtividade cadastrada. Embaixo, despesas já cadastradas podem ser lançadas com um toque, usando inicialmente 1 unidade/pessoa/dia e permitindo editar as quantidades. Não são incluídas invisivelmente e não entram duas vezes no orçamento.
+
+**O que continua manual:** cliente, quantitativos da obra, endereço, seleção de despesas reais, horas de produtividade ainda não conferidas, condições locais, benefícios e enquadramento de empregados, valores finais de fornecedores, aprovação da composição e conferência da proposta. Importação/validação da **planilha detalhada de Composições de Custos SIURB** ainda é necessária antes de permitir produtividade oficial preenchida automaticamente em TODOS os códigos.
+
+**Testes deste ciclo:** validação de sintaxe JS, cálculo de equipe CLT/terceirizada, exibição de campos de produtividade, cálculo de piso de preços em diferentes regimes de fornecimento e criação do build na Vercel. Testes completos num aparelho real, importação de toda a planilha oficial e persistência em banco ainda pendentes.
+
 ## Publicação na Vercel
 Importe a branch main, **Framework Other**, root `./` e sem build. A Vercel publica o HTML/CSS/JS e a função Node `api/siurb.js`. O serviço upstream pode ficar indisponível; o upload manual continua possível.
 
