@@ -4,7 +4,7 @@ on:
     branches: [main]
     paths: ['proposal-layout.js','automation-risk-core.js','automation-review.js','tests/automation-risk.cjs','tests/smoke-browser.cjs','api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','client/**','scripts/**','operations*.js','tests/operations.cjs','index.html','sw.js','vercel.json','.github/workflows/cloud-backend.yml']
   pull_request:
-    paths: ['api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','.github/workflows/cloud-backend.yml']
+    paths: ['client/**','index.html','sw.js','tests/smoke-browser.cjs','proposal-layout.js','automation-risk-core.js','automation-review.js','api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','.github/workflows/cloud-backend.yml']
   workflow_dispatch:
 permissions:
   contents: read

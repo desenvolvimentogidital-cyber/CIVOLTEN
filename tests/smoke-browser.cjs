@@ -41,6 +41,15 @@ const close=()=>new Promise(resolve=>server.close(resolve));
   page.on('pageerror',error=>runtimeErrors.push(String(error)));
   await page.addInitScript(data=>localStorage.setItem('civolten_daily_v2',JSON.stringify(data)),input);
   await page.goto(address,{waitUntil:'load'});
+  // O botão flutuante não pode atrapalhar a navegação móvel.
+  assert.equal(await page.locator('#cv-cloud-fab').count(),0,'Não renderizar botão de Nuvem flutuante');
+  await page.locator('nav.bottom-nav [data-page="more"]').click();
+  assert.equal(await page.locator('button').filter({hasText:'Nuvem CIVOLTEN'}).count(),0,'A tela Mais não deve ter Nuvem flutuante');
+  await page.locator('[data-page="backup"]').last().click();
+  await page.locator('[data-action="cloud-backup"]').click();
+  await page.locator('#cv-cloud-box').waitFor({state:'visible'});
+  await page.locator('#cv-cloud-close').click();
+  assert.equal(await page.locator('#cv-cloud-box').isVisible(),false,'A janela da nuvem deve poder fechar');
   await page.locator('nav.bottom-nav [data-page="quotes"]').click();
   await page.locator('[data-action="detail"][data-id="test-quote"]').first().click();
   await page.locator('.cv-op-panel h3').filter({hasText:'Execução e resultado real'}).waitFor();
