@@ -169,6 +169,7 @@
  modalSubmit=function(form){
   if(s.modal!=='additem')return oldItemSubmit(form);
   const id=s.edit?.id,itemsBefore=s.wizard?.items?.length||0;
+  const previous=s.edit?structuredClone(s.edit):null;
   const serviceId=form.elements.serviceId?.value,svc=db.services.find(x=>x.id===serviceId);
   // Confere os mínimos reais cadastrados mesmo após ajuste manual no item.
   if(svc?.productivity){
@@ -180,6 +181,10 @@
     if(floor>0&&n(form.elements.material?.value)<floor)form.elements.material.value=round(floor);
    }
   }
+  if(!svc&&previous?.productivity?.crew?.length){
+   const preservedMinimum=previous.productivity.crew.reduce((total,member)=>total+n(member.cost),0);
+   if(preservedMinimum>0&&n(form.elements.labor?.value)<preservedMinimum)form.elements.labor.value=round(preservedMinimum);
+  }
   const isSiurb=svc?.origin==='SIURB'&&svc.costSplitConfirmed;
   const refLabor=isSiurb?n(svc.referenceLabor??svc.labor):0;
   const refMaterial=isSiurb?n(svc.referenceMaterial??svc.material):0;
@@ -188,6 +193,14 @@
   oldItemSubmit(form);
   if(!s.wizard||s.modal==='additem')return;
   const item=id?s.wizard.items.find(x=>x.id===id):s.wizard.items[itemsBefore];
+  if(item&&!svc&&previous){
+   // Na edição de um orçamento antigo, manter fotografia de horas/taxas e referência.
+   if(previous.catalogServiceId)item.catalogServiceId=previous.catalogServiceId;
+   if(previous.productivity)item.productivity=previous.productivity;
+   if(previous.referenceLabor!==undefined)item.referenceLabor=previous.referenceLabor;
+   if(previous.referenceMaterial!==undefined)item.referenceMaterial=previous.referenceMaterial;
+   keepTemp();
+  }
   if(item&&svc){
    item.catalogServiceId=svc.id;
    // Referência verificável fica SEPARADA do custo real; só entra no preço sugerido.
