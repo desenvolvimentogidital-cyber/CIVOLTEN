@@ -229,6 +229,7 @@ function calculate(q){
 function updateReserve(q){
  if(!q||q!==s.wizard)return;
  const sc=calculate(q);
+ if(q.schedule){q.schedule.estimatedDays=sc.projectDays;q.schedule.recommendedPeople=sc.staffing.reduce((sum,r)=>sum+r.assigned,0);}
  q.scheduleExtraCost=(q.schedule?.dedicated&&!sc.missing&&!sc.unknownCost)?round(sc.reserve):0;
  keepTemp();
 }
