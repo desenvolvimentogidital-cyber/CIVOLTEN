@@ -123,7 +123,7 @@ function workerHTML(){
  '<input type="file" accept=".xls,.xlsx,.csv" id="dw-labor-file" hidden>'+
  '<div class="dw-help" id="dw-labor-count">'+db.siurbLabor.length+' referências SIURB disponíveis</div>'+
  '<select class="input" name="siurbWorkerRef">'+option('','Consultar referência SIURB')+
- db.siurbLabor.slice(0,700).map(x=>option(x.id,x.name+' • '+BRL(x.cost)+' ('+x.unit+')',w.siurbWorkerRef===x.id)).join('')+'</select></div>';
+ db.siurbLabor.slice(0,700).map(x=>option(x.id,x.name+' • '+(x.costWithoutCharges!=null?BRL(x.costWithoutCharges)+' sem enc. / '+x.unit:BRL(x.cost)+' (referência) / '+x.unit),w.siurbWorkerRef===x.id)).join('')+'</select></div>';
  return modalWrapper(w.id?'Editar profissional':'Novo profissional',html);
 }
 function expenseCatalogHTML(){
@@ -430,6 +430,10 @@ function parseAuxSheet(buffer,kind){
  for(const name of wb.SheetNames){
   const ws=wb.Sheets[name];if(!ws||!ws['!ref'])continue;
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:'',blankrows:false});
+  const headerText=norm(rows.slice(0,45).map(row=>Array.isArray(row)?row.join(' '):'').join(' '));
+  const hasWithout=/sem\s+encargos/.test(headerText),hasWith=/(?:^|\s)com\s+encargos/.test(headerText);
+  const hourlyTable=/custo\s+horario|valor\s+hora|por\s+hora/.test(headerText);
+  const monthlyTable=!hourlyTable&&/custo\s+mensal|valor\s+mensal/.test(headerText);
   for(const row of rows){
    const cells=(Array.isArray(row)?row:[]).map(x=>String(x??'').trim());
    if(!cells.some(Boolean))continue;seen++;
@@ -450,9 +454,17 @@ function parseAuxSheet(buffer,kind){
    const price=pretty(valids[valids.length-1]);
    const code=cells.slice(0,descIdx).find(x=>/\d/.test(x)&&x.length<=30)||'';
    const unitMatch=rest.find(v=>/^(UN|UND|PC|PÇ|M|M2|M3|M²|M³|KG|T|L|H|HR|MES|MÊS|CJ|PTO|KM|MIL|CEM)$/i.test(v));
-   const unit=kind==='mensalista'?'mês':kind==='horista'?'hora':unitMatch||'un';
+   // Mensalista define o VÍNCULO, não a UNIDADE do preço. Pode ser custo por hora.
+   const unit=kind==='insumos'?(unitMatch||'un'):
+      hourlyTable||kind==='horista'?'hora':monthlyTable?'mês':unitMatch||'não identificado';
+   const canSplit=kind!=='insumos'&&hasWithout&&hasWith&&valids.length>=2;
+   const costWithoutCharges=canSplit?pretty(valids[valids.length-2]):null;
+   const costWithCharges=canSplit?price:null;
    const id=kind+':'+(code||norm(nameText).slice(0,45));
-   if(!out.has(id))out.set(id,{id,code,name:nameText,cost:price,unit,kind,source:'SIURB',sourceDate:'07/2026'});
+   if(!out.has(id))out.set(id,{id,code,name:nameText,cost:price,unit,kind,source:'SIURB',sourceDate:'07/2026',
+      costWithoutCharges,costWithCharges,costType:canSplit?'separado':'não conferido',
+      // Nunca interpretar custo horário SIURB como salário-base CLT mensal.
+      isCltSalaryBase:false});
   }
  }
  if(out.size===0)throw new Error('Não foi possível identificar insumos de '+kind+' neste arquivo ('+seen+' linhas lidas). Confira se é a planilha adequada.');
@@ -532,7 +544,7 @@ function fillWorkerRef(form){
    if(form.elements.unit)form.elements.unit.value=ref.unit;
  }
  const count=document.getElementById('dw-labor-count');
- if(count)count.textContent='Referência '+ref.name+': '+BRL(ref.cost)+' / '+ref.unit+'. Verifique encargos já incluídos antes de usar na proposta.';
+ if(count)count.textContent='Referência '+ref.name+': '+(ref.costWithoutCharges!=null?'sem encargos '+BRL(ref.costWithoutCharges)+' / '+ref.unit+'; com encargos '+BRL(ref.costWithCharges)+' / '+ref.unit:'custo não classificado '+BRL(ref.cost)+' / '+ref.unit)+'. Não é salário-base CLT mensal: confira a carga horária e o piso legal.';
 }
 const baseOnAction=onAction;
 onAction=function(action,el){
