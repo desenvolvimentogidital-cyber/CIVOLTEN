@@ -1,4 +1,4 @@
-const VERSION='civolten-automation-v7-20261105';
+const VERSION='civolten-automacao-custos-v8';
 const CORE=['/','/index.html','/siurb.css','/siurb.js','/cost-modes.js','/daily-workflow.js','/quote-automation.js','/manifest.webmanifest','/assets/civolten-logo.png','/icons/civolten-simbolo.png','/icons/icon-192.png','/icons/icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(CORE)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==VERSION).map(k=>caches.delete(k)))));self.clients.claim()});
