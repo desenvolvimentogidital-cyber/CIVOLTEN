@@ -11,7 +11,7 @@ permissions:
 jobs:
   test-cloud-api:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -32,3 +32,7 @@ jobs:
         run: node --test tests/operations.cjs
       - name: Verificar sintaxe dos módulos operacionais
         run: node --check operations.js && node --check operations-core.js && node --check client/cloud-sync.mjs
+      - name: Instalar navegador gratuito para teste de ponta a ponta
+        run: npx playwright install --with-deps chromium
+      - name: Testar interface no Chromium
+        run: npm run test:browser
