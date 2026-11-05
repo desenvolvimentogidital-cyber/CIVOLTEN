@@ -396,4 +396,163 @@ ROUTES.expenses=function(){
 const styles=document.createElement('style');
 styles.textContent='.dw-modal .input{margin-bottom:10px}.dw-help{font-size:12px;color:#67696e;line-height:1.45;margin:4px 0 10px}.dw-search-wrap{position:relative}.dw-hits{position:relative;max-height:275px;overflow:auto;border:1px solid #e6bd60;border-radius:14px;background:#fff9ec;margin:6px 0 10px;box-shadow:0 5px 22px #0001}.dw-hit{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;background:#fff;border:0;border-bottom:1px solid #e6e6e6;padding:12px;color:#222}.dw-hit strong{display:block;font-size:13px}.dw-hit small{display:block;color:#7c6a48;font-size:10px}.dw-hit b{font-size:11px;color:#b77c20;white-space:nowrap}.dw-no-results{padding:14px;color:#666}.dw-check{display:flex;align-items:center;gap:9px;margin:9px 0;color:#303035;font-size:12px}.dw-check input{width:19px;height:19px;accent-color:#dfa026}.dw-siurb-note{border:1px solid #efbd56;background:#fff8e8;border-radius:13px;padding:12px;margin:12px 0;color:#67502c;font-size:12px;line-height:1.5}.dw-siurb-note[hidden],#dw-clt-fields[hidden],#dw-nonclt-fields[hidden]{display:none}.dw-ref{margin-top:8px}.dw-total{background:#fff1c7;border-radius:12px;padding:12px;margin:12px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px}.dw-info{padding:12px;background:#fff9e9;border-left:3px solid #e9a526;border-radius:8px;font-size:12px;line-height:1.5;margin:12px 0}.dw-expense-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #ddd}.dw-expense-row span{flex:1;min-width:0}.dw-expense-row b{display:block;font-size:12px}.dw-expense-row small{display:block;font-size:10px;color:#777}.dw-expense-row strong{white-space:nowrap;font-size:12px}.dw-expense-row button{border:0;background:#eee;border-radius:8px;padding:6px;min-width:27px}.dw-expenses-card{margin:10px 0 16px}';
 document.head.append(styles);
+
+/* Tabelas complementares oficiais: referência de mão de obra, insumos e materiais */
+let insumoCatalog=[],insumoSearch='',importBusy=false,importMessage='';
+function xlsCost(x){
+ if(typeof x==='number')return Number.isFinite(x)?x:NaN;
+ const raw=String(x??'').replace(/R\$/g,'').replace(/\s/g,'').trim();
+ if(!/^\d[\d.,]*$/.test(raw))return NaN;
+ if(raw.includes(',')&&raw.includes('.'))return Number(raw.replace(/\./g,'').replace(',','.'));
+ if(raw.includes(','))return Number(raw.replace(',','.'));
+ return Number(raw);
+}
+function parseAuxSheet(buffer,kind){
+ const XLSX=window.XLSX;
+ if(!XLSX)throw new Error('Leitor de planilhas não carregado');
+ const wb=XLSX.read(new Uint8Array(buffer),{type:'array',cellDates:false});
+ const out=new Map();let seen=0;
+ for(const name of wb.SheetNames){
+  const ws=wb.Sheets[name];if(!ws||!ws['!ref'])continue;
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:'',blankrows:false});
+  for(const row of rows){
+   const cells=(Array.isArray(row)?row:[]).map(x=>String(x??'').trim());
+   if(!cells.some(Boolean))continue;seen++;
+   const joined=norm(cells.join(' '));
+   if(/(tabela de custo|encargos sociais|composic|referencia|total geral|bdi|insumos? de obra)/.test(joined))continue;
+   let descIdx=-1;
+   for(let i=0;i<cells.length;i++){
+    if(cells[i].length<6||cells[i].length>210||/^\d[\d.,/-]*$/.test(cells[i]))continue;
+    if(kind==='insumos'&&materialRoles.test(norm(cells[i]))){descIdx=i;break;}
+    if(kind!=='insumos'&&laborRoles.test(norm(cells[i]))){descIdx=i;break;}
+   }
+   if(descIdx<0)continue;
+   const nameText=cells[descIdx].replace(/\s+/g,' ').trim();
+   if(nameText.length<6||nameText.length>210)continue;
+   const rest=cells.slice(descIdx+1);
+   const valids=rest.map(xlsCost).filter(x=>Number.isFinite(x)&&x>0&&x<100000000);
+   if(!valids.length)continue;
+   const price=pretty(valids[valids.length-1]);
+   const code=cells.slice(0,descIdx).find(x=>/\d/.test(x)&&x.length<=30)||'';
+   const unitMatch=rest.find(v=>/^(UN|UND|PC|PÇ|M|M2|M3|M²|M³|KG|T|L|H|HR|MES|MÊS|CJ|PTO|KM|MIL|CEM)$/i.test(v));
+   const unit=kind==='mensalista'?'mês':kind==='horista'?'hora':unitMatch||'un';
+   const id=kind+':'+(code||norm(nameText).slice(0,45));
+   if(!out.has(id))out.set(id,{id,code,name:nameText,cost:price,unit,kind,source:'SIURB',sourceDate:'07/2026'});
+  }
+ }
+ if(out.size===0)throw new Error('Não foi possível identificar insumos de '+kind+' neste arquivo ('+seen+' linhas lidas). Confira se é a planilha adequada.');
+ return [...out.values()];
+}
+function idbOpen(){
+ return new Promise((resolve,reject)=>{
+  if(!window.indexedDB)return reject(new Error('IndexedDB indisponível neste navegador'));
+  const r=indexedDB.open('civolten_siurb_cache_v1',1);
+  r.onupgradeneeded=()=>r.result.createObjectStore('tabelas',{keyPath:'key'});
+  r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+ });
+}
+async function cacheInsumos(list){
+ const idb=await idbOpen();
+ return new Promise((resolve,reject)=>{const tx=idb.transaction('tabelas','readwrite');tx.objectStore('tabelas').put({key:'insumos',items:list,date:'07/2026'});tx.oncomplete=()=>{idb.close();resolve()};tx.onerror=()=>{idb.close();reject(tx.error)}});
+}
+async function restoreInsumos(){
+ try{const idb=await idbOpen();const data=await new Promise((resolve,reject)=>{const tx=idb.transaction('tabelas','readonly');const req=tx.objectStore('tabelas').get('insumos');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});idb.close();insumoCatalog=data?.items||[];if(s.page==='materials')render();}catch(e){console.warn('Cache SIURB insumos indisponível:',e.message)}
+}
+function insumoHits(q){
+ const n=norm(q).trim();return insumoCatalog.filter(x=>!n||norm(x.name+' '+x.code).includes(n)).slice(0,25)
+ .map(x=>'<button type="button" class="dw-hit" data-action="dw-pick-material" data-id="'+esc(x.id)+'"><span><strong>'+esc(x.name)+'</strong><small>SIURB insumos '+esc(x.code)+' / '+esc(x.unit)+'</small></span><b>'+BRL(x.cost)+'</b></button>').join('')||'<div class="dw-no-results">Nenhum material encontrado nesta consulta.</div>';
+}
+function materialPanel(){
+ return '<div class="form-card"><h3 class="card-title">Insumos SIURB • Julho/2026</h3><p class="small-desc">Tabela de materiais e insumos com custos de referência. Consulte e adicione apenas os itens necessários ao catálogo da CIVOLTEN.</p>'+
+ '<button class="btn btn-outline block" data-action="dw-import-material">Carregar insumos oficiais da SIURB</button>'+
+ '<label class="label">Ou importar a planilha XLS/XLSX</label><input type="file" class="input" id="dw-insumo-file" accept=".xls,.xlsx,.csv">'+
+ '<div class="dw-help">'+esc(importMessage||insumoCatalog.length+' insumos em cache no dispositivo')+'</div>'+
+ '<input class="input" id="dw-insumo-search" placeholder="Buscar insumo, código, material..." value="'+esc(insumoSearch)+'">'+
+ '<div class="dw-hits" id="dw-insumo-hits">'+insumoHits(insumoSearch)+'</div></div>';
+}
+const originalMaterialRoute=ROUTES.materials;
+ROUTES.materials=function(){const html=originalMaterialRoute();return html.replace('<main class="sheet full">','<main class="sheet full">'+materialPanel())};
+const originalAddItemHTML=addItemHTML;
+addItemHTML=function(){
+ let html=originalAddItemHTML();
+ const anchor='<label class="label">Profissional cadastrado (opcional)</label>';
+ html=html.replace(anchor,'<label class="label">Ou buscar material na SIURB (opcional)</label>'+
+ '<input id="dw-material-search" class="input" placeholder="Nome ou código do insumo" autocomplete="off">'+
+ '<div class="dw-hits" id="dw-material-hits" hidden></div>'+anchor);
+ return html;
+};
+function importExplain(kind,list){
+ if(kind==='insumos'){insumoCatalog=list;cacheInsumos(list).catch(e=>console.warn('Falha IndexedDB',e));importMessage=list.length+' insumos encontrados; custos de referência SIURB.';}
+ else {const old=db.siurbLabor.filter(x=>x.kind!==kind);db.siurbLabor=old.concat(list);if(!save())throw new Error('Falha ao armazenar referências de mão de obra');}
+}
+async function parseAuxBuffer(buffer,kind){
+ await siurbXLSX();
+ return parseAuxSheet(buffer,kind);
+}
+async function importLaborFile(file){
+ if(!file)return;const kind=/horist/i.test(file.name)?'horista':'mensalista';
+ try{const list=await parseAuxBuffer(await file.arrayBuffer(),kind);importExplain(kind,list);s.modal=null;render();toast(list.length+' registros da SIURB ('+kind+') carregados.');}
+ catch(e){toast('Falha na tabela de mão de obra: '+e.message)}
+}
+async function importSIURBType(kind){
+ if(importBusy)return;importBusy=true;
+ const regime=db.siurbMeta?.regime||'onerada';
+ try{
+  const response=await fetch('/api/siurb?tipo='+encodeURIComponent(kind)+'&regime='+encodeURIComponent(regime),{cache:'no-store'});
+  if(!response.ok){const err=await response.json().catch(()=>({}));throw new Error(err.erro||'Arquivo oficial indisponível ('+response.status+')')}
+  const list=await parseAuxBuffer(await response.arrayBuffer(),kind);
+  importExplain(kind,list);render();toast(list.length+' '+(kind==='insumos'?'insumos':'profissionais')+' de referência SIURB importados.');
+ }catch(e){importMessage='Importação oficial indisponível: '+e.message+'. Use o Excel manual.';render();toast(importMessage)}
+ finally{importBusy=false}
+}
+function fillWorkerRef(form){
+ const id=form.elements.siurbWorkerRef?.value||'';
+ const ref=db.siurbLabor.find(x=>x.id===id);
+ if(!ref)return;
+ const role=form.elements.role;
+ if(role&&!role.value)role.value=ref.name;
+ const link=form.elements.link;
+ if(link?.value==='Referência SIURB'){
+   if(form.elements.cost)form.elements.cost.value=number(ref.cost);
+   if(form.elements.unit)form.elements.unit.value=ref.unit;
+ }
+ const count=document.getElementById('dw-labor-count');
+ if(count)count.textContent='Referência '+ref.name+': '+BRL(ref.cost)+' / '+ref.unit+'. Verifique encargos já incluídos antes de usar na proposta.';
+}
+const baseOnAction=onAction;
+onAction=function(action,el){
+ if(action==='dw-import-material'){importSIURBType('insumos');return true}
+ if(action==='dw-open-labor-ref'){s.edit=null;s.modal='addworker';render();return true}
+ if(action==='dw-pick-material'){
+  const m=insumoCatalog.find(x=>x.id===el.dataset.id);if(!m)return true;
+  if(s.modal==='additem'){
+    const form=document.getElementById('modal-form');
+    if(form){form.elements.material.value=number(m.cost);if(!form.elements.service.value)form.elements.service.value=m.name;if(!selected&&!s.edit?.unit)form.elements.unit.value=m.unit;updateLineTotal(form);}
+    const hits=document.getElementById('dw-material-hits');if(hits)hits.hidden=true;
+    const search=document.getElementById('dw-material-search');if(search)search.value=m.name;
+  }else{
+    if(!db.materials.some(x=>x.origin==='SIURB'&&x.sourceCode===m.code&&x.name===m.name)){
+      db.materials.push({id:uid('m'),name:m.name,unit:m.unit,cost:m.cost,origin:'SIURB',sourceCode:m.code,sourceDate:m.sourceDate});save();
+    }render();toast('Insumo SIURB incluído em Materiais.');
+  }
+  return true;
+ }
+ return baseOnAction(action,el);
+};
+document.addEventListener('change',e=>{
+ if(e.target.id==='dw-insumo-file'){
+  const file=e.target.files?.[0];if(!file)return;
+  file.arrayBuffer().then(b=>parseAuxBuffer(b,'insumos')).then(list=>{importExplain('insumos',list);render();toast(list.length+' insumos carregados.');}).catch(err=>toast('Erro no Excel: '+err.message));
+ }
+ if(s.modal==='addworker'&&e.target.name==='siurbWorkerRef')fillWorkerRef(document.getElementById('modal-form'));
+},true);
+document.addEventListener('input',e=>{
+ if(e.target.id==='dw-material-search'||e.target.id==='dw-insumo-search'){
+  const hits=document.getElementById(e.target.id==='dw-material-search'?'dw-material-hits':'dw-insumo-hits');
+  if(e.target.id==='dw-insumo-search')insumoSearch=e.target.value;
+  if(hits){hits.hidden=false;hits.innerHTML=insumoHits(e.target.value);}
+ }
+},true);
+restoreInsumos();
+
 })();
