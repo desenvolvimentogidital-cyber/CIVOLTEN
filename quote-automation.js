@@ -170,6 +170,16 @@
   if(s.modal!=='additem')return oldItemSubmit(form);
   const id=s.edit?.id,itemsBefore=s.wizard?.items?.length||0;
   const serviceId=form.elements.serviceId?.value,svc=db.services.find(x=>x.id===serviceId);
+  // Confere os mínimos reais cadastrados mesmo após ajuste manual no item.
+  if(svc?.productivity){
+   const minimum=crewTotals(svc.productivity.crew).cost;
+   if(minimum>0&&n(form.elements.labor?.value)<minimum)form.elements.labor.value=round(minimum);
+   const material=db.materials.find(x=>x.id===svc.productivity.materialId);
+   if(material){
+    const floor=n(material.cost)*n(svc.productivity.materialQty);
+    if(floor>0&&n(form.elements.material?.value)<floor)form.elements.material.value=round(floor);
+   }
+  }
   const isSiurb=svc?.origin==='SIURB'&&svc.costSplitConfirmed;
   const refLabor=isSiurb?n(svc.referenceLabor??svc.labor):0;
   const refMaterial=isSiurb?n(svc.referenceMaterial??svc.material):0;
