@@ -545,8 +545,14 @@ function fillWorkerRef(form){
  if(role&&!role.value)role.value=ref.name;
  const link=form.elements.link;
  if(link?.value==='Referência SIURB'){
-   if(form.elements.cost)form.elements.cost.value=number(ref.cost);
-   if(form.elements.unit)form.elements.unit.value=ref.unit;
+   // Não calcular encargos novamente sobre referência que já os contenha.
+   // E não atribuir custo ambíguo automaticamente.
+   if(ref.costType==='separado'&&ref.costWithCharges!=null&&['hora','mês'].includes(ref.unit)){
+    if(form.elements.cost)form.elements.cost.value=number(ref.costWithCharges);
+    if(form.elements.unit)form.elements.unit.value=ref.unit;
+   } else {
+    toast('SIURB: valor com encargos ou unidade não conferidos. Verifique o Excel antes de utilizar.');
+   }
  }
  const count=document.getElementById('dw-labor-count');
  if(count)count.textContent='Referência '+ref.name+': '+(ref.costWithoutCharges!=null?'sem encargos '+BRL(ref.costWithoutCharges)+' / '+ref.unit+'; com encargos '+BRL(ref.costWithCharges)+' / '+ref.unit:'custo não classificado '+BRL(ref.cost)+' / '+ref.unit)+'. Não é salário-base CLT mensal: confira a carga horária e o piso legal.';
