@@ -4,7 +4,7 @@
   "private": true,
   "description": "PWA CIVOLTEN e API segura Neon",
   "scripts": {
-    "test": "node tests/financial-audit.cjs && node --test tests/cloud-state.cjs",
+    "test": "node tests/financial-audit.cjs && node --test tests/cloud-state.cjs tests/operations.cjs",
     "build": "node scripts/build.mjs"
   },
   "dependencies": {
