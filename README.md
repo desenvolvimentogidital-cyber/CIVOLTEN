@@ -108,6 +108,42 @@ Novas propostas usam o modelo **fixed_hourly_v1**:
 - Deslocamento a R$ 1,10/km é **premissa de orçamento**, que combina estimativa de combustível, manutenção e desgaste, e não tarifa oficial.
 - Todos os demais custos são estimativas fictícias ilustrativas a substituir pelos seus valores comprovados.
 
+## Equipe planejada, encargos e cronograma — novembro/2026
+
+### Cinco postos de exemplo (NÃO admitidos)
+O app cria uma única vez cinco perfis de **planejamento**, preservando funcionários reais cadastrados:
+- 1 eletricista: salário-base ilustrativo R$ 3.500/mês;
+- 2 pedreiros: R$ 3.200/mês cada;
+- 2 ajudantes: R$ 2.200/mês cada.
+
+Esses salários **não foram extraídos da SIURB**, nem confirmados com CCT ou piso sindical. São valores editáveis de simulação. A tabela **Mão de Obra Mensalista/Horista SIURB julho/2026** pode ser importada e pesquisada por profissão em **Mais → Profissionais**; seus custos de referência podem incluir encargos e **não são automaticamente tratados como salário-base**, nem criam vínculos empregatícios. O botão **Criar cargo modelo** exige informar o salário-base antes de usá-lo.
+
+### Cenário de encargos
+**Mais → Profissionais** permite um cenário **MEI** (3% CPP e 8% FGTS como parâmetros usuais), **Simples Nacional Anexo IV** (simulação de 20% CPP, 2% RAT e 8% FGTS), demais anexos ou personalizado. O cenário de cinco empregados é **SOMENTE simulação** e não altera `db.company.taxRegime` nem a condição jurídica efetiva. **MEI só pode ter um empregado** (com as condições legais aplicáveis). Construção civil no Anexo IV pode ter CPP fora do DAS. O correto depende de CNAE, obra, risco, convenção coletiva, RAT/FAP, benefícios e contador.
+
+O módulo simula salário-base + provisão de 13º (1/12) + 1/3 de férias (1/36) + encargos parametrizados sobre essa base + benefícios mensais e reservas cadastradas. Não substitui folha/eSocial nem apura automaticamente periculosidade, insalubridade, piso/CCT, rescisões, adicionais, encargos de todas as situações, afastamentos ou impostos de faturamento.
+
+**Custo/hora** = custo mensal estimado ÷ horas produtivas/mês cadastradas. Alterar salário ou percentuais no perfil recalcula automaticamente as taxas para **novos orçamentos**; cotações anteriores preservam sua fotografia de custos e não são reprecificadas sem edição.
+
+### Cronograma por produtividade
+Acesse **Mais → Cronograma e equipe** ou **Novo orçamento → Itens → Abrir cronograma**.
+- Prazo editável (ex.: 10, 15, 20, 45 dias úteis); data inicial e jornada produtiva/remunerada por dia.
+- Usa quantidade do serviço × coeficientes de horas por unidade × profissionais da equipe padrão.
+- Dimensiona a equipe necessária **por função**, independentemente de quantas pessoas estão marcadas como ativas no banco. Exibe necessidade, postos planejados e empregados ativos.
+- Modo sequencial ou frentes paralelas, com calendário de segunda a sexta, sem feriados. O escalonamento conservador evita sobreposição de uma mesma função entre frentes; exibe datas e barras por serviço.
+- Requer produtividade por serviço conferida. Se faltar, mostra alerta: não inventa horas ou duração.
+- **Equipe exclusiva durante a obra**: opção que acrescenta apenas o custo de disponibilidade acima do custo de mão de obra já lançado, com base no maior entre dias previstos e dias calculados, sem cobrar a mesma hora duas vezes. A revisão exibe o complemento.
+- As despesas padrão de alimentação e deslocamento levam em conta pessoas e dias do cronograma quando há dedicação exclusiva. Devem ser revisadas (quantidade, local, benefícios já existentes, condições de acesso).
+- Não inclui automaticamente feriados, chuvas, dependências de suprimento, licenças, restrições de acesso, paralisações, absenteísmo, múltiplas frentes parcialmente compartilhadas ou programação CPM/PERT. Cronograma ainda é **estimativa técnica** e exige verificação da execução real.
+
+### Fontes primárias
+- <https://prefeitura.sp.gov.br/web/obras/w/tabelas_de_custos/355179>
+- <https://www.gov.br/empresas-e-negocios/pt-br/empreendedor/servicos-para-mei/contratacao-de-empregado>
+- <https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/cobrancas-e-intimacoes/contribuicao-previdenciaria-anexo-iv-do-simples-nacional>
+- <https://www.gov.br/esocial/pt-br/microempreendedor-individual/manual-web-mei>
+
+**Dados e segurança:** nada é sincronizado ainda; localStorage/IndexedDB do navegador e importação oficial dependente de conexão. Faça backup JSON frequentemente e valide os valores em um orçamento real antes de utilizá-lo como proposta definitiva.
+
 ## Publicação na Vercel
 Importe a branch main, **Framework Other**, root `./` e sem build. A Vercel publica o HTML/CSS/JS e a função Node `api/siurb.js`. O serviço upstream pode ficar indisponível; o upload manual continua possível.
 
