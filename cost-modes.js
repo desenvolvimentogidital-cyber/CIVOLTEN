@@ -10,7 +10,7 @@
   const originalSiurbPanel=typeof siurbPanel==='function'?siurbPanel:null;
 
   function siurbSource(service, editing){
-    if(service?.origin==='SIURB')return service;
+    if(service)return service.origin==='SIURB'?service:null;
     if(editing?.source==='SIURB')return editing;
     return null;
   }
@@ -74,6 +74,10 @@
       if(!s.wizard || s.modal==='additem')return;
       const saved=editingId?s.wizard.items.find(v=>v.id===editingId):s.wizard.items[prevCount];
       if(!saved)return;
+      if(!source&&selected&&editing?.source==='SIURB'){
+        saved.source='';saved.sourceCode='';saved.sourceGroup='';saved.sourceDate='';
+        delete saved.referenceCost;delete saved.splitConfirmed;
+      }
       if(source){
         saved.source='SIURB';
         saved.sourceCode=source.sourceCode||source.code||saved.sourceCode;
