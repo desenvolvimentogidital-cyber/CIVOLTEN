@@ -1,24 +1,19 @@
-# CIVOLTEN — Orçamentos PWA (modo de trabalho)
+# CIVOLTEN — Orçamentos Premium • SIURB São Paulo
+PWA mobile-first da CIVOLTEN, sem login nesta fase.
 
-Aplicativo mobile-first com identidade premium da CIVOLTEN para orçamentos de elétrica e construção civil.
+## Serviços SIURB
+Aba **Mais → Serviços**. A tabela oficial de custos de Edificações (EDIF) e Infraestrutura Urbana (INFRA), data-base **julho de 2026**, é consultada no site da Prefeitura de São Paulo: https://prefeitura.sp.gov.br/web/obras/w/tabelas_de_custos/355179.
+
+Ao abrir a aba pela primeira vez, a interface tenta importar automaticamente os arquivos oficiais pela API `/api/siurb` (somente leitura, URLs fixas). Também é possível atualizar clicando **Carregar tabela oficial**, ou baixar os arquivos XLS no portal e usar o importador de Excel. Os arquivos são da versão onerada (sem desoneração) por padrão; a desonerada pode ser escolhida no seletor.
+
+A pesquisa oferece filtros de elétrica, civil e todos, com código, descrição, unidade e custo unitário. O botão **+ Meu catálogo** copia o serviço selecionado à biblioteca do usuário para utilização em orçamento; não altera serviços ou orçamentos já salvos.
+
+**Atenção:** o custo de referência SIURB é composto e pode incluir mão de obra, materiais e equipamentos. Ele entra como *custo global* e **não é preço final de venda nem apenas mão de obra**. Ajuste a composição conforme fornecimento do cliente, margem e tributos. Não duplique BDI com despesas indiretas da CIVOLTEN. Os valores históricos de propostas permanecem congelados.
 
 ## Publicação na Vercel
+Importe a branch main, **Framework Other**, root `./` e sem build. A Vercel publica o HTML/CSS/JS e a função Node `api/siurb.js`. O serviço upstream pode ficar indisponível; o upload manual continua possível.
 
-Arquivos estáticos na raiz do repositório. Em Vercel, selecione Framework Preset **Other**, Root Directory **./**, sem comandos de build. GitHub `main` publica por integração com a Vercel.
+## Proteção dos dados
+Ainda **sem banco de dados ou login**. Os dados ficam no `localStorage` do navegador/dispositivo, não são sincronizados e podem desaparecer se o armazenamento for limpo. Utilize **Mais → Backup e segurança** frequentemente. Não trate esta fase como sistema empresarial com recuperação automática.
 
-## Funcionalidades existentes nesta etapa
-
-- **Sem login de usuário:** abre diretamente no painel; não há tela de registro ou senha.
-- Clientes cadastráveis na proposta; profissionais, serviços, materiais e despesas.
-- Orçamentos de mão de obra, completo e misto, itens personalizados e por fornecimento de material.
-- Custos, despesas indiretas, imprevistos, taxas, impostos proporcionais, margem sobre a receita, desconto e preço manual.
-- Salvar propostas e rascunhos; editar com histórico de revisão, duplicar, acompanhar status e imprimir proposta para PDF.
-- Exportar backup JSON e importar com confirmação; planilha CSV de orçamentos; PWA com manifesto e cache offline.
-
-## Importante: armazenamento e segurança
-
-**Esta fase ainda não tem backend nem autenticação.** Os dados são salvos no `localStorage` do navegador no aparelho utilizado. **Eles não são sincronizados nem recuperáveis automaticamente** em caso de perda, troca de dispositivo, limpeza de cache/dados ou falha do armazenamento. Use **Mais → Backup e segurança → Fazer backup completo** e guarde o JSON em lugar seguro; faça backups frequentes.
-
-A aplicação hospedada é publicamente acessível, mas cada visitante vê apenas os dados locais do próprio navegador. Não use em aparelhos compartilhados e não confie nesse modo local para informações empresariais sensíveis. Para uso seguro em múltiplos dispositivos e recuperação confiável, a próxima etapa exigirá banco de dados, controle de acesso e backups automáticos. Login/cadastro de usuário continuam desligados por solicitação.
-
-Os valores de impostos são parâmetros comerciais configuráveis, não substituem orientação contábil. A proposta comercial não é nota fiscal. O PDF é obtido pela impressão do navegador. As funções foram verificadas por testes de lógica e sintaxe; testes visuais em dispositivo real ainda são necessários.
+O importador XLS usa a biblioteca SheetJS carregada via CDN no primeiro uso; requer internet. Os arquivos continuam sob sua responsabilidade e a proposta não substitui nota fiscal.
