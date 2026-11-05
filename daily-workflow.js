@@ -21,18 +21,25 @@ function allServices(){
  const catalog=db.services.map(x=>({kind:'catalog',data:x,id:x.id,label:x.name,code:x.sourceCode||'',unit:x.unit||'un',source:x.origin||'manual'}));
  const imported=(db.siurbItems||[]).map(x=>({kind:'siurb',data:x,id:x.id,label:x.name,code:x.code||'',unit:x.unit||'un',source:'SIURB'}));
  const ids=new Set(catalog.filter(x=>x.source==='SIURB').map(x=>(x.data.sourceGroup||'')+':'+x.code));
- return catalog.concat(imported.filter(x=>!ids.has(x.data.group+':'+x.code)));
+ const sinapi=(window.CIVOLTENSINAPI?.getRecords?.()||[])
+  .filter(x=>(x.kind==='composicao'||x.kind==='composicoes')&&x.uf==='SP'&&x.verifiedUF)
+  .map(x=>({kind:'sinapi',data:x,id:x.id,label:x.name,code:x.code||'',unit:x.unit||'un',source:'SINAPI'}));
+ const copied=new Set(catalog.filter(x=>x.source==='SINAPI').map(x=>x.data.sourceCode+'|'+x.data.sourceDate+'|'+x.data.sourceRegime));
+ return catalog.concat(imported.filter(x=>!ids.has(x.data.group+':'+x.code)),
+  sinapi.filter(x=>!copied.has(x.code+'|'+x.data.base+'|'+x.data.regime)));
 }
 function matchingServices(q){
- const n=norm(q),all=allServices();
- return all.filter(x=>!n||norm(x.label+' '+x.code+' '+x.unit).includes(n))
+ const n=norm(q);
+ if(!n)return allServices().filter(x=>x.kind==='catalog').slice(0,20);
+ const all=allServices();
+ return all.filter(x=>norm(x.label+' '+x.code+' '+x.unit).includes(n))
  .sort((a,b)=>{const an=norm(a.label),bn=norm(b.label);return ((norm(a.code)===n&&n)?-100:0)+(an.startsWith(n)?-20:0)-( ((norm(b.code)===n&&n)?-100:0)+(bn.startsWith(n)?-20:0))})
  .slice(0,30);
 }
 function serviceHits(q){
  const rows=matchingServices(q);
  return rows.map(x=>'<button type="button" class="dw-hit" data-action="dw-pick-service" data-kind="'+x.kind+'" data-id="'+esc(x.id)+'">'+
- '<span><strong>'+esc(x.label)+'</strong><small>'+esc(x.source==='SIURB'?'SIURB '+x.code+' • '+x.unit:x.source==='SINAPI'?'SINAPI '+x.code+' • '+x.unit+' · referência pública':'Meu catálogo • '+x.unit)+'</small></span>'+
+ '<span><strong>'+esc(x.label)+'</strong><small>'+esc(x.kind==='catalog'?'Meu catálogo • '+x.unit+(x.source==='SIURB'||x.source==='SINAPI'?' · '+x.source:''):x.source==='SIURB'?'SIURB '+x.code+' • '+x.unit:'SINAPI '+x.code+' • '+x.unit+' · referência a conferir')+'</small></span>'+
  '<b>'+BRL(x.source==='SIURB'||x.source==='SINAPI'?x.data.referenceCost??x.data.cost:(number(x.data.labor)+number(x.data.material)+number(x.data.equipment)))+'</b></button>').join('')+
  (!rows.length?'<div class="dw-no-results">Nenhum serviço encontrado. Você pode escrever a descrição manualmente.</div>':'');
 }
@@ -50,7 +57,7 @@ function addItemHTML(){
  const extra=selected?verified?number(source.equipment??source.extra):0:number(e.extra);
  const owner=e.owner||(s.wizard?.type==='Mão de obra'?'cliente':'empresa');
  const ref=number(source.referenceCost??source.cost??e.referenceCost);
- const html='<label class="label">Buscar serviço na SIURB ou nos cadastrados</label>'+
+ const html='<label class="label">Pesquisar serviço (catálogo, SIURB ou SINAPI)</label>'+
  '<div class="dw-search-wrap"><input class="input" name="service" id="dw-service-search" required placeholder="Digite código ou nome do serviço..." autocomplete="off" value="'+esc(dqSearch)+'">'+
  '<div id="dw-service-hits" class="dw-hits" hidden></div></div>'+
  '<p class="dw-help">Selecione um resultado para preencher a descrição, a unidade e os custos que estiverem confirmados. Você também pode digitar um serviço manualmente.</p>'+
@@ -183,7 +190,7 @@ function chooseService(ref){
  const svc=opt.data,isSiurb=opt.source==='SIURB',isConfirmed=!!svc.costSplitConfirmed;
  form.elements.service.value=svc.name||opt.label;form.elements.unit.value=svc.unit||'un';
  form.elements.serviceId.value=opt.kind==='catalog'?opt.id:'';
- form.elements.sourceId.value=opt.kind==='siurb'?opt.id:'';
+ form.elements.sourceId.value=opt.kind==='siurb'||opt.kind==='sinapi'?opt.id:'';
  form.elements.labor.value=isSiurb?(isConfirmed?number(svc.labor):0):number(svc.labor);
  form.elements.material.value=isSiurb?(isConfirmed?number(svc.material):0):number(svc.material);
  form.elements.extra.value=isSiurb?(isConfirmed?number(svc.equipment):0):number(svc.equipment||0);
