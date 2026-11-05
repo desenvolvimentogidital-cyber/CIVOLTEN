@@ -188,6 +188,10 @@
   const serviceId=form.elements.serviceId?.value;
   const svc=db.services.find(x=>x.id===serviceId)||
     (form.elements.sourceId?.value?locateService(form.elements.sourceId.value,'sinapi'):null);
+  if(svc?.origin==='SINAPI'&&n(form.elements.labor?.value)<=0){
+   toast('Esta composição ainda não tem custo de mão de obra calculado. Abra Detalhes avançados ou cadastre os profissionais da função.');
+   return;
+  }
   // Coeficientes de mão de obra SINAPI não representam o custo dos materiais.
   // No orçamento completo, exigir materiais reais antes de emitir preço.
   const hasSinapiMaterials=svc?.origin==='SINAPI'&&
