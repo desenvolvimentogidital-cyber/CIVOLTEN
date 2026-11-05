@@ -11,7 +11,25 @@ const normalize=v=>String(v??'').toLowerCase();
 function inspect(q){
  const errors=[],warnings=[];
  if(!q)return {errors:[{code:'noquote',message:'Não há orçamento ativo para conferir.'}],warnings:[],financial:null};
- const c=calc(q),lines=q.items||[];
+ // No orçamento com equipe exclusiva, atualizar o complemento de pessoal
+ // ANTES de testar margem, desconto ou valor manual. A atualização posterior
+ // feita pelo cronograma não pode diminuir a margem depois da aprovação.
+ const forecast=q.schedule?.dedicated&&window.CIVOLTENSchedule?.calculate
+   ?window.CIVOLTENSchedule.calculate(q):null;
+ if(q.schedule?.dedicated&&!forecast)
+  errors.push({code:'schedule-unavailable',message:'O cronograma dedicado ainda não está disponível para calcular o custo da equipe.'});
+ if(forecast){
+  if(forecast.missing||forecast.unknownCost)
+   errors.push({code:'schedule-cost',message:'Cronograma dedicado: há produtividade ou custo/hora de profissional não conferidos.'});
+  if(forecast.projectDays>forecast.days)
+   errors.push({code:'schedule-days',message:'A equipe planejada não atende ao prazo desejado. Revise a quantidade de profissionais.'});
+ }
+ const committed=forecast?Math.round(Math.max(0,n(forecast.reserve))*100)/100:0;
+ const pricedQuote=forecast?{...q,scheduleExtraCost:committed}:q;
+ if(forecast&&q===s.wizard)q.scheduleExtraCost=committed;
+ const c=calc(pricedQuote),lines=q.items||[];
+ if(q!==s.wizard&&q.status==='Rascunho'&&(!positive(q.price)||Math.abs(n(q.price)-c.price)>0.05))
+  errors.push({code:'saved-stale',message:'O rascunho salvo não corresponde ao preço recalculado. Reabra e salve a proposta depois da conferência.'});
  if(!lines.length)errors.push({code:'empty',message:'Adicione pelo menos um serviço antes de emitir a proposta.'});
  for(let i=0;i<lines.length;i++){
   const line=lines[i],prefix='Item '+(i+1)+' ('+String(line.service||'sem descrição').slice(0,52)+'): ';
