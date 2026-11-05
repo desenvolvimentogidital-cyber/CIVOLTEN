@@ -105,7 +105,34 @@
  };
  const workerValue=w=>realWorkerRate(w);
  function locateService(id,kind){
-  return kind==='catalog'?db.services.find(x=>x.id===id):null;
+  if(kind==='catalog')return db.services.find(x=>x.id===id)||null;
+  if(kind!=='sinapi')return null;
+  const raw=window.CIVOLTENSINAPI?.getRecords?.().find(x=>x.id===id);
+  if(!raw)return null;
+  const labor=raw.analyticLabor||[];
+  const rows=[];
+  for(const row of labor){
+   if(!row.role||n(row.hoursPerUnit)<=0)continue;
+   const normalize=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();
+   const role=normalize(row.role);
+   const matches=db.workers.filter(w=>{
+    const wrole=normalize(w.role);
+    if(role==='ajudante')return /ajudante|servente|auxiliar/.test(wrole);
+    return wrole.includes(role)&&!(role==='eletricista'&&/ajudante|auxiliar/.test(wrole));
+   }).filter(w=>realWorkerRate(w)>0);
+   matches.sort((a,b)=>realWorkerRate(b)-realWorkerRate(a));
+   const worker=matches[0];
+   if(worker)rows.push({workerId:worker.id,hours:n(row.hoursPerUnit),count:1});
+  }
+  const unmatched=labor.some(row=>row.role&&!rows.some(entry=>db.workers.some(w=>w.id===entry.workerId&&
+   (String(w.role||'').toLowerCase().includes(String(row.role||'').toLowerCase())||
+    String(row.role).toLowerCase()==='ajudante'&&/ajudante|servente/i.test(w.role)))));
+  const hasIndirect=(raw.analyticItems||[]).some(x=>x.type==='COMPOSICAO'&&x.unit!=='H');
+  return {...raw,origin:'SINAPI',sourceCode:raw.code,sourceDate:raw.base,referenceCost:raw.cost,
+   analyticalReviewNeeded:true,hasIndirectWork:hasIndirect,
+   productivity:rows.length&&!unmatched&&rows.length<=3?{
+    crew:rows,productivitySource:'SINAPI - horas diretas PRELIMINARES, revisão necessária'
+   }:null};
  }
  function updateItemTemplate(service){
   if(!service||!s.modal||s.modal!=='additem')return;
