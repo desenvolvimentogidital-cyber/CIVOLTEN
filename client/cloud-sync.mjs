@@ -6,12 +6,10 @@ const STORAGE='civolten_daily_v2',LEGACY='civolten_premium_proto_v1';
 const host=document.createElement('div');
 host.innerHTML=[
 '<style>',
-'#cv-cloud-fab{position:fixed;z-index:1010;bottom:calc(82px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);border:1px solid #b98322;background:#191b20;color:#ffd36e;border-radius:24px;padding:10px 17px;box-shadow:0 4px 20px #0005;font-size:12px;font-weight:750;white-space:nowrap}',
 '#cv-cloud-box{border:none;border-radius:18px;padding:0;width:min(400px,calc(100vw - 22px));max-height:88dvh;box-shadow:0 12px 70px #0008;background:#faf9f5;color:#262626}#cv-cloud-box::backdrop{background:#14171dba}',
 '#cv-cloud-inner{padding:18px;display:grid;gap:10px}#cv-cloud-inner h2{margin:0;font-size:19px}#cv-cloud-inner p,#cv-cloud-inner small{font-size:12px;line-height:1.5}#cv-cloud-inner label{font-size:12px;font-weight:700}',
-'#cv-cloud-inner input{width:100%;border:1px solid #ccc;padding:12px;border-radius:8px;font-size:16px}#cv-cloud-inner button{border:1px solid #ad9037;background:#f8e7bd;padding:11px;border-radius:9px;font-weight:700}#cv-cloud-inner button:disabled{opacity:.5}#cv-cloud-inner .cv-secondary{background:white}#cv-cloud-actions{display:grid;gap:7px}#cv-cloud-status{min-height:18px;white-space:pre-wrap;word-break:break-word;color:#664d21;font-size:12px}@media print{#cv-cloud-fab,#cv-cloud-box{display:none!important}}',
+'#cv-cloud-inner input{width:100%;border:1px solid #ccc;padding:12px;border-radius:8px;font-size:16px}#cv-cloud-inner button{border:1px solid #ad9037;background:#f8e7bd;padding:11px;border-radius:9px;font-weight:700}#cv-cloud-inner button:disabled{opacity:.5}#cv-cloud-inner .cv-secondary{background:white}#cv-cloud-actions{display:grid;gap:7px}#cv-cloud-status{min-height:18px;white-space:pre-wrap;word-break:break-word;color:#664d21;font-size:12px}@media print{#cv-cloud-box{display:none!important}}',
 '</style>',
-'<button id="cv-cloud-fab" type="button">☁ Nuvem CIVOLTEN</button>',
 '<dialog id="cv-cloud-box" aria-label="Backup e conta CIVOLTEN"><section id="cv-cloud-inner">',
 '<div style="display:flex;gap:12px;justify-content:space-between;align-items:center"><h2>Nuvem CIVOLTEN</h2><button class="cv-secondary" type="button" id="cv-cloud-close">Fechar</button></div>',
 '<p>O aparelho continua funcionando localmente. Nada é enviado ou restaurado sem sua confirmação.</p>',
@@ -123,7 +121,11 @@ async function restore(){
   note('Restauração concluída.');location.reload();
  }catch(e){note(e.message||'Não foi possível restaurar.');}finally{setBusy(false);}
 }
-by('cv-cloud-fab').addEventListener('click',()=>{dlg.showModal();refresh().catch(e=>note(e.message));});
+// Acesso somente dentro de Mais → Backups e segurança; sem botão flutuante.
+window.addEventListener('civolten:open-cloud-backup',()=>{
+ if(!dlg.open)dlg.showModal();
+ refresh().catch(e=>note(e.message));
+});
 by('cv-cloud-close').addEventListener('click',()=>dlg.close());
 by('cv-cloud-signin').addEventListener('click',()=>sign(false));
 by('cv-cloud-signup').addEventListener('click',()=>sign(true));
