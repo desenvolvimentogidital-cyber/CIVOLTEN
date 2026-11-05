@@ -90,6 +90,19 @@ const close=()=>new Promise(resolve=>server.close(resolve));
   assert.equal(invalid.ok,false,'Rascunhos não devem ser enviados como propostas');
   const pdf=await page.pdf({format:'A4',printBackground:true});
   assert.ok(pdf.byteLength>4000&&pdf.subarray(0,4).toString()==='%PDF','PDF de proposta não gerado');
+  // Um orçamento aprovado não pode manter o status após alteração de escopo.
+  page.once('dialog',dialog=>dialog.accept());
+  await page.evaluate(()=>{
+   const q=db.quotes.find(v=>v.id==='test-quote');
+   s.wizard=structuredClone(q);s.wizard.title='Instalação revisada para nova aprovação';
+   s.wizard.status='Aprovado';persistWizard();
+  });
+  const revised=await page.evaluate(()=>JSON.parse(localStorage.getItem('civolten_daily_v2')).quotes[0]);
+  assert.equal(revised.status,'Em análise');
+  assert.ok(revised.approvalPending&&revised.approvalPending.previousRevision===1);
+  assert.equal(revised.history.length,1);
+  assert.equal(revised.revision,2);
+  assert.ok(revised.history[0].snapshot.status==='Aprovado','A aprovação original permanece auditável');
     assert.deepEqual(runtimeErrors,[],'Erros JavaScript no navegador: '+runtimeErrors.join('; '));
   console.log('SMOKE PASSOU: navegador, orçamento, progresso, custos, recebimentos, prévia comercial e PDF A4');
  }finally{
