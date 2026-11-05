@@ -104,8 +104,26 @@
   save();render();
  };
  const workerValue=w=>realWorkerRate(w);
+ function comparablePublicReferences(id,origin,name){
+  const hits=window.CIVOLTENUnifiedCatalog?.search?.(name)?.rows||[];
+  const match=hits.find(row=>row.compared&&
+   row.refs.some(r=>r.id===id&&r.origin===origin));
+  if(!match)return [];
+  const refs=match.refs.filter(r=>Number(r.value)>0);
+  // Uma composição de cada fonte; descrições duplicadas ficam para revisão.
+  if(refs.filter(r=>r.origin==='SIURB').length!==1||
+     refs.filter(r=>r.origin==='SINAPI').length!==1)return [];
+  return refs.map(r=>({source:r.origin,code:r.code,unit:r.unit,regime:r.regime,
+   date:r.date,cost:Number(r.value)}));
+ }
  function locateService(id,kind){
   if(kind==='catalog')return db.services.find(x=>x.id===id)||null;
+  if(kind==='siurb'){
+   const raw=(db.siurbItems||[]).find(x=>x.id===id);
+   return raw?{...raw,origin:'SIURB',sourceCode:raw.code,sourceGroup:raw.group,
+    sourceDate:db.siurbMeta?.base||'07/2026',referenceCost:raw.cost,
+    unifiedReferences:comparablePublicReferences(id,'SIURB',raw.name)}:null;
+  }
   if(kind!=='sinapi')return null;
   const raw=window.CIVOLTENSINAPI?.getRecords?.().find(x=>x.id===id);
   if(!raw)return null;
@@ -113,7 +131,7 @@
   const rows=[];
   for(const row of labor){
    if(!row.role||n(row.hoursPerUnit)<=0)continue;
-   const normalize=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();
+   const normalize=v=>String(v||'').normalize('NFD').replace(/\p{M}/gu,'').toLowerCase();
    const role=normalize(row.role);
    const matches=db.workers.filter(w=>{
     const wrole=normalize(w.role);
@@ -129,6 +147,7 @@
     String(row.role).toLowerCase()==='ajudante'&&/ajudante|servente/i.test(w.role)))));
   const hasIndirect=(raw.analyticItems||[]).some(x=>x.type==='COMPOSICAO'&&x.unit!=='H');
   return {...raw,origin:'SINAPI',sourceCode:raw.code,sourceDate:raw.base,referenceCost:raw.cost,
+   unifiedReferences:comparablePublicReferences(id,'SINAPI',raw.name),
    analyticalReviewNeeded:true,hasIndirectWork:hasIndirect,
    productivity:rows.length&&!unmatched&&rows.length<=3?{
     crew:rows,productivitySource:'SINAPI - horas diretas PRELIMINARES, revisão necessária'
@@ -187,7 +206,8 @@
   const previous=s.edit?structuredClone(s.edit):null;
   const serviceId=form.elements.serviceId?.value;
   const svc=db.services.find(x=>x.id===serviceId)||
-    (form.elements.sourceId?.value?locateService(form.elements.sourceId.value,'sinapi'):null);
+    (form.elements.sourceId?.value?(locateService(form.elements.sourceId.value,'sinapi')||
+       locateService(form.elements.sourceId.value,'siurb')):null);
   if(svc?.origin==='SINAPI'&&n(form.elements.labor?.value)<=0){
    toast('Esta composição ainda não tem custo de mão de obra calculado. Abra Detalhes avançados ou cadastre os profissionais da função.');
    return;
