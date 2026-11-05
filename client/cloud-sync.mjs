@@ -61,7 +61,7 @@ async function refresh(){
  currentUserId=user?.id||null;
  login.hidden=!!user;actions.hidden=!user;
  by('cv-cloud-auto').checked=isAuto();
- if(user){try{checkDeviceOwner()}catch(e){actions.hidden=true;note(e.message);return;}}
+ if(user){try{checkDeviceOwner()}catch(e){actions.hidden=false;note(e.message+' Os backups estão bloqueados nesta conta; use outro perfil de navegador. Você ainda pode sair da conta.');return;}}
  by('cv-cloud-user').textContent=user?'Conta: '+user.email:'';
  note(error?error.message:(user?'Conectado. Backup manual disponível. A automação é opcional e nunca substitui dados de outro aparelho sem revisão.':'Entre ou crie uma conta para guardar backups.'));
  if(user&&isAuto())scheduleAuto();
@@ -92,7 +92,7 @@ async function sign(signUp){
  finally{setBusy(false);}
 }
 async function upload(){
- if(busy)return;setBusy(true);
+ if(busy||autoBusy)return;setBusy(true);
  try{
   checkDeviceOwner();
   const local=localData(),current=await remote('GET');
@@ -107,7 +107,7 @@ async function upload(){
  }catch(e){note(e.message||'Erro ao enviar backup.');}finally{setBusy(false);}
 }
 async function restore(){
- if(busy)return;setBusy(true);
+ if(busy||autoBusy)return;setBusy(true);
  try{
   checkDeviceOwner();
   const cloud=await remote('GET');
