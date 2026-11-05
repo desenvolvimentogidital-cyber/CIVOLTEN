@@ -203,17 +203,22 @@ function calculate(q){
    rate:ref};
  });
  const assignedByRole=new Map(staffing.map(x=>[x.key,x.assigned]));
- const begin=workDate(sch.startDate);let cursor=begin,last=begin,totalDays=0,maxDays=0;
+ const begin=workDate(sch.startDate);
+ // Escalonamento conservador de recursos: frentes com a MESMA função não
+ // ocupam simultaneamente a mesma equipe. Frentes com funções distintas podem
+ // ocorrer em paralelo. Este é um cronograma estimado, não caminho crítico CPM.
+ const roleAvailable=new Map();let serialOffset=0,projectDays=0,last=begin;
  for(const row of lines){
   if(row.missing)continue;
   const duration=Math.max(1,Math.ceil(Math.max(...row.roles.map(x=>x.hours/((assignedByRole.get(x.key)||1)*productive)))));
-  row.duration=duration;
-  row.start=parallel?begin:cursor;
-  row.end=workdayAfter(row.start,duration);
-  if(parallel){maxDays=Math.max(maxDays,duration);if(row.end>last)last=row.end;}
-  else{totalDays+=duration;last=row.end;cursor=nextDay(row.end);}
+  const earliest=parallel?Math.max(0,...row.roles.map(x=>roleAvailable.get(x.key)||0)):serialOffset;
+  row.duration=duration;row.startOffset=earliest;row.endOffset=earliest+duration;
+  row.start=workdayAfter(begin,earliest+1);row.end=workdayAfter(begin,row.endOffset);
+  for(const role of row.roles)roleAvailable.set(role.key,row.endOffset);
+  if(!parallel)serialOffset=row.endOffset;
+  projectDays=Math.max(projectDays,row.endOffset);
+  if(row.end>last)last=row.end;
  }
- const projectDays=parallel?maxDays:totalDays;
  const budgetLabor=(q.items||[]).reduce((sum,item)=>sum+positive(item.qty)*positive(item.labor),0);
  const unknownCost=staffing.some(x=>x.rate<=0);
  const committed=(sch.dedicated&&!missing&&!unknownCost)?staffing.reduce((sum,r)=>sum+r.assigned*days*paid*r.rate,0):0;
@@ -243,7 +248,7 @@ function scheduleView(){
  field('Horas produtivas/dia por pessoa','wfProductive','7',schedule.productiveHoursDay,'number')+
  field('Horas remuneradas/dia','wfPaid','8',schedule.paidHoursDay,'number')+'</div>'+
  '<label class="label">Modelo de execução</label><select class="input" name="wfMode">'+
- '<option value="parallel" '+(schedule.mode==='parallel'?'selected':'')+'>Frentes paralelas (quando possível)</option>'+
+ '<option value="parallel" '+(schedule.mode==='parallel'?'selected':'')+'>Frentes paralelas (sem sobrepor a mesma função)</option>'+
  '<option value="sequential" '+(schedule.mode==='sequential'?'selected':'')+'>Etapas sequenciais</option></select>':
  '<p>Início: '+esc(schedule.startDate)+' · Prazo desejado: '+forecast.days+' dias úteis</p>')+'</div>';
  const resourceTable='<div class="form-card"><h3>Equipe necessária por função</h3>'+
@@ -322,6 +327,9 @@ document.addEventListener('change',e=>{
  if(e.target.name==='wfMode'){sch.mode=e.target.value;sch.confirmed=false;updateReserve(s.wizard);render();return}
  if(e.target.name==='wfDedicated'){sch.dedicated=e.target.checked;sch.confirmed=false;updateReserve(s.wizard);render();return}
  if(e.target.name==='wfConfirmed'){sch.confirmed=e.target.checked;keepTemp();return}
+ if(['wfStartDate','wfDays','wfProductive','wfPaid'].includes(e.target.name)||e.target.dataset.wfRole){
+  sch.confirmed=false;updateReserve(s.wizard);render();return;
+ }
 },true);
 document.addEventListener('input',e=>{
  if(e.target.id==='wp-siurb-search'){
