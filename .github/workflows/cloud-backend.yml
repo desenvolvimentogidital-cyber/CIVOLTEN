@@ -19,6 +19,8 @@ jobs:
       - name: Instalar dependências versionadas
         run: npm install --no-audit --no-fund
       - name: Compilar PWA e Neon Auth
+        env:
+          NEON_AUTH_BASE_URL: https://example.invalid/civolten/auth
         run: npm run build
       - name: Conferir arquivos publicados
         run: test -s dist/index.html && test -s dist/cloud-sync.js && test -s dist/sw.js
