@@ -279,3 +279,19 @@ O importador XLS usa a biblioteca SheetJS carregada via CDN no primeiro uso; req
 
 ## Correção do importador (novembro de 2026)
 O importador agora tenta células com formatação de exibição para preservar códigos mascarados do Excel, aceita variações de colunas e unidades, apresenta diagnóstico de leitura e mantém os dados antigos quando uma das tabelas falha. Os valores importados continuam sendo **custos de referência**. Teste com o arquivo oficial no navegador antes de utilizar preços em propostas reais.
+
+
+## Neon e operação real — implementação experimental (05/11/2026)
+A versão de desenvolvimento conecta o CIVOLTEN ao novo banco Neon `civolten-novo-2026`, com login e backup versionado por conta. Dados do aplicativo continuam inicialmente no `localStorage`; selecionar backup manual envia uma cópia criptografada em trânsito (HTTPS) por uma API de servidor autenticada. O backup automático **só é ligado por opção do usuário**, depois de confirmar; diferenças de revisão entre dispositivos bloqueiam sobrescrita silenciosa. O armazenamento local **não é criptografado**; não usar aparelho compartilhado para dados sensíveis. O banco antigo foi excluído sob autorização expressa, sem migração de cadastros. Dados de demonstração da versão antiga não são dados empresariais confiáveis.
+
+O módulo de **Execução e resultado real** permite registrar custos efetivos, recebimentos, avanços físicos e estornos auditáveis por orçamento, mostrando desvio de custo e projeção condicional de resultado. A estimativa não presume custos ausentes: quando não existem lançamentos suficientes, informa "Dados insuficientes". Custos registrados e receitas recebidas são distintos; para apuração contábil real ainda são necessárias conciliação bancária, notas fiscais, folha e validação de regime tributário. Os percentuais de progresso são manuais e devem ser aferidos tecnicamente.
+
+**Não considere o sistema homologado para contratos ou decisões sem revisão técnica** até validar no navegador real: login, recuperar sessão, backup, restauração, API em produção, orçamento → proposta/PDF → aprovação → medições/lançamentos → resultado, além de conferir salários, tributos, materiais e coeficientes com valores reais.
+
+Configuração segura da Vercel: `DATABASE_URL`, `NEON_AUTH_BASE_URL`, `NEON_AUTH_JWKS_URL`. O primeiro segredo deve permanecer exclusivamente no servidor e nunca ser exposto na compilação pública. Configure o domínio da Vercel como domínio confiável no Neon Auth. A base de dados usa `civolten_app.user_state`, `civolten_app.user_state_history` e `neon_auth`.
+
+### Integração e testes
+- `npm run build`: monta `dist/`, incluindo PWA, módulo de execução e tela de login Neon.
+- `npm test`: testes financeiros, de API e de operações.
+- `tests/operations.cjs`: cálculos de custos reais, recebimentos, estornos, projeções e alertas.
+- `tests/cloud-state.cjs`: autenticação, validação de payload, controle de versão e proteção de dados.
