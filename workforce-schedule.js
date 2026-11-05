@@ -21,21 +21,8 @@ const profiles={mei:{label:'MEI (até 1 empregado, na forma legal)',cpp:3,rat:0}
  custom:{label:'Personalizado por contador',cpp:20,rat:2}};
 function currentProfile(){return profiles[db.company.workforceScenario]||profiles.simples4}
 function defaultsForScenario(){const v=currentProfile();return {fgts:8,employerInss:v.cpp,employerExtraPercent:v.rat};}
-function payroll(w){
- const base=positive(w.salary),thirteenth=base/12,third=base/36,benefits=positive(w.mealBenefit)+positive(w.transportBenefit)+positive(w.otherBenefit)+positive(w.monthlyReserve);
- const fgts=w.fgts!==undefined?positive(w.fgts):8,cpp=w.employerInss!==undefined?positive(w.employerInss):defaultsForScenario().employerInss,other=positive(w.employerExtraPercent);
- const charges=(base+thirteenth+third)*(fgts+cpp+other)/100;
- const total=base+thirteenth+third+charges+benefits;
- const hours=positive(w.productiveHours)||160;
- return {base,thirteenth,third,charges,benefits,total:round(total),hourly:total/hours,hours};
-}
-function hourly(w){
- if(!w)return 0;
- if(w.link==='Empregado'||w.employmentType==='CLT')return positive(w.salary)?payroll(w).hourly:positive(w.cost)/(positive(w.productiveHours)||160);
- if(w.unit==='mês')return positive(w.cost)/(positive(w.productiveHours)||160);
- if(w.unit==='diária')return positive(w.cost)/(positive(w.dailyHours)||8);
- return positive(w.cost);
-}
+function payroll(w){return window.CIVOLTENPayroll.calculate(w)}
+function hourly(w){return window.CIVOLTENPayroll.hourly(w)}
 function initialize(){
  db.company.workforceScenario ||= 'simples4'; // Apenas cenário; NÃO altera o enquadramento tributário atual.
  if(db.company.workforceModelVersion)return;
