@@ -7,6 +7,7 @@
 'use strict';
 const SOURCE='https://www.caixa.gov.br/poder-publico/modernizacao-gestao/sinapi/Paginas/default.aspx';
 let records=[],busy=false,message='',search='',shown=0,meta=null;
+let activeTab='siurb';
 const norm=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
 const dec=v=>{
  if(typeof v==='number')return Number.isFinite(v)?v:NaN;
@@ -201,11 +202,26 @@ function panel(){
  '</section>';
 }
 const previousServices=ROUTES.services;
+function catalogTabs(){
+ return '<section class="sn-choice"><h2>Tabelas de referência</h2>'+
+  '<p class="small-desc">Escolha a tabela que deseja importar ou pesquisar. As duas bases ficam separadas.</p>'+
+  '<div class="sn-tab-switch" role="tablist" aria-label="Importadores SIURB e SINAPI">'+
+  '<button type="button" role="tab" aria-controls="sn-siurb-panel" aria-selected="'+(activeTab==='siurb')+'" '+
+  'class="sn-tab'+(activeTab==='siurb'?' is-active':'')+'" data-action="sn-tab" data-tab="siurb">SIURB <small>São Paulo</small></button>'+
+  '<button type="button" role="tab" aria-controls="sn-sinapi-panel" aria-selected="'+(activeTab==='sinapi')+'" '+
+  'class="sn-tab'+(activeTab==='sinapi'?' is-active':'')+'" data-action="sn-tab" data-tab="sinapi">SINAPI <small>CAIXA / IBGE</small></button>'+
+  '</div></section>';
+}
 ROUTES.services=function(){
  const html=previousServices();
- const anchor='<div class="siurb-my-services">';
- if(html.includes(anchor))return html.replace(anchor,panel()+anchor);
- return html.replace('<main class="sheet full">','<main class="sheet full">'+panel());
+ const siurbMarkup=siurbPanel();
+ const anchor='<main class="sheet full">'+siurbMarkup;
+ const tabs=catalogTabs();
+ const options='<div class="sn-tab-content" id="sn-siurb-panel"'+(activeTab==='siurb'?'':' hidden')+'>'+siurbMarkup+'</div>'+
+  '<div class="sn-tab-content" id="sn-sinapi-panel"'+(activeTab==='sinapi'?'':' hidden')+'>'+panel()+'</div>';
+ if(html.includes(anchor))return html.replace(anchor,'<main class="sheet full">'+tabs+options);
+ // Caso o módulo SIURB altere a estrutura, conservar os dois importadores visíveis.
+ return html.replace('<main class="sheet full">','<main class="sheet full">'+tabs+panel());
 };
 async function importFile(file){
  if(!file||busy)return;
@@ -243,6 +259,8 @@ document.addEventListener('input',event=>{
  if(target)target.innerHTML=hits();
 },true);
 document.addEventListener('click',event=>{
+ const tab=event.target.closest('[data-action="sn-tab"]');
+ if(tab){event.preventDefault();event.stopPropagation();activeTab=tab.dataset.tab==='sinapi'?'sinapi':'siurb';render();return}
  const button=event.target.closest('[data-action="sn-add"]');if(!button)return;
  event.preventDefault();event.stopPropagation();
  const item=records.find(x=>x.id===button.dataset.id);
@@ -262,6 +280,7 @@ document.addEventListener('click',event=>{
 },true);
 const css=document.createElement('style');
 css.textContent='.sn-panel{margin:12px 0;background:#f7fafc;border-color:#bdcedf}.sn-logo{background:#276295!important;color:white!important}.sn-settings{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.sn-settings .label{font-size:11px}.sn-settings .input{margin:5px 0 0}.sn-result{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #dae2ec}.sn-result>div{flex:1;min-width:0}.sn-result strong{display:block;font-size:12px;line-height:1.35}.sn-result small{display:block;font-size:10px;color:#64748b;line-height:1.4;margin-top:4px}.sn-result button{font-size:10px;min-width:90px;padding:8px 6px}.sn-message{font-size:12px;line-height:1.45;margin:10px 0;color:#254465}@media(max-width:380px){.sn-settings{grid-template-columns:1fr}.sn-result{align-items:flex-start}}';
+css.textContent+='.sn-choice{border:1px solid #d7e0eb;background:#f8fbff;padding:14px;border-radius:16px;margin:0 0 12px}.sn-choice h2{font-size:17px;margin:0 0 3px}.sn-choice .small-desc{margin:0 0 10px}.sn-tab-switch{display:grid;grid-template-columns:1fr 1fr;gap:9px}.sn-tab{min-width:0;border:1px solid #cad6e4;background:white;color:#26354a;border-radius:12px;padding:12px 8px;text-align:center;font:inherit;font-size:14px;font-weight:700}.sn-tab small{display:block;font-size:11px;font-weight:400;margin-top:4px}.sn-tab.is-active{border-color:#276295;background:#e4f1fa;color:#163e62;box-shadow:inset 0 0 0 1px #276295}.sn-tab-content[hidden]{display:none!important}.sn-tab-content>.sn-panel{margin-top:0}';
 document.head.append(css);
 restore();
 window.CIVOLTENSINAPI={parseRows,parseWorkbook,getRecords:()=>records.slice(),getMeta:()=>meta};
