@@ -1,0 +1,13 @@
+{
+  "name": "civolten",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PWA CIVOLTEN e API segura Neon",
+  "scripts": {
+    "test": "node tests/financial-audit.cjs && node --test tests/cloud-state.cjs"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "1.2.0",
+    "jose": "6.2.15"
+  }
+}
