@@ -214,7 +214,9 @@ Fontes oficiais:
 
 ## Importador SINAPI manual — ZIP, XLSX, XLS e CSV (novembro/2026)
 
-A tela de **Mais → Serviços** reúne **dois importadores separados**:
+A tela **Mais → Serviços**, logo abaixo do título, mostra duas **abas grandes e visíveis: SIURB (São Paulo) e SINAPI (CAIXA/IBGE)**. Toque na aba **SINAPI** para encontrar o botão **Selecionar SINAPI: ZIP / XLSX / XLS / CSV** sem rolar a listagem SIURB.
+
+A tela reúne **dois importadores separados**:
 
 1. **SIURB Prefeitura SP** (o importador já existente).
 2. **SINAPI CAIXA/IBGE** (novo painel com botão **Selecionar SINAPI: ZIP / XLSX / XLS / CSV**).
