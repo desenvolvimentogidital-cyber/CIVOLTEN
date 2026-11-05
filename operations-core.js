@@ -7,14 +7,14 @@
  'use strict';
  const n=v=>{const x=Number(String(v??0).replace(',','.'));return Number.isFinite(x)?x:0};
  const money=v=>Math.round(n(v)*100)/100;
- function summary(q={}){
+ function summary(q={},defaults={}){
   const ex=q.execution||{},entries=Array.isArray(ex.entries)?ex.entries:[];
   const costs=entries.filter(e=>e.type==='cost').reduce((sum,e)=>sum+n(e.amount),0);
   const receipts=entries.filter(e=>e.type==='receipt').reduce((sum,e)=>sum+n(e.amount),0);
   const spent=money(Math.max(0,costs)),received=money(Math.max(0,receipts));
   const price=Math.max(0,n(q.price)),plannedCost=Math.max(0,n(q.cost));
   const percent=Math.min(100,Math.max(0,n(ex.percent)));
-  const taxes=Math.max(0,n(q.tax)+n(q.fees));
+  const taxes=Math.max(0,n(q.tax??defaults.tax)+n(q.fees??defaults.fees));
   const netContract=money(price*(1-Math.min(100,taxes)/100));
   const hasRealCosts=entries.some(e=>e.type==='cost'&&n(e.amount)>0);
   const factor=percent/100;
