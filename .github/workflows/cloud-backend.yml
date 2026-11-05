@@ -2,7 +2,7 @@ name: CIVOLTEN API Neon
 on:
   push:
     branches: [main]
-    paths: ['api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','client/**','scripts/**','index.html','sw.js','vercel.json','.github/workflows/cloud-backend.yml']
+    paths: ['api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','client/**','scripts/**','operations*.js','tests/operations.cjs','index.html','sw.js','vercel.json','.github/workflows/cloud-backend.yml']
   pull_request:
     paths: ['api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','.github/workflows/cloud-backend.yml']
   workflow_dispatch:
@@ -28,3 +28,7 @@ jobs:
         run: node --test tests/cloud-state.cjs
       - name: Reexecutar auditoria financeira
         run: node tests/financial-audit.cjs
+      - name: Validar custos realizados, medições e alertas
+        run: node --test tests/operations.cjs
+      - name: Verificar sintaxe dos módulos operacionais
+        run: node --check operations.js && node --check operations-core.js && node --check client/cloud-sync.mjs
