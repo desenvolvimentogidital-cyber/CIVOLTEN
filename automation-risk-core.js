@@ -37,6 +37,10 @@
    add('operation-'+String(error.code||'alert'),error.level==='critical'?'critical':'warning',String(error.message||'Revisar execução.'));
   if(final&&!q.auditFinancial?.date)
    add('no-audit-record','warning','Proposta sem registro da auditoria financeira na revisão atual; confirme antes de reutilizar.');
+  if(q.approvalPending&&!q.approvalPending.resolvedAt)
+   add('new-approval-needed','warning','Proposta revisada após aprovação. Solicite novo aceite antes de executar as condições alteradas.');
+  if(final&&q.status==='Aprovado'&&q.approvalPending&&!q.approvalPending.resolvedAt)
+   add('approval-inconsistent','critical','Proposta aprovada contém alterações ainda sem novo aceite registrado.');
   if(draft&&(q.items||[]).length===0)
    add('draft-empty','info','Rascunho sem serviços: complete os itens antes de emitir.');
   return findings.sort((a,b)=>({critical:0,warning:1,info:2}[a.level]-{critical:0,warning:1,info:2}[b.level]));
