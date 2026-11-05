@@ -69,10 +69,10 @@ function addItemHTML(){
  const owner=e.owner||(s.wizard?.type==='Mão de obra'?'cliente':'empresa');
  const ref=number(source.referenceCost??source.cost??e.referenceCost);
  const html='<label class="label">Buscar serviço na SIURB ou nos cadastrados</label>'+
- '<div class="dw-search-wrap"><input class="input" id="dw-service-search" placeholder="Digite código ou nome do serviço..." autocomplete="off" value="'+esc(dqSearch)+'">'+
+ '<div class="dw-search-wrap"><input class="input" name="service" id="dw-service-search" required placeholder="Digite código ou nome do serviço..." autocomplete="off" value="'+esc(dqSearch)+'">'+
  '<div id="dw-service-hits" class="dw-hits" hidden></div></div>'+
  '<p class="dw-help">Selecione um resultado para preencher a descrição, a unidade e os custos que estiverem confirmados. Você também pode digitar um serviço manualmente.</p>'+
- '<label class="label">Serviço / descrição do item *</label><input name="service" class="input" required value="'+esc(e.service||'')+'" placeholder="Ex.: Instalação de eletroduto">'+
+ '<p class="dw-help">A descrição é o próprio campo de pesquisa. Ao escolher um serviço, a unidade e os valores disponíveis são preenchidos automaticamente.</p>'+
  '<div class="grid-duo">'+field('Unidade','unit','m, m², m³, ponto, un',selected?.unit||e.unit||'un')+field('Quantidade','qty','1',e.qty||1,'number',true)+'</div>'+
  '<label class="label">Material cadastrado (opcional)</label><select class="input" name="materialId">'+option('','Selecionar material')+selectedMaterial()+'</select>'+
  '<label class="label">Profissional cadastrado (opcional)</label><select class="input" name="workerId">'+option('','Selecionar profissional')+selectedWorker()+'</select>'+
@@ -289,6 +289,7 @@ wizardStep2=function(){
  return html;
 };
 wizardStep3=function(){
+ syncExpenseTotal();
  let html=baseStep3();
  // A despesa adicional manual é separada das despesas cadastradas, sem dupla contagem.
  const label='Custo adicional (R$)';
@@ -341,6 +342,12 @@ document.addEventListener('input',e=>{
  const form=document.getElementById('modal-form');
  if(e.target.id==='dw-service-search'){
   dqSearch=e.target.value;
+  if(selected&&norm(selected.label)!==norm(dqSearch)){
+   selected=null;
+   const form=document.getElementById('modal-form');
+   if(form){form.elements.sourceId.value='';form.elements.serviceId.value='';form.elements.siurbReference.value=0;form.elements.siurbChecked.checked=false;}
+   const p=document.getElementById('dw-siurb-note');if(p)p.hidden=true;
+  }
   const hits=document.getElementById('dw-service-hits');
   if(hits){hits.innerHTML=serviceHits(dqSearch);hits.hidden=false}
  }
