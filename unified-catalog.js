@@ -1,5 +1,5 @@
 /* CIVOLTEN — Catálogo integrado de referência SIURB + SINAPI.
- * Uma busca; adiciona a fonte com MENOR custo público apenas quando escopo,
+ * Uma busca; adiciona a fonte com MAIOR custo público apenas quando escopo,
  * unidade e regime são estritamente equivalentes (descrição normalizada igual).
  * Custo público NUNCA vira custo real da empresa nem preço de venda automático.
  */
@@ -63,12 +63,12 @@ function searchBoth(phrase){
  }
  const rows=[];
  for(const entries of grouped.values()){
-  const ordered=entries.slice().sort((a,b)=>(a.value??Infinity)-(b.value??Infinity));
+  const ordered=entries.slice().sort((a,b)=>(b.value??-Infinity)-(a.value??-Infinity));
   const best=ordered[0];
   const sameScope=entries.filter(x=>comparable(best,x));
-  const alt=sameScope.length?sameScope.sort((a,b)=>a.value-b.value)[0]:null;
-  // When both sources are present and strictly comparable, choose lower cost.
-  const chosen=alt&&alt.value<best.value?alt:best;
+  const alt=sameScope.length?sameScope.sort((a,b)=>b.value-a.value)[0]:null;
+  // When both sources are present and strictly comparable, protect the quote with the HIGHER published cost.
+  const chosen=alt&&alt.value>best.value?alt:best;
   rows.push({chosen,alternative:entries.find(x=>x.origin!==chosen.origin&&comparable(chosen,x))||null,
    refs:entries,compared:entries.some(x=>x.origin!==chosen.origin&&comparable(chosen,x))});
  }
@@ -87,7 +87,7 @@ function renderRows(){
    '<small>'+esc(selected.unit)+' · '+esc(selected.code)+'</small></div>'+
    '<div class="uc-price"><span>Referência '+esc(selected.origin)+'</span><b>'+currency(selected.value)+
    (selected.value!=null?' / '+esc(selected.unit):'')+'</b></div>'+
-   (comparison?'<p class="uc-match">Menor custo de referência entre descrições e unidades idênticas</p>'+
+   (comparison?'<p class="uc-match">Maior custo de referência entre serviços com descrição, unidade e regime iguais</p>'+
      '<div class="uc-other">Outra fonte: '+esc(alt.origin)+' '+currency(alt.value)+
      ' / '+esc(alt.unit)+' · '+esc(alt.code)+'</div>':
      '<p class="uc-fine">Referência disponível. Sem composição equivalente confirmada na outra tabela.</p>')+
@@ -99,10 +99,10 @@ function renderRows(){
 }
 function box(){
  return '<section class="uc-panel"><h2>Catálogo único de serviços</h2>'+
- '<p class="uc-desc">Pesquise uma vez na SIURB + SINAPI. Para descrições, unidades e regimes iguais, a CIVOLTEN destaca automaticamente o menor custo público. O preço final do orçamento usa os custos reais da empresa.</p>'+
+ '<p class="uc-desc">Pesquise uma vez na SIURB + SINAPI. Para descrições, unidades e regimes iguais, a CIVOLTEN destaca automaticamente o MAIOR custo público. O preço final do orçamento usa os custos reais da empresa.</p>'+
  '<div class="searchbar"><span>⌕</span><input type="search" id="uc-search" autocomplete="off" placeholder="Buscar serviço ou código nas duas tabelas" value="'+esc(query)+'"></div>'+
  '<div id="uc-results">'+(query.trim().length>=2?renderRows():'<p class="uc-empty">Digite um serviço para buscar nas duas tabelas. Exemplo: alvenaria, elétrica, concreto ou código.</p>')+'</div>'+
- '<p class="uc-fine">A comparação de preços é apenas entre descrições exatamente equivalentes, unidade e regime iguais. Diferenças de escopo, materiais ou composição exigem conferência técnica. Preço de referência não substitui custo real, impostos, margem nem é preço de venda.</p>'+
+ '<p class="uc-fine">A maior referência protege a base comercial do orçamento completo, mas não altera o custo real da empresa. A comparação de preços é apenas entre descrições exatamente equivalentes, unidade e regime iguais. Diferenças de escopo, materiais ou composição exigem conferência técnica. Preço de referência não substitui custo real, impostos, margem nem é preço de venda.</p>'+
  '</section>';
 }
 function createFrom(r,alternatives){
@@ -113,7 +113,9 @@ function createFrom(r,alternatives){
  const common={id:uid('sv'),name:r.name,unit:r.unit,labor:0,material:0,equipment:0,
   referenceCost:r.value||0,origin:r.origin,sourceCode:r.code,
   sourceDate:r.date,sourceRegime:r.regime,referenceNeedsValidation:true,
-  unifiedReferences:sourceInfo,unifiedSelectedAt:new Date().toISOString(),
+  unifiedReferences:sourceInfo,unifiedSelectionPolicy:'higher_public_cost',
+  unifiedReferenceComparable:sourceInfo.some(x=>x.source!==r.origin&&x.regime===r.regime&&x.unit===r.unit&&x.cost!=null),
+  unifiedSelectedAt:new Date().toISOString(),
   costSplitConfirmed:false};
  if(r.origin==='SIURB')return {...common,sourceGroup:item.group||''};
  return {...common,sourceUF:'SP',sourceKind:item.kind,sourceFile:item.fileName,
