@@ -159,6 +159,15 @@
   const id=s.edit?.id,itemsBefore=s.wizard?.items?.length||0;
   const previous=s.edit?structuredClone(s.edit):null;
   const serviceId=form.elements.serviceId?.value,svc=db.services.find(x=>x.id===serviceId);
+  // Coeficientes de mão de obra SINAPI não representam o custo dos materiais.
+  // No orçamento completo, exigir materiais reais antes de emitir preço.
+  const hasSinapiMaterials=svc?.origin==='SINAPI'&&
+    (svc.analyticItems||[]).some(x=>x.type==='INSUMO'||(x.type==='COMPOSICAO'&&x.unit!=='H'));
+  if(hasSinapiMaterials&&(s.wizard?.type==='Completo'||s.wizard?.type==='Misto'&&form.elements.owner?.value==='empresa')&&
+    n(form.elements.material?.value)<=0&&n(form.elements.extra?.value)<=0){
+    toast('Composição SINAPI inclui materiais ou subcomposições. Informe o custo real de materiais/equipamentos antes de salvar o serviço completo.');
+    return;
+  }
   // Confere os mínimos reais cadastrados mesmo após ajuste manual no item.
   if(svc?.productivity){
    const minimum=crewTotals(svc.productivity.crew).cost;
