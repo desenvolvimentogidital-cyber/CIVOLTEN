@@ -259,6 +259,16 @@ O botão **Adicionar ao catálogo** salva **uma única fonte escolhida, a de mai
 
 **Limite:** Não há vinculação por semelhança textual aproximada entre composições SIURB e SINAPI; isso poderia confundir serviços aparentemente similares, mas de custos/quantidades diferentes. A comparação mostra somente combinações de escopo e unidade estritamente compatíveis pelo nome da tabela, e mesmo essas devem ser revisadas quando forem usadas em proposta real.
 
+## Adicionar item simplificado — serviço e quantidade (2026-11-05)
+
+O formulário **Orçamentos → Novo orçamento → Adicionar item** passou a priorizar somente **Pesquisar serviço (catálogo, SIURB ou SINAPI)** e **Quantidade a executar**. Digitar "parede de alvenaria" ou código mostra composições e serviços já disponíveis. Ao escolher uma composição, a tela preenche **descrição e unidade automaticamente**; quando há produtividade e custos cadastrados, carrega também **horas, equipe, custo de mão de obra, materiais e equipamentos** a partir dos dados previamente conferidos. O resumo simplificado mostra horas-homem e o **custo direto interno estimado**, nunca confundido com o **preço final de venda**, que aparece na revisão do orçamento.
+
+Os controles anteriores permanecem em **Detalhes avançados — Equipe, materiais, horas e valores editáveis**. Ao editar um item já salvo, unidade, quantidade e composição prévia são preservadas; proposta anterior não é reprecificada sem edição.
+
+A pesquisa alcança a biblioteca de serviços cadastrados, a SIURB e o **SINAPI importado no IndexedDB**, sem necessidade de copiar 10.598 registros para o cadastro local. O catálogo unificado mantém a regra de **MAIOR referência pública**, quando unidades, descrição e regime das fontes coincidem.
+
+**Proteções:** a composição SINAPI recém-importada pode apresentar horas-homem **diretas** ainda não conferidas e subcomposições com mão de obra adicional. O formulário apresenta aviso, sugere a equipe quando existe correspondência confiável entre função e funcionário com custo/hora, mas **não inventa materiais nem transforma o custo global SINAPI em custo de mão de obra**. Ao importar serviço completo com materiais ou subcomposições, o custo real de materiais/equipamentos deve ser informado antes de salvar o item; se faltar custo de mão de obra, também bloqueia a inclusão. Serviços previamente conferidos no catálogo permitem o fluxo rápido com pesquisa + quantidade.
+
 ## Publicação na Vercel
 Importe a branch main, **Framework Other**, root `./` e sem build. A Vercel publica o HTML/CSS/JS e a função Node `api/siurb.js`. O serviço upstream pode ficar indisponível; o upload manual continua possível.
 
