@@ -31,9 +31,29 @@ function allServices(){
 function matchingServices(q){
  const n=norm(q);
  if(!n)return allServices().filter(x=>x.kind==='catalog').slice(0,20);
- const all=allServices();
- return all.filter(x=>norm(x.label+' '+x.code+' '+x.unit).includes(n))
- .sort((a,b)=>{const an=norm(a.label),bn=norm(b.label);return ((norm(a.code)===n&&n)?-100:0)+(an.startsWith(n)?-20:0)-( ((norm(b.code)===n&&n)?-100:0)+(bn.startsWith(n)?-20:0))})
+ const normalizeUnit=u=>String(u??'').toUpperCase().replace(/²/g,'2').replace(/³/g,'3').replace(/\\^/g,'').replace(/[^A-Z0-9]/g,'');
+ const results=allServices().filter(x=>norm(x.label+' '+x.code+' '+x.unit).includes(n));
+ // Se as fontes tiverem a MESMA descrição, unidade e regime (sem duplicatas
+ // ambíguas), apresentar uma única composição: a referência pública MAIOR.
+ // Serviços já cadastrados não são descartados, pois contêm custos reais.
+ const buckets=new Map();
+ for(const x of results){
+  const regime=x.kind==='siurb'?db.siurbMeta?.regime:x.kind==='sinapi'?x.data.regime:'';
+  const comparableKey=norm(x.label).replace(/[^a-z0-9]+/g,' ').trim()+'|'+normalizeUnit(x.unit)+'|'+regime;
+  const k=x.kind==='catalog'?'catalog|'+x.id:'public|'+comparableKey;
+  if(!buckets.has(k))buckets.set(k,[]);
+  buckets.get(k).push(x);
+ }
+ const merged=[];
+ for(const rows of buckets.values()){
+  const si=rows.filter(x=>x.kind==='siurb'),sn=rows.filter(x=>x.kind==='sinapi');
+  if(si.length===1&&sn.length===1&&db.siurbMeta?.regime&&
+    number(si[0].data.referenceCost??si[0].data.cost)>0&&
+    number(sn[0].data.referenceCost??sn[0].data.cost)>0){
+   merged.push(number(si[0].data.referenceCost??si[0].data.cost)>=number(sn[0].data.referenceCost??sn[0].data.cost)?si[0]:sn[0]);
+  }else merged.push(...rows);
+ }
+ return merged.sort((a,b)=>{const an=norm(a.label),bn=norm(b.label);return ((norm(a.code)===n&&n)?-100:0)+(an.startsWith(n)?-20:0)-( ((norm(b.code)===n&&n)?-100:0)+(bn.startsWith(n)?-20:0))})
  .slice(0,30);
 }
 function serviceHits(q){
