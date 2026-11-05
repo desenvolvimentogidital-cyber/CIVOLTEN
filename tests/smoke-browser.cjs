@@ -12,7 +12,9 @@ const input={
  clients:[{id:'test-client',name:'Cliente teste'}],workers:[],materials:[],services:[],expenses:[],
  quotes:[{id:'test-quote',number:'ORC-2026-0001',title:'Teste de instalação',clientId:'test-client',
  clientName:'Cliente teste',status:'Aprovado',type:'Mão de obra',date:'2026-11-05',cost:50000,
- price:80000,tax:0,fees:0,margin:20,items:[{id:'item-a',service:'Instalação',unit:'un',qty:1,labor:30000,material:0,extra:0,owner:'cliente'}]}]
+ price:80000,priceMode:'manual',manualPrice:80000,tax:0,fees:0,margin:59.5,
+ auditFinancial:{status:'passed',date:'2026-11-05T15:00:00Z'},
+ items:[{id:'item-a',service:'Instalação',unit:'un',qty:1,labor:30000,material:0,extra:0,owner:'cliente'}]}]
 };
 const server=http.createServer((req,res)=>{
  const pathname=decodeURIComponent((req.url||'/').split('?')[0]);
@@ -73,6 +75,19 @@ const close=()=>new Promise(resolve=>server.close(resolve));
     price:100,items:[{qty:1,labor:3,owner:'cliente'},{qty:1,labor:7,owner:'cliente'}]
   }));
   assert.equal(Math.round(shares.reduce((a,v)=>a+v,0)*100),10000);
+  const tiny=await page.evaluate(()=>CIVOLTENProposalLayout.shares({
+    price:0.5,items:Array.from({length:100},()=>({qty:1,labor:1,owner:'cliente'}))
+  }));
+  assert.equal(Math.round(tiny.reduce((a,v)=>a+v,0)*100),50);
+  assert.ok(tiny.every(v=>v>=0),'Nenhum item pode ter preço negativo');
+  const ready=await page.evaluate(()=>CIVOLTENProposalLayout.printReadiness(
+    JSON.parse(localStorage.getItem('civolten_daily_v2')).quotes[0]
+  ));
+  assert.equal(ready.ok,true,'Auditoria concluída deve liberar PDF');
+  const invalid=await page.evaluate(()=>CIVOLTENProposalLayout.printReadiness({
+    status:'Rascunho',items:[],price:0
+  }));
+  assert.equal(invalid.ok,false,'Rascunhos não devem ser enviados como propostas');
   const pdf=await page.pdf({format:'A4',printBackground:true});
   assert.ok(pdf.byteLength>4000&&pdf.subarray(0,4).toString()==='%PDF','PDF de proposta não gerado');
     assert.deepEqual(runtimeErrors,[],'Erros JavaScript no navegador: '+runtimeErrors.join('; '));
