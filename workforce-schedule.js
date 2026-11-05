@@ -86,8 +86,11 @@ ROUTES.workers=function(){
  return html.replace('<main class="sheet full">','<main class="sheet full">'+panel+refs);
 };
 function wpLaborHit(w){
- return '<div class="wp-line"><span><b>'+esc(w.name)+'</b><small>'+esc(w.kind||'SIURB')+' · '+esc(w.unit||'un')+'</small></span>'+
- '<span><b>'+money(w.cost)+'</b><button class="btn btn-outline" type="button" data-action="wp-copy-role" data-id="'+esc(w.id)+'">Criar cargo modelo</button></span></div>';
+ const values=w.costWithoutCharges!=null
+  ?'<small>Sem encargos: '+money(w.costWithoutCharges)+'</small><small>Com encargos: '+money(w.costWithCharges)+'</small>'
+  :'<small>Custo de referência (a conferir): '+money(w.cost)+'</small>';
+ return '<div class="wp-line"><span><b>'+esc(w.name)+'</b><small>'+esc(w.kind||'SIURB')+' · por '+esc(w.unit||'un')+'</small></span>'+
+ '<span>'+values+'<button class="btn btn-outline" type="button" data-action="wp-copy-role" data-id="'+esc(w.id)+'">Criar cargo modelo</button></span></div>';
 }
 const oldExpenseRoute=ROUTES.expenses;
 ROUTES.expenses=function(){
