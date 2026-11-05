@@ -1,0 +1,33 @@
+name: Auditoria financeira CIVOLTEN
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - '*.js'
+      - 'tests/financial-audit.cjs'
+      - '.github/workflows/financial-audit.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - '*.js'
+      - 'tests/financial-audit.cjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  financial-audit:
+    name: Validar orçamento e folha
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Confirmar Node.js disponível
+        run: node --version
+      - name: Executar testes financeiros de regressão
+        run: node tests/financial-audit.cjs
