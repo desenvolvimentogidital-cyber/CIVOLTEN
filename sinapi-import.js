@@ -33,12 +33,12 @@ function header(cells){
  const w=cells.map(norm),ix=re=>w.findIndex(x=>re.test(x));
  const code=ix(/^(CODIGO|CODIGO SINAPI|COD|CODIGO DA COMPOSICAO)$/);
  const desc=ix(/^(DESCRICAO|DESCRICAO DA COMPOSICAO|DESCRICAO DO SERVICO|DESCRICAO DO INSUMO|DISCRIMINACAO|SERVICO)$/);
- const unit=ix(/^(UNID|UNIDADE|UND|UM|U M|UNID DE MEDIDA)$/);
+ const unit=ix(/^(UNID\.?|UNIDADE|UND\.?|UM|U M|UNID DE MEDIDA|UNIDADE DE MEDIDA)$/);
  const uf=ix(/^(UF|ESTADO|SIGLA UF)$/);
  const type=ix(/^(TIPO|CLASSE|TIPO DE COMPOSICAO)$/);
  const direct=ix(/^(CUSTO TOTAL|CUSTO UNITARIO|CUSTO UNIT|PRECO UNITARIO|VALOR UNITARIO|VALOR TOTAL|PRECO TOTAL|PRECO R\$|CUSTO R\$|CUSTO|PRECO)$/);
  const regionColumn=ix(/^(SP|SAO PAULO|CUSTO SP|PRECO SP|SP CUSTO|SP PRECO)$/);
- const cost=direct>=0?direct:regionColumn;
+ const cost=regionColumn>=0?regionColumn:direct;
  // Não confundir COEFICIENTE/QUANTIDADE com custo.
  return code>=0&&desc>=0&&unit>=0?{code,desc,unit,uf,type,cost,regionColumn}:null;
 }
@@ -111,7 +111,7 @@ async function readFile(file,options){
   if(file.size>90*1024*1024)throw new Error('ZIP grande para o celular. Extraia o Excel de composições e importe apenas o XLSX.');
   const JSZip=await ensureZIP(),zip=await JSZip.loadAsync(file);
   const entries=Object.values(zip.files).filter(x=>!x.dir&&/\.(xlsx|xls|csv)$/i.test(x.name))
-   .filter(x=>!/(INSTRUCOES|LEIA.ME|MANUTENCOES|FAMILIAS)/i.test(x.name))
+   .filter(x=>!/(INSTRUCOES|LEIA.ME|MANUTENCOES|FAMILIAS|PERCENTUAL|CATALOGO|PARAMETRIC)/i.test(x.name))
    .filter(x=>options.kind==='insumos'?/INSUM|PRECO|SINAPI|SP/i.test(x.name):/COMP|CUSTO|SINAPI|SP/i.test(x.name))
    .slice(0,18);
   if(!entries.length)throw new Error('O ZIP não contém planilha compatível. Extraia o XLSX oficial e importe o arquivo diretamente.');
