@@ -247,6 +247,18 @@ Para o orçamento `Completo` ou `Misto` com material fornecido pela empresa, qua
 
 **Limites:** os coeficientes de subcomposições em cadeia ainda não são expandidos automaticamente; a verificação manual é necessária. A diferença entre **10.599 composições identificadas na inspeção** e **10.598 itens exibidos no celular** ainda não foi investigada item a item. A captura confirma uma importação grande, mas não prova que todos os registros foram preservados. Use os coeficientes somente após conferir código, unidade, contexto técnico e condições da obra.
 
+## Catálogo único SIURB + SINAPI (novembro de 2026)
+
+A tela **Mais → Serviços** agora inicia com **Catálogo único de serviços**, sem precisar selecionar uma das duas tabelas. Digite parte do nome ou código: os registros SIURB importados e as composições SINAPI-SP importadas no IndexedDB do celular são pesquisados em conjunto. O catálogo não duplica 10 mil serviços no cadastro: só copia para `db.services` o serviço escolhido.
+
+**Política de menor custo público:** para descrições integralmente iguais após normalização de acentos e pontuação, **mesma unidade, UF SP e regime tributário da tabela idêntico**, o sistema agrupa a referência SIURB/SINAPI e destaca o menor custo unitário publicado. Códigos SIURB e SINAPI **não** são interpretados como equivalentes apenas porque coincidem. Composições com nomes parecidos, escopos divergentes, unidades ou regime diferentes aparecem separadas, sem comparação automática. A tela informa a outra fonte e os preços de referência quando foram agrupados.
+
+O botão **Adicionar ao catálogo** salva **uma única fonte escolhida** para uso na biblioteca de serviços; registra `unifiedReferences` com ambas as origens, códigos, datas e custos quando houver comparação. A importação SINAPI com analítico preserva as composições e coeficientes para revisão posterior. Não sobrescreve serviços, empregados, orçamentos ou propostas existentes. As abas SIURB/SINAPI continuam na página apenas para **administrar/importar as tabelas**, não para procurar o preço manualmente em cada uma.
+
+**Proteção financeira:** o menor custo de referência publicado **não** é preço de venda, salário, mão de obra isolada ou custo real da CIVOLTEN. Ao adicionar serviço público, `labor`, `material`, `equipment` ficam em zero até a composição real ser conferida e definida. O orçamento aplica posteriormente salários com encargos, custos próprios de materiais, fixos, despesas, tributos, margem e preço comercial. Dados públicos podem trazer escopos distintos e datas-base diferentes; a comparação exata do nome não substitui auditoria técnica.
+
+**Limite:** Não há vinculação por semelhança textual aproximada entre composições SIURB e SINAPI; isso poderia confundir serviços aparentemente similares, mas de custos/quantidades diferentes. A comparação mostra somente combinações de escopo e unidade estritamente compatíveis pelo nome da tabela, e mesmo essas devem ser revisadas quando forem usadas em proposta real.
+
 ## Publicação na Vercel
 Importe a branch main, **Framework Other**, root `./` e sem build. A Vercel publica o HTML/CSS/JS e a função Node `api/siurb.js`. O serviço upstream pode ficar indisponível; o upload manual continua possível.
 
