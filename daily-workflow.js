@@ -210,8 +210,10 @@ function saveItem(form){
  if(!x.service?.trim()){toast('Informe ou selecione a descrição do serviço.');return}
  if(qty<=0){toast('A quantidade deve ser maior que zero.');return}
  const source=selected?.source==='SIURB'?selected.data:(selected?.data?.origin==='SIURB'?selected.data:(s.edit?.source==='SIURB'&&!selected?s.edit:null));
+ // Usar custo real com produtividade cadastrada não exige fingir uma divisão oficial da SIURB.
+ const companyProductivity=!!(selected?.data?.productivity?.crew?.length&&labor>0);
  if(source){
-  if(!form.elements.siurbChecked.checked){toast('Confira a divisão do serviço SIURB antes de incluí-lo.');return}
+  if(!form.elements.siurbChecked.checked&&!companyProductivity){toast('Informe e confira a composição ou cadastre a produtividade real da CIVOLTEN antes de incluir.');return}
   if(s.wizard.type==='Mão de obra'&&labor<=0){toast('Informe o custo de mão de obra por unidade. O total SIURB não representa somente mão de obra.');return}
   if(labor+material+extra<=0){toast('O serviço SIURB precisa de custos separados.');return}
  }
@@ -224,8 +226,8 @@ function saveItem(form){
  workerId:w?.id||'',hoursUnit:number(x.hoursUnit),workersCount:number(x.workersCount)||1,
  materialId:x.materialId||'',materialQty:number(x.materialQty)||1,materialSourceCode:chosenMaterialRef?.code||'',source:source?'SIURB':'',sourceCode:source?.sourceCode||source?.code||'',
  sourceGroup:source?.sourceGroup||source?.group||'',sourceDate:source?.sourceDate||'07/2026',
- referenceCost:source?number(source.referenceCost??source.cost):0,splitConfirmed:!!source};
- if(source&&form.elements.siurbSaveLibrary?.checked){
+ referenceCost:source?number(source.referenceCost??source.cost):0,splitConfirmed:!!form.elements.siurbChecked?.checked,companyProductivityConfirmed:companyProductivity};
+ if(source&&form.elements.siurbSaveLibrary?.checked&&form.elements.siurbChecked?.checked){
   let service=db.services.find(v=>v.origin==='SIURB'&&v.sourceCode===item.sourceCode&&v.sourceGroup===item.sourceGroup);
   if(!service){
    service={id:uid('sv'),origin:'SIURB',name:item.service,unit:item.unit,sourceCode:item.sourceCode,sourceGroup:item.sourceGroup,sourceDate:item.sourceDate,referenceCost:item.referenceCost,sourceRegime:db.siurbMeta?.regime};
