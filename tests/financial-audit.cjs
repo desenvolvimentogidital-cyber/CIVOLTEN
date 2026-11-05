@@ -42,6 +42,17 @@ test('Somente mão de obra não utiliza custo público global',()=>{
  const item={...quote().items[0],owner:'cliente',referenceGlobalFloor:150,referenceGlobalCompared:true};
  eq(calc(quote({type:'Mão de obra',items:[item]})).referencePremium,0);
 });
+test('Equipe dedicada é contabilizada antes de testar preço manual',()=>{
+ const existing=win.CIVOLTENSchedule;
+ win.CIVOLTENSchedule={calculate:()=>({missing:0,unknownCost:false,projectDays:10,days:20,reserve:20000})};
+ try{
+  const q=quote({priceMode:'manual',manualPrice:55000,schedule:{dedicated:true},scheduleExtraCost:0});
+  s.wizard=q;
+  const audit=inspect(q);
+  assert.equal(q.scheduleExtraCost,20000);
+  assert.ok(audit.errors.some(x=>x.code==='loss'));
+ }finally{win.CIVOLTENSchedule=existing}
+});
 test('Maior referência protege proposta manual',()=>{
  const item={...quote().items[0],referenceGlobalFloor:160,referenceGlobalCompared:true};
  const q=quote({items:[item]}),manual=quote({items:[item],priceMode:'manual',manualPrice:calc(q).suggested-100});
