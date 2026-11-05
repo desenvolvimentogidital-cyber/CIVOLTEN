@@ -10,6 +10,10 @@ const coeff=v=>{const n=Number(String(v??'').replace(',','.'));return Number.isF
 const code=v=>{const x=String(v??'').replace(/[.,]0+$/,'').trim();return /^\d{1,7}$/.test(x)&&Number(x)>0?x:''};
 const unit=v=>norm(v).replace(/M²/g,'M2').replace(/M³/g,'M3').replace(/\^/g,'');
 const key=(description,measurement)=>norm(description)+'|'+unit(measurement);
+function actualBase(rows,fallback){
+ const raw=String(rows?.[2]?.[1]??'').trim(),match=raw.match(/^([01]?\d)\/(20\d{2})$/);
+ return match&&Number(match[1])>=1&&Number(match[1])<=12?match[2]+'-'+match[1].padStart(2,'0'):fallback;
+}
 function roleOf(description){
  const name=norm(description);
  if(!/COM ENCARGOS/.test(name))return null;
@@ -54,6 +58,7 @@ function pricesSP(rows,type){
 function analytic(book,options,filename){
  const rows=readRows(book,'Analítico');
  if(!rows)return null;
+ options={...options,base:actualBase(rows,options.base)};
  const title=norm(rows[1]?.[0]);
  const heading=rows.find(row=>norm(row?.[1]).includes('CODIGO DA')&&norm(row?.[6])==='COEFICIENTE');
  if(!/RELATORIO ANALITICO DE COMPOSICOES/.test(title)||!heading)
@@ -89,7 +94,7 @@ function analytic(book,options,filename){
  }
  if(!list.length)throw new Error('Nenhuma composição reconhecida na aba Analítico da planilha.');
  for(const item of list)item.laborHoursPerUnit=Math.round(item.laborHoursPerUnit*1e7)/1e7;
- return {items:list,headers:1,seen:rows.length,layout:'SINAPI Referência/Analítico',
+ return {items:list,headers:1,seen:rows.length,base:options.base,layout:'SINAPI Referência/Analítico',
   laborCompositions:list.filter(x=>x.analyticLabor.length).length,
   priced:list.filter(x=>x.cost!==null).length,
   notes:'Coeficientes analíticos diretos: subcomposições não são expandidas automaticamente.'};
@@ -98,6 +103,7 @@ function inputs(book,options,filename){
  const sheet=options.regime==='desonerada'?'ICD':'ISD';
  const rows=readRows(book,sheet);
  if(!rows)return null;
+ options={...options,base:actualBase(rows,options.base)};
  const state=rows.slice(0,12).find(row=>Array.isArray(row)&&row.some(v=>norm(v)==='SP'));
  if(!state)throw new Error('A planilha de insumos não contém coluna SP verificável.');
  const col=state.findIndex(v=>norm(v)==='SP');
@@ -111,7 +117,7 @@ function inputs(book,options,filename){
    regime:options.regime,source:'SINAPI',fileName:filename,sheetName:sheet,
    verifiedUF:true,status:'REFERÊNCIA DE INSUMO'});
  }
- return {items,headers:1,seen:rows.length,layout:'SINAPI Referência/'+sheet};
+ return {items,headers:1,seen:rows.length,base:options.base,layout:'SINAPI Referência/'+sheet};
 }
 function parse(book,options,filename){
  if(options.uf!=='SP')throw new Error('Esta importação está configurada para São Paulo (SP).');
