@@ -26,6 +26,28 @@ A aplicação impede salvar novos itens SIURB sem conferência dos valores e blo
 
 **IMPORTANTE:** nesta etapa a separação é **manual e validada pelo usuário**, não importação automática de todos os componentes de planilhas. A Prefeitura publica **Composições de Custos** específicas de Edificações/Infraestrutura. Os arquivos oficiais devem ser consultados antes de usar custos reais e podem conter componentes auxiliares. O aplicativo não presume valores que não identificou com segurança. Orçamentos existentes e seus valores salvos não são reescritos automaticamente.
 
+
+## Orçamento rápido e custos reais (novembro/2026)
+
+Fluxo **Novo orçamento → Itens**:
+- Descrição é também a **busca por código ou texto**, trazendo a biblioteca SIURB já importada e serviços próprios. Selecionar preenche unidade, descrição e, se houver composição **previamente conferida**, custo separado de mão de obra, materiais e equipamentos.
+- Serviços SIURB que possuem **somente custo global** continuam exigindo conferência da composição. **Não calculamos valor de mão de obra por rateio arbitrário nem cobramos o total público como mão de obra.**
+- Material cadastrado é opcional; o módulo **Mais → Materiais** permite carregar/importar a tabela pública de **Insumos SIURB** (referência de preços, em cache local IndexedDB) e copiar materiais para seu catálogo.
+- Profissionais cadastrados podem ser escolhidos em cada item. No cadastro em **Mais → Profissionais**, use **Empregado CLT** para informar salário mensal, FGTS, INSS patronal, outros encargos, benefícios, provisão de 13º e 1/3 de férias e horas **produtivas** mensais. A seleção do profissional com suas horas por unidade permite preencher o custo da mão de obra (não deve somar de novo o custo de composição SIURB).
+- A tabela pública de **Mão de Obra Mensalista/Horista SIURB** pode ser importada como referência. Ela **não substitui o salário real nem o enquadramento sindical/tributário** e não é usada automaticamente como salário CLT.
+- Cadastre almoço, transporte, pedágio, combustível, hospedagem, locação etc. em **Mais → Despesas**. Em **Novo orçamento → Itens → Despesas da obra**, escolha as despesas efetivamente aplicáveis e informe quantidades, pessoas e dias; elas são acrescentadas ao custo do orçamento apenas uma vez.
+- Revisão do orçamento separa custo de execução, despesas, percentuais e preço final, com margem configurável. Mode padrão: **Somente mão de obra**; **Completo** e **Misto** continuam ativos.
+
+### Atenção para empregador MEI
+Como referência geral do MEI com empregado: 3% de contribuição previdenciária patronal e 8% de FGTS, além de 13º, férias acrescidas de 1/3 e benefícios/CCT. A simulação mensal NÃO é folha de pagamento nem cálculo trabalhista completo (não determina periculosidade/insalubridade, piso, CCT, rescisão ou todos os custos possíveis). Configurar conforme contador/convenção: https://www.gov.br/esocial/pt-br/microempreendedor-individual/manual-web-mei.
+
+Exemplo apenas ilustrativo: salário-base de R$ 2.800; INSS patronal 3%, FGTS 8%, 13º 1/12 e adicional de férias (1/3)/12, sem benefícios ou outros encargos → **R$ 3.453,33/mês**; com 160 horas produtivas, **R$ 21,58/h**. Com vale-transporte, alimentação, adicionais, CCT e reservas o custo muda.
+
+### Limites desta entrega
+Os arquivos oficiais "Insumos" e "Mão de Obra" são disponibilizados via proxy Vercel **somente para download e leitura** quando o portal estiver acessível. A importação está preparada, mas **os layouts exatos de todas as planilhas complementares ainda não foram validados com arquivos reais**; pode ser necessário ajustar os extratores. A tabela de **Composições de Custos** oficial ainda não é decomposta automaticamente por serviço em mão de obra/material/equipamento. Para isso é necessário importar e validar as composições completas.
+Dados comerciais continuam no armazenamento local do navegador sem login/servidor sincronizado. Faça backups e não dependa exclusivamente desta versão para operação crítica.
+
+
 ## Publicação na Vercel
 Importe a branch main, **Framework Other**, root `./` e sem build. A Vercel publica o HTML/CSS/JS e a função Node `api/siurb.js`. O serviço upstream pode ficar indisponível; o upload manual continua possível.
 
