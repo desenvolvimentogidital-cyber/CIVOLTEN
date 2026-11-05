@@ -167,7 +167,7 @@ modalSubmit=function(form){
   db.services.length>previous?db.services.at(-1):null;
  if(!service)return;
  if(comparison)service.referenceComparison=comparison;
- else if(!originalId)delete service.referenceComparison;
+ else delete service.referenceComparison; // Desativar comparação apagada mesmo em serviço já existente.
  if(!save())toast('Não foi possível armazenar a comparação. Faça um backup.');
  render();
 };
