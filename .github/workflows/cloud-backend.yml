@@ -2,7 +2,7 @@ name: CIVOLTEN API Neon
 on:
   push:
     branches: [main]
-    paths: ['api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','.github/workflows/cloud-backend.yml']
+    paths: ['api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','client/**','scripts/**','index.html','sw.js','vercel.json','.github/workflows/cloud-backend.yml']
   pull_request:
     paths: ['api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','.github/workflows/cloud-backend.yml']
   workflow_dispatch:
@@ -16,6 +16,12 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+      - name: Instalar dependências versionadas
+        run: npm install --no-audit --no-fund
+      - name: Compilar PWA e Neon Auth
+        run: npm run build
+      - name: Conferir arquivos publicados
+        run: test -s dist/index.html && test -s dist/cloud-sync.js && test -s dist/sw.js
       - name: Validar contrato da API, conflitos e autenticação
         run: node --test tests/cloud-state.cjs
       - name: Reexecutar auditoria financeira
