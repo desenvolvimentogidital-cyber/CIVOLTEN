@@ -84,7 +84,7 @@ function workerHTML(){
  option('Empregado','Empregado CLT',isClt)+option('Terceirizado','Terceirizado',w.link==='Terceirizado'||!w.link)+
  option('Próprio','Trabalho próprio / pró-labore',w.link==='Próprio')+option('Referência SIURB','Referência de custo SIURB',w.link==='Referência SIURB')+'</select>'+
  '<div id="dw-clt-fields" '+(isClt?'':'hidden')+'>'+
- '<div class="dw-info">Provisão anualizada estimada, ajustável. Para MEI, a contribuição patronal padrão é 3%; FGTS de 8%. Confirme piso, adicionais e convenção coletiva antes de contratar.</div>'+
+ '<div class="dw-info">Custo do empregador: salário + 13º + adicional de 1/3 de férias + FGTS + contribuição patronal e risco conforme regime + benefícios e reservas. MEI: 3% patronal; Simples Anexo IV: contribuição fora do DAS. Confira CCT, pisos e laudos antes de contratar.</div>'+
  '<div class="grid-duo">'+field('Salário-base mensal (R$)','salary','2800',w.salary||0,'number')+
  field('Horas produtivas/mês','productiveHours','160',hours,'number')+
  field('FGTS empregador (%)','fgts','8',w.fgts??8,'number')+
@@ -107,7 +107,7 @@ function workerHTML(){
  field('Benefícios extras (R$)','otherBenefit','0',w.otherBenefit||0,'number')+
  field('Reserva adicional (R$)','monthlyReserve','0',w.monthlyReserve||0,'number')+'</div>'+
  '<div class="dw-total" id="dw-clt-result">Custo mensal estimado: <b>'+BRL(cltCost(w).total)+'</b></div>'+
- '<div class="dw-help" id="dw-clt-breakdown"></div>'+
+ '<div class="dw-help" id="dw-clt-breakdown">Salário base '+BRL(cltCost(w).base)+'; 13º '+BRL(cltCost(w).thirteenth)+'; 1/3 férias '+BRL(cltCost(w).vacationThird)+'; FGTS '+BRL(cltCost(w).fgts)+'; INSS patronal '+BRL(cltCost(w).employer)+'; RAT '+BRL(cltCost(w).rat)+'; outros encargos '+BRL(cltCost(w).otherCharges)+'; benefícios '+BRL(cltCost(w).benefits)+'; reservas '+BRL(cltCost(w).monthlyReserve+cltCost(w).terminationReserve+cltCost(w).absenceCover)+'.</div>'+
  '<p class="dw-help">Periculosidade e insalubridade não são aplicáveis automaticamente a todos os profissionais. Reservas para rescisão e substituição são parâmetros gerenciais, não taxas legais universais. Confira piso/CCT, laudo, enquadramento e benefícios antes da contratação.</p></div>'+
  '<div id="dw-nonclt-fields" '+(isClt?'hidden':'')+'>'+
  field('Custo contratado / taxa de referência (R$)','cost','0',!isClt?w.cost||0:0,'number')+
