@@ -61,8 +61,22 @@ const close=()=>new Promise(resolve=>server.close(resolve));
   await page.locator('.cv-op-panel').filter({hasText:'Obras e movimentação registrada'}).waitFor();
   const screen=await page.locator('.cv-op-panel').filter({hasText:'Obras e movimentação registrada'}).innerText();
   assert.match(screen,/32\.000,00/);assert.match(screen,/40\.000,00/);
-  assert.deepEqual(runtimeErrors,[],'Erros JavaScript no navegador: '+runtimeErrors.join('; '));
-  console.log('SMOKE PASSOU: navegação, orçamento, progresso, custo, recebimento e financeiro');
+  await page.locator('.cv-op-open[data-action="detail"][data-id="test-quote"]').first().click();
+  await page.locator('[data-action="preview"][data-id="test-quote"]').first().click();
+  await page.locator('.cv-proposal-heading h1').waitFor();
+  const documentText=await page.locator('.cv-proposal').innerText();
+  assert.match(documentText,/Proposta de serviços/);
+  assert.match(documentText,/80\.000,00/);
+  assert.match(documentText,/Cliente teste/);
+  assert.doesNotMatch(documentText,/Custo previsto|Salário|Encargos da equipe/);
+  const shares=await page.evaluate(()=>CIVOLTENProposalLayout.shares({
+    price:100,items:[{qty:1,labor:3,owner:'cliente'},{qty:1,labor:7,owner:'cliente'}]
+  }));
+  assert.equal(Math.round(shares.reduce((a,v)=>a+v,0)*100),10000);
+  const pdf=await page.pdf({format:'A4',printBackground:true});
+  assert.ok(pdf.byteLength>4000&&pdf.subarray(0,4).toString()==='%PDF','PDF de proposta não gerado');
+    assert.deepEqual(runtimeErrors,[],'Erros JavaScript no navegador: '+runtimeErrors.join('; '));
+  console.log('SMOKE PASSOU: navegador, orçamento, progresso, custos, recebimentos, prévia comercial e PDF A4');
  }finally{
   if(browser)await browser.close();
   if(server.listening)await close();
