@@ -110,7 +110,7 @@ modalUI=function(){
  '<p class="wp-muted">Salário e encargos são recalculados ao salvar. Este registro não substitui eSocial nem folha de pagamento.</p>';
  const ix=html.lastIndexOf('<div class="form-actions">');if(ix>=0)html=html.slice(0,ix)+preset+html.slice(ix);
  // Novos CLT adotam parâmetros simulados selecionados, sem alterar pessoas já existentes.
- if(!s.edit&&db.company.workforceScenario!=='mei'){
+ if(!s.edit&&db.company.taxRegime!=='MEI'&&db.company.workforceScenario!=='mei'){
   html=html.replace(/(name="employerInss"[^>]*value=")3(")/,'$1'+currentProfile().cpp+'$2');
   html=html.replace(/(name="employerExtraPercent"[^>]*value=")0(")/,'$1'+currentProfile().rat+'$2');
  }
@@ -221,9 +221,10 @@ function calculate(q){
  }
  const budgetLabor=(q.items||[]).reduce((sum,item)=>sum+positive(item.qty)*positive(item.labor),0);
  const unknownCost=staffing.some(x=>x.rate<=0);
- const committed=(sch.dedicated&&!missing&&!unknownCost)?staffing.reduce((sum,r)=>sum+r.assigned*days*paid*r.rate,0):0;
+ const committedDays=Math.max(days,projectDays);
+ const committed=(sch.dedicated&&!missing&&!unknownCost)?staffing.reduce((sum,r)=>sum+r.assigned*committedDays*paid*r.rate,0):0;
  const reserve=sch.dedicated&&!unknownCost&&!missing?Math.max(0,committed-budgetLabor):0;
- return {days,productive,paid,parallel,lines,staffing,missing,begin,last,projectDays,budgetLabor,committed,reserve,unknownCost};
+ return {days,committedDays,productive,paid,parallel,lines,staffing,missing,begin,last,projectDays,budgetLabor,committed,reserve,unknownCost};
 }
 function updateReserve(q){
  if(!q||q!==s.wizard)return;
@@ -268,7 +269,7 @@ function scheduleView(){
  rows+'</div>';
  const extra=editable?'<div class="form-card"><h3>Alocação e proteção do orçamento</h3>'+
  '<label class="wp-check"><input type="checkbox" name="wfDedicated" '+(schedule.dedicated?'checked':'')+'> Equipe exclusiva e remunerada durante todos os '+forecast.days+' dias úteis</label>'+
- '<p class="wp-muted">Se ativado, considera '+forecast.paid+' horas pagas por pessoa e dia; a diferença acima da mão de obra já orçada vira custo adicional de disponibilidade. Se a equipe trabalhar só nas horas produtivas do serviço, mantenha desligado.</p>'+
+ '<p class="wp-muted">Se ativado, considera '+forecast.paid+' horas pagas por pessoa e dia pelo maior período entre o prazo desejado e o calculado; a diferença acima da mão de obra já orçada vira custo adicional de disponibilidade. Se a equipe trabalhar só nas horas produtivas do serviço, mantenha desligado.</p>'+
  '<div class="wp-headline"><span>Adicional de equipe dedicada</span><strong>'+money(forecast.reserve)+'</strong></div>'+
  (forecast.unknownCost?'<p class="wp-warning">Há função sem custo/hora cadastrado. Complete o valor antes de contratar equipe dedicada.</p>':'')+
  '<label class="wp-check"><input type="checkbox" name="wfConfirmed" '+(schedule.confirmed?'checked':'')+'> Conferi produtividade, equipe, calendário e despesas desta obra</label>'+
@@ -300,6 +301,20 @@ wizardStep2=function(){
  const anchor=html.lastIndexOf('<div class="form-actions">');
  return anchor>=0?html.slice(0,anchor)+card+html.slice(anchor):card+html;
 };
+const previousReview=wizardStep3;
+wizardStep3=function(){
+ if(s.wizard?.schedule?.dedicated)updateReserve(s.wizard);
+ const html=previousReview();
+ if(s.wizard?.schedule?.dedicated){
+  const c=calculate(s.wizard);
+  const msg='<div class="form-card"><h3>Custo de equipe alocada</h3>'+
+   '<div class="wp-headline"><span>Custo adicional de dedicação da equipe</span><strong>'+money(c.reserve)+'</strong></div>'+
+   '<p class="wp-muted">O complemento da equipe exclusiva à obra já entra no custo total, sem duplicar a mão de obra por produtividade.</p>'+
+   (c.projectDays>c.days?'<p class="wp-warning">O cronograma excede '+c.days+' dias úteis desejados.</p>':'')+'</div>';
+  return msg+html;
+ }
+ return html;
+};
 const workerSubmit=modalSubmit;
 modalSubmit=function(form){
  if(s.modal==='addworker'){
@@ -316,6 +331,7 @@ persistWizard=function(){
  if(s.wizard?.schedule?.dedicated){
   const view=calculate(s.wizard);
   if((view.missing||view.unknownCost)&&s.wizard.status!=='Rascunho'){toast('Há produtividade ou custo da equipe faltando no cronograma.');return}
+  if(view.projectDays>view.days&&s.wizard.status!=='Rascunho'){toast('O cronograma excede o prazo desejado. Confira a equipe e as datas antes de emitir.');return}
   updateReserve(s.wizard);
  }
  return persistOriginal();
