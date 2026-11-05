@@ -177,6 +177,22 @@ Os exemplos **não incluem benefícios**, cobertura de férias por substitutos n
 - Contribuições fora do DAS no Anexo IV: https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/cobrancas-e-intimacoes/contribuicao-previdenciaria-anexo-iv-do-simples-nacional
 - Exposição a periculosidade NR-16: https://www.gov.br/trabalho-e-emprego/pt-br/acesso-a-informacao/perguntas-frequentes
 
+## Proposta comercial com equipe, horas e prazo (2026-11-05)
+
+Depois de criar um orçamento e adicionar os serviços, a etapa **Itens** mostra automaticamente a equipe sugerida por função, carga total em horas-homem e previsão em dias úteis, **desde que o serviço tenha produtividade cadastrada**. Use **Abrir cronograma e ajustar equipe** para editar o prazo desejado, quantidade de profissionais, dia inicial e horas produtivas por pessoa/dia. Para confirmar, é necessário que todos os itens tenham coeficientes confiáveis e que o cronograma calculado caiba no prazo escolhido.
+
+Quando o cronograma estiver conferido e salvo, a proposta comercial (**Visualizar proposta → Imprimir/Salvar PDF**) passa a exibir:
+- Equipe necessária por função (quantidades de pedreiros, ajudantes, eletricistas etc., não nomes de empregados);
+- Horas-homem estimadas, datas e prazo estimado em dias úteis;
+- Quantidade, unidade, equipe e duração prevista de cada serviço;
+- Preço de venda **global** da proposta e a distribuição comercial por serviço, utilizando o motor de precificação existente.
+
+**Nunca mostrar** salário de cada funcionário, custo/hora da folha, FGTS, tributos internos ou margem da CIVOLTEN na proposta do cliente. O resumo comercial fica **congelado no orçamento salvo** para evitar alteração retroativa quando salários ou produtividade mudarem. Ao reeditar o orçamento e confirmar um novo cronograma, uma nova versão do resumo pode ser gerada.
+
+Para serviços sem produtividade confiável e cronograma ainda não confirmado, a proposta **não publica estimativas inventadas de equipe e prazo**: mantém o campo contratual de prazo `A combinar` ou o que o usuário informou. Só utilizar a produtividade SIURB quando seus coeficientes tiverem sido efetivamente extraídos e conferidos na biblioteca de serviços.
+
+Obs.: alvenaria de vedação costuma ser medida em **m²**, não metros lineares; a unidade é extraída do cadastro do serviço. Para 300 m², a estimativa depende dos coeficientes da composição, do tipo de bloco, altura, acesso, espessura, perdas e organização da equipe. O sistema não presume uma produtividade única para todos os tipos de alvenaria.
+
 ## Publicação na Vercel
 Importe a branch main, **Framework Other**, root `./` e sem build. A Vercel publica o HTML/CSS/JS e a função Node `api/siurb.js`. O serviço upstream pode ficar indisponível; o upload manual continua possível.
 
