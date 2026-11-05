@@ -29,7 +29,7 @@ function cltCost(w){
 }
 function workerHour(w){
  if(!w)return 0;
- if(w.link==='Empregado'||w.employmentType==='CLT')return cltCost(w).hourly;
+ if(w.link==='Empregado'||w.employmentType==='CLT')return number(w.salary)>0?cltCost(w).hourly:number(w.cost)/(number(w.productiveHours)||160);
  const rate=number(w.cost);
  if(w.unit==='mês')return rate/(number(w.productiveHours)||160);
  if(w.unit==='diária')return rate/(number(w.dailyHours)||8);
