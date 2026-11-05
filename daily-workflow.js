@@ -558,7 +558,7 @@ document.addEventListener('change',e=>{
   file.arrayBuffer().then(b=>parseAuxBuffer(b,'insumos')).then(list=>{importExplain('insumos',list);render();toast(list.length+' insumos carregados.');}).catch(err=>toast('Erro no Excel: '+err.message));
  }
  if(s.modal==='addworker'&&e.target.name==='siurbWorkerRef')fillWorkerRef(document.getElementById('modal-form'));
- if(s.modal==='additem'&&e.target.name==='owner'&&s.wizard?.type==='Mão de obra'){e.target.value='cliente';toast('Somente mão de obra: materiais pelo cliente.');}
+ if(s.modal==='additem'&&e.target.name==='owner'&&s.wizard?.type==='Mão de obra'){e.target.value='cliente';const f=document.getElementById('modal-form');if(f)updateLineTotal(f);}
 },true);
 document.addEventListener('input',e=>{
  if(e.target.id==='dw-material-search'||e.target.id==='dw-insumo-search'){
