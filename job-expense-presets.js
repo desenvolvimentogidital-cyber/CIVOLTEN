@@ -70,6 +70,8 @@
   if(!q||q.id)return;
   q.expenseItems??=[];
   if(q.expensePresetApplied&&!force)return;
+  // Preserva custos extras já informados no rascunho antes de adicionar sugestões.
+  if(q.manualExtraCost===undefined)q.manualExtraCost=Math.max(0,amount(q.extraCost)-totalVariable(q));
   for(const d of (db.expenses||[]).filter(x=>x.scope==='job'&&x.autoApply)){
    if(q.expenseItems.some(e=>e.expenseId===d.id))continue;
    q.expenseItems.push({
@@ -152,21 +154,21 @@
  modalSubmit=function(form){
   if(s.modal==='addexpense'){
    const selectedExpense=s.edit;
-   const wasFixed=selectedExpense?.scope==='fixed';
+   const oldCount=db.expenses.length;
    const formdata=new FormData(form);
    const scope=formdata.get('scope')==='fixed'?'fixed':'job';
    priorModalSubmit(form);
    // O formulário legado persiste os novos campos, mas checkbox desmarcado
    // não é enviado: garantir que seja desmarcado quando editado.
    const saved=selectedExpense?.id?db.expenses.find(x=>x.id===selectedExpense.id):
-    db.expenses.find(x=>x.name?.trim()===String(formdata.get('name')||'').trim());
+    db.expenses[oldCount];
    if(saved){
     saved.scope=scope;saved.autoApply=scope==='job'&&formdata.has('autoApply');
     saved.presetQty=amount(formdata.get('presetQty'))||1;
     saved.presetPeople=amount(formdata.get('presetPeople'))||1;
     saved.presetDays=amount(formdata.get('presetDays'))||1;
     if(saved.presetCode==='prolabore'&&saved.scope==='fixed')saved.kind='owner-target';
-    save();
+    save();render();
    }
    return;
   }
