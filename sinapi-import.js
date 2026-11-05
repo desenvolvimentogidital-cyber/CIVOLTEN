@@ -243,7 +243,8 @@ async function importFile(file){
   const result=await readFile(file,{base,regime,kind,uf});
   if(!result.items.length)throw new Error('Não encontrei linhas de código, descrição e unidade reconhecíveis. Confira se é XLSX de composições/insumos e não um relatório PDF ou de outra UF.');
   const uncertain=result.items.filter(x=>!x.verifiedUF).length;
-  const details={base,regime,uf,kind,fileName:file.name,count:result.items.length,importedAt:new Date().toISOString(),uncertain};
+  const sourceBase=result.items[0]?.base||base;
+  const details={base:sourceBase,regime,uf,kind,fileName:file.name,count:result.items.length,importedAt:new Date().toISOString(),uncertain};
   // Preserva categorias anteriores quando o usuário importa insumos após composições.
   const previous=records.filter(x=>kind==='composicoes'?!['composicao','composicoes'].includes(x.kind):!['insumo','insumos'].includes(x.kind));
   const merged=[...new Map([...previous,...result.items].map(x=>[x.id,x])).values()];
@@ -251,7 +252,8 @@ async function importFile(file){
   records=merged;meta=details;
   db.sinapiMeta={...details,count:merged.length};
   if(!save())message='Planilha salva no catálogo SINAPI local, mas os metadados não couberam no cadastro. Faça backup.';
-  else message='SINAPI importado: '+result.items.length.toLocaleString('pt-BR')+' itens do arquivo '+file.name+'.'+
+  else message='SINAPI importado: '+result.items.length.toLocaleString('pt-BR')+' itens do arquivo '+file.name+' · competência '+sourceBase+'.'+
+    (sourceBase!==base?' A competência foi corrigida automaticamente pela data-base do próprio XLSX.':'')+
     (result.items.some(x=>x.analytical)?' Coeficientes analíticos encontrados; consulte cada composição para conferir pedreiros, serventes e outros.':'')+
     (uncertain?' Atenção: '+uncertain+' itens sem UF explícita; confira a planilha para garantir São Paulo.':'')+
     (result.errors?.length?' Alguns arquivos do ZIP foram ignorados: '+result.errors.slice(0,2).join(' / '):'');
