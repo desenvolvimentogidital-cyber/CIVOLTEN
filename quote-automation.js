@@ -9,19 +9,7 @@
  const round=v=>Math.round((Number(v)||0)*100)/100;
  const opt=(id,label,selected)=>'<option value="'+esc(id)+'"'+(selected?' selected':'')+'>'+esc(label)+'</option>';
  const workerOptions=id=>opt('','Selecione o profissional',!id)+db.workers.map(w=>opt(w.id,w.name+(w.role?' — '+w.role:''),w.id===id)).join('');
- function realWorkerRate(w){
-  if(!w)return 0;
-  const rate=n(w.cost),hours=n(w.productiveHours)||160;
-  if(w.link==='Empregado'||w.employmentType==='CLT'){
-   if(!n(w.salary))return rate/hours;
-   const totalBase=n(w.salary)*(1+1/12+1/36);
-   const pct=(n(w.fgts??8)+n(w.employerInss??3)+n(w.employerExtraPercent))/100;
-   return (totalBase*(1+pct)+n(w.mealBenefit)+n(w.transportBenefit)+n(w.otherBenefit)+n(w.monthlyReserve))/hours;
-  }
-  if(w.unit==='mês')return rate/hours;
-  if(w.unit==='diária')return rate/(n(w.dailyHours)||8);
-  return rate;
- }
+ function realWorkerRate(w){return window.CIVOLTENPayroll.hourly(w)}
  function crewValid(crew){
   return (Array.isArray(crew)?crew:[]).filter(c=>c&&c.workerId&&n(c.hours)>0&&n(c.count)>0);
  }
