@@ -211,7 +211,7 @@ function saveItem(form){
  if(qty<=0){toast('A quantidade deve ser maior que zero.');return}
  const source=selected?.source==='SIURB'?selected.data:(selected?.data?.origin==='SIURB'?selected.data:(s.edit?.source==='SIURB'&&!selected?s.edit:null));
  // Usar custo real com produtividade cadastrada não exige fingir uma divisão oficial da SIURB.
- const companyProductivity=!!(selected?.data?.productivity?.crew?.length&&labor>0);
+ const companyProductivity=!!(labor>0&&(selected?.data?.productivity?.crew?.length||(!selected&&s.edit?.companyProductivityConfirmed)));
  if(source){
   if(!form.elements.siurbChecked.checked&&!companyProductivity){toast('Informe e confira a composição ou cadastre a produtividade real da CIVOLTEN antes de incluir.');return}
   if(s.wizard.type==='Mão de obra'&&labor<=0){toast('Informe o custo de mão de obra por unidade. O total SIURB não representa somente mão de obra.');return}
