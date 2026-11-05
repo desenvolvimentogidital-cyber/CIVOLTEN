@@ -1,5 +1,5 @@
-const VERSION='civolten-siurb-import-fix-v4';
-const CORE=['/','/index.html','/siurb.css','/siurb.js','/manifest.webmanifest','/assets/civolten-logo.png','/icons/civolten-simbolo.png','/icons/icon-192.png','/icons/icon-512.png'];
+const VERSION='civolten-modalidades-custos-v5';
+const CORE=['/','/index.html','/siurb.css','/siurb.js','/cost-modes.js','/manifest.webmanifest','/assets/civolten-logo.png','/icons/civolten-simbolo.png','/icons/icon-192.png','/icons/icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(CORE)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==VERSION).map(k=>caches.delete(k)))));self.clients.claim()});
 self.addEventListener('fetch',e=>{const url=new URL(e.request.url);if(e.request.method!=='GET'||url.origin!==self.location.origin||url.pathname.startsWith('/api/'))return;e.respondWith(fetch(e.request).then(resp=>{if(resp.ok){const clone=resp.clone();caches.open(VERSION).then(cache=>cache.put(e.request,clone))}return resp}).catch(()=>caches.match(e.request).then(cached=>cached||(e.request.mode==='navigate'?caches.match('/index.html'):Response.error()))))});
