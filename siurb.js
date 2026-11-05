@@ -15,40 +15,95 @@ let siurbSearch='', siurbFilter='eletrica', siurbBusy=false, siurbMsg='', siurbA
 const siurbNormalize = text => String(text??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const siurbElectric = /eletric|eletrodut|conduit|cabo|condutor|fio |tomada|interrupt|disjunt|quadros? de distribu|aterrament|ilumin|luminari|lampad|fotocelul|spda|pararraio|para.raio|quadro de comando|transformador|eletrocalha|canalet|infraestrutura eletr|rede eletr|instalac[aã]o eletr|borne|contator|protetor contra surt|dps\b|barramento|ponto de luz|ponto de tomada|fusivel|poste de energia/;
 const siurbCivil = /alvenaria|argamassa|concreto|impermeab|pintura|reboco|revestimento|ceramica|piso|parede|telha|cobertura|forro|laje|fundac|escavac|demolic|chapisco|massa corrida|emassamento|gesso|cimento|porta|janela|esquadria|instalac[aã]o hidraul|tubulac|drenag|cal[cç]ada|limpeza|solda|estrutura metal|tijolo|bloco|pedreiro|terraplen|regulariza[cç]/;
-const siurbMoney = v => {
-  if(typeof v==='number')return Number.isFinite(v)?v:NaN;
-  const txt=String(v??'').replace(/R\$|\s/g,'').trim();
-  if(!/^-?\d[\d.,]*$/.test(txt))return NaN;
-  let t=txt;
-  if(t.includes(',')&&t.includes('.')) t=t.replace(/\./g,'').replace(',','.');
-  else if(t.includes(',')) t=t.replace(',','.');
-  return Number(t);
+const siurbMoney = value => {
+ if(typeof value==='number')return Number.isFinite(value)?value:NaN;
+ let t=String(value??'').replace(/\u00a0/g,' ').trim();
+ if(!t||/^(?:-|—|n\/?a|r\$\s*-)$/i.test(t))return NaN;
+ t=t.replace(/\bR\$\s*/ig,'').replace(/\s/g,'');
+ if(!/^-?\d[\d.,]*$/.test(t))return NaN;
+ const dot=t.lastIndexOf('.'),comma=t.lastIndexOf(',');
+ if(comma>=0&&dot>=0)t=comma>dot?t.replace(/\./g,'').replace(',','.'):t.replace(/,/g,'');
+ else if(comma>=0)t=t.replace(',','.');
+ else if(/^-?\d{1,3}(?:\.\d{3})+$/.test(t))t=t.replace(/\./g,'');
+ const n=Number(t);return Number.isFinite(n)?n:NaN;
 };
-const siurbUnits = new Set(['UN','UND','UNI','U','M','ML','M2','M3','M²','M³','KG','G','T','TON','L','LT','LITRO','H','HR','HORA','DIA','DIÁRIA','DIARIA','MÊS','MES','MÊSES','MES','CJ','CONJ','PÇ','PC','PTO','PONTO','GL','VB','JOGO','PAR','CEM','MIL','KM','M3XKM','M2XM','M2/MÊS']);
-function siurbCode(v){const t=String(v??'').trim().replace(/\s+/g,'').replace(/[–—]/g,'-');return /^\d{2}[-./]\d{2,3}[-./]\d{2,3}$/.test(t)?t.replace(/[./]/g,'-'):null}
-function siurbUnit(v){let t=String(v??'').trim().toUpperCase().replace(/\./g,'');if(siurbUnits.has(t))return t;return /^M[²³]$/.test(t)?t:''}
-function parseSIURBRows(rows, group){
-  const out=[];let priorCode='';
-  for(const row of rows){
-    const cells=(Array.isArray(row)?row:[]).map(v=>String(v??'').trim());
-    if(!cells.some(Boolean))continue;
-    const idx=cells.findIndex(v=>siurbCode(v));
-    if(idx<0)continue;
-    const code=siurbCode(cells[idx]);if(!code||code===priorCode)continue;
-    const rest=cells.slice(idx+1);
-    let unitAt=rest.findIndex(v=>siurbUnit(v));
-    let unit=unitAt>=0?siurbUnit(rest[unitAt]):'';
-    if(!unit)continue;
-    const candidates=rest.slice(unitAt+1).map(siurbMoney).filter(v=>Number.isFinite(v)&&v>0&&v<100000000);
-    if(!candidates.length)continue;
-    let description=rest.slice(0,unitAt).filter(v=>v&&v.length>=5&&v.length<500&&v.toUpperCase()!==code).sort((a,b)=>b.length-a.length)[0]||'';
-    if(!description)description=cells.slice(0,idx).filter(v=>v.length>10).sort((a,b)=>b.length-a.length)[0]||'';
-    if(!description||description.length<8)continue;
-    out.push({id:group+':'+code, code, name:description.replace(/\s+/g,' ').slice(0,230), unit:unit.replace('M²','M2').replace('M³','M3'), cost:Number(candidates[0].toFixed(2)), group});
-    priorCode=code;
-  }
-  return out;
+const siurbUnits = new Set(['UN','UND','UNI','U','UNID','UNIDADE','M','ML','M2','M3','DM3','CM','KM','KG','G','T','TON','L','LT','LITRO','H','HR','HORA','DIA','DIARIA','MES','ANO','CJ','CONJ','CONJUNTO','PÇ','PC','PTO','PONTO','GL','VB','JOGO','PAR','CEM','MIL','M3XKM','M2XM','M2/MES','M3/MES','M/MES','M2XKM','M3/KM','HM','KW','KWH','MWH','HP','JG','SC','BARRA','B','BL','LATA','ROLO','FL','VEZ']);
+function siurbCode(v){
+ const text=String(v??'').trim().replace(/[–—−]/g,'-');if(!text)return null;
+ const punct=text.match(/(?:^|[^0-9])([0-9]{1,3}[-./\s]+[0-9]{1,3}[-./\s]+[0-9]{1,4})(?![0-9])/);
+ if(punct){const parts=punct[1].split(/[-./\s]+/).filter(Boolean);if(parts.length===3)return parts.join('-')}
+ const digits=text.match(/(?:^|[^0-9])([0-9]{7,10})(?![0-9])/);
+ if(digits&&(text===digits[1]||/\b(?:SIURB|CÓDIGO|CODIGO|C[ÓO]D\.?)[\s:]/i.test(text)))return digits[1];
+ return null;
 }
+function siurbUnit(v){
+ let t=String(v??'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s/g,'').replace(/\.$/,'');
+ t=t.replace(/M\^2/g,'M2').replace(/M\^3/g,'M3').replace(/M²/g,'M2').replace(/M³/g,'M3');
+ return siurbUnits.has(t)?t:'';
+}
+function siurbHeader(row){
+ const words=row.map(v=>siurbNormalize(v));const find=re=>words.findIndex(x=>re.test(x));
+ const code=find(/^(?:cod(?:igo)?\.?|item|codigo do servico)$/),desc=find(/^(?:descricao|descricao do servico|servico|designacao)/),unit=find(/^(?:unid(?:ade)?\.?|und\.?|u\.m\.?|medida|unidade de medicao)$/),cost=find(/(?:custo|valor|preco).*?(?:r\$|unit)|^(?:custo|valor|preco)(?:\s*r\$)?$/);
+ return [code,desc,unit,cost].filter(i=>i>=0).length>=2?{code,desc,unit,cost}:null;
+}
+function siurbGoodCost(v){const n=siurbMoney(v);return Number.isFinite(n)&&n>0&&n<1e9?n:NaN}
+function siurbDataRow(row,group,head){
+ const cells=(Array.isArray(row)?row:[]).map(v=>typeof v==='string'?v.trim():v);
+ if(!cells.some(v=>String(v??'').trim()))return null;
+ let codeIdx=head?.code>=0&&siurbCode(cells[head.code])?head.code:cells.findIndex(v=>siurbCode(v));
+ if(codeIdx<0)return null;
+ const code=siurbCode(cells[codeIdx]);if(!code)return null;
+ const codeRaw=String(cells[codeIdx]??'').trim();
+ const preUnit=head?.unit>=0&&siurbUnit(cells[head.unit])?head.unit:-1;
+ const unitIdx=preUnit>=0?preUnit:cells.findIndex((v,i)=>i>codeIdx&&siurbUnit(v));
+ const unit=unitIdx>=0?siurbUnit(cells[unitIdx]):'';
+ let name='';
+ if(head?.desc>=0&&head.desc!==codeIdx)name=String(cells[head.desc]??'').trim();
+ if(!name){
+  const inside=codeRaw.replace(/(?:^|[^\d])\d{1,3}[-./\s]+\d{1,3}[-./\s]+\d{1,4}(?!\d)/,' ').trim();
+  const between=cells.slice(codeIdx+1,unitIdx>codeIdx?unitIdx:undefined).map(v=>String(v??'').trim()).filter(v=>v&&v.length>3&&!siurbUnit(v)&&!Number.isFinite(siurbMoney(v)));
+  name=between.join(' ')||inside;
+ }
+ if(!name)name=String(cells.slice(0,codeIdx).find(v=>String(v??'').trim().length>5&&!siurbCode(v))??'').trim();
+ name=name.replace(/\s+/g,' ').replace(/^[-–:;]+|[-–:;]+$/g,'').trim();
+ let cost=NaN;
+ if(head?.cost>=0&&head.cost!==unitIdx)cost=siurbGoodCost(cells[head.cost]);
+ if(!Number.isFinite(cost)&&unitIdx>=0){
+  const vals=cells.slice(unitIdx+1).map(siurbGoodCost).filter(Number.isFinite);
+  if(vals.length)cost=vals[0];
+ }
+ if(!Number.isFinite(cost)){
+  const exclude=new Set([codeIdx,unitIdx,head?.desc,head?.unit]);
+  const vals=cells.map((v,i)=>exclude.has(i)||i<=codeIdx?NaN:siurbGoodCost(v)).filter(Number.isFinite);
+  if(vals.length)cost=vals[vals.length-1];
+ }
+ return {code,unit,name,cost,group};
+}
+function parseSIURBRows(rows,group){
+ const out=new Map();let head=null,pending=null;
+ for(let i=0;i<rows.length;i++){
+  const cells=Array.isArray(rows[i])?rows[i]:[];
+  const h=siurbHeader(cells);if(h){head=h;pending=null;continue}
+  const r=siurbDataRow(cells,group,head);
+  if(r){
+   if(pending&&pending.code!==r.code)pending=null;
+   if(r.unit&&Number.isFinite(r.cost)&&r.name.length>=5){
+    if(!out.has(r.code))out.set(r.code,{id:group+':'+r.code,code:r.code,name:r.name.slice(0,320),unit:r.unit,cost:Number(r.cost.toFixed(2)),group});pending=null;
+   }else pending={...r,line:i};
+   continue;
+  }
+  if(pending&&i-pending.line<=2){
+   const tail=cells.map(v=>String(v??'').trim());
+   if(!pending.unit){const where=tail.findIndex(v=>siurbUnit(v));if(where>=0){pending.unit=siurbUnit(tail[where]);const nums=tail.slice(where+1).map(siurbGoodCost).filter(Number.isFinite);if(nums.length)pending.cost=nums[0]}}
+   if(!Number.isFinite(pending.cost)&&pending.unit){const nums=tail.map(siurbGoodCost).filter(Number.isFinite);if(nums.length)pending.cost=nums[nums.length-1]}
+   if(pending.unit&&Number.isFinite(pending.cost)&&pending.name.length>=5){
+    if(!out.has(pending.code))out.set(pending.code,{id:group+':'+pending.code,code:pending.code,name:pending.name.slice(0,320),unit:pending.unit,cost:Number(pending.cost.toFixed(2)),group});pending=null;
+   }
+  }else pending=null;
+ }
+ return [...out.values()];
+}
+
 async function siurbXLSX(){
   if(window.XLSX)return window.XLSX;
   for(const url of ['https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js']){
@@ -57,13 +112,27 @@ async function siurbXLSX(){
   throw new Error('Não foi possível carregar o leitor Excel. Conecte-se à internet para importar a planilha.');
 }
 async function siurbParseExcel(buffer,group){
-  const XLSX=await siurbXLSX();
-  const wb=XLSX.read(new Uint8Array(buffer),{type:'array',cellDates:false});
-  let rows=[];
-  for(const name of wb.SheetNames){const sh=wb.Sheets[name];const data=XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:true,blankrows:false});rows=rows.concat(parseSIURBRows(data,group));}
-  const result=[...new Map(rows.map(r=>[r.id,r])).values()];
-  if(result.length<10)throw new Error('Não consegui reconhecer os serviços da planilha. Use o arquivo "Custos Unitários" de Edificações ou Infraestrutura (07/2026).');
-  return result;
+ const XLSX=await siurbXLSX();let wb;
+ try{wb=XLSX.read(new Uint8Array(buffer),{type:'array',cellDates:false,cellNF:true,cellText:true})}
+ catch(e){throw new Error('O arquivo não pôde ser aberto como Excel. Confira se o download terminou.')}
+ const all=[];let inspected=0,codesSeen=0;const sheets=[];
+ for(const name of wb.SheetNames){
+  const sh=wb.Sheets[name];if(!sh||!sh['!ref'])continue;
+  // raw:true pode remover máscaras que formam códigos como 08-018-002.
+  const formatted=XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:false,blankrows:false});
+  const raw=XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:true,blankrows:false});
+  inspected+=formatted.length;
+  const f=parseSIURBRows(formatted,group),r=parseSIURBRows(raw,group);
+  const selected=f.length>=r.length?f:r;
+  codesSeen+=formatted.reduce((n,row)=>n+(Array.isArray(row)&&row.some(x=>siurbCode(x))?1:0),0);
+  sheets.push(name+': '+selected.length);all.push(...selected);
+ }
+ const result=[...new Map(all.map(x=>[x.id,x])).values()];
+ if(!result.length){
+  const diagnostic=inspected?' ('+inspected+' linhas analisadas, '+codesSeen+' códigos encontrados; abas: '+sheets.slice(0,4).join(', ')+')':'';
+  throw new Error('Nenhum serviço com código, unidade e custo válido foi localizado'+diagnostic+'. Verifique se o arquivo é “Custos Unitários” da SIURB.');
+ }
+ return result;
 }
 function siurbList(){
  const all=db.siurbItems||[];
@@ -103,15 +172,24 @@ function siurbSaveItems(items,regime,source){
  siurbSearch='';siurbMsg=`Importação concluída: ${items.length.toLocaleString('pt-BR')} serviços. Preços de referência, não preços de venda.`;render();
 }
 async function siurbImportOnline(){
- if(siurbBusy)return;const regime=document.getElementById('siurb-regime')?.value||'onerada';siurbBusy=true;siurbMsg='';render();
- try{let data=[];for(const group of ['edif','infra']){
-   const response=await fetch('/api/siurb?grupo='+group+'&regime='+regime,{cache:'no-store'});
-   if(!response.ok){const msg=await response.json().catch(()=>({}));throw new Error(msg.erro||'Não foi possível obter '+group.toUpperCase()+' da Prefeitura');}
-   const buffer=await response.arrayBuffer();
-   data.push(...await siurbParseExcel(buffer,group.toUpperCase()));
- }
- siurbSaveItems([...new Map(data.map(v=>[v.id,v])).values()],regime,'Download oficial via Prefeitura');
- }catch(e){siurbMsg='Importação online indisponível: '+e.message+' Use o botão de importação manual com o XLS oficial.';console.error(e);}
+ if(siurbBusy)return;const regime=document.getElementById('siurb-regime')?.value||'onerada';
+ siurbBusy=true;siurbMsg='';render();
+ try{
+  const records=[],success=[],errors=[];
+  for(const group of ['edif','infra']){
+   try{
+    const response=await fetch('/api/siurb?grupo='+group+'&regime='+regime,{cache:'no-store'});
+    if(!response.ok){const o=await response.json().catch(()=>({}));throw new Error(o.erro||'Falha HTTP '+response.status)}
+    const parsed=await siurbParseExcel(await response.arrayBuffer(),group.toUpperCase());
+    records.push(...parsed);success.push(group.toUpperCase());
+   }catch(e){errors.push(group.toUpperCase()+': '+e.message);console.error('SIURB '+group,e)}
+  }
+  if(!success.length)throw new Error(errors.join(' | '));
+  const previous=(db.siurbItems||[]).filter(x=>!success.includes(x.group));
+  const merged=[...new Map([...previous,...records].map(x=>[x.id,x])).values()];
+  siurbSaveItems(merged,regime,'Consulta oficial SIURB ('+success.join(', ')+')');
+  if(errors.length)siurbMsg='Importação parcial: '+records.length.toLocaleString('pt-BR')+' itens atualizados. '+errors.join(' | ')+'. Importe manualmente os arquivos faltantes.';
+ }catch(e){siurbMsg='Importação indisponível: '+e.message+'. Você também pode selecionar o XLS oficial na importação manual.';console.error(e)}
  finally{siurbBusy=false;render()}
 }
 async function siurbImportFile(file){
