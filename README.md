@@ -144,6 +144,14 @@ Acesse **Mais → Cronograma e equipe** ou **Novo orçamento → Itens → Abrir
 
 **Dados e segurança:** nada é sincronizado ainda; localStorage/IndexedDB do navegador e importação oficial dependente de conexão. Faça backup JSON frequentemente e valide os valores em um orçamento real antes de utilizá-lo como proposta definitiva.
 
+## Consulta separada de mão de obra SIURB (julho/2026)
+
+Tabelas oficiais: [Mão de Obra Mensalista](https://prefeitura.sp.gov.br/documents/d/obras/onerada-sem-des-mobra-mensalista-julho-2026-1-xlsx) e [Mão de Obra Horista](https://prefeitura.sp.gov.br/documents/d/obras/onerada-sem-des-mobra-horista-julho-2026-1-xlsx).
+
+O importador agora distingue **valor sem encargos** e **valor com encargos** quando as colunas estão explicitamente identificadas e os valores têm consistência. Também respeita cabeçalhos de **custo horário** mesmo quando a tabela se chama "mensalista". Mostra os valores lado a lado na consulta de **Profissionais**. O custo SIURB não é automaticamente salário-base CLT; a configuração do salário precisa de conversão de unidade/carga horária, conferência do piso da categoria, regime tributário e validação do Excel oficial.
+
+**Limitação importante:** Não foi possível abrir e validar a planilha Excel da SIURB julho de 2026 neste ambiente. O importador passou em testes com exemplos estruturais, mas os salários dos cinco postos planejados continuam **fictícios**, até conferência de todas as linhas e unidades de origem. Não divulgar valores como "salários oficiais SIURB" antes disso. Não sobrescrever os salários/custos reais já cadastrados e não somar encargos duas vezes. Preferir conferir a planilha XLSX original no sistema e, se necessário, enviá-la ao projeto para mapear as colunas precisamente.
+
 ## Publicação na Vercel
 Importe a branch main, **Framework Other**, root `./` e sem build. A Vercel publica o HTML/CSS/JS e a função Node `api/siurb.js`. O serviço upstream pode ficar indisponível; o upload manual continua possível.
 
