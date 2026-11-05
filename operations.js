@@ -5,13 +5,13 @@
  const api=window.CIVOLTENOperationsCore;
  const escText=x=>String(x??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[ch]));
  const formMoney=v=>cash(Number(v)||0),numSafe=v=>{const k=Number(String(v??'0').replace(',','.'));return Number.isFinite(k)?k:NaN};
- const dateNow=()=>new Date().toLocaleDateString('en-CA');
+ const dateNow=()=>{const now=new Date();return new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10)};
  function entries(q){return Array.isArray(q.execution?.entries)?q.execution.entries:[]}
  function ensure(q){if(!q.execution)q.execution={percent:0,entries:[],changes:[]};if(!Array.isArray(q.execution.entries))q.execution.entries=[];if(!Array.isArray(q.execution.changes))q.execution.changes=[];return q.execution}
  function alertsHTML(report){return report.alerts.map(a=>'<p class="cv-op-alert '+(a.level==='critical'?'cv-op-critical':'')+'">'+escText(a.message)+'</p>').join('')||'<p class="cv-op-note">Nenhum alerta automático com os dados lançados. Confira se todos os custos foram registrados.</p>'}
  function detailUI(q){
   if(!q||!q.id)return '';
-  const p=api.summary(q);
+  const p=api.summary(q,db.company);
   const lines=entries(q);
   const list=lines.slice(-25).reverse().map(item=>{
    const undone=lines.some(x=>x.reverses===item.id),isReversal=!!item.reverses;
@@ -55,7 +55,7 @@
  ROUTES.finance=function(){
   const html=financeOld();
   const approved=db.quotes.filter(q=>q.status==='Aprovado');
-  const totals=approved.map(api.summary);
+  const totals=approved.map(q=>api.summary(q,db.company));
   const spent=totals.reduce((n,t)=>n+t.spent,0),receipts=totals.reduce((n,t)=>n+t.received,0);
   const critical=totals.filter(t=>t.alerts.some(a=>a.level==='critical')).length;
   const markup='<section class="cv-op-panel"><h3>Obras e movimentação registrada</h3>'+
@@ -63,7 +63,7 @@
    '<div><small>Recebimentos lançados</small><strong>'+formMoney(receipts)+'</strong></div>'+
    '<div><small>Saldo de caixa registrado</small><strong>'+formMoney(receipts-spent)+'</strong></div>'+
    '<div><small>Orçamentos com alerta crítico</small><strong>'+critical+'</strong></div></div>'+
-   approved.map(q=>{const p=api.summary(q);return '<button class="cv-op-open" data-action="detail" data-id="'+escText(q.id)+'"><b>'+escText(q.number||q.title)+'</b> · '+p.percent+'% executado · custo '+formMoney(p.spent)+' · recebido '+formMoney(p.received)+(p.alerts.some(a=>a.level==='critical')?' · VERIFICAR':'')+'</button>'}).join('')+
+   approved.map(q=>{const p=api.summary(q,db.company);return '<button class="cv-op-open" data-action="detail" data-id="'+escText(q.id)+'"><b>'+escText(q.number||q.title)+'</b> · '+p.percent+'% executado · custo '+formMoney(p.spent)+' · recebido '+formMoney(p.received)+(p.alerts.some(a=>a.level==='critical')?' · VERIFICAR':'')+'</button>'}).join('')+
    '<p class="cv-op-note">Indicadores de lançamentos manuais locais; não são extrato bancário, faturamento fiscal ou lucro realizado auditado.</p></section>';
   const i=html.lastIndexOf('</main>');
   return i<0?html:html.slice(0,i)+markup+html.slice(i);
