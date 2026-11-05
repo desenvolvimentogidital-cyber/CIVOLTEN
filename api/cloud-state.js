@@ -84,15 +84,14 @@ async function load(owner) {
 async function save(owner,expectedRevision,dataString) {
   // CAS atômico: nenhum aparelho pode sobrescrever silenciosamente o outro.
   // O trigger no Postgres arquiva automaticamente a versão anterior.
-  const rows = await client().query(
-    'INSERT INTO civolten_app.user_state(auth_user_id,revision,data,updated_at) ' +
-    'SELECT $1,1,$2::jsonb,now() WHERE $3::bigint=0 ' +
-    'ON CONFLICT(auth_user_id) DO UPDATE SET ' +
-    'data=EXCLUDED.data, revision=civolten_app.user_state.revision+1, updated_at=now() ' +
-    'WHERE civolten_app.user_state.revision=$3::bigint ' +
-    'RETURNING revision,updated_at',
-    [owner,dataString,expectedRevision]
-  );
+  const sql = expectedRevision === 0
+    ? 'INSERT INTO civolten_app.user_state(auth_user_id,revision,data,updated_at) ' +
+      'SELECT $1,1,$2::jsonb,now() WHERE $3::bigint=0 ' +
+      'ON CONFLICT(auth_user_id) DO NOTHING RETURNING revision,updated_at'
+    : 'UPDATE civolten_app.user_state SET data=$2::jsonb, ' +
+      'revision=revision+1, updated_at=now() ' +
+      'WHERE auth_user_id=$1 AND revision=$3::bigint RETURNING revision,updated_at';
+  const rows = await client().query(sql,[owner,dataString,expectedRevision]);
   return rows[0] || null;
 }
 const handler = createHandler({ authenticate, load, save });
