@@ -1,4 +1,4 @@
-const VERSION='civolten-sinapi-import-v20-20261105';
+const VERSION='civolten-import-tabs-v21-20261105';
 const CORE=['/','/index.html','/siurb.css','/siurb.js','/cost-modes.js','/payroll-cost.js','/daily-workflow.js','/quote-automation.js','/job-expense-presets.js','/workforce-schedule.js','/commercial-proposal.js','/reference-compare.js','/sinapi-import.js','/manifest.webmanifest','/assets/civolten-logo.png','/icons/civolten-simbolo.png','/icons/icon-192.png','/icons/icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(CORE)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==VERSION).map(k=>caches.delete(k)))));self.clients.claim()});
