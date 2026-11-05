@@ -121,11 +121,13 @@
   const siurbLabor=siurb&&service.costSplitConfirmed?n(service.labor):0;
   const registeredLabor=n(service.labor);
   // Floor for SAME labor scope; never equate full SIURB to labor alone.
-  const costLabor=Math.max(crew.cost,registeredLabor,siurbLabor);
+  const costLabor=crew.entries.length
+    ? (siurb?crew.cost:Math.max(crew.cost,registeredLabor))
+    : registeredLabor;
   const material=db.materials.find(m=>m.id===template.materialId);
   const companyMaterial=material?n(material.cost)*n(template.materialQty):0;
   const savedMaterial=n(service.material);
-  const materialValue=Math.max(companyMaterial,savedMaterial);
+  const materialValue=material?companyMaterial:savedMaterial;
   if(crew.entries.length){
    f.elements.labor.value=round(costLabor);
    const first=crew.entries[0];
@@ -145,7 +147,8 @@
    hint.innerHTML='<strong>Preenchimento automático CIVOLTEN</strong>'+
     '<div class="qa-compare"><span>Custo real da equipe</span><b>'+money(crew.cost)+'</b></div>'+
     (siurbLabor?'<div class="qa-compare"><span>Referência SIURB de mão de obra (conferida)</span><b>'+money(siurbLabor)+'</b></div>':'')+
-    '<div class="qa-compare"><span>Valor protegido de mão de obra/un</span><b>'+money(costLabor)+'</b></div>'+
+    '<div class="qa-compare"><span>Custo usado no orçamento/un</span><b>'+money(costLabor)+'</b></div>'+
+    (siurbLabor&&siurbLabor>costLabor?'<p class="qa-note">A referência SIURB maior será considerada no preço sugerido, sem ser tratada como custo real da CIVOLTEN.</p>':'')+
     (material?'<div class="qa-compare"><span>Material da empresa ou referência</span><b>'+money(materialValue)+'</b></div>':'')+
     (ref?'<p class="qa-note">Custo SIURB total: '+money(ref)+' — não foi somado à mão de obra.</p>':'')+
     (labels?'<p class="qa-note">Equipe: '+labels+'.</p>':'')+
@@ -159,6 +162,9 @@
   if(s.modal!=='additem')return oldItemSubmit(form);
   const id=s.edit?.id,itemsBefore=s.wizard?.items?.length||0;
   const serviceId=form.elements.serviceId?.value,svc=db.services.find(x=>x.id===serviceId);
+  const isSiurb=svc?.origin==='SIURB'&&svc.costSplitConfirmed;
+  const refLabor=isSiurb?n(svc.labor):0;
+  const refMaterial=isSiurb?n(svc.material):0;
   const productivity=svc?.productivity;
   const snapshot=productivity?crewTotals(productivity.crew):null;
   oldItemSubmit(form);
@@ -166,6 +172,9 @@
   const item=id?s.wizard.items.find(x=>x.id===id):s.wizard.items[itemsBefore];
   if(item&&svc){
    item.catalogServiceId=svc.id;
+   // Referência verificável fica SEPARADA do custo real; só entra no preço sugerido.
+   item.referenceLabor=refLabor;
+   item.referenceMaterial=refMaterial;
    if(snapshot?.entries.length){
     item.productivity={source:productivity.productivitySource||'CIVOLTEN',hoursPerUnit:snapshot.hours,
      crew:snapshot.entries.map(e=>({workerId:e.workerId,workerName:e.name,perUnitHours:e.hours,count:e.count,rate:e.rate,cost:e.cost}))};
