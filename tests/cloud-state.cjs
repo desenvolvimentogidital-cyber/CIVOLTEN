@@ -60,3 +60,11 @@ test('erro de conexão não apaga dados locais',async()=>{
  const r=await run(fn({save:async()=>{throw new Error('offline')}}),'PUT',{expectedRevision:0,data:data()});
  assert.equal(r.statusCode,503);assert.match(r.body.error,/dados locais não foram alterados/);
 });
+
+test('Gravações posteriores usam UPDATE com revisão, não INSERT SELECT vazio',()=>{
+ const src=require('node:fs').readFileSync(require('node:path').join(__dirname,'../api/cloud-state.js'),'utf8');
+ assert.match(src,/expectedRevision === 0/);
+ assert.match(src,/UPDATE civolten_app\.user_state SET data/);
+ assert.match(src,/WHERE auth_user_id=\$1 AND revision=\$3::bigint/);
+ assert.match(src,/ON CONFLICT\(auth_user_id\) DO NOTHING/);
+});
