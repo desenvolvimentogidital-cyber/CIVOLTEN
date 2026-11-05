@@ -215,6 +215,23 @@
   if(last>=0)html=html.slice(0,last)+panel+html.slice(last);
   return html;
  };
+ const oldPriceReview=wizardStep3;
+ wizardStep3=function(){
+  let html=oldPriceReview();
+  if(!s.wizard)return html;
+  const view=calc(s.wizard);
+  if(n(view.referencePremium)>0){
+   const advisory='<div class="form-card qa-price-check">'+
+    '<h3 class="card-title">Comparação CIVOLTEN × SIURB</h3>'+
+    '<div class="qa-compare"><span>Custo real previsto da CIVOLTEN</span><strong>'+money(view.cost)+'</strong></div>'+
+    '<div class="qa-compare"><span>Base comercial considerando referência maior</span><strong>'+money(view.pricingBasis)+'</strong></div>'+
+    '<p class="qa-note">O preço sugerido considera somente componentes SIURB conferidos e equivalentes ao seu fornecimento. O lucro continua calculado sobre o custo real da empresa. Você pode editar o preço, mas confira a margem final.</p></div>';
+   const anchor='<div class="price-card">';
+   if(html.includes(anchor))html=html.replace(anchor,advisory+anchor);
+   else html=advisory+html;
+  }
+  return html;
+ };
  const style=document.createElement('style');
  style.textContent='.qa-template{border:1px solid #e6c575;background:#fff9eb;border-radius:15px;padding:14px;margin:15px 0}.qa-template h3{font-size:15px;margin:10px 0}.qa-crew-row{padding:11px 0;border-bottom:1px solid #f1deba}.qa-crew-row strong{font-size:12px}.qa-crew-row .label{font-size:12px}.qa-note{font-size:11px;line-height:1.5;color:#80683b;margin:7px 0}.qa-live{background:#fff5d9;border-radius:12px;padding:13px;margin:11px 0;font-size:12px}.qa-compare{display:flex;justify-content:space-between;gap:12px;margin:7px 0;align-items:center;font-size:12px}.qa-compare span{flex:1}.qa-warning{color:#a45119;font-size:12px;line-height:1.45}.qa-suggested-expenses{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:9px 0}.qa-suggest-btn{border:1px solid #e7cb83;border-radius:11px;padding:11px 9px;background:#fff8e9;color:#33291e;text-align:left;display:flex;flex-direction:column;gap:6px}.qa-suggest-btn span{font-size:12px}.qa-suggest-btn b{font-size:12px;color:#a36a1a}.qa-forecast{margin-top:12px}';
  document.head.append(style);
