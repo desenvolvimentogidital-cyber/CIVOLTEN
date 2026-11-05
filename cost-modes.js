@@ -140,14 +140,14 @@
     let html=originalStepTwo();
     const note='<p class="split-quote-hint"><strong>'+(s.wizard.type==='Mão de obra'?'Somente mão de obra':s.wizard.type==='Completo'?'Serviço completo':'Fornecimento misto')+'</strong> — '+(s.wizard.type==='Mão de obra'?'Materiais comprados pelo cliente não entram na sua cobrança.':'Confira quem fornece o material em cada item.')+'</p>';
     html=html.replace('<p class="small-desc">Adicione serviços do catálogo.',note+'<p class="small-desc">Adicione serviços do catálogo.');
-    const pending=(s.wizard?.items||[]).filter(i=>i.source==='SIURB'&&!i.splitConfirmed);
+    const pending=(s.wizard?.items||[]).filter(i=>i.source==='SIURB'&&!i.splitConfirmed&&!i.companyProductivityConfirmed);
     if(pending.length)html=html.replace('<div class="form-actions">','<div class="info-box warn">'+pending.length+' item(ns) SIURB ainda precisam de separação de custos. Toque no lápis de cada item para conferir.</div><div class="form-actions">');
     return html;
   };
 
   click=function(action,element){
     if(s.page==='newquote'&&['next','finish','draft'].includes(action)){
-      const pending=(s.wizard?.items||[]).filter(i=>i.source==='SIURB'&&!i.splitConfirmed);
+      const pending=(s.wizard?.items||[]).filter(i=>i.source==='SIURB'&&!i.splitConfirmed&&!i.companyProductivityConfirmed);
       if(pending.length&&(s.step>=2||action==='finish')){
         toast('Abra o item SIURB e confirme mão de obra, materiais e equipamentos antes de salvar.');return;
       }
