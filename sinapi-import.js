@@ -78,6 +78,8 @@ function parseRows(rows,ctx){
  return {items:items.concat(unpriced),headers:matchedHeaders,unmapped};
 }
 function parseWorkbook(book,options,filename){
+ const official=window.CIVOLTENReferenceParser?.parse(book,options,filename);
+ if(official)return official;
  const out=new Map();let headers=0,seen=0,unmapped=0;
  for(const name of book.SheetNames||[]){
   const sheet=book.Sheets[name];if(!sheet||!sheet['!ref'])continue;
@@ -171,8 +173,12 @@ function hits(){
   '<div class="sn-result"><div><strong>'+text(x.code)+' · '+text(x.name)+'</strong>'+
   '<small>'+text(x.kind==='insumo'?'Insumo':'Composição')+' · '+text(x.unit)+' · '+
   (x.cost!=null?money(x.cost)+' por unidade':'preço não encontrado')+
-  (x.verifiedUF?'':' · UF a conferir no arquivo')+'</small></div>'+
-  '<button type="button" class="btn btn-outline" data-action="sn-add" data-id="'+text(x.id)+'">Usar no catálogo</button></div>'
+  (x.verifiedUF?'':' · UF a conferir no arquivo')+
+  (x.analytical?' · Analítico '+x.analyticItems.length+' insumos/subcomposições · '+x.analyticLabor.length+' funções diretas':'')+'</small>'+
+  (x.analytical?'<details class="sn-coeff"><summary>Conferir coeficientes analíticos ('+x.analyticLabor.length+' funções)</summary>'+
+  (x.analyticLabor.length?x.analyticLabor.map(k=>'<div>'+text(k.name)+' · <b>'+k.hoursPerUnit.toLocaleString('pt-BR',{maximumFractionDigits:5})+' h/'+text(x.unit)+'</b></div>').join(''):'<div>Sem profissional horista direto identificado. Confira subcomposições.</div>')+
+  '<small>As horas são da composição oficial; outras subcomposições podem exigir análise.</small></details>':'')+
+  '</div><button type="button" class="btn btn-outline" data-action="sn-add" data-id="'+text(x.id)+'">Usar no catálogo</button></div>'
  ).join('')||'<p class="small-desc">Nenhum item disponível. Importe um arquivo ou procure por outro código.</p>';
 }
 function panel(){
@@ -244,6 +250,7 @@ async function importFile(file){
   db.sinapiMeta={...details,count:merged.length};
   if(!save())message='Planilha salva no catálogo SINAPI local, mas os metadados não couberam no cadastro. Faça backup.';
   else message='SINAPI importado: '+result.items.length.toLocaleString('pt-BR')+' itens do arquivo '+file.name+'.'+
+    (result.items.some(x=>x.analytical)?' Coeficientes analíticos encontrados; consulte cada composição para conferir pedreiros, serventes e outros.':'')+
     (uncertain?' Atenção: '+uncertain+' itens sem UF explícita; confira a planilha para garantir São Paulo.':'')+
     (result.errors?.length?' Alguns arquivos do ZIP foram ignorados: '+result.errors.slice(0,2).join(' / '):'');
   search='';render();
@@ -272,15 +279,20 @@ document.addEventListener('click',event=>{
   referenceCost:item.cost||0,labor:0,material:0,equipment:0,
   sourceCode:item.code,sourceUF:item.uf,sourceDate:item.base,
   sourceRegime:item.regime,sourceKind:item.kind,sourceFile:item.fileName,
-  costSplitConfirmed:false,referenceNeedsValidation:true};
+  costSplitConfirmed:false,referenceNeedsValidation:true,
+  analytical:!!item.analytical,analyticLabor:(item.analyticLabor||[]).map(k=>({...k})),
+  analyticItems:(item.analyticItems||[]).map(k=>({...k})),
+  laborHoursPerUnit:item.laborHoursPerUnit||0,
+  analyticalReviewNeeded:!!item.analytical};
  db.services.push(service);
  if(!save()){db.services.pop();toast('Sem espaço no armazenamento. Faça backup e libere espaço.');return}
- toast('Item SINAPI adicionado à biblioteca. Confira sua produtividade e composição antes de orçar.');
+ toast(item.analytical?'Composição analítica salva. Confira as horas e vincule os profissionais em Editar serviço.':'Item SINAPI adicionado. Confira sua composição antes de orçar.');
  render();
 },true);
 const css=document.createElement('style');
 css.textContent='.sn-panel{margin:12px 0;background:#f7fafc;border-color:#bdcedf}.sn-logo{background:#276295!important;color:white!important}.sn-settings{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.sn-settings .label{font-size:11px}.sn-settings .input{margin:5px 0 0}.sn-result{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #dae2ec}.sn-result>div{flex:1;min-width:0}.sn-result strong{display:block;font-size:12px;line-height:1.35}.sn-result small{display:block;font-size:10px;color:#64748b;line-height:1.4;margin-top:4px}.sn-result button{font-size:10px;min-width:90px;padding:8px 6px}.sn-message{font-size:12px;line-height:1.45;margin:10px 0;color:#254465}@media(max-width:380px){.sn-settings{grid-template-columns:1fr}.sn-result{align-items:flex-start}}';
 css.textContent+='.sn-choice{border:1px solid #d7e0eb;background:#f8fbff;padding:14px;border-radius:16px;margin:0 0 12px}.sn-choice h2{font-size:17px;margin:0 0 3px}.sn-choice .small-desc{margin:0 0 10px}.sn-tab-switch{display:grid;grid-template-columns:1fr 1fr;gap:9px}.sn-tab{min-width:0;border:1px solid #cad6e4;background:white;color:#26354a;border-radius:12px;padding:12px 8px;text-align:center;font:inherit;font-size:14px;font-weight:700}.sn-tab small{display:block;font-size:11px;font-weight:400;margin-top:4px}.sn-tab.is-active{border-color:#276295;background:#e4f1fa;color:#163e62;box-shadow:inset 0 0 0 1px #276295}.sn-tab-content[hidden]{display:none!important}.sn-tab-content>.sn-panel{margin-top:0}';
+css.textContent+='.sn-coeff{font-size:11px;line-height:1.5;margin:7px 0;color:#30435b}.sn-coeff summary{font-weight:700;cursor:pointer}.sn-coeff div{margin:4px 0;padding:4px 0;border-bottom:1px solid #e0e8ef}';
 document.head.append(css);
 restore();
 window.CIVOLTENSINAPI={parseRows,parseWorkbook,getRecords:()=>records.slice(),getMeta:()=>meta};
