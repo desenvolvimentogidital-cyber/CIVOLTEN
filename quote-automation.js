@@ -185,7 +185,9 @@
   if(s.modal!=='additem')return oldItemSubmit(form);
   const id=s.edit?.id,itemsBefore=s.wizard?.items?.length||0;
   const previous=s.edit?structuredClone(s.edit):null;
-  const serviceId=form.elements.serviceId?.value,svc=db.services.find(x=>x.id===serviceId);
+  const serviceId=form.elements.serviceId?.value;
+  const svc=db.services.find(x=>x.id===serviceId)||
+    (form.elements.sourceId?.value?locateService(form.elements.sourceId.value,'sinapi'):null);
   // Coeficientes de mão de obra SINAPI não representam o custo dos materiais.
   // No orçamento completo, exigir materiais reais antes de emitir preço.
   const hasSinapiMaterials=svc?.origin==='SINAPI'&&
@@ -239,7 +241,13 @@
    keepTemp();
   }
   if(item&&svc){
-   item.catalogServiceId=svc.id;
+   if(svc.origin==='SINAPI'&&svc.analyticalReviewNeeded){
+    item.source='SINAPI';item.sourceCode=svc.sourceCode||svc.code||'';
+    item.sourceDate=svc.sourceDate||svc.base||'';
+    item.referenceCost=n(svc.referenceCost??svc.cost);
+    item.analyticalReviewNeeded=true;
+   }
+   item.catalogServiceId=svc.origin==='SINAPI'&&svc.analyticalReviewNeeded?'':svc.id;
    // Referência verificável fica SEPARADA do custo real; só entra no preço sugerido.
    item.referenceLabor=refLabor;
    item.referenceMaterial=refMaterial;
