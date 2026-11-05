@@ -212,6 +212,23 @@ Fontes oficiais:
 - [SIURB Prefeitura SP — julho/2026](https://prefeitura.sp.gov.br/web/obras/w/tabelas_de_custos/355179).
 - [CAIXA — SINAPI, metodologia e relatórios mensais](https://www.caixa.gov.br/poder-publico/modernizacao-gestao/sinapi/Paginas/default.aspx).
 
+## Importador SINAPI manual — ZIP, XLSX, XLS e CSV (novembro/2026)
+
+A tela de **Mais → Serviços** reúne **dois importadores separados**:
+
+1. **SIURB Prefeitura SP** (o importador já existente).
+2. **SINAPI CAIXA/IBGE** (novo painel com botão **Selecionar SINAPI: ZIP / XLSX / XLS / CSV**).
+
+Os relatórios mensais SINAPI a partir de 2025 são publicados pela CAIXA em pacotes ZIP; as versões XLSX incluem relatórios de composições e insumos de todas as UFs. O app está preparado para selecionar ZIP ou XLSX extraído e configurar **São Paulo (SP)**, competência mês/ano, regime **onerada/desonerada** e tipo **Composições** ou **Insumos**. Também aceita XLS/CSV quando o layout é reconhecido. Não importa diretamente PDF.
+
+**Fluxo:** baixar relatório oficial em https://www.caixa.gov.br/poder-publico/modernizacao-gestao/sinapi/Paginas/default.aspx → Mais → Serviços → SINAPI → escolher competência, regime e tipo → selecionar arquivo baixado. O sistema procura colunas de **código, descrição, unidade, custo** e, quando disponíveis, filtra UF SP; depois disponibiliza pesquisa por código ou nome e botão **Usar no catálogo**. O item copiado preserva código SINAPI, UF, mês, regime, custo global de referência e proveniência do arquivo; o custo global **NÃO** é imputado a mão de obra e não modifica profissionais/orçamentos antigos.
+
+**Atenção:** o formato exato do pacote XLSX ainda precisa ser validado com um arquivo real. Se o Excel não tiver cabeçalhos reconhecidos ou não contiver composições/insumos, o app avisa e **não inventa linhas**. Se UF não estiver explicitamente indicada, exibe aviso de conferência; é obrigação de quem importa verificar que o arquivo é de SP. Para pacotes grandes pode ser necessário extrair o XLSX e selecionar somente a planilha pertinente no celular. ZIP depende do leitor JSZip em rede na primeira leitura e Excel depende do leitor XLSX carregado na conexão.
+
+**Limite técnico:** a importação atual cadastra itens e custos **sintéticos**. Não extrai automaticamente os coeficientes analíticos de produtividade de todas as composições SINAPI nem cruza códigos SIURB só por nome. Para a comparação automática segura, os coeficientes e a equivalência de serviços precisam ser conferidos em **Mais → Serviços → Editar → Comparação SIURB × SINAPI**.
+
+**Dados e backups:** tabelas importadas são armazenadas no **IndexedDB do dispositivo**, separado da tabela SIURB. O backup JSON atual do cadastro **não contém** esse catálogo volumoso; guarde ZIP/XLSX para reimportar se mudar de aparelho ou limpar dados. Os serviços que forem copiados para a biblioteca entram no cadastro e podem ser incluídos no backup normal.
+
 ## Publicação na Vercel
 Importe a branch main, **Framework Other**, root `./` e sem build. A Vercel publica o HTML/CSS/JS e a função Node `api/siurb.js`. O serviço upstream pode ficar indisponível; o upload manual continua possível.
 
