@@ -67,6 +67,12 @@ ROUTES.workers=function(){
  '<option value="simples4" '+(db.company.workforceScenario==='simples4'?'selected':'')+'>Simples Nacional — Anexo IV (simulado)</option>'+
  '<option value="simplesDemais" '+(db.company.workforceScenario==='simplesDemais'?'selected':'')+'>Simples — demais anexos (confirmar)</option>'+
  '<option value="custom" '+(db.company.workforceScenario==='custom'?'selected':'')+'>Personalizado pelo contador</option>';
+ const catalog=(db.siurbLabor||[]),matching=catalog.slice(0,25);
+ const refs='<section class="form-card wp-panel"><h3>Profissões e custos de referência SIURB</h3>'+
+ '<p class="wp-muted">Consulte as profissões importadas da SIURB (mensalistas e horistas). O valor divulgado pode incluir encargos: NÃO é salário-base automaticamente.</p>'+
+ '<input class="input" id="wp-siurb-search" placeholder="Buscar profissão na SIURB..." autocomplete="off">'+
+ '<div id="wp-siurb-results">'+matching.map(wpLaborHit).join('')+'</div>'+
+ '<p class="wp-muted">'+catalog.length+' registros de referência importados neste dispositivo. Importe a planilha na ficha do profissional se ainda estiver vazio.</p></section>';
  const panel='<section class="form-card wp-panel"><h3>Equipe modelo • Planejamento mensal</h3>'+
  '<p class="wp-muted">Cinco postos fictícios: 1 eletricista, 2 pedreiros e 2 ajudantes. NÃO são empregados admitidos. Edite salários e encargos em cada cadastro para simular sua empresa.</p>'+
  '<label class="label">Cenário de encargos da equipe (sem mudar o cadastro tributário da empresa)</label><select id="wp-regime" class="input">'+selection+'</select>'+
@@ -77,14 +83,21 @@ ROUTES.workers=function(){
  '<p class="wp-muted">Não some esta folha mais uma vez aos custos fixos: as horas desses profissionais já entram como mão de obra nos serviços e orçamentos. Alimentação e deslocamento de cada obra continuam separados se não forem benefícios já provisionados.</p>'+
  personRows+
  '<p class="wp-muted">SIURB: as referências importadas de mensalistas/horistas ficam disponíveis na consulta, mas seus custos publicados não são tratados como salário-base CLT automaticamente.</p></section>';
- return html.replace('<main class="sheet full">','<main class="sheet full">'+panel);
+ return html.replace('<main class="sheet full">','<main class="sheet full">'+panel+refs);
 };
+function wpLaborHit(w){
+ return '<div class="wp-line"><span><b>'+esc(w.name)+'</b><small>'+esc(w.kind||'SIURB')+' · '+esc(w.unit||'un')+'</small></span>'+
+ '<span><b>'+money(w.cost)+'</b><button class="btn btn-outline" type="button" data-action="wp-copy-role" data-id="'+esc(w.id)+'">Criar cargo modelo</button></span></div>';
+}
 const oldExpenseRoute=ROUTES.expenses;
 ROUTES.expenses=function(){
  const html=oldExpenseRoute();
  const planned=db.workers.filter(w=>w.presetModelId||w.employmentStatus==='planejado');
  const payrollCost=planned.reduce((sum,w)=>sum+(w.link==='Empregado'?payroll(w).total:positive(w.cost)),0);
- return html.replace('<main class="sheet full">','<main class="sheet full"><section class="form-card wp-panel"><h3>Equipe e despesas da empresa</h3><div class="wp-headline"><span>Custo mensal estimado da equipe planejada</span><strong>'+money(payrollCost)+'</strong></div><p class="wp-muted">Este valor está separado dos fixos e pró-labore para evitar dupla contagem. É recuperado pelos custos/hora dos serviços efetivamente orçados. Para funcionários sem alocação e pagos no mês, considere a ociosidade no planejamento financeiro geral.</p></section>');
+ const generalFixed=(db.expenses||[]).filter(e=>e.scope==='fixed').reduce((sum,e)=>sum+positive(e.cost),0);
+ return html.replace('<main class="sheet full">','<main class="sheet full"><section class="form-card wp-panel"><h3>Equipe e despesas da empresa</h3><div class="wp-headline"><span>Folha mensal estimada da equipe planejada</span><strong>'+money(payrollCost)+'</strong></div>'+
+ '<div class="wp-line"><span>Despesas fixas e meta de pró-labore</span><b>'+money(generalFixed)+'</b></div>'+
+ '<div class="wp-headline"><span>Necessidade de caixa mensal simulada (se os 5 forem contratados)</span><strong>'+money(generalFixed+payrollCost)+'</strong></div><p class="wp-muted">Este valor está separado dos fixos e pró-labore para evitar dupla contagem. É recuperado pelos custos/hora dos serviços efetivamente orçados. Para funcionários sem alocação e pagos no mês, considere a ociosidade no planejamento financeiro geral.</p></section>');
 };
 const origModal=modalUI,origSubmit=modalSubmit;
 modalUI=function(){
@@ -156,8 +169,12 @@ function cleanItemCrew(item){
 }
 function ensureSchedule(q){
  if(!q)return null;
- if(!q.schedule)q.schedule={startDate:new Date().toISOString().slice(0,10),targetDays:15,productiveHoursDay:7,
+ if(!q.schedule){
+  const defaults={startDate:new Date().toISOString().slice(0,10),targetDays:15,productiveHoursDay:7,
   paidHoursDay:8,mode:'parallel',staffOverrides:{},dedicated:false,confirmed:false};
+  if(q.id&&q!==s.wizard)return defaults; // Consulta não altera orçamento salvo.
+  q.schedule=defaults;
+ }
  return q.schedule;
 }
 function calculate(q){
@@ -204,7 +221,7 @@ function calculate(q){
  return {days,productive,paid,parallel,lines,staffing,missing,begin,last,projectDays,budgetLabor,committed,reserve,unknownCost};
 }
 function updateReserve(q){
- if(!q||q.id)return;
+ if(!q||q!==s.wizard)return;
  const sc=calculate(q);
  q.scheduleExtraCost=(q.schedule?.dedicated&&!sc.missing&&!sc.unknownCost)?round(sc.reserve):0;
  keepTemp();
@@ -307,6 +324,12 @@ document.addEventListener('change',e=>{
  if(e.target.name==='wfConfirmed'){sch.confirmed=e.target.checked;keepTemp();return}
 },true);
 document.addEventListener('input',e=>{
+ if(e.target.id==='wp-siurb-search'){
+  const q=norm(e.target.value),list=(db.siurbLabor||[]).filter(x=>norm(x.name+' '+x.code).includes(q)).slice(0,25);
+  const box=document.getElementById('wp-siurb-results');
+  if(box)box.innerHTML=list.map(wpLaborHit).join('')||'<p class="wp-muted">Nenhuma profissão encontrada.</p>';
+  return;
+ }
  if(s.page!=='schedule'||!s.wizard?.items)return;
  const sch=ensureSchedule(s.wizard);
  if(e.target.name==='wfStartDate')sch.startDate=e.target.value;
@@ -320,6 +343,19 @@ document.addEventListener('click',e=>{
  const el=e.target.closest('[data-action]');if(!el)return;
  const action=el.dataset.action;
  if(action==='wp-apply-regime'){e.preventDefault();e.stopPropagation();changeScenario();return}
+ if(action==='wp-copy-role'){
+  e.preventDefault();e.stopPropagation();
+  const reference=(db.siurbLabor||[]).find(w=>w.id===el.dataset.id);
+  if(!reference)return;
+  const role=reference.name;
+  const example={id:'model-siurb-'+Math.random().toString(36).slice(2),name:'Modelo • '+role,role,
+   employmentStatus:'planejado',link:'Empregado',employmentType:'CLT',salary:0,fgts:8,
+   employerInss:currentProfile().cpp,employerExtraPercent:currentProfile().rat,productiveHours:160,
+   cost:0,costPerHour:0,siurbReferenceId:reference.id,siurbReferenceCost:reference.cost,
+   notes:'SIURB usada apenas como custo de referência, NÃO como salário-base.'};
+  db.workers.push(example);save();s.edit=example;s.modal='addworker';render();
+  toast('Cargo modelo criado. Informe o salário-base antes de usar no orçamento.');return;
+ }
  if(action==='wf-open'){e.preventDefault();e.stopPropagation();go('schedule');return}
  if(action==='wf-back'){e.preventDefault();e.stopPropagation();go('newquote');s.step=2;render();return}
  if(action==='wf-save'){e.preventDefault();e.stopPropagation();if(!s.wizard)return;
