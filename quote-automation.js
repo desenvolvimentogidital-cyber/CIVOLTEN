@@ -183,6 +183,12 @@
    if(preservedMinimum>0&&n(form.elements.labor?.value)<preservedMinimum)form.elements.labor.value=round(preservedMinimum);
   }
   const isSiurb=svc?.origin==='SIURB'&&svc.costSplitConfirmed;
+  // O catálogo unificado conserva ambas as referências. Mesmo serviços copiados
+  // antes desta correção usam a MAIOR referência ao formar NOVOS orçamentos.
+  const publicRefs=(svc?.unifiedReferences||[]).filter(x=>Number(x.cost)>0);
+  const fullComparable=publicRefs.some(x=>x.source==='SIURB')&&publicRefs.some(x=>x.source==='SINAPI')&&
+    publicRefs.every(x=>x.unit===publicRefs[0].unit&&x.regime===publicRefs[0].regime);
+  const higherPublicReference=fullComparable?Math.max(...publicRefs.map(x=>Number(x.cost))):0;
   const cmp=svc?.referenceComparison?.status==='verified'?svc.referenceComparison:null;
   const comparableLabor=cmp?n(cmp.preferredLaborCost):0;
   const refLabor=Math.max(isSiurb?n(svc.referenceLabor??svc.labor):0,comparableLabor);
@@ -199,6 +205,9 @@
    if(previous.referenceLabor!==undefined)item.referenceLabor=previous.referenceLabor;
    if(previous.referenceMaterial!==undefined)item.referenceMaterial=previous.referenceMaterial;
    if(previous.referenceCompared!==undefined)item.referenceCompared=previous.referenceCompared;
+   if(previous.referenceGlobalCompared!==undefined)item.referenceGlobalCompared=previous.referenceGlobalCompared;
+   if(previous.referenceGlobalFloor!==undefined)item.referenceGlobalFloor=previous.referenceGlobalFloor;
+   if(previous.referenceGlobalSources)item.referenceGlobalSources=previous.referenceGlobalSources;
    if(previous.referenceComparisonSnapshot)item.referenceComparisonSnapshot=previous.referenceComparisonSnapshot;
    keepTemp();
   }
@@ -208,6 +217,13 @@
    item.referenceLabor=refLabor;
    item.referenceMaterial=refMaterial;
    item.referenceCompared=!!(cmp&&comparableLabor>0);
+   // Custo GLOBAL público é apenas uma proteção da BASE COMERCIAL para escopo
+   // completo; nunca é lançado como custo efetivo de mão de obra ou material.
+   item.referenceGlobalCompared=fullComparable;
+   item.referenceGlobalFloor=higherPublicReference;
+   item.referenceGlobalSources=fullComparable?publicRefs.map(r=>({
+    source:r.source,code:r.code,regime:r.regime,unit:r.unit,date:r.date,cost:Number(r.cost)
+   })):[];
    if(cmp)item.referenceComparisonSnapshot={
     status:cmp.status,policy:cmp.policy,selected:cmp.selected,
     totalSiurbHours:cmp.totalSiurbHours,totalSinapiHours:cmp.totalSinapiHours,
