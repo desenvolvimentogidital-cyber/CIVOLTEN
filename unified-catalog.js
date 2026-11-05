@@ -8,8 +8,9 @@
 let query='',message='',totalHits=0;
 const normalize=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();
 const unit=value=>{
- let u=normalize(value).replace(/ /g,'');
- return ({'M²':'M2','M³':'M3','UND':'UN','UNIDADE':'UN','UNID':'UN','UNI':'UN','HORA':'H','HR':'H','TON':'T'}[u]||u);
+ const raw=String(value??'').toUpperCase().replace(/M²/g,'M2').replace(/M³/g,'M3').replace(/M\^2/g,'M2').replace(/M\^3/g,'M3');
+ let u=normalize(raw).replace(/ /g,'');
+ return ({'UND':'UN','UNIDADE':'UN','UNID':'UN','UNI':'UN','HORA':'H','HR':'H','TON':'T'}[u]||u);
 };
 const amount=value=>{const n=Number(value);return Number.isFinite(n)&&n>0?n:null;};
 const currency=value=>amount(value)==null?'Preço não informado':cash(value);
