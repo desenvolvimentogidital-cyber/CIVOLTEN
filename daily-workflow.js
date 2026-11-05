@@ -265,6 +265,7 @@ function saveQuoteExpense(form){
  unitCost:pretty(v.unitCost),qty:number(v.qty),people:number(v.people)||1,days:number(v.days)||1};
  if(obj.qty<=0){toast('Quantidade deve ser maior que zero.');return}
  if(!s.wizard.expenseItems)s.wizard.expenseItems=[];
+ if(s.wizard.manualExtraCost===undefined)s.wizard.manualExtraCost=pretty(Math.max(0,number(s.wizard.extraCost)-quotaExpenses()));
  const i=s.wizard.expenseItems.findIndex(x=>x.id===obj.id);if(i>=0)s.wizard.expenseItems[i]=obj;else s.wizard.expenseItems.push(obj);
  s.modal=null;s.editExpense=null;syncExpenseTotal();render();
 }
