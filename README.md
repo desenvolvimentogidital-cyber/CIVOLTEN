@@ -235,6 +235,18 @@ Os relatórios mensais SINAPI a partir de 2025 são publicados pela CAIXA em pac
 
 **Dados e backups:** tabelas importadas são armazenadas no **IndexedDB do dispositivo**, separado da tabela SIURB. O backup JSON atual do cadastro **não contém** esse catálogo volumoso; guarde ZIP/XLSX para reimportar se mudar de aparelho ou limpar dados. Os serviços que forem copiados para a biblioteca entram no cadastro e podem ser incluídos no backup normal.
 
+## Vínculo assistido de produtividade SINAPI com profissionais (novembro/2026)
+
+Após importar `SINAPI_Referência_2026_09.xlsx`, usar **Mais → Serviços → SINAPI**, pesquisar código/nome e tocar **Usar no catálogo**. Em **Meus serviços → Editar**, aparece **Produtividade analítica SINAPI** com os coeficientes diretos de pedreiro, servente/ajudante, eletricista e outras funções reconhecidas. O botão **Preencher equipe e horas do SINAPI** sugere a correspondência com profissionais cadastrados, escolhendo o perfil com custo/hora mais conservador entre profissionais da mesma função.
+
+A automação é **assistida**: preenche `qaWorker0..2`, `qaHours0..2` e `qaCount0..2` com **uma pessoa por função e coeficiente integral por unidade de serviço**. O cronograma calcula automaticamente a quantidade de pessoas conforme o prazo quando a produtividade estiver conferida. O botão fica indisponível se faltar custo/hora de alguma função, se existir alguma linha horista não reconhecida ou se houver mais de três funções. Caso existam subcomposições não-horistas, o painel destaca que **o trabalho nelas pode não estar incluído nas horas diretas**. O usuário precisa conferir e marcar a caixa de confirmação antes de salvar uma sugestão, evitando assumir produtividade completa apenas porque houve importação.
+
+Quando confirmado, o serviço recebe `productivitySource='SINAPI - coeficientes analíticos diretos conferidos'`, código e data-base para rastreabilidade. Novos orçamentos herdam os coeficientes e custos reais da equipe, sem modificar orçamentos antigos. A CIVOLTEN **não** adiciona o custo global SINAPI automaticamente como se fosse mão de obra.
+
+Para o orçamento `Completo` ou `Misto` com material fornecido pela empresa, quando a composição SINAPI contém insumos ou subcomposições, exige lançamento de custo real de materiais/equipamentos antes de aceitar o item. Isso é uma proteção contra usar somente mão de obra num escopo com material.
+
+**Limites:** os coeficientes de subcomposições em cadeia ainda não são expandidos automaticamente; a verificação manual é necessária. A diferença entre **10.599 composições identificadas na inspeção** e **10.598 itens exibidos no celular** ainda não foi investigada item a item. A captura confirma uma importação grande, mas não prova que todos os registros foram preservados. Use os coeficientes somente após conferir código, unidade, contexto técnico e condições da obra.
+
 ## Publicação na Vercel
 Importe a branch main, **Framework Other**, root `./` e sem build. A Vercel publica o HTML/CSS/JS e a função Node `api/siurb.js`. O serviço upstream pode ficar indisponível; o upload manual continua possível.
 
