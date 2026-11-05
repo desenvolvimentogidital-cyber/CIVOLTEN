@@ -45,11 +45,13 @@ function panel(service){
  const refs=savedRefs(service),codes=refs.sources||{},slots=refs.slots||[];
  const verified=refs.status==='verified';
  const currentUnit=service?.unit||'m²';
- const siurbCode=codes.siurb?.code||service?.sourceCode||'';
+ const isSinapi=service?.origin==='SINAPI';
+ const siurbCode=codes.siurb?.code||(isSinapi?'':service?.sourceCode||'');
+ const sinapiCode=codes.sinapi?.code||(isSinapi?service?.sourceCode||'':'');
  const siurbUnit=codes.siurb?.unit||currentUnit;
  const sinapiUnit=codes.sinapi?.unit||currentUnit;
- const siurbDate=codes.siurb?.date||service?.sourceDate||'07/2026';
- const sinapiDate=codes.sinapi?.date||'';
+ const siurbDate=codes.siurb?.date||(isSinapi?'':service?.sourceDate||'07/2026');
+ const sinapiDate=codes.sinapi?.date||(isSinapi?service?.sourceDate||'':'');
  const hoursRows=Array.from({length:3},(_,i)=>{
   const slot=slots[i]||{};
   return '<div class="bc-grid-row"><strong>Profissional '+(i+1)+'</strong>'+
@@ -60,7 +62,7 @@ function panel(service){
   '<p class="bc-note">SIURB é a referência principal de São Paulo. Compare com SINAPI-SP somente se o serviço, unidade, regime e escopo forem equivalentes. Os valores devem vir das composições analíticas, não de um custo unitário global.</p>'+
   '<div class="bc-grid-row">'+
   '<label>Código SIURB<input name="bcSiurbCode" class="input" value="'+esc(siurbCode)+'" placeholder="Código oficial"></label>'+
-  '<label>Código SINAPI<input name="bcSinapiCode" class="input" value="'+esc(codes.sinapi?.code||'')+'" placeholder="Código oficial"></label></div>'+
+  '<label>Código SINAPI<input name="bcSinapiCode" class="input" value="'+esc(sinapiCode)+'" placeholder="Código oficial"></label></div>'+
   '<div class="bc-grid-row">'+
   '<label>Unidade SIURB<input name="bcSiurbUnit" class="input" value="'+esc(siurbUnit)+'" placeholder="m²"></label>'+
   '<label>Unidade SINAPI<input name="bcSinapiUnit" class="input" value="'+esc(sinapiUnit)+'" placeholder="m²"></label></div>'+
