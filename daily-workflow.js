@@ -117,7 +117,8 @@ function workerHTML(){
  '<label class="label">Unidade de cobrança</label><select class="input" name="unit">'+
  ['hora','diária','mês'].map(v=>option(v,v,w.unit===v)).join('')+'</select></div>'+
  '<div class="dw-siurb-note"><strong>Mão de obra SIURB (referência)</strong><p>As planilhas de mensalistas e horistas não substituem o salário real da pessoa. Importe a tabela para consultar valores.</p>'+
- '<button class="btn btn-outline block" type="button" data-action="dw-import-labor">Importar mão de obra SIURB</button>'+
+ '<button class="btn btn-outline block" type="button" data-action="dw-import-labor">Importar XLS de mão de obra</button>'+
+ '<div class="grid-duo"><button class="btn btn-outline" type="button" data-action="dw-fetch-mensalista">Atualizar mensalistas</button><button class="btn btn-outline" type="button" data-action="dw-fetch-horista">Atualizar horistas</button></div>'+
  '<input type="file" accept=".xls,.xlsx,.csv" id="dw-labor-file" hidden>'+
  '<div class="dw-help" id="dw-labor-count">'+db.siurbLabor.length+' referências SIURB disponíveis</div>'+
  '<select class="input" name="siurbWorkerRef">'+option('','Consultar referência SIURB')+
@@ -157,6 +158,8 @@ function syncExpenseTotal(){
  if(!s.wizard)return;
  if(!Array.isArray(s.wizard.expenseItems))s.wizard.expenseItems=[];
  const total=s.wizard.expenseItems.reduce((sum,x)=>sum+number(x.unitCost)*number(x.qty)*number(x.people||1)*number(x.days||1),0);
+ // Preserva os custos de orçamentos anteriores.
+ if(s.wizard.manualExtraCost===undefined)s.wizard.manualExtraCost=pretty(Math.max(0,number(s.wizard.extraCost)-total));
  s.wizard.extraCost=pretty(number(s.wizard.manualExtraCost)+total);
  keepTemp();
 }
@@ -522,6 +525,8 @@ function fillWorkerRef(form){
 const baseOnAction=onAction;
 onAction=function(action,el){
  if(action==='dw-import-material'){importSIURBType('insumos');return true}
+ if(action==='dw-fetch-mensalista'){importSIURBType('mensalista');return true}
+ if(action==='dw-fetch-horista'){importSIURBType('horista');return true}
  if(action==='dw-open-labor-ref'){s.edit=null;s.modal='addworker';render();return true}
  if(action==='dw-pick-material'){
   const m=insumoCatalog.find(x=>x.id===el.dataset.id);if(!m)return true;
@@ -545,6 +550,7 @@ document.addEventListener('change',e=>{
   file.arrayBuffer().then(b=>parseAuxBuffer(b,'insumos')).then(list=>{importExplain('insumos',list);render();toast(list.length+' insumos carregados.');}).catch(err=>toast('Erro no Excel: '+err.message));
  }
  if(s.modal==='addworker'&&e.target.name==='siurbWorkerRef')fillWorkerRef(document.getElementById('modal-form'));
+ if(s.modal==='additem'&&e.target.name==='owner'&&s.wizard?.type==='Mão de obra'){e.target.value='cliente';toast('Somente mão de obra: materiais pelo cliente.');}
 },true);
 document.addEventListener('input',e=>{
  if(e.target.id==='dw-material-search'||e.target.id==='dw-insumo-search'){
