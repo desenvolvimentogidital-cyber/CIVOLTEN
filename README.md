@@ -152,6 +152,31 @@ O importador agora distingue **valor sem encargos** e **valor com encargos** qua
 
 **Limitação importante:** Não foi possível abrir e validar a planilha Excel da SIURB julho de 2026 neste ambiente. O importador passou em testes com exemplos estruturais, mas os salários dos cinco postos planejados continuam **fictícios**, até conferência de todas as linhas e unidades de origem. Não divulgar valores como "salários oficiais SIURB" antes disso. Não sobrescrever os salários/custos reais já cadastrados e não somar encargos duas vezes. Preferir conferir a planilha XLSX original no sistema e, se necessário, enviá-la ao projeto para mapear as colunas precisamente.
 
+## Custo completo do empregado nos orçamentos e cronogramas (novembro/2026)
+
+**Regra adotada:** o valor usado como mão de obra no custo da CIVOLTEN é o **custo completo estimado do empregador**, não o salário bruto e tampouco o salário líquido recebido pelo trabalhador. Os três módulos — cadastro do profissional, composição de serviços/orçamento e cronograma — usam a função única de `payroll-cost.js`.
+
+Cálculo mensal configurável: remuneração bruta = salário-base + adicional de periculosidade *quando devida* ou de insalubridade *quando devida* + adicionais salariais fixos. Provisão adicional de 13º = remuneração/12. Férias já remuneradas pelo salário mensal; provisiona-se o **terço constitucional adicional** = remuneração/36. Sobre a base adotada, calcula-se FGTS patronal e encargos previdenciários configurados (CPP e RAT/FAP, além de outras contribuições se aplicáveis). Soma benefícios mensais (alimentação, transporte, outros), reservas gerenciais de rescisão e substituição/ausências se informadas, e outras reservas. Custo unitário/hora = total estimado / horas produtivas mensais.
+
+**Importante:** este é um **simulador de custo de empresa**, não cálculo legal completo e definitivo da folha: o desconto de INSS do funcionário é retenção sobre a remuneração, **não acréscimo independente ao custo da empresa**. Benefícios previstos em convenção coletiva, seguro, eSocial, RAT/FAP efetivo, adicionais condicionais, piso salarial, afastamentos, férias durante a execução, aviso prévio e indenizações de rescisão precisam ser validados individualmente. Reservas opcionais não são percentuais legais obrigatórios. Salário-base e adicionais permanecem editáveis por funcionário.
+
+Periculosidade **não é ativada automaticamente** pela palavra "eletricista"; o adicional típico de 30% demanda condições e enquadramento legal e técnico. Insalubridade também exige enquadramento e cálculo conforme o caso, e não é somada simultaneamente à periculosidade como padrão.
+
+**SIURB:** importar o custo com encargos e sem encargos separadamente quando o Excel apresenta colunas claramente identificadas; custo **com encargos** de referência da SIURB não recebe encargos novamente ao ser utilizado em cadastro do tipo "Referência SIURB". Custo horário SIURB não vira salário-base CLT por multiplicação implícita. A planilha oficial de julho/2026 ainda precisa ser inspecionada antes de utilizar seus valores como salários reais.
+
+Exemplo de comparação simulada para salário-base R$ 3.000 (160h produtivas):
+- MEI, 3% CPP + 8% FGTS: **R$ 3.700,00/mês (R$ 23,13/h)**;
+- Simples Nacional Anexo IV, 20% CPP + 2% RAT + 8% FGTS: **R$ 4.333,33/mês (R$ 27,08/h)**;
+- Com periculosidade de 30% quando devida, no segundo cenário: **R$ 5.633,33/mês (R$ 35,21/h)**.
+
+Os exemplos **não incluem benefícios**, cobertura de férias por substitutos nem valores de CCT. Estes devem ser cadastrados para aproximar o custo real.
+
+**Fontes oficiais para revisão**:
+- Direitos do empregado: https://www.gov.br/empresas-e-negocios/pt-br/empreendedor/servicos-para-mei/contratacao-de-empregado
+- Encargos MEI eSocial: https://www.gov.br/esocial/pt-br/microempreendedor-individual/manual-web-mei
+- Contribuições fora do DAS no Anexo IV: https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/cobrancas-e-intimacoes/contribuicao-previdenciaria-anexo-iv-do-simples-nacional
+- Exposição a periculosidade NR-16: https://www.gov.br/trabalho-e-emprego/pt-br/acesso-a-informacao/perguntas-frequentes
+
 ## Publicação na Vercel
 Importe a branch main, **Framework Other**, root `./` e sem build. A Vercel publica o HTML/CSS/JS e a função Node `api/siurb.js`. O serviço upstream pode ficar indisponível; o upload manual continua possível.
 
