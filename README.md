@@ -295,3 +295,8 @@ Configuração segura da Vercel: `DATABASE_URL`, `NEON_AUTH_BASE_URL`, `NEON_AUT
 - `npm test`: testes financeiros, de API e de operações.
 - `tests/operations.cjs`: cálculos de custos reais, recebimentos, estornos, projeções e alertas.
 - `tests/cloud-state.cjs`: autenticação, validação de payload, controle de versão e proteção de dados.
+
+## Revisão de proposta A4 e automação (ramificação de design, novembro/2026)
+A prévia comercial é construída **a partir dos dados do orçamento salvo**. Para obter um PDF, o usuário ainda utiliza **Imprimir / salvar PDF** no navegador; a geração automática em segundo plano não existe nesta etapa. O módulo `proposal-layout.js` substitui a visualização por uma apresentação A4 com identidade CIVOLTEN (escuro/dourado), itens, quantidade, valor distribuído por item, condições e campos de aceite. Valores internos (salários, custos de equipe, tributos e lucro) ficam ocultos do cliente. A distribuição comercial arredonda os itens de modo que a soma corresponda ao total salvo; não altera a precificação ou custos reais.
+
+`automation-risk-core.js` e `automation-review.js` calculam alertas de validade, ausência de dados contratuais, meta de margem, erros de auditoria e desvios de execução, exibindo-os no painel sem gravar/modificar orçamentos. **São avisos orientativos**, não um controle seguro de permissões. Testes de UI e PDF A4 estão no workflow gratuito de GitHub Actions; o acesso real ao Neon e o layout com todos os tipos de orçamento ainda requerem homologação. O redesign só deve ser incorporado à produção após revisão visual.
