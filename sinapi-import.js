@@ -58,7 +58,7 @@ function parseRows(rows,ctx){
   const desc=String(row[h.desc]??'').trim().replace(/\s+/g,' ');
   const u=simplifiedUnit(row[h.unit]);
   if(desc.length<6||desc.length>380||!knownUnit.test(u)){unmapped++;continue}
-  const rowUF=h.uf>=0?norm(row[h.uf]):'';
+  const rowUF=h.uf>=0?norm(row[h.uf]).replace(/^SAO PAULO$/,'SP'):'';
   if(rowUF&&rowUF!==ctx.uf)continue;
   const sheetUF=inferSheetUF(ctx.sheetName,ctx.fileName);
   if(!rowUF&&sheetUF&&sheetUF!==ctx.uf)continue;
@@ -219,7 +219,7 @@ async function importFile(file){
   const uncertain=result.items.filter(x=>!x.verifiedUF).length;
   const details={base,regime,uf,kind,fileName:file.name,count:result.items.length,importedAt:new Date().toISOString(),uncertain};
   // Preserva categorias anteriores quando o usuário importa insumos após composições.
-  const previous=records.filter(x=>x.kind!==kind);
+  const previous=records.filter(x=>x.kind!==(kind==='composicoes'?'composicao':'insumo'));
   const merged=[...new Map([...previous,...result.items].map(x=>[x.id,x])).values()];
   await store(merged,details);
   records=merged;meta=details;
