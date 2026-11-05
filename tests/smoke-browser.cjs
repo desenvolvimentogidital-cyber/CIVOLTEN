@@ -1,0 +1,70 @@
+'use strict';
+/** Smoke de navegador gratuito. Dados sintéticos isolados por contexto. */
+const fs=require('node:fs');
+const path=require('node:path');
+const http=require('node:http');
+const assert=require('node:assert/strict');
+const { chromium }=require('playwright');
+const ROOT=path.resolve(__dirname,'../dist');
+const mimetypes={'.js':'text/javascript;charset=utf-8','.css':'text/css;charset=utf-8','.html':'text/html;charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
+const input={
+ company:{name:'Empresa teste',profit:20,taxRegime:'MEI',tax:0,fees:0,overhead:5,reserve:3},
+ clients:[{id:'test-client',name:'Cliente teste'}],workers:[],materials:[],services:[],expenses:[],
+ quotes:[{id:'test-quote',number:'ORC-2026-0001',title:'Teste de instalação',clientId:'test-client',
+ clientName:'Cliente teste',status:'Aprovado',type:'Mão de obra',date:'2026-11-05',cost:50000,
+ price:80000,tax:0,fees:0,margin:20,items:[{id:'item-a',service:'Instalação',unit:'un',qty:1,labor:30000,material:0,extra:0,owner:'cliente'}]}]
+};
+const server=http.createServer((req,res)=>{
+ const pathname=decodeURIComponent((req.url||'/').split('?')[0]);
+ const target=path.resolve(ROOT,'.'+(pathname==='/'?'/index.html':pathname));
+ if(!target.startsWith(ROOT+path.sep)&&target!==path.join(ROOT,'index.html')){res.writeHead(403).end();return;}
+ if(req.url.startsWith('/api/')){res.writeHead(401,{'Content-Type':'application/json'}).end('{"error":"Sem sessão"}');return;}
+ fs.readFile(target,(error,data)=>{
+  if(error){res.writeHead(404).end('Not found');return;}
+  res.writeHead(200,{'Content-Type':mimetypes[path.extname(target)]||'application/octet-stream','Cache-Control':'no-store'}).end(data);
+ });
+});
+const listen=()=>new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const close=()=>new Promise(resolve=>server.close(resolve));
+(async()=>{
+ let browser;
+ try{
+  assert.ok(fs.existsSync(path.join(ROOT,'index.html')),'dist/index.html ausente');
+  await listen();
+  const address='http://127.0.0.1:'+server.address().port;
+  browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+  const context=await browser.newContext({viewport:{width:390,height:820},acceptDownloads:true});
+  const page=await context.newPage();
+  const runtimeErrors=[];
+  page.on('pageerror',error=>runtimeErrors.push(String(error)));
+  await page.addInitScript(data=>localStorage.setItem('civolten_daily_v2',JSON.stringify(data)),input);
+  await page.goto(address,{waitUntil:'load'});
+  await page.locator('nav.bottom-nav [data-page="quotes"]').click();
+  await page.locator('[data-action="detail"][data-id="test-quote"]').first().click();
+  await page.locator('.cv-op-panel h3').filter({hasText:'Execução e resultado real'}).waitFor();
+  await page.locator('form[data-cv-op="progress"] [name="percent"]').fill('50');
+  await page.locator('form[data-cv-op="progress"] button').click();
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('civolten_daily_v2')).quotes[0].execution.percent),50);
+  await page.locator('details').filter({hasText:'Lançar custo real'}).locator('summary').click();
+  await page.locator('form[data-cv-op="cost"] [name="description"]').fill('Materiais teste');
+  await page.locator('form[data-cv-op="cost"] [name="amount"]').fill('32000');
+  await page.locator('form[data-cv-op="cost"] button').click();
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('civolten_daily_v2')).quotes[0].execution.entries[0].amount),32000);
+  await page.locator('details').filter({hasText:'Lançar recebimento'}).locator('summary').click();
+  await page.locator('form[data-cv-op="receipt"] [name="description"]').fill('Medição 1');
+  await page.locator('form[data-cv-op="receipt"] [name="amount"]').fill('40000');
+  await page.locator('form[data-cv-op="receipt"] button').click();
+  const ledger=await page.evaluate(()=>JSON.parse(localStorage.getItem('civolten_daily_v2')).quotes[0].execution.entries);
+  assert.equal(ledger.length,2);assert.equal(ledger[1].type,'receipt');assert.equal(ledger[1].amount,40000);
+  await page.locator('nav.bottom-nav [data-page="more"]').click();
+  await page.locator('[data-page="finance"]').last().click();
+  await page.locator('.cv-op-panel').filter({hasText:'Obras e movimentação registrada'}).waitFor();
+  const screen=await page.locator('.cv-op-panel').filter({hasText:'Obras e movimentação registrada'}).innerText();
+  assert.match(screen,/32\.000,00/);assert.match(screen,/40\.000,00/);
+  assert.deepEqual(runtimeErrors,[],'Erros JavaScript no navegador: '+runtimeErrors.join('; '));
+  console.log('SMOKE PASSOU: navegação, orçamento, progresso, custo, recebimento e financeiro');
+ }finally{
+  if(browser)await browser.close();
+  if(server.listening)await close();
+ }
+})().catch(error=>{console.error(error);process.exitCode=1;});
