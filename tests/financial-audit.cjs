@@ -58,6 +58,16 @@ test('Maior referência protege proposta manual',()=>{
  const q=quote({items:[item]}),manual=quote({items:[item],priceMode:'manual',manualPrice:calc(q).suggested-100});
  assert.ok(inspect(manual).errors.some(e=>e.code==='reference'));
 });
+test('Desconto automático abaixo da maior referência é bloqueado',()=>{
+ const item={...quote().items[0],referenceGlobalFloor:160,referenceGlobalCompared:true};
+ const discounted=quote({items:[item],discount:100});
+ assert.ok(calc(discounted).margin>=20,'A margem pode continuar positiva apesar do desconto');
+ assert.ok(inspect(discounted).errors.some(e=>e.code==='reference'));
+});
+test('Proposta salva com preço defasado não pode avançar sem revisão',()=>{
+ const q=quote({id:'q-saved',status:'Enviado',price:calc(quote()).price-300});
+ assert.ok(inspect(q).errors.some(e=>e.code==='saved-stale'));
+});
 test('Finalizar com erro é impedido, rascunho não',()=>{
  const begin=saves;s.wizard=quote({status:'Rascunho',items:[]});
  actions.click('draft',{});assert.equal(saves,begin+1);

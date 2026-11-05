@@ -28,7 +28,7 @@ function inspect(q){
  const pricedQuote=forecast?{...q,scheduleExtraCost:committed}:q;
  if(forecast&&q===s.wizard)q.scheduleExtraCost=committed;
  const c=calc(pricedQuote),lines=q.items||[];
- if(q!==s.wizard&&q.status==='Rascunho'&&(!positive(q.price)||Math.abs(n(q.price)-c.price)>0.05))
+ if(q!==s.wizard&&q.id&&(!positive(q.price)||Math.abs(n(q.price)-c.price)>0.05))
   errors.push({code:'saved-stale',message:'O rascunho salvo não corresponde ao preço recalculado. Reabra e salve a proposta depois da conferência.'});
  if(!lines.length)errors.push({code:'empty',message:'Adicione pelo menos um serviço antes de emitir a proposta.'});
  for(let i=0;i<lines.length;i++){
@@ -78,8 +78,8 @@ function inspect(q){
    errors.push({code:'target-margin',message:'A margem final ('+c.margin.toFixed(2)+'%) ficou abaixo da meta ('+
     desiredMargin.toFixed(2)+'%). Revise preço, desconto ou meta de margem.'});
   }
-  if(c.referencePremium>0&&q.priceMode==='manual'&&c.price+0.01<c.suggested){
-   errors.push({code:'reference',message:'O preço manual está abaixo da sugestão baseada na maior referência SIURB/SINAPI. Revise a composição e o preço antes de emitir.'});
+  if(c.referencePremium>0&&c.price+0.01<c.suggested){
+   errors.push({code:'reference',message:'O preço final, inclusive descontos, está abaixo da sugestão baseada na maior referência SIURB/SINAPI. Revise a composição e o preço antes de emitir.'});
   }
  }
  if(n(q.profit??db.company.profit)===0)
