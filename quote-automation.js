@@ -174,7 +174,9 @@
    if(preservedMinimum>0&&n(form.elements.labor?.value)<preservedMinimum)form.elements.labor.value=round(preservedMinimum);
   }
   const isSiurb=svc?.origin==='SIURB'&&svc.costSplitConfirmed;
-  const refLabor=isSiurb?n(svc.referenceLabor??svc.labor):0;
+  const cmp=svc?.referenceComparison?.status==='verified'?svc.referenceComparison:null;
+  const comparableLabor=cmp?n(cmp.preferredLaborCost):0;
+  const refLabor=Math.max(isSiurb?n(svc.referenceLabor??svc.labor):0,comparableLabor);
   const refMaterial=isSiurb?n(svc.referenceMaterial??svc.material):0;
   const productivity=svc?.productivity;
   const snapshot=productivity?crewTotals(productivity.crew):null;
@@ -187,6 +189,8 @@
    if(previous.productivity)item.productivity=previous.productivity;
    if(previous.referenceLabor!==undefined)item.referenceLabor=previous.referenceLabor;
    if(previous.referenceMaterial!==undefined)item.referenceMaterial=previous.referenceMaterial;
+   if(previous.referenceCompared!==undefined)item.referenceCompared=previous.referenceCompared;
+   if(previous.referenceComparisonSnapshot)item.referenceComparisonSnapshot=previous.referenceComparisonSnapshot;
    keepTemp();
   }
   if(item&&svc){
@@ -194,6 +198,13 @@
    // Referência verificável fica SEPARADA do custo real; só entra no preço sugerido.
    item.referenceLabor=refLabor;
    item.referenceMaterial=refMaterial;
+   item.referenceCompared=!!(cmp&&comparableLabor>0);
+   if(cmp)item.referenceComparisonSnapshot={
+    status:cmp.status,policy:cmp.policy,selected:cmp.selected,
+    totalSiurbHours:cmp.totalSiurbHours,totalSinapiHours:cmp.totalSinapiHours,
+    sources:structuredClone(cmp.sources),confirmedAt:cmp.confirmedAt
+   };
+   else delete item.referenceComparisonSnapshot;
    if(snapshot?.entries.length){
     item.productivity={source:productivity.productivitySource||'CIVOLTEN',hoursPerUnit:snapshot.hours,
      crew:snapshot.entries.map(e=>({workerId:e.workerId,workerName:e.name,perUnitHours:e.hours,count:e.count,rate:e.rate,cost:e.cost}))};
