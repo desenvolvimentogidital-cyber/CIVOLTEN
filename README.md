@@ -62,6 +62,52 @@ Dados comerciais continuam no armazenamento local do navegador sem login/servido
 
 **Testes deste ciclo:** validação de sintaxe JS, cálculo de equipe CLT/terceirizada, exibição de campos de produtividade, cálculo de piso de preços em diferentes regimes de fornecimento e criação do build na Vercel. Testes completos num aparelho real, importação de toda a planilha oficial e persistência em banco ainda pendentes.
 
+## Custos fixos, pró-labore e modelo de despesas por obra — Novembro/2026
+
+O app passa a **pré-cadastrar uma única vez**, sem sobrescrever os registros da CIVOLTEN, os custos abaixo como **VALORES FICTÍCIOS EDITÁVEIS** de planejamento. São referências e hipóteses, **não orçamentos de fornecedores**.
+
+### Fixos mensais fictícios
+- Meta de pró-labore/retirada do titular: **R$ 10.000,00/mês** (não é salário CLT nem lançamento tributário automático).
+- DAS MEI serviços (2026): **R$ 86,05/mês** (oficial para atividade apenas de serviços; confirmar regime real).
+- Contabilidade: R$ 250; celular: R$ 100; internet: R$ 130; software: R$ 95.
+- EPIs/uniformes: R$ 200; ferramentas/manutenção: R$ 280; seguro operacional (reserva): R$ 180.
+- Veículo (seguro/IPVA/manutenção fixa): R$ 400; escritório/administrativo: R$ 300; água/luz: R$ 140.
+- **Total inicial: R$ 12.161,05/mês**, se nenhum custo anterior foi substituído por um valor próprio.
+- Capacidade inicial de rateio: **160 horas produtivas faturáveis/mês da empresa**, configurável. Base: aproximadamente **R$ 76,01 por hora**.
+
+Não criar salários fictícios na equipe real, pois empregados e terceirizados existentes já são lançados nos serviços pela sua taxa de custo. O pró-labore como **meta mensal de retirada** é rateado como planejamento de custo de gestão. **Não cobrar novamente o próprio trabalho via profissional "Próprio"**, ou haverá dupla contagem.
+
+### Variáveis de obra fictícias
+Cadastradas como modelos editáveis: almoço R$ 32/refeição, deslocamento R$ 1,10/km, água/lanche R$ 8/pessoa/dia, estacionamento R$ 22/dia, pedágio R$ 18/passagem, frete R$ 150/viagem, locação de equipamento R$ 95/dia, hospedagem R$ 180/noite e descarte R$ 140/viagem.
+
+**Almoço e deslocamento** são pré-incluídos em **NOVOS orçamentos**, com quantidade inicial de 1 refeição por pessoa/dia e deslocamento de 20 km por dia, ajustáveis com o botão de edição. Se houver equipe e produtividade cadastradas, dias/pessoas sugeridos são recalculados (não são prazos contratuais). Despesas opcionais só entram se selecionadas.
+
+Despesas mensais não devem aparecer também como despesas avulsas; alimentação e transporte já pagos como benefício CLT não devem ser lançados novamente sem justificativa.
+
+### Como editar
+- **Mais → Despesas:** editar pró-labore, despesas mensais, despesas variáveis e configurações de aplicação automática.
+- **Mais → Despesas → Horas produtivas faturáveis:** editar capacidade mensal de trabalho da empresa.
+- **Novo orçamento → Itens:** revisar almoço, quilometragem e outras despesas. Nenhuma suposição de dias/quilômetros é uma medição real.
+- **Novo orçamento → Revisão:** visualizar rateio fixo, informar horas manualmente se não houver produtividade e usar **Atualizar custos mensais desta proposta** para buscar os valores atualizados.
+
+### Cálculo e preservação
+Novas propostas usam o modelo **fixed_hourly_v1**:
+- Custos diretos = mão de obra real da equipe + material fornecido pela empresa + equipamentos.
+- Rateio fixo = (total mensal de despesas e meta de retirada / horas faturáveis mensais) × horas de execução previstas (horas-homem), ou horas de rateio editadas para aquela obra.
+- Despesas variáveis da obra = quantidade × pessoas × dias × custo unitário, apenas uma vez.
+- Reserva/imprevistos configurável e margens/tributos existentes continuam atuando.
+- O percentual genérico de custos indiretos **não** é aplicado novamente ao usar o rateio fixo.
+- Sem horas confiáveis, o app pede horas de rateio antes de emitir proposta que não seja rascunho.
+- Rascunhos antigos e orçamentos emitidos **não são migrados automaticamente**; cada novo orçamento guarda fotografia dos valores mensais e capacidade no momento da criação.
+
+**Atenção ao MEI:** a meta de retirada de R$ 10 mil/mês é uma meta pessoal/financeira e pode não ser compatível com o faturamento e custos reais enquanto a empresa permanecer no MEI. Não significa pró-labore juridicamente obrigatório. Referência Receita Federal, Solução de Consulta Cosit 251/2024: https://normas.receita.fazenda.gov.br/sijut2consulta/link.action?idAto=140333 . Limite anual e regime devem ser acompanhados com contador.
+
+### Referências e hipóteses de 2026
+- DAS MEI 2026 de serviços: https://www.gov.br/empresas-e-negocios/pt-br/empreendedor/servicos-para-mei/perguntas-frequentes .
+- Gasolina SP em torno de R$ 6,36/l no fim de outubro de 2026: https://www.gov.br/anp/pt-br/assuntos/precos-e-defesa-da-concorrencia/precos/levantamento-de-precos-de-combustiveis-ultimas-semanas-pesquisadas .
+- Deslocamento a R$ 1,10/km é **premissa de orçamento**, que combina estimativa de combustível, manutenção e desgaste, e não tarifa oficial.
+- Todos os demais custos são estimativas fictícias ilustrativas a substituir pelos seus valores comprovados.
+
 ## Publicação na Vercel
 Importe a branch main, **Framework Other**, root `./` e sem build. A Vercel publica o HTML/CSS/JS e a função Node `api/siurb.js`. O serviço upstream pode ficar indisponível; o upload manual continua possível.
 
