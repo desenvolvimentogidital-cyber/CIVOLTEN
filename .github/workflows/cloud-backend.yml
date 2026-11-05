@@ -1,0 +1,22 @@
+name: CIVOLTEN API Neon
+on:
+  push:
+    branches: [main]
+    paths: ['api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','.github/workflows/cloud-backend.yml']
+  pull_request:
+    paths: ['api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','.github/workflows/cloud-backend.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-cloud-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Validar contrato da API, conflitos e autenticação
+        run: node --test tests/cloud-state.cjs
+      - name: Reexecutar auditoria financeira
+        run: node tests/financial-audit.cjs
