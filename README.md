@@ -1,27 +1,24 @@
-# CIVOLTEN — Orçamentos Premium (PWA)
+# CIVOLTEN — Orçamentos PWA (modo de trabalho)
 
-Protótipo navegável mobile-first da CIVOLTEN — Elétrica & Construção Civil, com identidade visual grafite e dourado.
+Aplicativo mobile-first com identidade premium da CIVOLTEN para orçamentos de elétrica e construção civil.
 
-## Visualização
-O aplicativo está em `index.html`. Abra a página publicada na Vercel pelo celular para ver o layout. O projeto utiliza HTML, CSS e JavaScript incorporados, sem etapa de build.
+## Publicação na Vercel
 
-## Publicar na Vercel
-1. Em [vercel.com/new](https://vercel.com/new), importe este repositório GitHub.
-2. Framework Preset: **Other**.
-3. Root Directory: **./**.
-4. Build Command: **deixe em branco**.
-5. Output Directory: **deixe em branco** (arquivos estáticos na raiz).
-6. Clique em **Deploy**.
+Arquivos estáticos na raiz do repositório. Em Vercel, selecione Framework Preset **Other**, Root Directory **./**, sem comandos de build. GitHub `main` publica por integração com a Vercel.
 
-O site deve abrir na rota `/`. Em HTTPS, o manifesto e o service worker permitem instalação compatível com o navegador/dispositivo.
+## Funcionalidades existentes nesta etapa
 
-## Telas
-Abertura, início, orçamentos, cadastro e detalhes de propostas, itens e cálculo, clientes, profissionais, materiais, serviços, despesas, financeiro, relatórios e configurações.
+- **Sem login de usuário:** abre diretamente no painel; não há tela de registro ou senha.
+- Clientes cadastráveis na proposta; profissionais, serviços, materiais e despesas.
+- Orçamentos de mão de obra, completo e misto, itens personalizados e por fornecimento de material.
+- Custos, despesas indiretas, imprevistos, taxas, impostos proporcionais, margem sobre a receita, desconto e preço manual.
+- Salvar propostas e rascunhos; editar com histórico de revisão, duplicar, acompanhar status e imprimir proposta para PDF.
+- Exportar backup JSON e importar com confirmação; planilha CSV de orçamentos; PWA com manifesto e cache offline.
 
-## Estado atual
-**Protótipo de demonstração, não é um sistema pronto para produção.** Dados de demonstração são armazenados no navegador (`localStorage`); não há autenticação, banco de dados remoto, sincronização entre dispositivos ou emissão fiscal oficial. Os valores tributários e financeiros exigem validação antes do uso comercial.
+## Importante: armazenamento e segurança
 
-## Identidade visual
-A marca CIVOLTEN utiliza os arquivos da empresa enviados para a construção do protótipo. `assets/civolten-logo.png` e `icons/civolten-simbolo.png` preservam as artes incorporadas ao HTML.
+**Esta fase ainda não tem backend nem autenticação.** Os dados são salvos no `localStorage` do navegador no aparelho utilizado. **Eles não são sincronizados nem recuperáveis automaticamente** em caso de perda, troca de dispositivo, limpeza de cache/dados ou falha do armazenamento. Use **Mais → Backup e segurança → Fazer backup completo** e guarde o JSON em lugar seguro; faça backups frequentes.
 
-Projeto preparado para revisão visual e posterior evolução funcional.
+A aplicação hospedada é publicamente acessível, mas cada visitante vê apenas os dados locais do próprio navegador. Não use em aparelhos compartilhados e não confie nesse modo local para informações empresariais sensíveis. Para uso seguro em múltiplos dispositivos e recuperação confiável, a próxima etapa exigirá banco de dados, controle de acesso e backups automáticos. Login/cadastro de usuário continuam desligados por solicitação.
+
+Os valores de impostos são parâmetros comerciais configuráveis, não substituem orientação contábil. A proposta comercial não é nota fiscal. O PDF é obtido pela impressão do navegador. As funções foram verificadas por testes de lógica e sintaxe; testes visuais em dispositivo real ainda são necessários.
