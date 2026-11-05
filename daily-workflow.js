@@ -9,7 +9,7 @@ const BRL=n=>cash(Number(n)||0), number=v=>Math.max(0,Number(String(v??'0').repl
 const norm=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const pretty=n=>Number(number(n).toFixed(2));
 const option=(v,label,selected=false)=>'<option value="'+esc(v)+'" '+(selected?'selected':'')+'>'+esc(label)+'</option>';
-let selected=null,modalIdentity=null,dqSearch='';
+let selected=null,modalIdentity=null,dqSearch='',chosenMaterialRef=null;
 if(!Array.isArray(db.siurbMaterials))db.siurbMaterials=[];
 if(!Array.isArray(db.siurbLabor))db.siurbLabor=[];
 if(!db.dailyCostRules)db.dailyCostRules={monthlyHours:160};
@@ -60,7 +60,7 @@ function modalWrapper(title,inner){return '<div class="overlay" id="overlay"><di
 function selectedSourceInfo(){const d=selected?.data||s.edit||{};const ref=number(d.referenceCost??d.cost);return ref}
 function addItemHTML(){
  const e=s.edit||{},key='additem:'+(e.id||'new');
- if(modalIdentity!==key){selected=null;modalIdentity=key;dqSearch=e.service||'';}
+ if(modalIdentity!==key){selected=null;chosenMaterialRef=null;modalIdentity=key;dqSearch=e.service||'';}
  const source=selected?.data||e;const siurb=source?.origin==='SIURB'||source?.group||e.source==='SIURB';
  const verified=!!(source.costSplitConfirmed||source.splitConfirmed);
  const labor=selected?verified?number(source.labor):0:number(e.labor);
@@ -75,6 +75,7 @@ function addItemHTML(){
  '<p class="dw-help">A descrição é o próprio campo de pesquisa. Ao escolher um serviço, a unidade e os valores disponíveis são preenchidos automaticamente.</p>'+
  '<div class="grid-duo">'+field('Unidade','unit','m, m², m³, ponto, un',selected?.unit||e.unit||'un')+field('Quantidade','qty','1',e.qty||1,'number',true)+'</div>'+
  '<label class="label">Material cadastrado (opcional)</label><select class="input" name="materialId">'+option('','Selecionar material')+selectedMaterial()+'</select>'+
+ field('Quantidade de material por unidade de serviço','materialQty','1',e.materialQty||1,'number')+
  '<label class="label">Profissional cadastrado (opcional)</label><select class="input" name="workerId">'+option('','Selecionar profissional')+selectedWorker()+'</select>'+
  '<div class="grid-duo">'+field('Horas por unidade','hoursUnit','Ex.: 1,5',e.hoursUnit||'','number')+field('Número de profissionais','workersCount','1',e.workersCount||1,'number')+'</div>'+
  '<label class="dw-check"><input type="checkbox" name="useWorkerRate" '+(e.workerId?'checked':'')+'> Usar custo real por hora do profissional selecionado</label>'+
@@ -221,7 +222,7 @@ function saveItem(form){
  const item={id:s.edit?.id||uid('it'),service:x.service.trim(),unit:x.unit?.trim()||'un',qty:pretty(qty),
  owner,labor:pretty(labor),material:pretty(material),extra:pretty(extra),
  workerId:w?.id||'',hoursUnit:number(x.hoursUnit),workersCount:number(x.workersCount)||1,
- materialId:x.materialId||'',source:source?'SIURB':'',sourceCode:source?.sourceCode||source?.code||'',
+ materialId:x.materialId||'',materialQty:number(x.materialQty)||1,materialSourceCode:chosenMaterialRef?.code||'',source:source?'SIURB':'',sourceCode:source?.sourceCode||source?.code||'',
  sourceGroup:source?.sourceGroup||source?.group||'',sourceDate:source?.sourceDate||'07/2026',
  referenceCost:source?number(source.referenceCost??source.cost):0,splitConfirmed:!!source};
  if(source&&form.elements.siurbSaveLibrary?.checked){
@@ -236,7 +237,7 @@ function saveItem(form){
   const index=s.wizard.items.findIndex(v=>v.id===s.edit.id);
   if(index>=0)s.wizard.items[index]=item;else s.wizard.items.push(item);
  } else s.wizard.items.push(item);
- selected=null;modalIdentity=null;s.edit=null;s.modal=null;keepTemp();save();render();
+ selected=null;chosenMaterialRef=null;modalIdentity=null;s.edit=null;s.modal=null;keepTemp();save();render();
 }
 function saveWorker(form){
  const v=Object.fromEntries(new FormData(form).entries());if(!v.name?.trim()){toast('Informe o nome do profissional.');return}
@@ -325,8 +326,8 @@ function onAction(action,el){
 }
 click=function(action,el){
  if(onAction(action,el))return;
- if(action==='additem'){selected=null;modalIdentity=null;dqSearch='';}
- if(action==='edititem'){selected=null;modalIdentity=null;}
+ if(action==='additem'){selected=null;chosenMaterialRef=null;modalIdentity=null;dqSearch='';}
+ if(action==='edititem'){selected=null;chosenMaterialRef=null;modalIdentity=null;}
  if(action==='finish'||action==='draft')syncExpenseTotal();
  if(action==='recalc'){
   const el=document.querySelector('[name="manualExtraCost"]');
@@ -354,6 +355,7 @@ document.addEventListener('input',e=>{
  }
  if(form&&s.modal==='additem'&&form.contains(e.target)){
   if(['hoursUnit','workersCount'].includes(e.target.name))fillWorker(form);
+  if(e.target.name==='materialQty'&&chosenMaterialRef){form.elements.material.value=pretty(number(chosenMaterialRef.cost)*number(form.elements.materialQty.value));updateLineTotal(form);}
   if(['labor','material','extra'].includes(e.target.name))updateLineTotal(form);
  }
  if(form&&s.modal==='addworker'&&form.contains(e.target)&&form.elements.link?.value==='Empregado'){
@@ -380,7 +382,7 @@ document.addEventListener('change',e=>{
   if(e.target.name==='owner')updateLineTotal(form);
   if(e.target.name==='materialId'){
    const m=db.materials.find(v=>v.id===e.target.value);
-   if(m){form.elements.material.value=number(m.cost);if(!form.elements.service.value)form.elements.service.value=m.name;if(!selected&&!s.edit?.service)form.elements.unit.value=m.unit||'un';updateLineTotal(form);}
+   if(m){chosenMaterialRef=m;form.elements.material.value=pretty(number(m.cost)*(number(form.elements.materialQty?.value)||1));if(!form.elements.service.value)form.elements.service.value=m.name;if(!selected&&!s.edit?.service)form.elements.unit.value=m.unit||'un';updateLineTotal(form);}
   }
  }
  if(form&&s.modal==='addworker'&&e.target.name==='link'){
@@ -540,7 +542,7 @@ onAction=function(action,el){
   const m=insumoCatalog.find(x=>x.id===el.dataset.id);if(!m)return true;
   if(s.modal==='additem'){
     const form=document.getElementById('modal-form');
-    if(form){form.elements.material.value=number(m.cost);if(!form.elements.service.value)form.elements.service.value=m.name;if(!selected&&!s.edit?.unit)form.elements.unit.value=m.unit;updateLineTotal(form);}
+    if(form){chosenMaterialRef=m;form.elements.material.value=pretty(number(m.cost)*(number(form.elements.materialQty?.value)||1));if(!form.elements.service.value)form.elements.service.value=m.name;if(!selected&&!s.edit?.unit)form.elements.unit.value=m.unit;updateLineTotal(form);}
     const hits=document.getElementById('dw-material-hits');if(hits)hits.hidden=true;
     const search=document.getElementById('dw-material-search');if(search)search.value=m.name;
   }else{
