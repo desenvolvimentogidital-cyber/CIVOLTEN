@@ -28,7 +28,7 @@ const codeOf=v=>{
  const match=s.match(/^(\d{5,7})(?:[.,]0+)?$/);
  return match?match[1]:'';
 };
-const kindName=v=>/INSUMO/.test(norm(v))?'insumo':/COMPOSICAO/.test(norm(v))?'composicao':'';
+const kindName=v=>/INSUMO/.test(norm(v))?'insumo':/COMPOSIC(?:AO|OES)/.test(norm(v))?'composicao':'';
 function header(cells){
  const w=cells.map(norm),ix=re=>w.findIndex(x=>re.test(x));
  const code=ix(/^(CODIGO|CODIGO SINAPI|COD|CODIGO DA COMPOSICAO)$/);
@@ -113,6 +113,8 @@ async function readFile(file,options){
   const entries=Object.values(zip.files).filter(x=>!x.dir&&/\.(xlsx|xls|csv)$/i.test(x.name))
    .filter(x=>!/(INSTRUCOES|LEIA.ME|MANUTENCOES|FAMILIAS|PERCENTUAL|CATALOGO|PARAMETRIC)/i.test(x.name))
    .filter(x=>options.kind==='insumos'?/INSUM|PRECO|SINAPI|SP/i.test(x.name):/COMP|CUSTO|SINAPI|SP/i.test(x.name))
+   .filter(x=>!inferSheetUF('',x.name)||inferSheetUF('',x.name)===options.uf)
+   .sort((a,b)=>Number(inferSheetUF('',b.name)===options.uf)-Number(inferSheetUF('',a.name)===options.uf))
    .slice(0,18);
   if(!entries.length)throw new Error('O ZIP não contém planilha compatível. Extraia o XLSX oficial e importe o arquivo diretamente.');
   const all=new Map(),errors=[];let headers=0;
@@ -219,7 +221,7 @@ async function importFile(file){
   const uncertain=result.items.filter(x=>!x.verifiedUF).length;
   const details={base,regime,uf,kind,fileName:file.name,count:result.items.length,importedAt:new Date().toISOString(),uncertain};
   // Preserva categorias anteriores quando o usuário importa insumos após composições.
-  const previous=records.filter(x=>x.kind!==(kind==='composicoes'?'composicao':'insumo'));
+  const previous=records.filter(x=>kind==='composicoes'?!['composicao','composicoes'].includes(x.kind):!['insumo','insumos'].includes(x.kind));
   const merged=[...new Map([...previous,...result.items].map(x=>[x.id,x])).values()];
   await store(merged,details);
   records=merged;meta=details;
