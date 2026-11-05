@@ -113,19 +113,24 @@
   return v>0?v:workHours(q);
  }
  function derivePeople(q){
-  const ids=new Set();
+  // A contagem é de pessoas, e não apenas de IDs. Um pedreiro com
+  // quantidade 2 representa dois postos, mesmo usando o mesmo cargo.
+  let count=1;
   for(const it of q.items||[]){
-   for(const m of it.productivity?.crew||[])ids.add(m.workerId);
-   if(it.workerId)ids.add(it.workerId);
+   const crew=it.productivity?.crew||[];
+   if(crew.length)count=Math.max(count,crew.reduce((total,x)=>total+(amount(x.count)||1),0));
+   else if(it.workerId)count=Math.max(count,amount(it.workersCount)||1);
   }
-  return Math.max(1,ids.size);
+  return count;
  }
  function autoAdjust(q){
   if(!q||q.id||!q.expensePresetApplied||!q.expenseItems)return;
-  const people=derivePeople(q);
+  const dedicated=!!q.schedule?.dedicated;
+  const people=dedicated?(amount(q.schedule?.recommendedPeople)||derivePeople(q)):derivePeople(q);
   const hh=workHours(q);
-  if(hh<=0)return;
-  const days=Math.max(1,Math.ceil(hh/(8*people)));
+  if(hh<=0&&!dedicated)return;
+  const estimatedDays=Math.ceil(hh/(8*people));
+  const days=dedicated?Math.max(1,estimatedDays,amount(q.schedule?.estimatedDays),amount(q.schedule?.targetDays)):Math.max(1,estimatedDays);
   let changed=false;
   for(const x of q.expenseItems){
    if(!x.presetAuto)continue;
