@@ -176,15 +176,18 @@ function calculate(q){
   if(!crew.length){missing++;lines.push({item,missing:true,roles:[],qty,duration:0});continue}
   const demands=crew.map(x=>({role:x.role,key:roleKey(x.role),hours:qty*x.perUnitHours*x.count,rate:x.rate,baseCount:x.count}));
   for(const r of demands){
-   if(!roles.has(r.key))roles.set(r.key,{key:r.key,name:r.role,hours:0,rates:[],baseCount:0});
+   if(!roles.has(r.key))roles.set(r.key,{key:r.key,name:r.role,hours:0,rates:[],baseCount:0,unknownRate:false});
    const o=roles.get(r.key);o.hours+=r.hours;o.baseCount=Math.max(o.baseCount,r.baseCount);
    if(r.rate>0)o.rates.push(r.rate);
+   else o.unknownRate=true;
   }
   lines.push({item,qty,roles:demands,missing:false});
  }
  const staffing=[...roles.values()].map(r=>{
-  const recommended=Math.max(1,Math.ceil(r.hours/(days*productive)));
-  const assigned=Math.max(1,Math.ceil(positive(sch.staffOverrides?.[r.key])||recommended));
+  // A quantidade mínima simultânea prevista pela composição também deve
+  // ser respeitada; o prazo sozinho pode sugerir equipe insuficiente.
+  const recommended=Math.max(1,r.baseCount,Math.ceil(r.hours/(days*productive)));
+  const assigned=Math.max(r.baseCount,Math.ceil(positive(sch.staffOverrides?.[r.key])||recommended));
   const profilesForRole=db.workers.filter(w=>roleKey(w.role)===r.key);
   const planned=profilesForRole.filter(w=>w.employmentStatus==='planejado').length;
   const active=profilesForRole.filter(w=>w.employmentStatus==='ativo').length;
@@ -210,7 +213,7 @@ function calculate(q){
   if(row.end>last)last=row.end;
  }
  const budgetLabor=(q.items||[]).reduce((sum,item)=>sum+positive(item.qty)*positive(item.labor),0);
- const unknownCost=staffing.some(x=>x.rate<=0);
+ const unknownCost=staffing.some(x=>x.rate<=0||x.unknownRate);
  const committedDays=Math.max(days,projectDays);
  const committed=(sch.dedicated&&!missing&&!unknownCost)?staffing.reduce((sum,r)=>sum+r.assigned*committedDays*paid*r.rate,0):0;
  const reserve=sch.dedicated&&!unknownCost&&!missing?Math.max(0,committed-budgetLabor):0;
