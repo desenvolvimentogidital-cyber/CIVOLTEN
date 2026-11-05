@@ -66,8 +66,18 @@ function inspect(q){
  }
  if(n(q.profit??db.company.profit)===0)
   warnings.push({code:'no-margin',message:'Margem de lucro definida em 0%. Verifique se isso é intencional.'});
- if((q.tax??db.company.tax)==0&&q.type!=='Mão de obra')
-  warnings.push({code:'tax',message:'Tributos sobre a venda estão em 0%. Confirme o regime e a incidência com o contador.'});
+ if(n(q.tax??db.company.tax)===0){
+  const regime=String(db.company.taxRegime||'');
+  if(regime&&regime!=='MEI')
+   errors.push({code:'tax',message:'O regime '+regime+' está com 0% de tributos sobre venda. Configure a alíquota aplicável antes de emitir.'});
+  else
+   warnings.push({code:'tax',message:'Tributos sobre venda em 0% (MEI). Confira se o DAS está incluído nas despesas mensais e se a empresa permanece enquadrada.'});
+ }
+ if(q.type==='Completo'&&lines.some(x=>x.owner==='empresa'&&n(x.material)===0))
+  warnings.push({code:'materials-check',message:'Há serviços completos sem valor de materiais. Confirme que o escopo realmente não exige fornecimento.'});
+ if((db.workers||[]).some(w=>n(w.mealBenefit)>0)&&
+    (q.expenseItems||[]).some(x=>/almo[cç]o|refei[cç][aã]o/i.test(String(x.name))))
+  warnings.push({code:'meal-double',message:'Benefício alimentação também aparece na folha e nas despesas da obra. Confira se não foi cobrado duas vezes.'});
  if(q.costModel==='fixed_hourly_v1'&&
     n(q.fixedCapacitySnapshot)<=160&&db.workers.filter(w=>w.employmentStatus==='planejado').length>=3)
    warnings.push({code:'capacity',message:'Capacidade de rateio fixo de até 160 hh/mês para equipe com vários postos: confira as horas faturáveis totais da empresa.'});
