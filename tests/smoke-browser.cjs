@@ -12,7 +12,9 @@ const input={
  clients:[{id:'test-client',name:'Cliente teste'}],workers:[],materials:[],services:[],expenses:[],
  quotes:[{id:'test-quote',number:'ORC-2026-0001',title:'Teste de instalação',clientId:'test-client',
  clientName:'Cliente teste',status:'Aprovado',type:'Mão de obra',date:'2026-11-05',cost:50000,
- price:80000,tax:0,fees:0,margin:20,items:[{id:'item-a',service:'Instalação',unit:'un',qty:1,labor:30000,material:0,extra:0,owner:'cliente'}]}]
+ price:80000,priceMode:'manual',manualPrice:80000,tax:0,fees:0,margin:59.5,
+ auditFinancial:{status:'passed',date:'2026-11-05T15:00:00Z'},
+ items:[{id:'item-a',service:'Instalação',unit:'un',qty:1,labor:30000,material:0,extra:0,owner:'cliente'}]}]
 };
 const server=http.createServer((req,res)=>{
  const pathname=decodeURIComponent((req.url||'/').split('?')[0]);
@@ -61,8 +63,48 @@ const close=()=>new Promise(resolve=>server.close(resolve));
   await page.locator('.cv-op-panel').filter({hasText:'Obras e movimentação registrada'}).waitFor();
   const screen=await page.locator('.cv-op-panel').filter({hasText:'Obras e movimentação registrada'}).innerText();
   assert.match(screen,/32\.000,00/);assert.match(screen,/40\.000,00/);
-  assert.deepEqual(runtimeErrors,[],'Erros JavaScript no navegador: '+runtimeErrors.join('; '));
-  console.log('SMOKE PASSOU: navegação, orçamento, progresso, custo, recebimento e financeiro');
+  await page.locator('.cv-op-open[data-action="detail"][data-id="test-quote"]').first().click();
+  await page.locator('[data-action="preview"][data-id="test-quote"]').first().click();
+  await page.locator('.cv-proposal-heading h1').waitFor();
+  const documentText=await page.locator('.cv-proposal').innerText();
+  assert.match(documentText,/Proposta de serviços/);
+  assert.match(documentText,/80\.000,00/);
+  assert.match(documentText,/Cliente teste/);
+  assert.doesNotMatch(documentText,/Custo previsto|Salário|Encargos da equipe/);
+  const shares=await page.evaluate(()=>CIVOLTENProposalLayout.shares({
+    price:100,items:[{qty:1,labor:3,owner:'cliente'},{qty:1,labor:7,owner:'cliente'}]
+  }));
+  assert.equal(Math.round(shares.reduce((a,v)=>a+v,0)*100),10000);
+  const tiny=await page.evaluate(()=>CIVOLTENProposalLayout.shares({
+    price:0.5,items:Array.from({length:100},()=>({qty:1,labor:1,owner:'cliente'}))
+  }));
+  assert.equal(Math.round(tiny.reduce((a,v)=>a+v,0)*100),50);
+  assert.ok(tiny.every(v=>v>=0),'Nenhum item pode ter preço negativo');
+  const ready=await page.evaluate(()=>CIVOLTENProposalLayout.printReadiness(
+    JSON.parse(localStorage.getItem('civolten_daily_v2')).quotes[0]
+  ));
+  assert.equal(ready.ok,true,'Auditoria concluída deve liberar PDF');
+  const invalid=await page.evaluate(()=>CIVOLTENProposalLayout.printReadiness({
+    status:'Rascunho',items:[],price:0
+  }));
+  assert.equal(invalid.ok,false,'Rascunhos não devem ser enviados como propostas');
+  const pdf=await page.pdf({format:'A4',printBackground:true});
+  assert.ok(pdf.byteLength>4000&&pdf.subarray(0,4).toString()==='%PDF','PDF de proposta não gerado');
+  // Um orçamento aprovado não pode manter o status após alteração de escopo.
+  page.once('dialog',dialog=>dialog.accept());
+  await page.evaluate(()=>{
+   const q=db.quotes.find(v=>v.id==='test-quote');
+   s.wizard=structuredClone(q);s.wizard.title='Instalação revisada para nova aprovação';
+   s.wizard.status='Aprovado';persistWizard();
+  });
+  const revised=await page.evaluate(()=>JSON.parse(localStorage.getItem('civolten_daily_v2')).quotes[0]);
+  assert.equal(revised.status,'Em análise');
+  assert.ok(revised.approvalPending&&revised.approvalPending.previousRevision===1);
+  assert.equal(revised.history.length,1);
+  assert.equal(revised.revision,2);
+  assert.ok(revised.history[0].snapshot.status==='Aprovado','A aprovação original permanece auditável');
+    assert.deepEqual(runtimeErrors,[],'Erros JavaScript no navegador: '+runtimeErrors.join('; '));
+  console.log('SMOKE PASSOU: navegador, orçamento, progresso, custos, recebimentos, prévia comercial e PDF A4');
  }finally{
   if(browser)await browser.close();
   if(server.listening)await close();
