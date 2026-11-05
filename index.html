@@ -59,11 +59,19 @@ const reserve=direct*pct('reserve'),extraCost=Math.max(0,num(q.extraCost))+Math.
 const cost=direct+overhead+reserve+extraCost;const targetMargin=pct('profit'),tax=pct('tax'),fees=pct('fees'),denom=1-targetMargin-tax-fees;// Comparar apenas parcelas da SIURB conferidas e equivalentes ao fornecimento.
  // A referência maior afeta o PREÇO SUGERIDO, nunca é lançada como custo real.
  const referenceDelta=lines.reduce((total,l)=>{
-  if(!(l.source==='SIURB'&&l.splitConfirmed)&&!l.referenceCompared)return total;
   const qty=Math.max(0,num(l.qty));
-  const laborGap=Math.max(0,Math.max(0,num(l.referenceLabor))-Math.max(0,num(l.labor)));
-  const materialGap=l.owner==='empresa'?Math.max(0,Math.max(0,num(l.referenceMaterial))-Math.max(0,num(l.material))):0;
-  return total+qty*(laborGap+materialGap);
+  const splitChecked=(l.source==='SIURB'&&l.splitConfirmed)||l.referenceCompared;
+  const laborGap=splitChecked?Math.max(0,Math.max(0,num(l.referenceLabor))-Math.max(0,num(l.labor))):0;
+  const materialGap=splitChecked&&l.owner==='empresa'?Math.max(0,Math.max(0,num(l.referenceMaterial))-Math.max(0,num(l.material))):0;
+  // Referência GLOBAL SIURB/SINAPI não representa mão de obra. Só aumenta
+  // a BASE de preço quando a CIVOLTEN fornece o escopo completo da obra e
+  // há custos próprios de mão de obra e materiais/equipamentos lançados.
+  // Não duplicar esta proteção com os diferenciais labor/material já usados.
+  const fullScope=l.owner==='empresa'&&l.referenceGlobalCompared&&num(l.labor)>0&&
+   (num(l.material)>0||num(l.extra)>0);
+  const realUnit=Math.max(0,num(l.labor))+Math.max(0,num(l.material))+Math.max(0,num(l.extra));
+  const globalGap=fullScope?Math.max(0,Math.max(0,num(l.referenceGlobalFloor))-realUnit):0;
+  return total+qty*Math.max(laborGap+materialGap,globalGap);
  },0);
  const referencePremium=referenceDelta*(1+(hourlyModel?0:pct('overhead'))+pct('reserve'));
  const pricingBasis=cost+referencePremium;
