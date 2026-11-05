@@ -193,6 +193,25 @@ Para serviços sem produtividade confiável e cronograma ainda não confirmado, 
 
 Obs.: alvenaria de vedação costuma ser medida em **m²**, não metros lineares; a unidade é extraída do cadastro do serviço. Para 300 m², a estimativa depende dos coeficientes da composição, do tipo de bloco, altura, acesso, espessura, perdas e organização da equipe. O sistema não presume uma produtividade única para todos os tipos de alvenaria.
 
+## Comparação SIURB × SINAPI por serviço (2026-11-05)
+
+A CIVOLTEN usa a **SIURB São Paulo como base principal** e a **SINAPI-SP como referência complementar**. O módulo `reference-compare.js` habilita **comparação automática das produtividades que estiverem cadastradas e conferidas** em **Mais → Serviços → Adicionar/Editar serviço → Comparação SIURB × SINAPI**.
+
+Para cada serviço:
+1. Selecionar até três profissionais da equipe padrão e informar quantos de cada função estão previstos.
+2. Registrar **códigos oficiais**, unidade e competência/data-base SIURB e SINAPI; registrar as **horas-homem por unidade e por função** conforme as composições analíticas oficiais. Se houver, registrar **apenas custo de mão de obra com encargos por unidade** (NÃO total global do serviço).
+3. Marcar que as descrições, materiais, unidade, regime e coeficientes são equivalentes. O sistema verifica dados completos e unidades iguais e exige revisão manual se o total de horas das fontes divergir em mais de 25%.
+4. Padrão: selecionar **o maior coeficiente conferido de hora-homem por unidade para cada função** (critério prudente para não subestimar). Pode-se optar por SIURB ou SINAPI quando tecnicamente justificado.
+5. O app converte horas-homem/unidade em horas **por pessoa** (dividindo pela quantidade cadastrada daquela função), atualiza a composição padrão e calcula o custo real com os salários/encargos da CIVOLTEN.
+6. Se os custos de mão de obra de referência, **com encargos e realmente comparáveis**, forem superiores ao custo próprio, elevam a base de preço sugerido, sem fingir que são despesas reais ou somá-los de novo ao custo contábil.
+7. Ao selecionar o serviço no orçamento, produtividade e critérios podem ser herdados. Cada orçamento salva **fotografia** de salários, coeficientes e fontes. Cronograma e proposta publicam apenas equipe, horas, dias e preço comercial; nunca salários ou margem.
+
+**Limite desta fase:** a comparação dos coeficientes registrados é automática, MAS A IMPORTAÇÃO E O VÍNCULO DIRETO DOS COEFICIENTES DE TODAS AS COMPOSIÇÕES OFICIAIS SIURB E SINAPI AINDA NÃO FORAM IMPLEMENTADOS/VALIDADOS. As tabelas de **Custos Unitários SIURB** disponíveis não equivalem às **Composições Analíticas** e não determinam, sozinhas, produtividade. Não inventar produtividade, não casar serviços apenas por nome genérico como "alvenaria", não comparar m² com m³, nem misturar fornecimento com mão de obra, desoneração, região e datas-base sem revisão. O serviço sem coeficientes permanece com produtividade pendente. A comparação automática TOTAL de catálogos depende dos XLSX oficiais e da validação dos seus formatos e mapeamentos.
+
+Fontes oficiais:
+- [SIURB Prefeitura SP — julho/2026](https://prefeitura.sp.gov.br/web/obras/w/tabelas_de_custos/355179).
+- [CAIXA — SINAPI, metodologia e relatórios mensais](https://www.caixa.gov.br/poder-publico/modernizacao-gestao/sinapi/Paginas/default.aspx).
+
 ## Publicação na Vercel
 Importe a branch main, **Framework Other**, root `./` e sem build. A Vercel publica o HTML/CSS/JS e a função Node `api/siurb.js`. O serviço upstream pode ficar indisponível; o upload manual continua possível.
 
