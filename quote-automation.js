@@ -102,9 +102,17 @@
   let service=id?db.services.find(x=>x.id===id):db.services.length>oldLength?db.services[db.services.length-1]:null;
   if(!service)return;
   service.productivity=vals;
-  if(sum.entries.length)service.labor=round(Math.max(n(service.labor),sum.cost));
+  const isSiurb=service.origin==='SIURB'&&service.costSplitConfirmed;
+  if(isSiurb){
+   // A divisão oficial conferida nunca deve ser sobrescrita pelo custo da empresa.
+   if(service.referenceLabor===undefined)service.referenceLabor=round(n(service.labor));
+   if(service.referenceMaterial===undefined)service.referenceMaterial=round(n(service.material));
+  }
+  if(sum.entries.length){
+   service.labor=round(isSiurb?sum.cost:Math.max(n(service.labor),sum.cost));
+  }
   const mat=db.materials.find(m=>m.id===vals.materialId);
-  if(mat)service.material=round(Math.max(n(service.material),n(mat.cost)*vals.materialQty));
+  if(mat)service.material=round(isSiurb?n(mat.cost)*vals.materialQty:Math.max(n(service.material),n(mat.cost)*vals.materialQty));
   save();render();
  };
  const workerValue=w=>realWorkerRate(w);
@@ -118,7 +126,7 @@
   const template=templateFor(service);
   const crew=crewTotals(template.crew);
   const siurb=service.origin==='SIURB';
-  const siurbLabor=siurb&&service.costSplitConfirmed?n(service.labor):0;
+  const siurbLabor=siurb&&service.costSplitConfirmed?n(service.referenceLabor??service.labor):0;
   const registeredLabor=n(service.labor);
   // Floor for SAME labor scope; never equate full SIURB to labor alone.
   const costLabor=crew.entries.length
@@ -163,8 +171,8 @@
   const id=s.edit?.id,itemsBefore=s.wizard?.items?.length||0;
   const serviceId=form.elements.serviceId?.value,svc=db.services.find(x=>x.id===serviceId);
   const isSiurb=svc?.origin==='SIURB'&&svc.costSplitConfirmed;
-  const refLabor=isSiurb?n(svc.labor):0;
-  const refMaterial=isSiurb?n(svc.material):0;
+  const refLabor=isSiurb?n(svc.referenceLabor??svc.labor):0;
+  const refMaterial=isSiurb?n(svc.referenceMaterial??svc.material):0;
   const productivity=svc?.productivity;
   const snapshot=productivity?crewTotals(productivity.crew):null;
   oldItemSubmit(form);
