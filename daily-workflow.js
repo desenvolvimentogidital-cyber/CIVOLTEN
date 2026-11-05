@@ -457,7 +457,7 @@ function parseAuxSheet(buffer,kind){
    // Mensalista define o VÍNCULO, não a UNIDADE do preço. Pode ser custo por hora.
    const unit=kind==='insumos'?(unitMatch||'un'):
       hourlyTable||kind==='horista'?'hora':monthlyTable?'mês':unitMatch||'não identificado';
-   const canSplit=kind!=='insumos'&&hasWithout&&hasWith&&valids.length>=2;
+   const canSplit=kind!=='insumos'&&hasWithout&&hasWith&&valids.length>=2&&valids[valids.length-1]>=valids[valids.length-2];
    const costWithoutCharges=canSplit?pretty(valids[valids.length-2]):null;
    const costWithCharges=canSplit?price:null;
    const id=kind+':'+(code||norm(nameText).slice(0,45));
