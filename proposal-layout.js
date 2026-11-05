@@ -11,15 +11,18 @@
  const safe=x=>esc(x);
  const date=x=>/^\d{4}-\d{2}-\d{2}$/.test(b(x))?b(x).slice(8,10)+'/'+b(x).slice(5,7)+'/'+b(x).slice(0,4):fmtDate(x);
  function shares(q){
-  const items=q.items||[],price=round(Math.max(0,n(q.price)));
+  // Rateio em centavos com maiores restos: não permite valor negativo
+  // no último item mesmo em orçamentos com dezenas de serviços.
+  const items=q.items||[],cents=Math.round(Math.max(0,n(q.price))*100);
   const weights=items.map(item=>Math.max(0,n(item.qty))*(Math.max(0,n(item.labor))+
    (item.owner==='empresa'?Math.max(0,n(item.material)):0)+Math.max(0,n(item.extra))));
-  const sum=weights.reduce((a,v)=>a+v,0);let distributed=0;
-  return weights.map((weight,i)=>{
-   if(sum<=0)return null;
-   const value=i===weights.length-1?round(price-distributed):round(price*weight/sum);
-   distributed=round(distributed+value);return value;
-  });
+  const sum=weights.reduce((a,v)=>a+v,0);
+  if(!Number.isSafeInteger(cents)||sum<=0||!Number.isFinite(sum))return items.map(()=>null);
+  const raw=weights.map(w=>cents*w/sum),bases=raw.map(v=>Math.floor(v));
+  const left=cents-bases.reduce((a,v)=>a+v,0);
+  const order=items.map((_,i)=>i).sort((a,b)=>(raw[b]-bases[b])-(raw[a]-bases[a])||a-b);
+  for(let i=0;i<left;i++)bases[order[i]]++;
+  return bases.map(v=>v/100);
  }
  function printItems(q){
   const allocations=shares(q);
@@ -100,20 +103,46 @@
    '<span>'+[company.phone,company.email,'Proposta '+b(q.number||'')].filter(Boolean).map(safe).join(' · ')+'</span></footer>'+
    '</article>';
  }
+ function printReadiness(q){
+  const errors=window.CIVOLTENFinancialAudit?.inspect?.(q)?.errors||[];
+  if(!q||!['Enviado','Em análise','Aprovado'].includes(q.status))
+   return {ok:false,message:'Salve e confira o orçamento como proposta antes de emitir o PDF.'};
+  if(errors.length)return {ok:false,message:'A proposta possui pendência financeira: '+errors[0].message};
+  if(!q.auditFinancial||q.auditFinancial.status!=='passed')
+   return {ok:false,message:'Auditoria financeira não registrada. Reabra e salve a proposta para conferência.'};
+  return {ok:true};
+ }
  function newPreview(){
   const q=db.quotes.find(x=>x.id===s.detail);
   if(!q)return quotes();
+  const readiness=printReadiness(q);
   return '<section class="screen print-route">'+pageTop('Visualizar proposta','Prévia comercial A4',true)+
    '<main class="sheet full">'+renderProposal(q)+
+   (!readiness.ok?'<div class="cv-proposal-issue" role="alert">'+safe(readiness.message)+'</div>':'')+
    '<div class="form-actions">'+button(I('back')+' Voltar','back','btn-light')+
-   button(I('print')+' Imprimir / salvar PDF','print','btn-gold')+'</div>'+
-   '<div class="info-box">A proposta foi preenchida automaticamente com os dados do orçamento salvo. Para obter o arquivo PDF, use Imprimir / salvar PDF. Confira os dados antes de enviar.</div>'+
+   (readiness.ok?button(I('print')+' Imprimir / salvar PDF','print','btn-gold'):
+    '<button type="button" class="btn btn-light" disabled>PDF aguardando conferência</button>')+'</div>'+
+   '<div class="info-box">A proposta usa o orçamento salvo. O PDF é liberado após auditoria financeira; confira sempre os dados comerciais antes de enviar ao cliente.</div>'+
    '</main></section>';
  }
  // Atualiza a rota: ROUTES.preview guardava a função original, impedindo
  // alterações posteriores de preview() de aparecerem na tela.
  preview=newPreview;
  ROUTES.preview=newPreview;
+ // Também bloquear o caminho de impressão por teclado ou pelo menu do navegador.
+ const syncPrintState=()=>{
+  const q=s.page==='preview'?db.quotes.find(x=>x.id===s.detail):null;
+  const invalid=!q||!printReadiness(q).ok;
+  document.documentElement.classList.toggle('cv-print-invalid',invalid);
+ };
+ window.addEventListener('beforeprint',syncPrintState);
+ window.addEventListener('afterprint',()=>document.documentElement.classList.remove('cv-print-invalid'));
+ document.addEventListener('click',event=>{
+  const btn=event.target?.closest?.('[data-action="print"]');
+  if(!btn||s.page!=='preview')return;
+  const q=db.quotes.find(x=>x.id===s.detail),readiness=printReadiness(q);
+  if(!readiness.ok){event.preventDefault();event.stopImmediatePropagation();toast(readiness.message);}
+ },true);
  const css=document.createElement('style');
  css.textContent=[
  '.cv-proposal{--cv-gold:#c28c2f;--cv-ink:#242d35;color:var(--cv-ink);padding:0!important;overflow:hidden;background:white;line-height:1.45}',
@@ -168,6 +197,7 @@
  '.cv-proposal-footer{margin-top:15px}.cv-proposal-logo{max-width:180px;max-height:49px}.cv-proposal-pill{font-size:8px}}'
  ].join('');
  css.textContent+="\n/* Identidade premium CIVOLTEN aprovada: prata, dourado elétrico, grafite e branco.\n   Valores e textos continuam 100% vinculados ao orçamento salvo. */\n.cv-proposal{background:#fff!important;color:#20252b!important;border:1px solid #e3e3e3;overflow:hidden}\n.cv-proposal-rule{height:4px;background:linear-gradient(90deg,#c87900,#fff2a2 17%,#ffba21 50%,#b65c00 100%)}\n.cv-proposal .cv-proposal-header{margin:0!important;background:\n linear-gradient(125deg,transparent 0 8%,#f0af2d 8% 9.3%,transparent 9.3% 94%,#d98a00 94% 95.4%,transparent 95.4%),\n repeating-linear-gradient(145deg,#1c1b1e 0,#1c1b1e 5px,#202125 5px,#202125 9px);\n border-bottom:2px solid #dc951a;padding:13px 22px;min-height:84px}\n.cv-proposal .cv-proposal-brand{flex:1;min-width:0}\n.cv-proposal .cv-proposal-logo{width:auto!important;max-width:225px!important;max-height:56px!important;filter:drop-shadow(0 0 3px #eba62c66);margin:0!important}\n.cv-proposal .cv-proposal-pill{font-size:10px;font-weight:950;line-height:1.05;letter-spacing:.35px;color:#2c1d0e;\n background:linear-gradient(135deg,#e28b08,#ffe26e 49%,#bd6b00);padding:11px 17px!important;\n border-radius:0!important;clip-path:polygon(12% 0,100% 0,88% 100%,0 100%);max-width:132px;text-align:center;white-space:normal}\n.cv-proposal .cv-proposal-heading{margin-top:18px;border-bottom:0;gap:11px;align-items:start}\n.cv-proposal .cv-proposal-heading h1{font-size:26px;color:#1a1d21;letter-spacing:-1px}\n.cv-proposal .cv-kicker{color:#b97d12;font-size:9px}\n.cv-proposal .cv-proposal-heading h1:after{content:\"\";display:block;width:64px;height:4px;margin-top:10px;\n background:linear-gradient(90deg,#cc7800,#ffca45);transform:skew(-18deg)}\n.cv-proposal .cv-proposal-reference{background:#fff!important;display:grid;gap:0;min-width:148px;max-width:176px;\n border:1px solid #da9626;border-radius:6px;overflow:hidden;padding:0}\n.cv-proposal .cv-proposal-reference>div{display:grid;grid-template-columns:66px 1fr;gap:5px;align-items:center;\n border-bottom:1px solid #d8dde1;min-height:26px;padding:2px 7px;text-align:left}\n.cv-proposal .cv-proposal-reference>div:last-child{border-bottom:0}\n.cv-proposal .cv-proposal-reference label{font-size:7px;font-weight:900;color:#2b2b2b}\n.cv-proposal .cv-proposal-reference b{font-size:9px;white-space:normal;overflow-wrap:anywhere}\n.cv-proposal .cv-proposal-parties{margin-top:21px;margin-bottom:24px}\n.cv-proposal .cv-proposal-parties section{position:relative;border:1px solid #dfab36;border-radius:8px;min-height:100px;\n padding:32px 12px 13px!important;box-shadow:0 1px 2px #27242411}\n.cv-proposal .cv-proposal-parties section>label{position:absolute;top:0;left:0;background:linear-gradient(105deg,#d88b08 0 8%,#1e2024 8%);\n color:#fff;clip-path:polygon(0 0,100% 0,89% 100%,0 100%);\n padding:6px 24px 6px 18px;margin:0;letter-spacing:.75px;font-size:8px;font-weight:900}\n.cv-proposal .cv-proposal-parties section:first-child::before{content:\"\";display:block;float:left;width:34px;height:37px;\n margin:1px 10px 6px 0;background:url('/icons/civolten-simbolo.png') center/contain no-repeat}\n.cv-proposal .cv-proposal-parties section b{font-size:11px;color:#242528}\n.cv-proposal .cv-proposal-parties section p{font-size:9px;color:#4e555c}\n.cv-proposal .cv-proposal-section-heading h2,.cv-proposal .cv-plan h3,\n.cv-proposal .cv-proposal-accept h2{font-size:14px;font-weight:900;color:#1a1c1f}\n.cv-proposal .cv-proposal-section-heading h2::before,.cv-proposal .cv-plan h3::before,\n.cv-proposal .cv-proposal-accept h2::before{content:\"\";display:inline-block;width:12px;height:12px;\n background:linear-gradient(135deg,#e09a1c,#ffcf51 55%,#a6630c);transform:skew(-25deg);\n margin-right:8px}\n.cv-proposal .cv-proposal-table{border-collapse:separate;border-spacing:0;border:1px solid #b7b9bb;border-radius:8px;\n overflow:hidden;font-variant-numeric:tabular-nums}\n.cv-proposal .cv-proposal-table thead{background:linear-gradient(180deg,#414248 0,#15191e 100%)}\n.cv-proposal .cv-proposal-table th{border-right:1px solid #ce8810;color:#fff;font-size:8px;padding:12px 8px}\n.cv-proposal .cv-proposal-table th:last-child{border-right:0}\n.cv-proposal .cv-proposal-table tbody td{border-bottom:1px solid #d1d5d8;color:#20242a;font-size:10px}\n.cv-proposal .cv-proposal-table tbody td+td{border-left:1px solid #e3ba63}\n.cv-proposal .cv-proposal-table tbody tr:nth-child(even){background:#f5f5f5}\n.cv-proposal .cv-proposal-table tbody td strong{font-weight:900}\n.cv-proposal .cv-proposal-total{background:linear-gradient(110deg,#181c22 0 49%,#d2870b 49%,#ffe06b 70%,#e18b08 100%);\n border:2px solid #d5931b;border-radius:7px;color:#fff;padding:15px 14px;gap:10px;break-inside:avoid}\n.cv-proposal .cv-proposal-total b{font-size:12px;font-weight:950;letter-spacing:.35px;color:white}\n.cv-proposal .cv-proposal-total small{color:#d7d3cb;font-size:7px}\n.cv-proposal .cv-proposal-total strong{font-size:20px;color:#19150e!important;text-shadow:0 1px #fff8;font-weight:950}\n.cv-proposal .cv-proposal-terms section{border:1px solid #dc9d2b;border-radius:9px;background:white;padding:11px 9px}\n.cv-proposal .cv-proposal-terms label{color:#ae7519;font-size:8px;font-weight:950}\n.cv-proposal .cv-proposal-terms b{font-weight:800}\n.cv-proposal .cv-plan{border:1px solid #d7d9db;border-radius:7px;padding:11px;background:#fdfdfd}\n.cv-proposal .cv-proposal-notes{background:linear-gradient(110deg,#fcfcfcda,#fffffff2),\n url('/icons/civolten-simbolo.png') no-repeat right center;background-size:auto,115px;\n border-left:4px solid #e4a431;color:#333!important}\n.cv-proposal .cv-proposal-footer{background:linear-gradient(130deg,#111318,#2b2c31 58%,#17191e);\n border-top:3px solid #e6a01a;color:#f5f1e9;padding:11px 22px;align-items:center}\n.cv-proposal .cv-footer-logo{max-width:113px;max-height:38px;object-fit:contain;filter:drop-shadow(0 1px 3px #000)}\n.cv-proposal .cv-proposal-footer span{font-size:8px;line-height:1.5}\n@media(max-width:430px){\n .cv-proposal .cv-proposal-header{padding:10px 12px;min-height:63px}\n .cv-proposal .cv-proposal-logo{max-width:147px!important;max-height:45px!important}\n .cv-proposal .cv-proposal-pill{font-size:8px;padding:7px 10px!important;max-width:104px}\n .cv-proposal .cv-proposal-heading h1{font-size:20px}\n .cv-proposal .cv-proposal-reference{max-width:127px;min-width:115px}\n .cv-proposal .cv-proposal-reference>div{grid-template-columns:47px 1fr;padding:3px 4px}\n .cv-proposal .cv-proposal-reference label{font-size:6px}\n .cv-proposal .cv-proposal-reference b{font-size:8px}\n .cv-proposal .cv-proposal-total strong{font-size:17px}\n .cv-proposal .cv-proposal-total b{font-size:10px}\n}\n@media print{\n @page{size:A4;margin:12mm 11mm}\n .cv-proposal{-webkit-print-color-adjust:exact;print-color-adjust:exact;border:0!important}\n .cv-proposal .cv-proposal-header{margin:0!important;padding:12px 18px!important;min-height:74px!important}\n .cv-proposal .cv-proposal-logo{max-width:210px!important;max-height:60px!important}\n .cv-proposal .cv-proposal-heading h1{font-size:25px!important}\n .cv-proposal .cv-proposal-reference{max-width:170px!important}\n .cv-proposal .cv-proposal-reference>div{grid-template-columns:64px 1fr!important}\n .cv-proposal .cv-proposal-parties{margin-top:17px;margin-bottom:20px}\n .cv-proposal .cv-proposal-total{break-inside:avoid-page}\n .cv-proposal .cv-proposal-table thead{display:table-header-group}\n .cv-proposal .cv-proposal-table tr{break-inside:avoid-page}\n .cv-proposal .cv-proposal-footer{break-inside:avoid-page}\n}";
+ css.textContent+='\n.cv-proposal-issue{margin:10px 12px;padding:12px;background:#fff0de;border:1px solid #d79a32;border-radius:9px;color:#723b18;font-weight:700;font-size:12px;line-height:1.45}@media print{html.cv-print-invalid .cv-proposal{display:none!important}html.cv-print-invalid .screen.print-route main:before{content:"IMPRESSÃO BLOQUEADA: PROPOSTA NÃO APROVADA NA AUDITORIA FINANCEIRA. REABRA O ORÇAMENTO, CONFIRA E SALVE ANTES DE EMITIR.";display:block!important;border:2px solid #a22;padding:22px;color:#a22;font-size:17px;font-weight:900;background:white}}';
  document.head.append(css);
- window.CIVOLTENProposalLayout={shares,renderProposal};
+ window.CIVOLTENProposalLayout={shares,renderProposal,printReadiness};
 })();
