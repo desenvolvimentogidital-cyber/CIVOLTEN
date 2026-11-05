@@ -42,6 +42,12 @@ function inspect(q){
  const missingFixedHours=q.costModel==='fixed_hourly_v1'&&
     positive(q.fixedMonthlySnapshot)&&!(c.allocationHours>0);
  if(missingFixedHours)errors.push({code:'fixed',message:'A obra não possui horas suficientes para ratear os custos fixos mensais.'});
+ if(q.costModel==='fixed_hourly_v1'&&!(n(q.fixedHoursOverride)>0)){
+  const unknown=lines.filter(l=>!(n(l.productivity?.hoursPerUnit)>0)&&
+   !(n(l.hoursUnit)>0));
+  if(unknown.length)errors.push({code:'partial-hours',message:'Há '+unknown.length+
+   ' serviço(s) sem horas para ratear despesas fixas. Cadastre produtividade ou informe as horas totais conferidas da obra.'});
+ }
  if(!(c.denom>0)||!(c.price>0)||!Number.isFinite(c.price))
   errors.push({code:'denom',message:'Preço inválido. A margem, os tributos e as taxas precisam somar menos de 100%.'});
  else{
@@ -55,9 +61,11 @@ function inspect(q){
     desiredMargin.toFixed(2)+'%). Revise preço, desconto ou meta de margem.'});
   }
   if(c.referencePremium>0&&q.priceMode==='manual'&&c.price+0.01<c.suggested){
-   warnings.push({code:'reference',message:'Preço manual está abaixo do preço sugerido com a maior referência SIURB/SINAPI.'});
+   errors.push({code:'reference',message:'O preço manual está abaixo da sugestão baseada na maior referência SIURB/SINAPI. Revise a composição e o preço antes de emitir.'});
   }
  }
+ if(n(q.profit??db.company.profit)===0)
+  warnings.push({code:'no-margin',message:'Margem de lucro definida em 0%. Verifique se isso é intencional.'});
  if((q.tax??db.company.tax)==0&&q.type!=='Mão de obra')
   warnings.push({code:'tax',message:'Tributos sobre a venda estão em 0%. Confirme o regime e a incidência com o contador.'});
  if(q.costModel==='fixed_hourly_v1'&&
