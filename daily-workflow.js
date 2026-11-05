@@ -15,26 +15,8 @@ if(!Array.isArray(db.siurbLabor))db.siurbLabor=[];
 if(!db.dailyCostRules)db.dailyCostRules={monthlyHours:160};
 const laborRoles=/pedreiro|eletricista|ajudante|servente|pintor|encanador|mestre|carpinteiro|armador|azulejista|gesseiro|soldador|tecnico|operador|montador|marceneiro|instalador|aplicador|meio oficial|oficial|almoxarife|vigia|porteiro/;
 const materialRoles=/cabo|tubo|eletroduto|disjuntor|argamassa|cimento|areia|brita|tijolo|bloco|fio|tomada|conector|interruptor|tinta|forro|luminaria|piso|placa|parafuso|caixa|eletrocalha|concreto|massa|janela|porta|vergalhao|fita|rejunte|manta|chapa|perfil|telha/;
-function cltCost(w){
- const wage=number(w.salary), fgts=number(w.fgts??FGTS),inss=number(w.employerInss??EMPLOYER_MEI);
- const others=number(w.employerExtraPercent);
- const thirteenth=wage/12, vacationThird=wage/36;
- const basis=wage+thirteenth+vacationThird;
- const charges=basis*(fgts+inss+others)/100;
- const meals=number(w.mealBenefit),transport=number(w.transportBenefit),benefits=number(w.otherBenefit);
- const monthlyReserve=number(w.monthlyReserve);
- const total=basis+charges+meals+transport+benefits+monthlyReserve;
- const hours=number(w.productiveHours)||160;
- return {wage,thirteenth,vacationThird,charges,meals,transport,benefits,monthlyReserve,total,hours,hourly:total/hours};
-}
-function workerHour(w){
- if(!w)return 0;
- if(w.link==='Empregado'||w.employmentType==='CLT')return number(w.salary)>0?cltCost(w).hourly:number(w.cost)/(number(w.productiveHours)||160);
- const rate=number(w.cost);
- if(w.unit==='mês')return rate/(number(w.productiveHours)||160);
- if(w.unit==='diária')return rate/(number(w.dailyHours)||8);
- return rate;
-}
+function cltCost(w){return window.CIVOLTENPayroll.calculate(w)}
+function workerHour(w){return window.CIVOLTENPayroll.hourly(w)}
 function allServices(){
  const catalog=db.services.map(x=>({kind:'catalog',data:x,id:x.id,label:x.name,code:x.sourceCode||'',unit:x.unit||'un',source:x.origin||'manual'}));
  const imported=(db.siurbItems||[]).map(x=>({kind:'siurb',data:x,id:x.id,label:x.name,code:x.code||'',unit:x.unit||'un',source:'SIURB'}));
@@ -107,12 +89,26 @@ function workerHTML(){
  field('Horas produtivas/mês','productiveHours','160',hours,'number')+
  field('FGTS empregador (%)','fgts','8',w.fgts??8,'number')+
  field('INSS patronal (%)','employerInss','3 MEI',w.employerInss??3,'number')+
- field('Outros encargos (%)','employerExtraPercent','0',w.employerExtraPercent||0,'number')+
+ field('RAT / risco ocupacional (%)','employerExtraPercent','0',w.employerExtraPercent||0,'number')+
+ field('Outras contribuições patronais (%)','additionalEmployerPercent','0',w.additionalEmployerPercent||0,'number')+
+ '</div><label class="label">Adicionais salariais (conforme avaliação técnica / CCT)</label>'+
+ '<select name="additionalKind" class="input">'+
+ option('none','Nenhum adicional',!w.additionalKind||w.additionalKind==='none')+
+ option('periculosidade','Periculosidade — quando devida',w.additionalKind==='periculosidade')+
+ option('insalubridade','Insalubridade — quando devida',w.additionalKind==='insalubridade')+'</select>'+
+ '<div class="grid-duo">'+
+ field('Periculosidade (%)','hazardPercent','30',w.hazardPercent??30,'number')+
+ field('Insalubridade mensal (R$)','unhealthyMonthly','0',w.unhealthyMonthly||0,'number')+
+ field('Outros adicionais salariais (R$)','fixedPayExtras','0',w.fixedPayExtras||0,'number')+
+ field('Reserva rescisória gerencial (%)','terminationReservePercent','0',w.terminationReservePercent||0,'number')+
+ field('Cobertura de férias/ausências (R$)','absenceCoverMonthly','0',w.absenceCoverMonthly||0,'number')+
  field('Alimentação mensal (R$)','mealBenefit','0',w.mealBenefit||0,'number')+
  field('Transporte mensal (R$)','transportBenefit','0',w.transportBenefit||0,'number')+
  field('Benefícios extras (R$)','otherBenefit','0',w.otherBenefit||0,'number')+
  field('Reserva adicional (R$)','monthlyReserve','0',w.monthlyReserve||0,'number')+'</div>'+
- '<div class="dw-total" id="dw-clt-result">Custo mensal estimado: <b>'+BRL(cltCost(w).total)+'</b></div></div>'+
+ '<div class="dw-total" id="dw-clt-result">Custo mensal estimado: <b>'+BRL(cltCost(w).total)+'</b></div>'+
+ '<div class="dw-help" id="dw-clt-breakdown"></div>'+
+ '<p class="dw-help">Periculosidade e insalubridade não são aplicáveis automaticamente a todos os profissionais. Reservas para rescisão e substituição são parâmetros gerenciais, não taxas legais universais. Confira piso/CCT, laudo, enquadramento e benefícios antes da contratação.</p></div>'+
  '<div id="dw-nonclt-fields" '+(isClt?'hidden':'')+'>'+
  field('Custo contratado / taxa de referência (R$)','cost','0',!isClt?w.cost||0:0,'number')+
  '<label class="label">Unidade de cobrança</label><select class="input" name="unit">'+
@@ -244,7 +240,7 @@ function saveItem(form){
 function saveWorker(form){
  const v=Object.fromEntries(new FormData(form).entries());if(!v.name?.trim()){toast('Informe o nome do profissional.');return}
  const isClt=v.link==='Empregado';let obj={...s.edit,...v,employmentType:isClt?'CLT':'Outro'};
- for(const k of ['salary','fgts','employerInss','employerExtraPercent','mealBenefit','transportBenefit','otherBenefit','monthlyReserve','productiveHours','cost'])obj[k]=number(v[k]);
+ for(const k of ['salary','fgts','employerInss','employerExtraPercent','additionalEmployerPercent','hazardPercent','unhealthyMonthly','fixedPayExtras','terminationReservePercent','absenceCoverMonthly','mealBenefit','transportBenefit','otherBenefit','monthlyReserve','productiveHours','cost'])obj[k]=number(v[k]);
  if(isClt){
   if(!obj.salary){toast('Informe o salário mensal do empregado.');return}
   if(!obj.productiveHours){toast('Horas produtivas devem ser maiores que zero.');return}
@@ -363,6 +359,8 @@ document.addEventListener('input',e=>{
  if(form&&s.modal==='addworker'&&form.contains(e.target)&&form.elements.link?.value==='Empregado'){
   const vals=Object.fromEntries(new FormData(form).entries());const m=cltCost(vals);
   const result=document.getElementById('dw-clt-result');if(result)result.innerHTML='Custo mensal estimado: <b>'+BRL(m.total)+'</b> · '+BRL(m.hourly)+'/hora produtiva (base '+m.hours+' h)';
+  const breakdown=document.getElementById('dw-clt-breakdown');
+  if(breakdown)breakdown.textContent='Remuneração '+BRL(m.remuneration)+' + 13º '+BRL(m.thirteenth)+' + 1/3 férias '+BRL(m.vacationThird)+' + FGTS '+BRL(m.fgts)+' + previdência patronal '+BRL(m.employer)+' + RAT '+BRL(m.rat)+' + demais encargos '+BRL(m.otherCharges)+' + benefícios '+BRL(m.benefits)+' + reservas '+BRL(m.monthlyReserve+m.terminationReserve+m.absenceCover)+'.';
  }
  if(form&&s.modal==='dw-expense'&&form.contains(e.target)){
   const vals=Object.fromEntries(new FormData(form).entries());const p=number(vals.unitCost)*number(vals.qty)*number(vals.people||1)*number(vals.days||1);
@@ -386,6 +384,13 @@ document.addEventListener('change',e=>{
    const m=db.materials.find(v=>v.id===e.target.value);
    if(m){chosenMaterialRef=m;form.elements.material.value=pretty(number(m.cost)*(number(form.elements.materialQty?.value)||1));if(!form.elements.service.value)form.elements.service.value=m.name;if(!selected&&!s.edit?.service)form.elements.unit.value=m.unit||'un';updateLineTotal(form);}
   }
+ }
+ if(form&&s.modal==='addworker'&&e.target.name==='additionalKind'){
+  const vals=Object.fromEntries(new FormData(form).entries()),m=cltCost(vals);
+  const result=document.getElementById('dw-clt-result');
+  if(result)result.innerHTML='Custo mensal estimado: <b>'+BRL(m.total)+'</b> · '+BRL(m.hourly)+'/h produtiva';
+  const breakdown=document.getElementById('dw-clt-breakdown');
+  if(breakdown)breakdown.textContent='Salário base '+BRL(m.base)+'; adicionais '+BRL(m.hazardPay+m.unhealthyPay+m.salaryExtras)+'; encargos e provisões '+BRL(m.thirteenth+m.vacationThird+m.charges)+'; benefícios e reservas '+BRL(m.benefits+m.terminationReserve+m.absenceCover+m.monthlyReserve)+'.';
  }
  if(form&&s.modal==='addworker'&&e.target.name==='link'){
   const clt=e.target.value==='Empregado';
