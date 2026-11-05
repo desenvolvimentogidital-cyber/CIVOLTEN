@@ -115,6 +115,24 @@ click=function(action,element){
  }
  return oldClick(action,element);
 };
+// Impedir que o usuário contorne a auditoria mudando um rascunho salvo
+// diretamente para Enviado/Aprovado na lista ou no detalhe.
+document.addEventListener('change',event=>{
+ const id=event.target?.dataset?.quoteStatus;
+ if(!id||event.target.value==='Rascunho')return;
+ const quote=db.quotes.find(q=>q.id===id);
+ if(!quote)return;
+ const verdict=inspect(quote);
+ if(verdict.errors.length){
+  event.preventDefault();event.stopImmediatePropagation();
+  event.target.value=quote.status;
+  toast('Não é possível enviar/aprovar: '+verdict.errors[0].message);
+  return;
+ }
+ quote.auditFinancial={status:'passed',date:new Date().toISOString(),checks:'financial-v1',
+  warnings:verdict.warnings.map(x=>x.code)};
+ // O evento nativo salva a nova situação e o registro de auditoria juntos.
+},true);
 const css=document.createElement('style');
 css.textContent='.fa-check{background:#f7f9f9;border:1px solid #cbd7d2;border-radius:13px;padding:13px;margin:12px 0}.fa-check h3{font-size:15px;margin:0 0 7px}.fa-explain{font-size:12px;line-height:1.5;margin:5px 0;color:#46524b}.fa-findings{display:grid;gap:7px;margin-top:9px}.fa-critical,.fa-note{font-size:11px;line-height:1.4;padding:9px 10px;border-radius:8px;margin:0}.fa-critical{background:#ffebea;color:#973b2c}.fa-note{background:#fff4da;color:#74531a}';
 document.head.append(css);
