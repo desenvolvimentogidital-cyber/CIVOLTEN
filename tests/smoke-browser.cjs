@@ -170,7 +170,36 @@ const close=()=>new Promise(resolve=>server.close(resolve));
   });
   assert.ok(pendingAudit.errors.some(e=>e.code==='reference-pending'),
     'Bloquear emissão de orçamento com custo de composição pendente');
-    assert.deepEqual(runtimeErrors,[],'Erros JavaScript no navegador: '+runtimeErrors.join('; '));
+  // Serviços já importados também aproveitam horas oficiais sem exigir digitação.
+  await page.evaluate(()=>{
+   const name='FORNECIMENTO E INSTALAÇÃO DE PAREDE TESTE';
+   db.siurbItems=[];
+   db.services=[{id:'saved-siurb-1',name,unit:'M2',origin:'SIURB',
+    sourceCode:'PAREDE-001',sourceRegime:'onerada',sourceDate:'07/2026',
+    sourceGroup:'EDIF',labor:0,material:0,costSplitConfirmed:false,referenceCost:null}];
+   s.wizard={clientId:'test-client',clientName:'Cliente teste',title:'Alvenaria catalogada',
+    type:'Mão de obra',items:[],status:'Rascunho',priceMode:'auto',
+    profit:20,tax:0,fees:0,overhead:5,reserve:3,extraCost:0,discount:0};
+   s.page='newquote';s.step=2;s.modal=null;render();
+  });
+  await page.locator('[data-action="additem"]').click();
+  await page.locator('#dw-service-search').fill('FORNECIMENTO E INSTALAÇÃO DE PAREDE TESTE');
+  const recovered=await page.evaluate(()=>{
+   const f=document.getElementById('modal-form');
+   return {serviceId:f.elements.serviceId.value,labor:Number(f.elements.labor.value),
+    hours:Number(f.dataset.cvAutoHours),status:f.dataset.cvAutoStatus};
+  });
+  assert.equal(recovered.serviceId,'saved-siurb-1');
+  assert.equal(recovered.hours,2);
+  assert.equal(recovered.labor,62.5);
+  assert.equal(recovered.status,'ready');
+  await page.locator('#modal-form button[type="submit"]').click();
+  assert.equal(await page.evaluate(()=>s.wizard.items[0].referencePending),false);
+
+  await page.evaluate(()=>{s.modal=null;s.page='services';render()});
+  await page.locator('.cv-auto-panel h3').waitFor();
+  assert.match(await page.locator('.cv-auto-panel').innerText(),/Motor de automação/);
+      assert.deepEqual(runtimeErrors,[],'Erros JavaScript no navegador: '+runtimeErrors.join('; '));
   console.log('SMOKE PASSOU: Android, produtividade SINAPI automática, SIURB pendente seguro, orçamento, custo e PDF');
  }finally{
   if(browser)await browser.close();
