@@ -180,8 +180,27 @@ ROUTES.services=siurbInstallPanel;
 function siurbUpdateList(){const p=document.getElementById('siurb-results');if(p)p.innerHTML=siurbList()}
 function siurbSaveItems(items,regime,source){
  const old=db.siurbItems,oldMeta=db.siurbMeta;
+ const byKey=new Map(items.map(x=>[x.group+'|'+x.code,x]));
+ const touched=[];
+ // Nunca reprecificar orçamentos anteriores nem sobrescrever custos internos.
+ // Atualiza apenas referências da mesma edição e regime no catálogo.
+ for(const service of db.services||[]){
+  if(service.origin!=='SIURB'||service.sourceRegime!==regime||
+   service.sourceDate!==SIURB_BASE)continue;
+  const item=byKey.get(service.sourceGroup+'|'+service.sourceCode);
+  if(!item)continue;
+  touched.push({service,referenceCost:service.referenceCost,
+   referencePricePending:service.referencePricePending});
+  service.referenceCost=item.cost??null;
+  service.referencePricePending=!(Number(item.cost)>0);
+ }
  db.siurbItems=items;db.siurbMeta={base:SIURB_BASE,regime,importedAt:new Date().toISOString(),source};
- if(!save()){db.siurbItems=old;db.siurbMeta=oldMeta;throw new Error('Não coube no armazenamento local. Faça backup e libere espaço antes de importar.');}
+ if(!save()){
+  for(const old of touched){old.service.referenceCost=old.referenceCost;
+   old.service.referencePricePending=old.referencePricePending;}
+  db.siurbItems=old;db.siurbMeta=oldMeta;
+  throw new Error('Não coube no armazenamento local. Faça backup e libere espaço antes de importar.');
+ }
  const priced=items.filter(x=>Number(x.cost)>0).length;
  siurbSearch='';siurbMsg=`SIURB: ${items.length.toLocaleString('pt-BR')} serviços; ${priced.toLocaleString('pt-BR')} com preço público; ${(items.length-priced).toLocaleString('pt-BR')} sem preço. Referências não são custos internos.`;render();
 }
