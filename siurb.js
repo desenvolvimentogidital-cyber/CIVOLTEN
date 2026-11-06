@@ -5,6 +5,7 @@
 'use strict';
 const SIURB_SOURCE = 'https://prefeitura.sp.gov.br/web/obras/w/tabelas_de_custos/355179';
 const SIURB_BASE = '07/2026';
+// Importação íntegra: o custo público pode não existir; nunca suponha R$0.
 const SIURB_LINKS = {
   onerada: {edif: 'https://prefeitura.sp.gov.br/documents/d/obras/onerada-sem-des-custos-unit-edif-julho-2026-2-xls', infra: 'https://prefeitura.sp.gov.br/documents/d/obras/onerada-sem-des-custos-unit-infra-julho-2026-2-xls'},
   desonerada: {edif: 'https://prefeitura.sp.gov.br/documents/d/obras/desonerada-com-des-custos-unit-edif-julho-2026-2-xls', infra: 'https://prefeitura.sp.gov.br/documents/d/obras/desonerada-com-des-custos-unid-infra-julho-2026-2-xls'}
