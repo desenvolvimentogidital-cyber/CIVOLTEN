@@ -118,39 +118,33 @@
  }
  function locateService(id,kind){
   if(kind==='catalog')return db.services.find(x=>x.id===id)||null;
+  const engine=window.CIVOLTENAutoProductivity;
   if(kind==='siurb'){
    const raw=(db.siurbItems||[]).find(x=>x.id===id);
-   return raw?{...raw,origin:'SIURB',sourceCode:raw.code,sourceGroup:raw.group,
+   if(!raw)return null;
+   // Referência SIURB sintética não fornece horas: só aproveitar um SINAPI
+   // analítico com descrição, unidade, UF e regime sem ambiguidades.
+   const source=engine?.sameOfficial(raw,window.CIVOLTENSINAPI?.getRecords?.()||[],db.siurbMeta?.regime);
+   const auto=source?engine.analyze(source,db.workers,realWorkerRate):null;
+   return {...raw,origin:'SIURB',sourceCode:raw.code,sourceGroup:raw.group,
     sourceDate:db.siurbMeta?.base||'07/2026',referenceCost:raw.cost,
-    unifiedReferences:comparablePublicReferences(id,'SIURB',raw.name)}:null;
+    autoProductivity:auto,autoLinkedSource:source?{source:'SINAPI',code:source.code,base:source.base}:null,
+    productivity:auto?.status==='ready'?{
+     crew:auto.rows.map(x=>({workerId:x.workerId,hours:x.perUnitHours,count:1})),
+     productivitySource:'SINAPI analítico correspondente — cálculo automático'
+    }:null,unifiedReferences:comparablePublicReferences(id,'SIURB',raw.name)};
   }
   if(kind!=='sinapi')return null;
   const raw=window.CIVOLTENSINAPI?.getRecords?.().find(x=>x.id===id);
   if(!raw)return null;
-  const labor=raw.analyticLabor||[];
-  const rows=[];
-  for(const row of labor){
-   if(!row.role||n(row.hoursPerUnit)<=0)continue;
-   const normalize=v=>String(v||'').normalize('NFD').replace(/\p{M}/gu,'').toLowerCase();
-   const role=normalize(row.role);
-   const matches=db.workers.filter(w=>{
-    const wrole=normalize(w.role);
-    if(role==='ajudante')return /ajudante|servente|auxiliar/.test(wrole);
-    return wrole.includes(role)&&!(role==='eletricista'&&/ajudante|auxiliar/.test(wrole));
-   }).filter(w=>realWorkerRate(w)>0);
-   matches.sort((a,b)=>realWorkerRate(b)-realWorkerRate(a));
-   const worker=matches[0];
-   if(worker)rows.push({workerId:worker.id,hours:n(row.hoursPerUnit),count:1});
-  }
-  const unmatched=labor.some(row=>row.role&&!rows.some(entry=>db.workers.some(w=>w.id===entry.workerId&&
-   (String(w.role||'').toLowerCase().includes(String(row.role||'').toLowerCase())||
-    String(row.role).toLowerCase()==='ajudante'&&/ajudante|servente/i.test(w.role)))));
-  const hasIndirect=(raw.analyticItems||[]).some(x=>x.type==='COMPOSICAO'&&x.unit!=='H');
+  const auto=engine?.analyze(raw,db.workers,realWorkerRate)||null;
   return {...raw,origin:'SINAPI',sourceCode:raw.code,sourceDate:raw.base,referenceCost:raw.cost,
    unifiedReferences:comparablePublicReferences(id,'SINAPI',raw.name),
-   analyticalReviewNeeded:true,hasIndirectWork:hasIndirect,
-   productivity:rows.length&&!unmatched&&rows.length<=3?{
-    crew:rows,productivitySource:'SINAPI - horas diretas PRELIMINARES, revisão necessária'
+   autoProductivity:auto,analyticalReviewNeeded:auto?.status!=='ready',
+   hasIndirectWork:!!auto?.indirect,
+   productivity:auto?.status==='ready'?{
+    crew:auto.rows.map(x=>({workerId:x.workerId,hours:x.perUnitHours,count:1})),
+    productivitySource:'SINAPI analítico — cálculo automático'
    }:null};
  }
  function updateItemTemplate(service){
@@ -158,6 +152,9 @@
   const f=document.getElementById('modal-form'),hint=document.getElementById('qa-item-suggestion');
   if(!f)return;
   const template=templateFor(service);
+  const auto=service.autoProductivity||null;
+  f.dataset.cvAutoStatus=auto?.status||'';
+  f.dataset.cvAutoRefCode=auto?.referenceCode||'';
   const crew=crewTotals(template.crew);
   const siurb=service.origin==='SIURB';
   const siurbLabor=siurb&&service.costSplitConfirmed?n(service.referenceLabor??service.labor):0;
@@ -194,7 +191,9 @@
     (material?'<div class="qa-compare"><span>Material da empresa ou referência</span><b>'+money(materialValue)+'</b></div>':'')+
     (ref?'<p class="qa-note">Custo SIURB total: '+money(ref)+' — não foi somado à mão de obra.</p>':'')+
     (labels?'<p class="qa-note">Equipe: '+labels+'.</p>':'')+
-    (!crew.entries.length?'<p class="qa-warning">Produtividade ainda não cadastrada: informe as horas ou configure a equipe em Mais → Serviços.</p>':'');
+    (auto?.status==='ready'?'<p class="qa-note">Horas e equipe estimadas automaticamente dos coeficientes SINAPI e custos/hora cadastrados. O realizado será registrado durante a obra.</p>':
+      auto?.status&&auto.status!=='ready'?'<p class="qa-warning">'+esc(auto.reason)+' O item pode ficar pendente no rascunho, sem horas inventadas.</p>':
+      !crew.entries.length?'<p class="qa-warning">Esta referência não traz horas confiáveis. Você pode salvar no rascunho, mas não emitir a proposta sem dados de custo válidos.</p>':'');
   }
   const total=document.getElementById('dw-line-total');
   if(total){const labor=n(f.elements.labor?.value),mat=n(f.elements.material?.value),other=n(f.elements.extra?.value);total.innerHTML='Custo direto por unidade: <b>'+money(labor+(f.elements.owner?.value==='empresa'?mat:0)+other)+'</b>'}
@@ -208,19 +207,14 @@
   const svc=db.services.find(x=>x.id===serviceId)||
     (form.elements.sourceId?.value?(locateService(form.elements.sourceId.value,'sinapi')||
        locateService(form.elements.sourceId.value,'siurb')):null);
-  if(svc?.origin==='SINAPI'&&n(form.elements.labor?.value)<=0){
-   toast('Esta composição ainda não tem custo de mão de obra calculado. Abra Detalhes avançados ou cadastre os profissionais da função.');
-   return;
-  }
+  // Coeficientes oficiais ausentes: preservar o item no rascunho, sem criar custos fictícios.
   // Coeficientes de mão de obra SINAPI não representam o custo dos materiais.
   // No orçamento completo, exigir materiais reais antes de emitir preço.
   const hasSinapiMaterials=svc?.origin==='SINAPI'&&
     (svc.analyticItems||[]).some(x=>x.type==='INSUMO'||(x.type==='COMPOSICAO'&&x.unit!=='H'));
-  if(hasSinapiMaterials&&(s.wizard?.type==='Completo'||s.wizard?.type==='Misto'&&form.elements.owner?.value==='empresa')&&
-    n(form.elements.material?.value)<=0&&n(form.elements.extra?.value)<=0){
-    toast('Composição SINAPI inclui materiais ou subcomposições. Informe o custo real de materiais/equipamentos antes de salvar o serviço completo.');
-    return;
-  }
+  const pendingMaterial=!!(hasSinapiMaterials&&(s.wizard?.type==='Completo'||
+    s.wizard?.type==='Misto'&&form.elements.owner?.value==='empresa')&&
+    n(form.elements.material?.value)<=0&&n(form.elements.extra?.value)<=0);
   // Confere os mínimos reais cadastrados mesmo após ajuste manual no item.
   if(svc?.productivity){
    const minimum=crewTotals(svc.productivity.crew).cost;
@@ -265,12 +259,22 @@
    keepTemp();
   }
   if(item&&svc){
-   if(svc.origin==='SINAPI'&&svc.analyticalReviewNeeded){
+   if(svc.origin==='SINAPI'){
     item.source='SINAPI';item.sourceCode=svc.sourceCode||svc.code||'';
     item.sourceDate=svc.sourceDate||svc.base||'';
     item.referenceCost=n(svc.referenceCost??svc.cost);
-    item.analyticalReviewNeeded=true;
+    item.analyticalReviewNeeded=!!svc.analyticalReviewNeeded;
    }
+   if(svc.autoProductivity){
+    item.automaticHoursSource={source:svc.autoProductivity.source,
+     code:svc.autoProductivity.referenceCode,base:svc.autoProductivity.referenceBase,
+     hoursUnit:svc.autoProductivity.hours,status:svc.autoProductivity.status};
+   }
+   if(svc.autoLinkedSource)item.autoLinkedSource=svc.autoLinkedSource;
+   item.materialCostPending=pendingMaterial;
+   if(svc.origin==='SIURB'&&svc.autoProductivity?.status==='ready'&&n(item.labor)>0)
+    item.referencePending=false;
+   if(svc.origin==='SINAPI')item.referencePending=!!svc.analyticalReviewNeeded;
    item.catalogServiceId=svc.origin==='SINAPI'&&svc.analyticalReviewNeeded?'':svc.id;
    // Referência verificável fica SEPARADA do custo real; só entra no preço sugerido.
    item.referenceLabor=refLabor;
