@@ -159,7 +159,7 @@ function siurbList(){
  return `<div class="siurb-summary">${filtered.length.toLocaleString('pt-BR')} serviços encontrados (de ${all.length.toLocaleString('pt-BR')} importados)</div>`+
  (filtered.slice(0,55).map(it=>{
     const saved=db.services.some(s=>s.origin==='SIURB'&&s.sourceCode===it.code&&s.sourceGroup===it.group);
-    return `<div class="siurb-row"><div class="siurb-row-top"><span class="siurb-code">${esc(it.group)} · ${esc(it.code)}</span><b>${cash(it.cost)} <small>/ ${esc(it.unit)}</small></b></div><div class="siurb-name">${esc(it.name)}</div><div class="siurb-row-bottom"><small>Data-base ${SIURB_BASE} · custo sem BDI</small><button class="btn ${saved?'btn-light':'btn-outline'} small-btn" data-action="siurb-add" data-siurb-id="${esc(it.id)}" ${saved?'disabled':''}>${saved?'Adicionado':'+ Meu catálogo'}</button></div></div>`;
+    return `<div class="siurb-row"><div class="siurb-row-top"><span class="siurb-code">${esc(it.group)} · ${esc(it.code)}</span><b>${Number(it.cost)>0?cash(it.cost):"Preço não informado"} <small>/ ${esc(it.unit)}</small></b></div><div class="siurb-name">${esc(it.name)}</div><div class="siurb-row-bottom"><small>Data-base ${SIURB_BASE} · ${Number(it.cost)>0?"custo público sem BDI":"preço público ausente; custo da empresa não calculado"}</small><button class="btn ${saved?'btn-light':'btn-outline'} small-btn" data-action="siurb-add" data-siurb-id="${esc(it.id)}" ${saved?'disabled':''}>${saved?'Adicionado':'+ Meu catálogo'}</button></div></div>`;
  }).join('')||'<div class="empty">Nenhum resultado. Importe a planilha oficial ou mude os filtros.</div>')+(filtered.length>55?'<p class="small-desc">Mostrando 55 resultados. Digite mais palavras ou o código para localizar outros serviços.</p>':'');
 }
 function siurbPanel(){
@@ -182,7 +182,8 @@ function siurbSaveItems(items,regime,source){
  const old=db.siurbItems,oldMeta=db.siurbMeta;
  db.siurbItems=items;db.siurbMeta={base:SIURB_BASE,regime,importedAt:new Date().toISOString(),source};
  if(!save()){db.siurbItems=old;db.siurbMeta=oldMeta;throw new Error('Não coube no armazenamento local. Faça backup e libere espaço antes de importar.');}
- siurbSearch='';siurbMsg=`Importação concluída: ${items.length.toLocaleString('pt-BR')} serviços. Preços de referência, não preços de venda.`;render();
+ const priced=items.filter(x=>Number(x.cost)>0).length;
+ siurbSearch='';siurbMsg=`SIURB: ${items.length.toLocaleString('pt-BR')} serviços; ${priced.toLocaleString('pt-BR')} com preço público; ${(items.length-priced).toLocaleString('pt-BR')} sem preço. Referências não são custos internos.`;render();
 }
 async function siurbImportOnline(){
  if(siurbBusy)return;const regime=document.getElementById('siurb-regime')?.value||'onerada';
@@ -198,7 +199,7 @@ async function siurbImportOnline(){
    }catch(e){errors.push(group.toUpperCase()+': '+e.message);console.error('SIURB '+group,e)}
   }
   if(!success.length)throw new Error(errors.join(' | '));
-  const previous=(db.siurbItems||[]).filter(x=>!success.includes(x.group));
+  const previous=db.siurbMeta?.regime===regime?(db.siurbItems||[]).filter(x=>!success.includes(x.group)):[];
   const merged=[...new Map([...previous,...records].map(x=>[x.id,x])).values()];
   siurbSaveItems(merged,regime,'Consulta oficial SIURB ('+success.join(', ')+')');
   if(errors.length)siurbMsg='Importação parcial: '+records.length.toLocaleString('pt-BR')+' itens atualizados. '+errors.join(' | ')+'. Importe manualmente os arquivos faltantes.';
@@ -211,7 +212,7 @@ async function siurbImportFile(file){
     const buffer=await file.arrayBuffer();
     const group=/infra/i.test(file.name)?'INFRA':'EDIF';
     const items=await siurbParseExcel(buffer,group);
-    const current=(db.siurbItems||[]).filter(x=>x.group!==group);
+    const current=db.siurbMeta?.regime===regime?(db.siurbItems||[]).filter(x=>x.group!==group):[];
     siurbSaveItems([...current,...items],regime,'Importação manual: '+file.name);
  }catch(e){siurbMsg='Falha na importação: '+e.message;console.error(e)}finally{siurbBusy=false;render()}
 }
@@ -223,7 +224,7 @@ document.addEventListener('click', e=>{
  if(action==='siurb-add'){
    e.preventDefault();const it=db.siurbItems.find(x=>x.id===btn.dataset.siurbId);if(!it)return;
    if(db.services.some(x=>x.origin==='SIURB'&&x.sourceCode===it.code&&x.sourceGroup===it.group)){toast('Este serviço já está no seu catálogo.');return}
-   db.services.push({id:uid('sv'),name:it.name,unit:it.unit,labor:0,material:0,referenceCost:it.cost,origin:'SIURB',sourceCode:it.code,sourceGroup:it.group,sourceDate:SIURB_BASE,sourceRegime:db.siurbMeta.regime});
+   db.services.push({id:uid('sv'),name:it.name,unit:it.unit,labor:0,material:0,referenceCost:it.cost??null,referencePricePending:!(Number(it.cost)>0),origin:'SIURB',sourceCode:it.code,sourceGroup:it.group,sourceDate:SIURB_BASE,sourceRegime:db.siurbMeta.regime});
    if(!save()){db.services.pop();return}render();toast('Serviço SIURB incluído no seu catálogo.');
  }
 });
