@@ -66,7 +66,8 @@ function costRows(book,options,filename){
  for(const row of rows.slice(10)){
   if(!Array.isArray(row))continue;
   const name=String(row[2]??'').trim(),u=unit(row[3]),cost=money(row[i]);
-  if(name.length<6||!u||!cost||!/^(?:UN|UND|M|M2|M3|M²|M³|KG|T|H|L|M2XKM|M3XKM|M3/KM|M2/MES|CJ|PTO)$/.test(u))continue;
+  const accepted=new Set(['UN','UND','M','M2','M3','KG','T','H','L','M2XKM','M3XKM','M3/KM','M2/MES','CJ','PTO']);
+  if(name.length<6||!u||!cost||!accepted.has(u))continue;
   result.push({source:'SINAPI',kind:'composicao',uf:'SP',verifiedUF:true,
    regime:options.regime,base:options.base,code:code(row[1])||'',
    name,unit:u,cost,fileName,sheetName:sheet});
