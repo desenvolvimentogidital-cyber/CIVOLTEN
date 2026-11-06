@@ -112,8 +112,66 @@ const close=()=>new Promise(resolve=>server.close(resolve));
   assert.equal(revised.history.length,1);
   assert.equal(revised.revision,2);
   assert.ok(revised.history[0].snapshot.status==='Aprovado','A aprovação original permanece auditável');
+
+  // Regressão Android: buscar parede deve preencher estimativa automaticamente.
+  // Coeficientes e taxas SÃO DADOS SINTÉTICOS APENAS DE TESTE.
+  await page.evaluate(()=>{
+   const name='FORNECIMENTO E INSTALAÇÃO DE PAREDE TESTE';
+   db.siurbItems=[
+    {id:'siurb-teste-1',name,code:'PAREDE-001',group:'OBRAS',unit:'M2',cost:200},
+    {id:'siurb-teste-2',name:'FORNECIMENTO E INSTALAÇÃO DE PAREDE SEM PLANILHA',
+     code:'PAREDE-002',group:'OBRAS',unit:'M2',cost:120}
+   ];
+   db.siurbMeta={regime:'onerada',base:'2026-07'};
+   db.workers=[
+    {id:'pedreiro-teste',name:'Pedreiro teste',role:'Pedreiro',cost:38,unit:'hora'},
+    {id:'servente-teste',name:'Servente teste',role:'Servente',cost:20,unit:'hora'}
+   ];
+   window.CIVOLTENSINAPI.getRecords=()=>[{
+    id:'SINAPI:SP:2026-07:PAREDE',name,code:'900123',uf:'SP',
+    verifiedUF:true,analytical:true,kind:'composicao',unit:'M2',cost:150,
+    regime:'onerada',base:'2026-07',analyticLabor:[
+     {role:'Pedreiro',hoursPerUnit:1.25},{role:'Servente',hoursPerUnit:.75}],
+    analyticItems:[]
+   }];
+   s.wizard={clientId:'test-client',clientName:'Cliente teste',title:'Parede teste',
+    type:'Mão de obra',items:[],status:'Rascunho',priceMode:'auto',profit:20,
+    tax:0,fees:0,overhead:5,reserve:3,extraCost:0,discount:0};
+   s.page='newquote';s.step=2;s.modal=null;render();
+  });
+  await page.locator('[data-action="additem"]').click();
+  await page.locator('#dw-service-search').fill('FORNECIMENTO E INSTALAÇÃO DE PAREDE TESTE');
+  const picked=await page.evaluate(()=>{
+   const f=document.getElementById('modal-form');
+   return {source:f.elements.sourceId.value,labor:Number(f.elements.labor.value),
+    hours:Number(f.dataset.cvAutoHours),status:f.dataset.cvAutoStatus};
+  });
+  assert.equal(picked.source,'siurb-teste-1','Composição única selecionada sem outro toque');
+  assert.equal(picked.labor,62.5,'Custo da equipe calculado dos coeficientes e custo/hora cadastrados');
+  assert.equal(picked.hours,2);
+  assert.equal(picked.status,'ready');
+  await page.locator('#qi-qty').fill('3');
+  await page.locator('#modal-form button[type="submit"]').click();
+  const populated=await page.evaluate(()=>s.wizard.items[0]);
+  assert.equal(populated.qty,3);
+  assert.equal(populated.labor,62.5);
+  assert.equal(populated.productivity.hoursPerUnit,2);
+  assert.equal(populated.referencePending,false);
+  // Sem coeficientes oficiais não exige digitar produtividade, mas impede envio.
+  await page.locator('[data-action="additem"]').click();
+  await page.locator('#dw-service-search').fill('FORNECIMENTO E INSTALAÇÃO DE PAREDE SEM PLANILHA');
+  await page.locator('#modal-form button[type="submit"]').click();
+  const pending=await page.evaluate(()=>s.wizard.items[1]);
+  assert.equal(pending.referencePending,true,'Item sem referência analítica fica pendente');
+  assert.equal(pending.labor,0,'Não inventar custo da mão de obra');
+  const pendingAudit=await page.evaluate(()=>{
+    s.wizard.status='Enviado';
+    return window.CIVOLTENFinancialAudit.inspect(s.wizard);
+  });
+  assert.ok(pendingAudit.errors.some(e=>e.code==='reference-pending'),
+    'Bloquear emissão de orçamento com custo de composição pendente');
     assert.deepEqual(runtimeErrors,[],'Erros JavaScript no navegador: '+runtimeErrors.join('; '));
-  console.log('SMOKE PASSOU: navegador, orçamento, progresso, custos, recebimentos, prévia comercial e PDF A4');
+  console.log('SMOKE PASSOU: Android, produtividade SINAPI automática, SIURB pendente seguro, orçamento, custo e PDF');
  }finally{
   if(browser)await browser.close();
   if(server.listening)await close();
