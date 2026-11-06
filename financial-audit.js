@@ -35,6 +35,13 @@ function inspect(q){
   const line=lines[i],prefix='Item '+(i+1)+' ('+String(line.service||'sem descrição').slice(0,52)+'): ';
   if(!line.service||!(n(line.qty)>0)||!line.unit)errors.push({code:'item',message:prefix+'descrição, unidade e quantidade devem ser válidas.'});
   if(!(n(line.labor)>0))errors.push({code:'labor',message:prefix+'falta custo de mão de obra com encargos.'});
+  if(line.referencePending)errors.push({code:'reference-pending',message:prefix+
+   'composição de referência ainda sem custo interno e produtividade confiáveis. Importe a composição analítica SINAPI correspondente ou utilize uma composição da biblioteca CIVOLTEN já validada.'});
+  if(line.materialCostPending)errors.push({code:'material-pending',message:prefix+
+   'fornecimento de materiais da empresa sem custo de materiais completo.'});
+  if(line.automaticHoursSource&&line.automaticHoursSource.status!=='ready')
+   errors.push({code:'auto-hours-pending',message:prefix+
+    'horas oficiais disponíveis apenas parcialmente ou sem custo/hora válido. A previsão é preliminar.'});
   if(line.analyticalReviewNeeded){
    errors.push({code:'analytic',message:prefix+'produtividade SINAPI ainda não conferida. Valide a composição em Mais → Serviços antes de emitir.'});
   }
