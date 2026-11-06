@@ -70,7 +70,7 @@ function costRows(book,options,filename){
   if(name.length<6||!u||!cost||!accepted.has(u))continue;
   result.push({source:'SINAPI',kind:'composicao',uf:'SP',verifiedUF:true,
    regime:options.regime,base:options.base,code:code(row[1])||'',
-   name,unit:u,cost,fileName,sheetName:sheet});
+   name,unit:u,cost,fileName:filename,sheetName:sheet});
  }
  return result;
 }
