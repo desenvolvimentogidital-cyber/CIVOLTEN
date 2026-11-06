@@ -82,23 +82,35 @@ function siurbDataRow(row,group,head){
 }
 function parseSIURBRows(rows,group){
  const out=new Map();let head=null,pending=null;
+ const accept=r=>{
+  if(!r?.code||!r.unit||String(r.name||'').length<5)return;
+  const cost=Number.isFinite(r.cost)&&r.cost>0?Number(r.cost.toFixed(2)):null;
+  const next={id:group+':'+r.code,code:r.code,name:r.name.slice(0,320),unit:r.unit,cost,
+   group,priceStatus:cost==null?'missing':'priced'};
+  const old=out.get(r.code);
+  if(!old){out.set(r.code,next);return}
+  if(old.priceStatus==='conflict')return;
+  if(old.cost!=null&&next.cost!=null&&Math.abs(old.cost-next.cost)>0.01)
+   out.set(r.code,{...old,cost:null,priceStatus:'conflict'});
+  else if(old.cost==null&&next.cost!=null)out.set(r.code,next);
+ };
  for(let i=0;i<rows.length;i++){
   const cells=Array.isArray(rows[i])?rows[i]:[];
   const h=siurbHeader(cells);if(h){head=h;pending=null;continue}
   const r=siurbDataRow(cells,group,head);
   if(r){
    if(pending&&pending.code!==r.code)pending=null;
-   if(r.unit&&Number.isFinite(r.cost)&&r.name.length>=5){
-    if(!out.has(r.code))out.set(r.code,{id:group+':'+r.code,code:r.code,name:r.name.slice(0,320),unit:r.unit,cost:Number(r.cost.toFixed(2)),group});pending=null;
-   }else pending={...r,line:i};
+   if(r.unit&&Number.isFinite(r.cost)&&r.cost>0&&r.name.length>=5){
+    accept(r);pending=null;
+   }else{accept(r);pending={...r,line:i}}
    continue;
   }
   if(pending&&i-pending.line<=2){
    const tail=cells.map(v=>String(v??'').trim());
    if(!pending.unit){const where=tail.findIndex(v=>siurbUnit(v));if(where>=0){pending.unit=siurbUnit(tail[where]);const nums=tail.slice(where+1).map(siurbGoodCost).filter(Number.isFinite);if(nums.length)pending.cost=nums[0]}}
    if(!Number.isFinite(pending.cost)&&pending.unit){const nums=tail.map(siurbGoodCost).filter(Number.isFinite);if(nums.length)pending.cost=nums[nums.length-1]}
-   if(pending.unit&&Number.isFinite(pending.cost)&&pending.name.length>=5){
-    if(!out.has(pending.code))out.set(pending.code,{id:group+':'+pending.code,code:pending.code,name:pending.name.slice(0,320),unit:pending.unit,cost:Number(pending.cost.toFixed(2)),group});pending=null;
+   if(pending.unit&&Number.isFinite(pending.cost)&&pending.cost>0&&pending.name.length>=5){
+    accept(pending);pending=null;
    }
   }else pending=null;
  }
