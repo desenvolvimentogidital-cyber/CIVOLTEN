@@ -59,6 +59,7 @@ function costRows(book,options,filename){
  const sheet=options.regime==='desonerada'?'CCD':'CSD';
  const rows=readRows(book,sheet);
  if(!rows?.length)return [];
+ options={...options,base:actualBase(rows,options.base)};
  const state=rows.slice(0,12).find(row=>Array.isArray(row)&&row.some(v=>norm(v)==='SP'));
  if(!state)return [];
  const i=state.findIndex(v=>norm(v)==='SP'),result=[];
