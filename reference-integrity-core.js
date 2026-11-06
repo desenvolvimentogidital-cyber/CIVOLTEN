@@ -66,7 +66,7 @@
   const updated=asRows(items).map(item=>{
    if(item?.source!=='SINAPI'||item.uf!=='SP'||!item.verifiedUF||money(item.cost)!=null)return item;
    // Code match is preferred; if no match, exact normalized name + unit.
-   const coded=item.code?priceByCode.get(codeKey(item))||[]:[];
+   const coded=item.code?(priceByCode.get(codeKey(item))||[]).filter(x=>unit(x.unit)===unit(item.unit)):[];
    const candidates=coded.length?coded:priceByName.get(nameKey(item))||[];
    const unique=[...new Set(candidates.map(x=>money(x.cost)))];
    if(unique.length===1&&candidates.length){
