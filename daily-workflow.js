@@ -236,9 +236,9 @@ function saveItem(form){
  // Usar custo real com produtividade cadastrada não exige fingir uma divisão oficial da SIURB.
  const companyProductivity=!!(labor>0&&(selected?.data?.productivity?.crew?.length||(!selected&&s.edit?.companyProductivityConfirmed)));
  if(source){
-  if(!form.elements.siurbChecked.checked&&!companyProductivity){toast('Informe e confira a composição ou cadastre a produtividade real da CIVOLTEN antes de incluir.');return}
-  if(s.wizard.type==='Mão de obra'&&labor<=0){toast('Informe o custo de mão de obra por unidade. O total SIURB não representa somente mão de obra.');return}
-  if(labor+material+extra<=0){toast('O serviço SIURB precisa de custos separados.');return}
+  // Referências públicas sintéticas não informam as horas de trabalho.
+  // O usuário pode salvar o item pendente no rascunho, sem inventar produtividade.
+  // A auditoria financeira impedirá o envio se os custos estiverem incompletos.
  }
  let owner=x.owner;
  if(s.wizard.type==='Mão de obra')owner='cliente';
@@ -249,7 +249,8 @@ function saveItem(form){
  workerId:w?.id||'',hoursUnit:number(x.hoursUnit),workersCount:number(x.workersCount)||1,
  materialId:x.materialId||'',materialQty:number(x.materialQty)||1,materialSourceCode:chosenMaterialRef?.code||'',source:source?'SIURB':'',sourceCode:source?.sourceCode||source?.code||'',
  sourceGroup:source?.sourceGroup||source?.group||'',sourceDate:source?.sourceDate||'07/2026',
- referenceCost:source?number(source.referenceCost??source.cost):0,splitConfirmed:!!form.elements.siurbChecked?.checked,companyProductivityConfirmed:companyProductivity};
+ referenceCost:source?number(source.referenceCost??source.cost):0,splitConfirmed:!!form.elements.siurbChecked?.checked,companyProductivityConfirmed:companyProductivity,
+ referencePending:!!source&&!form.elements.siurbChecked?.checked&&!companyProductivity};
  if(source&&form.elements.siurbSaveLibrary?.checked&&form.elements.siurbChecked?.checked){
   let service=db.services.find(v=>v.origin==='SIURB'&&v.sourceCode===item.sourceCode&&v.sourceGroup===item.sourceGroup);
   if(!service){
@@ -377,6 +378,15 @@ document.addEventListener('input',e=>{
   }
   const hits=document.getElementById('dw-service-hits');
   if(hits){hits.innerHTML=serviceHits(dqSearch);hits.hidden=false}
+  // Quando o código ou nome identifica uma única composição oficial,
+  // selecionar automaticamente sem forçar uma segunda etapa no Android.
+  const exact=norm(dqSearch).length>=8?matchingServices(dqSearch).filter(x=>
+   norm(x.label)===norm(dqSearch)||norm(x.code)===norm(dqSearch)):[];
+  if(exact.length===1&&hits){
+   const candidate=[...hits.querySelectorAll('[data-action="dw-pick-service"]')].find(b=>
+    b.dataset.id===exact[0].id&&b.dataset.kind===exact[0].kind);
+   candidate?.click();
+  }
  }
  if(form&&s.modal==='additem'&&form.contains(e.target)){
   if(['hoursUnit','workersCount'].includes(e.target.name))fillWorker(form);

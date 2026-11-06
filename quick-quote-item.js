@@ -32,7 +32,8 @@ function totals(form){
  const direct=unitDirect*qty;
  const approvedCrew=entry?.productivity?.crew||[];
  const analyticLabor=entry?.analyticLabor||[];
- const hoursUnit=approvedCrew.length
+ const officialHours=n(form.dataset.cvAutoHours);
+ const hoursUnit=officialHours>0?officialHours:approvedCrew.length
    ?approvedCrew.reduce((sum,r)=>sum+n(r.hours)*Math.max(1,n(r.count)||1),0)
    :analyticLabor.length?analyticLabor.reduce((sum,r)=>sum+n(r.hoursPerUnit),0)
    :n(elements.hoursUnit?.value)*Math.max(1,n(elements.workersCount?.value)||1);
@@ -41,16 +42,17 @@ function totals(form){
  const knownReference=n(entry?.referenceCost??entry?.cost);
  return {selected,qty,unit,labor,material,extra,owner,unitDirect,direct,hoursUnit,
   knownReference,incompleteMaterial,hasParts,
-  noCost:!unitDirect,unverified:(selected.kind==='sinapi'||selected.kind==='siurb')};
+  noCost:!unitDirect,autoStatus:form.dataset.cvAutoStatus,
+  unverified:(selected.kind==='sinapi'||selected.kind==='siurb')};
 }
 function summary(form){
  const value=totals(form);
  if(!value)return '<span>Escolha um serviço e informe a quantidade.</span>';
- const {selected,qty,unit,unitDirect,direct,hoursUnit,knownReference,unverified,incompleteMaterial,noCost}=value;
+ const {selected,qty,unit,unitDirect,direct,hoursUnit,knownReference,unverified,incompleteMaterial,noCost,autoStatus}=value;
  const lines=[];
  if(selected.entry)lines.push('<b>'+escText(selected.entry.name)+'</b>');
  lines.push('<div class="qi-line"><span>Quantidade</span><strong>'+qty.toLocaleString('pt-BR',{maximumFractionDigits:2})+' '+escText(unit)+'</strong></div>');
- if(hoursUnit>0&&qty>0)lines.push('<div class="qi-line"><span>Horas-homem estimadas</span><strong>'+
+ if(hoursUnit>0&&qty>0)lines.push('<div class="qi-line"><span>Horas-homem estimadas'+(autoStatus&&autoStatus!=='ready'?' (prévia oficial)':'')+'</span><strong>'+
  (qty*hoursUnit).toLocaleString('pt-BR',{maximumFractionDigits:1})+' h</strong></div>');
  if(knownReference)lines.push('<div class="qi-line"><span>Referência pública unitária (não é preço de venda)</span><strong>'+fmt(knownReference)+'</strong></div>');
  if(unitDirect>0&&qty>0){
@@ -59,7 +61,7 @@ function summary(form){
  }
  if(unverified)lines.push('<p class="qi-warning">Composição pública ainda não validada na sua biblioteca. Os coeficientes mostrados podem ser apenas diretos; confira equipe, custos e subcomposições antes de emitir uma proposta.</p>');
  if(incompleteMaterial)lines.push('<p class="qi-warning">A composição prevê materiais/subcomposições, mas não há custo interno de fornecimento. Abra Detalhes avançados para completar.</p>');
- else if(noCost)lines.push('<p class="qi-warning">Este serviço ainda não possui custo interno confiável. Abra Detalhes avançados ou configure-o em Mais → Serviços.</p>');
+ else if(noCost)lines.push('<p class="qi-warning">A referência ainda não contém custo interno confiável para precificação. O item pode ser salvo como pendente no rascunho; não será liberado para envio sem custos válidos.</p>');
  return lines.join('');
 }
 function refresh(){
@@ -84,14 +86,14 @@ modalUI=function(){
  // Manter todos os campos do fluxo original sem alterar nomes, validações e cálculos.
  const before=html.slice(0,start).replace(
   /<p class="dw-help">Selecione um resultado[\s\S]*?<\/p>\s*<p class="dw-help">A descrição[\s\S]*?<\/p>/,
-  '<p class="qi-muted">Selecione a composição. A CIVOLTEN preenche o que estiver cadastrado; você informa a quantidade.</p>');
+  '<p class="qi-muted">Escolha uma composição e informe a quantidade. Horas, equipe e custos são preenchidos automaticamente quando as bases oficiais e os cadastros permitem. O realizado é lançado durante a obra.</p>');
  const old=s.edit||{};
  const qty=field('Quantidade a executar','qty','Ex.: 300',old.qty||1,'number',true)
   .replace('name="qty"','name="qty" id="qi-qty" inputmode="decimal"');
  const quick='<div class="qi-quick">'+qty+
   '<p class="qi-muted">Unidade: <b id="qi-unit">'+escText(old.unit||'un')+'</b></p>'+
   '<div id="qi-status" class="qi-summary" aria-live="polite">'+
-  (old.service?'Resumo do serviço selecionado.':'Pesquise e selecione o serviço para preencher os dados automaticamente.')+'</div></div>';
+  (old.service?'Resumo do serviço selecionado.':'Digite o nome ou código do serviço. A seleção será automática quando houver uma correspondência única.')+'</div></div>';
  const details='<details class="qi-details" id="qi-details"><summary>Detalhes avançados <small>Equipe, materiais, horas e valores editáveis</small></summary>'+
   '<div class="qi-inner">'+advanced+'</div></details>';
  return before+quick+details+html.slice(end);

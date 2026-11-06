@@ -79,7 +79,13 @@ test('Novo formulário mostra serviço e quantidade, com campos técnicos recolh
  const js=read('quick-quote-item.js');
  assert.ok(js.includes('id="qi-qty"')&&js.includes('<details class="qi-details"')&&js.includes('Resumo'));
 });
-test('Serviço SINAPI sem custo de mão de obra é bloqueado',()=>assert.ok(read('quote-automation.js').includes("n(form.elements.labor?.value)<=0")));
+test('SINAPI sem custo pode ficar em rascunho mas auditoria bloqueia emissão',()=>{
+ const js=read('quote-automation.js'),audit=read('financial-audit.js');
+ assert.ok(js.includes("const pendingMaterial="),'Sem custo de insumo é marcado como pendente');
+ assert.ok(js.includes("item.referencePending=!!svc.analyticalReviewNeeded"),'Composição analítica incompleta permanece pendente');
+ assert.ok(audit.includes("code:'labor'"),'Mão de obra ausente bloqueia a proposta');
+ assert.ok(audit.includes("code:'reference-pending'"),'Composição sem produtividade validada bloqueia a proposta');
+});
 test('Equipe mínima e custo desconhecido protegidos no cronograma',()=>{
  const js=read('workforce-schedule.js');
  assert.ok(js.includes('Math.max(1,r.baseCount,Math.ceil(')&&js.includes('x.rate<=0||x.unknownRate'));
