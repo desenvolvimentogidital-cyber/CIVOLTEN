@@ -117,8 +117,30 @@
    date:r.date,cost:Number(r.value)}));
  }
  function locateService(id,kind){
-  if(kind==='catalog')return db.services.find(x=>x.id===id)||null;
   const engine=window.CIVOLTENAutoProductivity;
+  if(kind==='catalog'){
+   const saved=db.services.find(x=>x.id===id);
+   if(!saved)return null;
+   // Atualizar a automação em tempo de uso também para serviços importados
+   // anteriormente. Não tocar em valores ou produtividade já conferidos.
+   if(saved.productivity?.crew?.length)return saved;
+   let source=null;
+   if(saved.origin==='SINAPI'&&saved.analytical){
+    source=saved;
+   }else if(saved.origin==='SIURB'){
+    source=engine?.sameOfficial(saved,window.CIVOLTENSINAPI?.getRecords?.()||[],
+     saved.sourceRegime||db.siurbMeta?.regime);
+   }
+   const auto=source&&engine?engine.analyze(source,db.workers,realWorkerRate):null;
+   if(!auto)return saved;
+   return {...saved,autoProductivity:auto,
+    autoLinkedSource:saved.origin==='SIURB'?{source:'SINAPI',code:source.code,base:source.base}:undefined,
+    analyticalReviewNeeded:saved.origin==='SINAPI'&&auto.status!=='ready',
+    productivity:auto.status==='ready'?{
+     crew:auto.rows.map(x=>({workerId:x.workerId,hours:x.perUnitHours,count:1})),
+     productivitySource:'SINAPI analítico validado por correspondência — pré-cálculo'
+    }:null};
+  }
   if(kind==='siurb'){
    const raw=(db.siurbItems||[]).find(x=>x.id===id);
    if(!raw)return null;
@@ -205,7 +227,7 @@
   const id=s.edit?.id,itemsBefore=s.wizard?.items?.length||0;
   const previous=s.edit?structuredClone(s.edit):null;
   const serviceId=form.elements.serviceId?.value;
-  const svc=db.services.find(x=>x.id===serviceId)||
+  const svc=locateService(serviceId,'catalog')||
     (form.elements.sourceId?.value?(locateService(form.elements.sourceId.value,'sinapi')||
        locateService(form.elements.sourceId.value,'siurb')):null);
   // Coeficientes oficiais ausentes: preservar o item no rascunho, sem criar custos fictícios.

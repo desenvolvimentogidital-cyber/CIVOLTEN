@@ -6,7 +6,7 @@
 (function(){
 'use strict';
 const SOURCE='https://www.caixa.gov.br/poder-publico/modernizacao-gestao/sinapi/Paginas/default.aspx';
-let records=[],busy=false,message='',search='',shown=0,meta=null;
+let records=[],busy=false,message='',search='',shown=0,meta=null,priceRows=[];
 let activeTab='siurb';
 const norm=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
 const dec=v=>{
@@ -81,6 +81,7 @@ function parseWorkbook(book,options,filename){
  const official=window.CIVOLTENReferenceParser?.parse(book,options,filename);
  if(official)return official;
  const out=new Map();let headers=0,seen=0,unmapped=0;
+ const integrity=window.CIVOLTENReferenceIntegrity;
  for(const name of book.SheetNames||[]){
   const sheet=book.Sheets[name];if(!sheet||!sheet['!ref'])continue;
   const rows=window.XLSX.utils.sheet_to_json(sheet,{header:1,raw:false,defval:'',blankrows:false});
@@ -89,7 +90,7 @@ function parseWorkbook(book,options,filename){
   headers+=parsed.headers;unmapped+=parsed.unmapped;seen+=rows.length;
   for(const r of parsed.items){
    // Prefer entries with explicitly defined prices over blank prices.
-   if(!out.has(r.id)||out.get(r.id).cost==null&&r.cost!=null)out.set(r.id,r);
+   out.set(r.id,out.has(r.id)?integrity.mergedRecord(out.get(r.id),r):r);
   }
  }
  return {items:[...out.values()],headers,seen,unmapped};
@@ -120,7 +121,8 @@ async function readFile(file,options){
    .sort((a,b)=>Number(inferSheetUF('',b.name)===options.uf)-Number(inferSheetUF('',a.name)===options.uf))
    .slice(0,18);
   if(!entries.length)throw new Error('O ZIP não contém planilha compatível. Extraia o XLSX oficial e importe o arquivo diretamente.');
-  const all=new Map(),errors=[];let headers=0;
+  const all=new Map(),prices=[],errors=[];let headers=0;
+  const integrity=window.CIVOLTENReferenceIntegrity;
   for(const entry of entries){
    try{
     const blob=await entry.async('uint8array');
@@ -129,10 +131,12 @@ async function readFile(file,options){
     const book=window.XLSX.read(blob,{type:'array',cellDates:false,dense:true,cellFormula:false,cellHTML:false,cellText:false,...limited});
     const parsed=parseWorkbook(book,options,entry.name);
     headers+=parsed.headers;
-    for(const item of parsed.items)if(!all.has(item.id)||all.get(item.id).cost==null&&item.cost!=null)all.set(item.id,item);
+    prices.push(...(parsed.priceRows||[]));
+    for(const item of parsed.items)
+     all.set(item.id,all.has(item.id)?integrity.mergedRecord(all.get(item.id),item):item);
    }catch(err){errors.push(entry.name+': '+err.message)}
   }
-  return {items:[...all.values()],headers,errors};
+  return {items:integrity.enrich([...all.values()],prices).items,priceRows:prices,headers,errors};
  }
  if(!/\.(xls|xlsx|csv)$/i.test(file.name))throw new Error('Selecione ZIP, XLSX, XLS ou CSV.');
  if(file.size>45*1024*1024)throw new Error('Arquivo grande para importação direta no celular. Selecione o Excel de São Paulo ou divida o arquivo.');
@@ -148,11 +152,11 @@ function openDB(){
   req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
  });
 }
-async function store(items,details){
+async function store(items,details,costRows){
  const database=await openDB();
  try{await new Promise((resolve,reject)=>{
   const tx=database.transaction('sinapi','readwrite');
-  tx.objectStore('sinapi').put({key:'current',items,details});
+  tx.objectStore('sinapi').put({key:'current',items,details,priceRows:costRows||[]});
   tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
   tx.onabort=()=>reject(tx.error||new Error('Erro ao salvar a planilha'));
  });}finally{database.close()}
@@ -164,7 +168,9 @@ async function restore(){
    const tx=database.transaction('sinapi','readonly'),req=tx.objectStore('sinapi').get('current');
    req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
   })}finally{database.close()}
-  if(data){records=data.items||[];meta=data.details||null; if(s.page==='services')render()}
+  if(data){records=data.items||[];meta=data.details||null;priceRows=data.priceRows||[];
+   records=window.CIVOLTENReferenceIntegrity?.enrich(records,priceRows).items||records;
+   if(s.page==='services')render()}
  }catch(e){console.warn('SINAPI cache',e.message)}
 }
 function hits(){
@@ -241,18 +247,51 @@ async function importFile(file){
  busy=true;message='Lendo '+file.name+' no dispositivo...';render();
  try{
   const result=await readFile(file,{base,regime,kind,uf});
-  if(!result.items.length)throw new Error('Não encontrei linhas de código, descrição e unidade reconhecíveis. Confira se é XLSX de composições/insumos e não um relatório PDF ou de outra UF.');
+  if(!result.items.length&&!(result.priceRows||[]).length)
+   throw new Error('Não encontrei coeficientes nem preços oficiais verificáveis. Confira se o arquivo é um XLSX SINAPI da UF SP.');
   const uncertain=result.items.filter(x=>!x.verifiedUF).length;
-  const sourceBase=result.items[0]?.base||base;
+  const sourceBase=result.items[0]?.base||result.priceRows?.[0]?.base||base;
   const details={base:sourceBase,regime,uf,kind,fileName:file.name,count:result.items.length,importedAt:new Date().toISOString(),uncertain};
-  // Preserva categorias anteriores quando o usuário importa insumos após composições.
-  const previous=records.filter(x=>kind==='composicoes'?!['composicao','composicoes'].includes(x.kind):!['insumo','insumos'].includes(x.kind));
-  const merged=[...new Map([...previous,...result.items].map(x=>[x.id,x])).values()];
-  await store(merged,details);
-  records=merged;meta=details;
-  db.sinapiMeta={...details,count:merged.length};
-  if(!save())message='Planilha salva no catálogo SINAPI local, mas os metadados não couberam no cadastro. Faça backup.';
-  else message='SINAPI importado: '+result.items.length.toLocaleString('pt-BR')+' itens do arquivo '+file.name+' · competência '+sourceBase+'.'+
+  const integrity=window.CIVOLTENReferenceIntegrity;
+  // Guardar CSD/CCD importados separadamente, pois podem vir em outro XLSX
+  // ou ZIP; composição analítica e preços nunca substituem um ao outro.
+  const combinedPrices=[...priceRows,...(result.priceRows||[])];
+  const merged=integrity.mergeRecords(records,result.items);
+  const verified=integrity.enrich(merged,combinedPrices);
+  const quality=integrity.quality(verified.items);
+  await store(verified.items,details,combinedPrices);
+  records=verified.items;priceRows=combinedPrices;meta=details;
+  // Atualizar apenas a REFERÊNCIA em serviços já importados da mesma edição.
+  // Orçamentos anteriores, custo interno e produtividade conferida não mudam.
+  const byId=new Map(records.map(item=>[
+   [item.uf,item.base,item.regime,item.code,item.kind].join('|'),item
+  ]));
+  const touched=[];
+  for(const service of db.services||[]){
+   if(service.origin!=='SINAPI'||!service.sourceCode||!service.sourceDate||
+    !service.sourceRegime||service.sourceUF!=='SP')continue;
+   const match=byId.get(['SP',service.sourceDate,service.sourceRegime,
+    service.sourceCode,service.sourceKind||'composicao'].join('|'));
+   if(!match)continue;
+   touched.push({service,referenceCost:service.referenceCost,
+    referencePricePending:service.referencePricePending});
+   service.referenceCost=match.cost??null;
+   service.referencePricePending=!(Number(match.cost)>0);
+  }
+  db.sinapiMeta={...details,count:records.length,priced:quality.priced,
+   missingPrice:quality.unpriced,automaticPriceLinks:verified.recovered,
+   costConflicts:verified.conflicts};
+  if(!save()){
+   for(const old of touched){old.service.referenceCost=old.referenceCost;
+    old.service.referencePricePending=old.referencePricePending;}
+   message='Planilha salva no catálogo SINAPI local, mas o cadastro não coube no aparelho. Os serviços originais foram preservados; faça backup.';
+  }
+  else message='SINAPI atualizado: '+quality.total.toLocaleString('pt-BR')+
+   ' itens, '+quality.priced.toLocaleString('pt-BR')+' com preço público, '+
+   quality.unpriced.toLocaleString('pt-BR')+' sem preço, '+
+   verified.recovered+' valores reunidos automaticamente'+
+   (verified.conflicts?' · '+verified.conflicts+' conflitos de preço (conferir)':'')+
+   ' · arquivo '+file.name+' · competência '+sourceBase+'.'+
     (sourceBase!==base?' A competência foi corrigida automaticamente pela data-base do próprio XLSX.':'')+
     (result.items.some(x=>x.analytical)?' Coeficientes analíticos encontrados; consulte cada composição para conferir pedreiros, serventes e outros.':'')+
     (uncertain?' Atenção: '+uncertain+' itens sem UF explícita; confira a planilha para garantir São Paulo.':'')+
@@ -280,10 +319,11 @@ document.addEventListener('click',event=>{
   toast('Este item SINAPI já está no seu catálogo.');return
  }
  const service={id:uid('sv'),origin:'SINAPI',name:item.name,unit:item.unit,
-  referenceCost:item.cost||0,labor:0,material:0,equipment:0,
+  referenceCost:item.cost??null,labor:0,material:0,equipment:0,
   sourceCode:item.code,sourceUF:item.uf,sourceDate:item.base,
   sourceRegime:item.regime,sourceKind:item.kind,sourceFile:item.fileName,
   costSplitConfirmed:false,referenceNeedsValidation:true,
+  referencePricePending:!(Number(item.cost)>0),
   analytical:!!item.analytical,analyticLabor:(item.analyticLabor||[]).map(k=>({...k})),
   analyticItems:(item.analyticItems||[]).map(k=>({...k})),
   laborHoursPerUnit:item.laborHoursPerUnit||0,

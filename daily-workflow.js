@@ -382,9 +382,14 @@ document.addEventListener('input',e=>{
   // selecionar automaticamente sem forçar uma segunda etapa no Android.
   const exact=norm(dqSearch).length>=8?matchingServices(dqSearch).filter(x=>
    norm(x.label)===norm(dqSearch)||norm(x.code)===norm(dqSearch)):[];
-  if(exact.length===1&&hits){
+  // Se o serviço está na biblioteca do usuário, essa é a primeira fonte para
+  // custos reais e coeficientes automáticos. Fontes públicas duplicadas não
+  // obrigam um segundo toque. Duas entradas próprias distintas exigem escolha.
+  const mine=exact.filter(x=>x.kind==='catalog');
+  const unique=mine.length===1?mine[0] :mine.length===0&&exact.length===1?exact[0]:null;
+  if(unique&&hits){
    const candidate=[...hits.querySelectorAll('[data-action="dw-pick-service"]')].find(b=>
-    b.dataset.id===exact[0].id&&b.dataset.kind===exact[0].kind);
+    b.dataset.id===unique.id&&b.dataset.kind===unique.kind);
    candidate?.click();
   }
  }
