@@ -154,6 +154,7 @@
   const template=templateFor(service);
   const auto=service.autoProductivity||null;
   f.dataset.cvAutoStatus=auto?.status||'';
+  f.dataset.cvAutoHours=auto?.hours||'';
   f.dataset.cvAutoRefCode=auto?.referenceCode||'';
   const crew=crewTotals(template.crew);
   const siurb=service.origin==='SIURB';
@@ -271,10 +272,22 @@
      hoursUnit:svc.autoProductivity.hours,status:svc.autoProductivity.status};
    }
    if(svc.autoLinkedSource)item.autoLinkedSource=svc.autoLinkedSource;
-   item.materialCostPending=pendingMaterial;
+   item.materialCostPending=!!(pendingMaterial||
+    svc.origin==='SIURB'&&item.owner==='empresa'&&
+    n(item.material)<=0&&n(item.extra)<=0);
    if(svc.origin==='SIURB'&&svc.autoProductivity?.status==='ready'&&n(item.labor)>0)
     item.referencePending=false;
    if(svc.origin==='SINAPI')item.referencePending=!!svc.analyticalReviewNeeded;
+   if(svc.autoProductivity?.hours>0&&svc.autoProductivity.status!=='ready'){
+    // Projeção técnica provisória com coeficientes oficiais diretos;
+    // não afeta o custo real e nunca libera uma proposta não auditada.
+    item.productivity={source:'SINAPI - prévia de horas diretas',provisional:true,
+     hoursPerUnit:svc.autoProductivity.hours,
+     crew:svc.autoProductivity.rows.map(e=>({
+      workerId:e.workerId,workerName:e.role,perUnitHours:e.perUnitHours,
+      count:1,rate:e.rate,cost:e.rate*e.perUnitHours
+     }))};
+   }
    item.catalogServiceId=svc.origin==='SINAPI'&&svc.analyticalReviewNeeded?'':svc.id;
    // Referência verificável fica SEPARADA do custo real; só entra no preço sugerido.
    item.referenceLabor=refLabor;
