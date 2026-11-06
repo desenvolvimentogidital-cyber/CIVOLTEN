@@ -55,6 +55,23 @@ function pricesSP(rows,type){
  }
  return result;
 }
+function costRows(book,options,filename){
+ const sheet=options.regime==='desonerada'?'CCD':'CSD';
+ const rows=readRows(book,sheet);
+ if(!rows?.length)return [];
+ const state=rows.slice(0,12).find(row=>Array.isArray(row)&&row.some(v=>norm(v)==='SP'));
+ if(!state)return [];
+ const i=state.findIndex(v=>norm(v)==='SP'),result=[];
+ for(const row of rows.slice(10)){
+  if(!Array.isArray(row))continue;
+  const name=String(row[2]??'').trim(),u=unit(row[3]),cost=money(row[i]);
+  if(name.length<6||!u||!cost||!/^(?:UN|UND|M|M2|M3|M²|M³|KG|T|H|L|M2XKM|M3XKM|M3/KM|M2/MES|CJ|PTO)$/.test(u))continue;
+  result.push({source:'SINAPI',kind:'composicao',uf:'SP',verifiedUF:true,
+   regime:options.regime,base:options.base,code:code(row[1])||'',
+   name,unit:u,cost,fileName,sheetName:sheet});
+ }
+ return result;
+}
 function analytic(book,options,filename){
  const rows=readRows(book,'Analítico');
  if(!rows)return null;
@@ -65,6 +82,7 @@ function analytic(book,options,filename){
   throw new Error('A aba Analítico não contém as colunas oficiais de código, tipo, descrição, unidade e coeficiente.');
  const costName=options.regime==='desonerada'?'CCD':'CSD';
  const costs=pricesSP(readRows(book,costName),'composicao');
+ const costsByRow=costRows(book,options,filename);
  const list=[],byCode=new Map();let parent=null;
  const groupName=String(filename||'SINAPI referência');
  for(const row of rows.slice(10)){
@@ -94,7 +112,7 @@ function analytic(book,options,filename){
  }
  if(!list.length)throw new Error('Nenhuma composição reconhecida na aba Analítico da planilha.');
  for(const item of list)item.laborHoursPerUnit=Math.round(item.laborHoursPerUnit*1e7)/1e7;
- return {items:list,headers:1,seen:rows.length,base:options.base,layout:'SINAPI Referência/Analítico',
+ return {items:list,priceRows:costsByRow,headers:1,seen:rows.length,base:options.base,layout:'SINAPI Referência/Analítico',
   laborCompositions:list.filter(x=>x.analyticLabor.length).length,
   priced:list.filter(x=>x.cost!==null).length,
   notes:'Coeficientes analíticos diretos: subcomposições não são expandidas automaticamente.'};
@@ -121,8 +139,16 @@ function inputs(book,options,filename){
 }
 function parse(book,options,filename){
  if(options.uf!=='SP')throw new Error('Esta importação está configurada para São Paulo (SP).');
- if(!book?.Sheets?.Analítico)return null;
- return options.kind==='insumos'?inputs(book,options,filename):analytic(book,options,filename);
+ if(options.kind==='insumos'&&book?.Sheets?.[options.regime==='desonerada'?'ICD':'ISD'])
+  return inputs(book,options,filename);
+ if(book?.Sheets?.Analítico)return analytic(book,options,filename);
+ const sheet=options.regime==='desonerada'?'CCD':'CSD';
+ if(book?.Sheets?.[sheet]){
+  const rows=costRows(book,options,filename);
+  return {items:[],priceRows:rows,headers:1,seen:rows.length,
+   layout:'SINAPI Referência/'+sheet,notes:'Custos oficiais por UF. Vincular com Analítico por código ou descrição/unidade únicos.'};
+ }
+ return null;
 }
-window.CIVOLTENReferenceParser={parse,roleOf,analytic,inputs};
+window.CIVOLTENReferenceParser={parse,roleOf,analytic,inputs,costRows};
 })();
