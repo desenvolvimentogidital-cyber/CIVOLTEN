@@ -261,10 +261,31 @@ async function importFile(file){
   const quality=integrity.quality(verified.items);
   await store(verified.items,details,combinedPrices);
   records=verified.items;priceRows=combinedPrices;meta=details;
+  // Atualizar apenas a REFERÊNCIA em serviços já importados da mesma edição.
+  // Orçamentos anteriores, custo interno e produtividade conferida não mudam.
+  const byId=new Map(records.map(item=>[
+   [item.uf,item.base,item.regime,item.code,item.kind].join('|'),item
+  ]));
+  const touched=[];
+  for(const service of db.services||[]){
+   if(service.origin!=='SINAPI'||!service.sourceCode||!service.sourceDate||
+    !service.sourceRegime||service.sourceUF!=='SP')continue;
+   const match=byId.get(['SP',service.sourceDate,service.sourceRegime,
+    service.sourceCode,service.sourceKind||'composicao'].join('|'));
+   if(!match)continue;
+   touched.push({service,referenceCost:service.referenceCost,
+    referencePricePending:service.referencePricePending});
+   service.referenceCost=match.cost??null;
+   service.referencePricePending=!(Number(match.cost)>0);
+  }
   db.sinapiMeta={...details,count:records.length,priced:quality.priced,
    missingPrice:quality.unpriced,automaticPriceLinks:verified.recovered,
    costConflicts:verified.conflicts};
-  if(!save())message='Planilha salva no catálogo SINAPI local, mas os metadados não couberam no cadastro. Faça backup.';
+  if(!save()){
+   for(const old of touched){old.service.referenceCost=old.referenceCost;
+    old.service.referencePricePending=old.referencePricePending;}
+   message='Planilha salva no catálogo SINAPI local, mas o cadastro não coube no aparelho. Os serviços originais foram preservados; faça backup.';
+  }
   else message='SINAPI atualizado: '+quality.total.toLocaleString('pt-BR')+
    ' itens, '+quality.priced.toLocaleString('pt-BR')+' com preço público, '+
    quality.unpriced.toLocaleString('pt-BR')+' sem preço, '+
