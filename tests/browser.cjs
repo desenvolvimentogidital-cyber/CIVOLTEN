@@ -35,16 +35,23 @@ const server=createServer((req,res)=>{
   await page.locator('#auth-form [name="email"]').fill('teste@example.com');
   await page.locator('#auth-form [name="password"]').fill('SenhaForte123');
   await page.locator('#auth-form button[type="submit"]').click();
+  // Sem confirmação de e-mail, deve abrir o aplicativo automaticamente.
+  await page.locator('.dashboard').waitFor();
+  assert.equal(await page.locator('.auth-page').count(),0,
+   'Cadastro com sessão Supabase não deve pedir confirmação nem login novamente');
+  assert.equal(await page.evaluate(()=>window.CIVOLTENPreview.user.email),
+   'teste@example.com');
+  // Ao sair, um cadastro repetido não substitui a senha da conta existente.
+  await page.locator('.bottom-nav [data-go="more"]').click();
+  await page.locator('[data-action="signout"]').click();
   await page.locator('.auth-page').waitFor();
-  // Reproduzir o incidente real: inscrição repetida aceita com HTTP 200,
-  // mas nenhuma nova conta é criada pelo Supabase.
   await page.locator('[data-action="auth-mode"][data-mode="signup"]').click();
   await page.locator('#auth-form [name="name"]').fill('Teste CIVOLTEN');
   await page.locator('#auth-form [name="email"]').fill('teste@example.com');
   await page.locator('#auth-form [name="password"]').fill('SenhaErrada456');
   await page.locator('#auth-form button[type="submit"]').click();
   await page.locator('.auth-error').waitFor();
-  assert.match(await page.locator('.auth-error').innerText(),/não foi criada uma conta nova/i);
+  assert.match(await page.locator('.auth-error').innerText(),/já tem cadastro|já tinha cadastro|já existe|outra conta/i);
   // Login com senha diferente deve indicar recuperação, jamais sucesso falso.
   await page.locator('#auth-form [name="email"]').fill('teste@example.com');
   await page.locator('#auth-form [name="password"]').fill('SenhaErrada456');

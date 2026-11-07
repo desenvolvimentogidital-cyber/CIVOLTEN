@@ -18,9 +18,15 @@ A auditoria inicial encontrou 29 tabelas antigas vazias e uma conta de autentica
 
 ## Autenticação
 
-O aplicativo utiliza Supabase Auth (supabase-js v2.119.0), com cadastro por e-mail e senha, login, sessão persistente, saída e recuperação de senha. Se a confirmação de e-mail estiver ativada, o usuário deverá confirmar antes de entrar.
+O aplicativo utiliza Supabase Auth (supabase-js v2.119.0), com cadastro por e-mail e senha, login, sessão persistente, saída e recuperação de senha.
 
-**Configuração necessária no painel Supabase:** Authentication → URL Configuration → Site URL igual a https://civolten.vercel.app e Redirect URLs incluindo https://civolten.vercel.app/**. Um teste de confirmação com e-mail real é necessário depois da publicação.
+**Decisão de produto (07/11/2026): cadastro e acesso imediato, sem confirmação por e-mail.** Para ativar esse comportamento, no projeto CIVOLTEN-Orcamentos do Supabase, abrir **Authentication → Sign In / Providers → Email**, desligar **Confirm Email** (ou "Enable email confirmations") e salvar. Esse controle pertence ao servidor Supabase, **não é possível desligá-lo apenas pelo JavaScript, pela migração SQL nem pelo deploy da Vercel**. A integração MCP atual não possui operação de alterar configurações de Auth, portanto a configuração precisa ser salva no painel do projeto.
+
+Com Confirm Email desligado, `auth.signUp()` retorna `data.session` imediatamente e o CIVOLTEN abre o painel sem apresentar tela de confirmação ou outro login. Os testes Chromium foram atualizados para reproduzir essa configuração. Sem alterar a opção, novos cadastros ainda pedirão confirmação, mesmo com os testes passando.
+
+**Atenção à segurança:** desligar a confirmação permite cadastrar e-mails não verificados. Não conceder permissões administrativas nem usar o e-mail como prova de propriedade; manter senha, RLS e defesa contra abusos. Contas antigas com senha desconhecida continuam necessitando de recuperação de senha, e cadastrar novamente o mesmo e-mail não a redefine.
+
+**URL do projeto:** Authentication → URL Configuration → Site URL `https://civolten.vercel.app` e Redirect URLs incluindo `https://civolten.vercel.app/**` (necessário para recuperação de senha).
 
 No navegador são usados somente a URL e a chave publicável do Supabase. Nenhuma chave secret ou service_role é usada no frontend. O build usa SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY, com fallback para os valores públicos oficiais do projeto CIVOLTEN.
 
