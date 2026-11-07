@@ -1,5 +1,6 @@
 // CIVOLTEN • núcleo financeiro simples, sem valores fictícios.
 import {DEFAULT_PAYROLL,cltFromCents,payrollConfig} from './payroll.mjs';
+import {DEFAULT_COMPANY,companyConfig} from './pricing.mjs';
 export const STORE_PREFIX='civolten_premium_v1_';
 export function decimal(value){
  if(value==null||String(value).trim()==='')return null;
@@ -21,7 +22,7 @@ export function fmt(value){
  return value==null?'':String(value).replace('.',',');
 }
 export function fresh(){
- return {version:1,fixed:[],variable:[],employees:[],ledger:[],payroll:{...DEFAULT_PAYROLL},updatedAt:null};
+ return {version:1,fixed:[],variable:[],employees:[],ledger:[],payroll:{...DEFAULT_PAYROLL},company:{...DEFAULT_COMPANY},updatedAt:null};
 }
 export function fixedMonthly(item){
  const val=cents(item.amount);
@@ -113,7 +114,7 @@ export function safeLoad(storage,userId){
    variable:Array.isArray(raw.variable)?raw.variable:[],
    employees:Array.isArray(raw.employees)?raw.employees:[],
    ledger:Array.isArray(raw.ledger)?raw.ledger:[],
-   payroll:payrollConfig(raw.payroll)};
+   payroll:payrollConfig(raw.payroll),company:companyConfig(raw.company)};
  }catch{return fresh();}
 }
 export function safeSave(storage,userId,state){
