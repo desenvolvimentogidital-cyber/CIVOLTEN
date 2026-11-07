@@ -36,6 +36,27 @@ const server=createServer((req,res)=>{
   await page.locator('#auth-form [name="password"]').fill('SenhaForte123');
   await page.locator('#auth-form button[type="submit"]').click();
   await page.locator('.auth-page').waitFor();
+  // Reproduzir o incidente real: inscrição repetida aceita com HTTP 200,
+  // mas nenhuma nova conta é criada pelo Supabase.
+  await page.locator('[data-action="auth-mode"][data-mode="signup"]').click();
+  await page.locator('#auth-form [name="name"]').fill('Teste CIVOLTEN');
+  await page.locator('#auth-form [name="email"]').fill('teste@example.com');
+  await page.locator('#auth-form [name="password"]').fill('SenhaErrada456');
+  await page.locator('#auth-form button[type="submit"]').click();
+  await page.locator('.auth-error').waitFor();
+  assert.match(await page.locator('.auth-error').innerText(),/não foi criada uma conta nova/i);
+  // Login com senha diferente deve indicar recuperação, jamais sucesso falso.
+  await page.locator('#auth-form [name="email"]').fill('teste@example.com');
+  await page.locator('#auth-form [name="password"]').fill('SenhaErrada456');
+  await page.locator('#auth-form button[type="submit"]').click();
+  await page.locator('.auth-error').waitFor();
+  assert.match(await page.locator('.auth-error').innerText(),/Esqueci minha senha/);
+  // O link de recuperação deve levar ao formulário correspondente.
+  await page.locator('[data-action="auth-mode"][data-mode="reset"]').click();
+  await page.locator('#auth-form [name="email"]').fill('teste@example.com');
+  await page.locator('#auth-form button[type="submit"]').click();
+  await page.locator('.auth-error').waitFor();
+  assert.match(await page.locator('.auth-error').innerText(),/instruções de recuperação/);
   await page.locator('#auth-form [name="email"]').fill('teste@example.com');
   await page.locator('#auth-form [name="password"]').fill('SenhaForte123');
   await page.locator('#auth-form button[type="submit"]').click();
