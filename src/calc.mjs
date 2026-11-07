@@ -1,4 +1,5 @@
 // CIVOLTEN • núcleo financeiro simples, sem valores fictícios.
+import {DEFAULT_PAYROLL,cltFromCents,payrollConfig} from './payroll.mjs';
 export const STORE_PREFIX='civolten_premium_v1_';
 export function decimal(value){
  if(value==null||String(value).trim()==='')return null;
@@ -20,7 +21,7 @@ export function fmt(value){
  return value==null?'':String(value).replace('.',',');
 }
 export function fresh(){
- return {version:1,fixed:[],variable:[],employees:[],updatedAt:null};
+ return {version:1,fixed:[],variable:[],employees:[],payroll:{...DEFAULT_PAYROLL},updatedAt:null};
 }
 export function fixedMonthly(item){
  const val=cents(item.amount);
@@ -32,7 +33,7 @@ export function variableMonthly(item){
  if(val===null||val<0||quantity===null||quantity<0)return null;
  return Math.round(val*quantity);
 }
-export function employeeCost(p){
+export function employeeCost(p,companySettings=DEFAULT_PAYROLL){
  if(p.contractType==='contractor'){
   const rate=cents(p.rate),qty=decimal(p.quantity),hours=decimal(p.hours);
   if(rate===null||rate<=0)return {monthly:null,hourly:null,status:'pending'};
@@ -40,30 +41,22 @@ export function employeeCost(p){
   const monthly=unit==='month'?rate:qty!==null&&qty>=0?Math.round(rate*qty):null;
   const hourly=unit==='hour'?rate:(unit==='day'&&hours>0?
    Math.round(rate/hours):unit==='month'&&hours>0?Math.round(rate/hours):null);
-  return {monthly,hourly,status:monthly===null||hourly===null?'partial':'ready'};
+  return {monthly,hourly,status:monthly===null?'partial':'ready'};
  }
  const salary=cents(p.salary),monthlyHours=decimal(p.hours);
- const fgts=decimal(p.fgtsPct),employer=decimal(p.employerPct);
  const benefits=cents(p.benefits??0),extras=cents(p.extras??0);
  if(salary===null||salary<=0)return {monthly:null,hourly:null,status:'pending'};
- // Alíquotas desconhecidas não viram zero por aproximação.
- if(fgts===null||employer===null||fgts<0||employer<0||fgts>100||employer>100)
-  return {monthly:null,hourly:null,status:'partial'};
- const thirteenth=Math.round(salary/12);
- const vacationThird=Math.round(salary/36);
- const base=salary+thirteenth+vacationThird;
- const monthly=base+Math.round(base*fgts/100)+Math.round(base*employer/100)+
-  (benefits||0)+(extras||0);
+ const clt=cltFromCents(salary,companySettings);
+ const monthly=clt.subtotal+(benefits||0)+(extras||0);
  return {monthly,hourly:monthlyHours>0?Math.round(monthly/monthlyHours):null,
-  status:monthlyHours>0?'ready':'partial',
-  breakdown:{salary,thirteenth,vacationThird,fgts:Math.round(base*fgts/100),
-    employer:Math.round(base*employer/100),benefits:benefits||0,extras:extras||0}};
+  status:'ready',estimated:true,settingsReviewed:clt.reviewed,
+  breakdown:{...clt,benefits:benefits||0,extras:extras||0,monthly}};
 }
 const sum=a=>a.reduce((t,x)=>t+(Number.isFinite(x)?x:0),0);
 export function summary(data){
  const fx=(data.fixed||[]).map(fixedMonthly);
  const va=(data.variable||[]).map(variableMonthly);
- const ep=(data.employees||[]).filter(e=>e.active!==false).map(employeeCost);
+ const ep=(data.employees||[]).filter(e=>e.active!==false).map(e=>employeeCost(e,data.payroll));
  const fixed=sum(fx),variable=sum(va.map(x=>x??0)),team=sum(ep.map(x=>x.monthly??0));
  const missing=fx.filter(x=>x===null).length+va.filter(x=>x===null).length+
    ep.filter(x=>x.status!=='ready'||x.monthly===null).length;
@@ -102,13 +95,11 @@ export function validate(kind,fields){
   }
   const salary=requireAmount(fields.salary,'o salário-base');
   if(salary<=0)throw Error('O salário deve ser maior que zero.');
-  const hours=pick(fields.hours),fgtsPct=pick(fields.fgtsPct),employerPct=pick(fields.employerPct);
+  const hours=pick(fields.hours);
   if(hours!==null&&hours<=0)throw Error('Horas produtivas devem ser maiores que zero.');
-  for(const pct of [fgtsPct,employerPct])
-   if(pct!==null&&(pct<0||pct>100))throw Error('Os encargos precisam estar entre 0% e 100%.');
   const benefits=pick(fields.benefits)??0,extras=pick(fields.extras)??0;
   if(benefits<0||extras<0)throw Error('Benefícios e outros custos não podem ser negativos.');
-  return {name,role,contractType,active,salary,hours,fgtsPct,employerPct,benefits,extras};
+  return {name,role,contractType,active,salary,hours,benefits,extras};
  }
  throw Error('Cadastro inválido.');
 }
@@ -120,7 +111,8 @@ export function safeLoad(storage,userId){
   return {...fresh(),...raw,
    fixed:Array.isArray(raw.fixed)?raw.fixed:[],
    variable:Array.isArray(raw.variable)?raw.variable:[],
-   employees:Array.isArray(raw.employees)?raw.employees:[]};
+   employees:Array.isArray(raw.employees)?raw.employees:[],
+   payroll:payrollConfig(raw.payroll)};
  }catch{return fresh();}
 }
 export function safeSave(storage,userId,state){
