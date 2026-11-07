@@ -1,6 +1,7 @@
 // CIVOLTEN: todos os cadastros são isolados por auth.uid() via RLS no Supabase.
 // Este módulo não usa chave de administrador nem ignora políticas do banco.
 import {fresh} from './calc.mjs';
+import {payrollConfig} from './payroll.mjs';
 export const TABLES={
  fixed:'cv_fixed_costs_v1',
  variable:'cv_variable_costs_v1',
@@ -48,6 +49,15 @@ export async function fetchRemote(client,userId){
   if(error)throw Error('Falha ao consultar '+kind+': '+error.message);
   out[kind]=(data||[]).map(row=>normalize(kind,row));
  }));
+ const {data:rates,error:ratesError}=await client.from('cv_payroll_settings_v1')
+  .select('*').eq('user_id',userId).order('created_at',{ascending:true});
+ if(ratesError)throw Error('Falha ao carregar encargos da empresa: '+ratesError.message);
+ const one=rates?.[0];
+ out.payroll=payrollConfig(one?{
+  regime:one.regime,fgtsPct:Number(one.fgts_pct),
+  employerPct:Number(one.employer_pct),ratPct:Number(one.rat_pct),
+  terceirosPct:Number(one.terceiros_pct),reviewed:one.reviewed
+ }:null);
  return out;
 }
 export async function putRemote(client,userId,kind,item){
@@ -67,5 +77,18 @@ export async function deleteRemote(client,userId,kind,id){
   .eq('id',id).eq('user_id',userId).select('id');
  if(error)throw Error('Falha ao excluir no banco: '+error.message);
  if(!Array.isArray(data)||data.length!==1)throw Error('Banco não confirmou a exclusão.');
+ return true;
+}
+
+export async function putPayrollRemote(client,userId,config){
+ checkId(userId);
+ const row={user_id:userId,regime:config.regime,
+  fgts_pct:config.fgtsPct,employer_pct:config.employerPct,
+  rat_pct:config.ratPct,terceiros_pct:config.terceirosPct,
+  reviewed:true,updated_at:new Date().toISOString()};
+ const {data,error}=await client.from('cv_payroll_settings_v1')
+  .upsert(row,{onConflict:'user_id'}).select('user_id').single();
+ if(error)throw Error('Não foi possível salvar os encargos: '+error.message);
+ if(data?.user_id!==userId)throw Error('O banco não confirmou a configuração dos encargos.');
  return true;
 }
