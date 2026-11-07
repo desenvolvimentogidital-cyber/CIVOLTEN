@@ -60,7 +60,9 @@ function serviceHits(q){
  const rows=matchingServices(q);
  return rows.map(x=>'<button type="button" class="dw-hit" data-action="dw-pick-service" data-kind="'+x.kind+'" data-id="'+esc(x.id)+'">'+
  '<span><strong>'+esc(x.label)+'</strong><small>'+esc(x.kind==='catalog'?'Meu catálogo • '+x.unit+(x.source==='SIURB'||x.source==='SINAPI'?' · '+x.source:''):x.source==='SIURB'?'SIURB '+x.code+' • '+x.unit:'SINAPI '+x.code+' • '+x.unit+' · referência a conferir')+'</small></span>'+
- '<b>'+BRL(x.source==='SIURB'||x.source==='SINAPI'?x.data.referenceCost??x.data.cost:(number(x.data.labor)+number(x.data.material)+number(x.data.equipment)))+'</b></button>').join('')+
+ '<b>'+((x.source==='SIURB'||x.source==='SINAPI')&&!(number(x.data.referenceCost??x.data.cost)>0)?
+  'Referência sem preço':BRL(x.source==='SIURB'||x.source==='SINAPI'?x.data.referenceCost??x.data.cost:
+   (number(x.data.labor)+number(x.data.material)+number(x.data.equipment))))+'</b></button>').join('')+
  (!rows.length?'<div class="dw-no-results">Nenhum serviço encontrado. Você pode escrever a descrição manualmente.</div>':'');
 }
 function selectedMaterial(){const v=db.materials||[];return v.map(x=>option(x.id,x.name+' • '+BRL(x.cost)+'/'+x.unit,false)).join('')}
@@ -267,7 +269,9 @@ function saveItem(form){
   if(index>=0)s.wizard.items[index]=item;else s.wizard.items.push(item);
  } else s.wizard.items.push(item);
  const pending=!(item.labor>0)||item.referencePending||item.referencePricePending;
- selected=null;chosenMaterialRef=null;modalIdentity=null;s.edit=null;s.modal=null;keepTemp();save();render();
+ selected=null;chosenMaterialRef=null;modalIdentity=null;s.edit=null;s.modal=null;keepTemp();
+ if(!save()){render();return}
+ render();
  toast(pending?'Serviço incluído! Dados de custo pendentes serão conferidos na proposta.':
   'Serviço incluído com a composição automática.');
 }
