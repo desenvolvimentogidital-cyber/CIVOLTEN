@@ -4,6 +4,8 @@ import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
 import {signupOutcome,authMessage,repeatedSignupMessage,pendingEmailMessage} from './auth-flow.mjs';
 import {fresh,safeLoad,safeSave,validate,summary,employeeCost} from './calc.mjs';
+import {validateEntry,reportCsv,localToday,currentMonth} from './finance.mjs';
+import {financeView,reportsView,ledgerEditorView} from './finance-ui.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,payrollSettingsView,cltBreakdownHtml,e,icon} from './views.mjs';
 const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
 const SUPABASE_PUBLIC_KEY=__CIVOLTEN_SUPABASE_PUBLISHABLE_KEY__;
@@ -18,7 +20,7 @@ const mount=document.getElementById('app');
 const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
- user:null,data:fresh(),view:'home',costTab:'fixed',authMode:recoveryToken?'newpass':'login',
+ user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',authMode:recoveryToken?'newpass':'login',
  cloudError:null,
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
@@ -37,6 +39,8 @@ function render(){
  if(state.view==='home')html=homeView(state.data,state.user);
  else if(state.view==='costs')html=costsView(state.data,state.costTab);
  else if(state.view==='team')html=teamView(state.data);
+ else if(state.view==='finance')html=financeView(state.data,state.finMonth,state.finFilter);
+ else if(state.view==='reports')html=reportsView(state.data,state.finMonth);
  else html=moreView(state.user,state.data);
  mount.innerHTML=shell(state.view,html);
 }
@@ -150,12 +154,12 @@ async function signOut(){
 }
 function go(view){
  if(view==='soon'){delayToast('Este recurso será construído na próxima etapa.');return;}
- if(!['home','costs','team','more'].includes(view))return;
+ if(!['home','costs','team','more','finance','reports'].includes(view))return;
  state.view=view;render();
  if(window.scrollY)window.scrollTo({top:0,behavior:'instant'});
 }
-function openEditor(kind,id=null){
- if(!['fixed','variable','employees','payroll'].includes(kind))return;
+function openEditor(kind,id=null,suggested='income'){
+ if(!['fixed','variable','employees','payroll','ledger'].includes(kind))return;
  if(state.cloudError){delayToast('Banco indisponível: não é seguro editar antes de sincronizar.');return;}
  if(kind==='payroll'){
   state.editor={kind:'payroll'};
@@ -165,10 +169,9 @@ function openEditor(kind,id=null){
  }
  const person=state.data[kind]?.find(x=>x.id===id)||{};
  state.editor={kind,id};
- modal.innerHTML=editorView(kind,person,state.data.payroll);
+ modal.innerHTML=kind==='ledger'?ledgerEditorView(person,suggested):editorView(kind,person,state.data.payroll);
  modal.showModal();
- toggleContractFields();
- refreshCltPreview();
+ if(kind!=='ledger'){toggleContractFields();refreshCltPreview();}
 }
 function closeEditor(){
  modal.close();modal.innerHTML='';state.editor=null;
@@ -211,7 +214,7 @@ async function saveRecord(form){
  const submit=form.querySelector('[type=submit]');
  if(submit)submit.disabled=true;
  try{
-  const nextRecord=validate(kind,input);
+  const nextRecord=kind==='ledger'?validateEntry(input):validate(kind,input);
   nextRecord.id=id||crypto.randomUUID();
   await putRemote(auth,state.user.id,kind,nextRecord);
   const copy=structuredClone(state.data);
@@ -229,7 +232,7 @@ async function removeRecord(){
  if(!state.editor||!state.user)return;
  const {kind,id}=state.editor,item=state.data[kind].find(x=>x.id===id);
  if(!item)return;
- if(!confirm('Excluir "'+item.name+'"? Esta ação não pode ser desfeita.'))return;
+ if(!confirm('Excluir "'+(item.title||item.name)+'"? Esta ação não pode ser desfeita.'))return;
  try{
   await deleteRemote(auth,state.user.id,kind,id);
   const copy=structuredClone(state.data);
@@ -239,11 +242,41 @@ async function removeRecord(){
   closeEditor();render();delayToast('Excluído do Supabase.');
  }catch(err){delayToast('Não foi possível excluir: '+err.message);}
 }
+async function markPaid(id){
+ if(state.busy||state.cloudError||!state.user)return;
+ const item=state.data.ledger.find(x=>x.id===id);
+ if(!item||item.paidDate)return;
+ if(!confirm('Confirmar '+(item.kind==='income'?'recebimento':'pagamento')+' de '+item.title+' na data de hoje?'))return;
+ state.busy=true;
+ try{
+  const next={...item,paidDate:localToday()};
+  await putRemote(auth,state.user.id,'ledger',next);
+  state.data={...state.data,ledger:state.data.ledger.map(e=>e.id===id?next:e)};
+  try{safeSave(localStorage,state.user.id,state.data)}catch{/* cache opcional */}
+  render();delayToast('Baixa financeira registrada no Supabase.');
+ }catch(err){delayToast('Falha ao registrar baixa: '+String(err.message||err));}
+ finally{state.busy=false;}
+}
+function exportReport(){
+ const csv=reportCsv(state.data,state.finMonth);
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+ const url=URL.createObjectURL(blob);
+ const link=document.createElement('a');
+ link.href=url;link.download='civolten-relatorio-'+state.finMonth+'.csv';
+ document.body.appendChild(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+mount.addEventListener('change',event=>{
+ if(event.target.matches('[data-period]')&&/^\d{4}-\d{2}$/.test(event.target.value)){
+  state.finMonth=event.target.value;render();
+ }
+});
 mount.addEventListener('click',async event=>{
- const b=event.target.closest('[data-go],[data-action],[data-tab]');
+ const b=event.target.closest('[data-go],[data-action],[data-tab],[data-fin-filter]');
  if(!b)return;
  if(b.dataset.go){go(b.dataset.go);return;}
  if(b.dataset.tab){state.costTab=b.dataset.tab;render();return;}
+ if(b.dataset.finFilter){state.finFilter=b.dataset.finFilter;render();return;}
  const action=b.dataset.action;
  if(action==='auth-mode'){
   state.authMode=b.dataset.mode;state.authError='';render();
@@ -258,6 +291,11 @@ mount.addEventListener('click',async event=>{
  }else if(action==='month-info'){
   delayToast('Exibindo os valores mensais cadastrados. Histórico por mês virá depois.');
  }else if(action==='soon'){delayToast('Esta função será construída após aprovarmos a base.');}
+ else if(action==='new-income'){openEditor('ledger',null,'income');}
+ else if(action==='new-expense'){openEditor('ledger',null,'expense');}
+ else if(action==='mark-paid'){await markPaid(b.dataset.id);}
+ else if(action==='export-csv'){exportReport();}
+ else if(action==='print-report'){window.print();}
  else if(action==='new-cost'){openEditor(state.costTab);}
  else if(action==='new-employee'){openEditor('employees');}
  else if(action==='payroll-settings'){openEditor('payroll');}

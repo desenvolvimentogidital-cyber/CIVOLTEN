@@ -5,7 +5,8 @@ import {payrollConfig} from './payroll.mjs';
 export const TABLES={
  fixed:'cv_fixed_costs_v1',
  variable:'cv_variable_costs_v1',
- employees:'cv_employees_v1'
+ employees:'cv_employees_v1',
+ ledger:'cv_financial_entries_v1'
 };
 const normalize=(k,row)=>{
  if(k==='fixed')return {id:row.id,name:row.name,category:row.category||'',
@@ -13,6 +14,10 @@ const normalize=(k,row)=>{
  if(k==='variable')return {id:row.id,name:row.name,category:row.category||'',
   unit:row.unit,unitCost:Number(row.unit_cost),
   monthQty:row.month_qty===null?null:Number(row.month_qty)};
+ if(k==='ledger')return {id:row.id,kind:row.kind,title:row.title,
+  party:row.party||'',project:row.project||'',category:row.category||'',
+  amount:Number(row.amount),dueDate:row.due_date,paidDate:row.paid_date,
+  reference:row.reference||'',notes:row.notes||''};
  return {id:row.id,name:row.name,role:row.role,contractType:row.contract_type,
   active:row.active,salary:row.salary===null?null:Number(row.salary),
   hours:row.hours===null?null:Number(row.hours),
@@ -28,6 +33,10 @@ const payload=(k,item,userId)=>{
   amount:item.amount,frequency:item.frequency};
  if(k==='variable')return {...base,name:item.name,category:item.category,
   unit:item.unit,unit_cost:item.unitCost,month_qty:item.monthQty};
+ if(k==='ledger')return {...base,kind:item.kind,title:item.title,
+  party:item.party||'',project:item.project||'',category:item.category||'',
+  amount:item.amount,due_date:item.dueDate,paid_date:item.paidDate||null,
+  reference:item.reference||'',notes:item.notes||''};
  if(k==='employees')return {...base,name:item.name,role:item.role,
   contract_type:item.contractType,active:item.active,salary:item.salary??null,
   hours:item.hours??null,fgts_pct:item.fgtsPct??null,

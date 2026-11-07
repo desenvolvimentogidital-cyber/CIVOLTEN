@@ -51,5 +51,20 @@ test('outro usuário não consegue salvar, excluir ou ler registros alheios',asy
  assert.deepEqual((await fetchRemote(c,someone)).fixed,[]);
 });
 test('não existe tabela pública sem mapeamento',()=>{
- assert.deepEqual(Object.keys(TABLES),['fixed','variable','employees']);
+ assert.deepEqual(Object.keys(TABLES),['fixed','variable','employees','ledger']);
+});
+
+test('lançamentos de faturamento são persistidos e isolados por usuário',async()=>{
+ const c=createE2EClient();await c.auth.signInWithPassword({email:'teste@example.com'});
+ const invoice={id:'55555555-5555-4555-8555-555555555555',kind:'income',title:'Contrato',
+  amount:500,party:'Cliente',project:'Obra 1',category:'Serviço',dueDate:'2026-11-30',
+  paidDate:null,reference:'FAT-1',notes:''};
+ await putRemote(c,userId,'ledger',invoice);
+ const fetched=await fetchRemote(c,userId);
+ assert.equal(fetched.ledger[0].amount,500);
+ assert.equal(fetched.ledger[0].paidDate,null);
+ await putRemote(c,userId,'ledger',{...invoice,paidDate:'2026-11-10'});
+ assert.equal((await fetchRemote(c,userId)).ledger[0].paidDate,'2026-11-10');
+ await deleteRemote(c,userId,'ledger',invoice.id);
+ assert.equal((await fetchRemote(c,userId)).ledger.length,0);
 });

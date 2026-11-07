@@ -49,3 +49,25 @@ O modo de teste E2E somente é habilitado em localhost, nunca em produção. Os 
 ## Próximas etapas
 
 O fluxo de cadastro e login com e-mail real precisa ser validado no domínio de produção após o deploy. Orçamento, SIURB/SINAPI, propostas, cronograma e execução continuam desativados até serem reprojetados e aprovados. Não excluir o Neon ou a conta antiga sem conferir a estratégia de migração e recuperação.
+
+
+## Financeiro, faturamento e relatórios (v2)
+
+- **Início → Financeiro**: lançar receitas/faturamento e contas a pagar, com cliente/fornecedor,
+  obra, categoria, referência, valor e vencimento; editar/excluir e baixar como recebido/pago.
+- **Início → Relatórios**: receitas com vencimento no período, caixa efetivamente recebido/pago,
+  contas em aberto, atrasos, gráfico dos últimos seis meses, categorias de despesas pagas,
+  custos previstos da equipe/fixos/variáveis; exportação CSV UTF-8 para planilha e impressão em PDF.
+- O **faturamento é gerencial**, sem integração de emissão de NF-e, NFS-e ou boleto.
+  Não confundir recebível cadastrado com valor efetivamente recebido.
+- Os custos mensais e folha antigos continuam **previsões**. Só os lançamentos com data de
+  recebimento/pagamento movimentam o fluxo de caixa; não há duplicação automática.
+- **Banco:** nova tabela isolada \`cv_financial_entries_v1\` com RLS e políticas por usuário
+  definida em \`supabase/financeiro_schema_v2.sql\`. Aplique essa migração ao Supabase
+  CIVOLTEN-Orcamentos antes de publicar o frontend. Nenhuma tabela antiga deve ser excluída.
+- **Precisão:** valor monetário com duas casas decimais; somas internas em centavos.
+  Relatórios são gerenciais, não substituem contabilidade ou apuração fiscal.
+
+Os custos históricos cadastrados seguem nas tabelas originais. O módulo novo só apresenta
+receitas e pagamentos a partir dos lançamentos efetivamente informados: não inventa
+faturamento ou despesas pagas com base em orçamentos ou custos previstos.
