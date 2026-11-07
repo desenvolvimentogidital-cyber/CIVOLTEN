@@ -32,9 +32,9 @@ svg{display:block;flex-shrink:0}
 .industrial-skyline{position:absolute;inset:auto 0 8% 0;height:150px;z-index:0;opacity:.85;pointer-events:none;background-image:linear-gradient(0deg,#b8510960,transparent 76%),url('/assets/skyline.svg');background-position:center bottom,right bottom;background-size:100% 100%,auto 100%;background-repeat:no-repeat}
 .app-screen{min-height:100dvh;position:relative;background:radial-gradient(ellipse at 87% 81%,rgba(128,47,0,.22),transparent 34%),linear-gradient(130deg,#0b0b0c,#100d0d 42%,#09090a);isolation:isolate}
 .app-screen:before{content:"";position:absolute;pointer-events:none;top:0;left:0;width:43%;height:138px;clip-path:polygon(0 0,100% 0,0 98%);background:linear-gradient(132deg,#382316 0,#1b1411 58%,#d66b09 59%,#090909 60%);z-index:-1}
-.app-header{height:112px;padding:23px 12px 10px;display:flex;justify-content:center;align-items:center;position:relative;z-index:1}
-.app-header .brand-wordmark{width:min(86%,390px);max-height:88px;object-fit:contain;filter:drop-shadow(0 0 7px #fdab0048)}
-.app-scroll{position:relative;padding:9px 20px 155px;min-height:calc(100dvh - 112px);z-index:1}
+.app-header{height:151px;padding:12px 12px 5px;display:flex;justify-content:center;align-items:center;position:relative;z-index:1}
+.app-header .brand-wordmark{width:min(96%,440px);max-height:162px;object-fit:contain;filter:drop-shadow(0 0 7px #fdab0048)}
+.app-scroll{position:relative;padding:9px 20px 155px;min-height:calc(100dvh - 151px);z-index:1}
 .edge-glint{position:absolute;bottom:95px;left:-10px;width:39%;height:145px;clip-path:polygon(0 15%,100% 100%,0 100%);background:linear-gradient(140deg,#d3d4da,#4b4852 27%,#ffae13 29%,#150d06 32%,transparent 33%);pointer-events:none;opacity:.76}
 .app-skyline{bottom:88px;height:120px;opacity:.62}
 .bottom-nav{position:fixed;z-index:10;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,650px);min-height:83px;padding:10px 5px calc(10px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #a57634;border-bottom:0;border-radius:50px 50px 0 0/24px 24px 0 0;background:linear-gradient(150deg,#1d1a1a,#0a0a0c 65%,#1b1512);box-shadow:0 -6px 22px #da780030,inset 0 1px 2px #f6ddb052}
@@ -134,8 +134,8 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 .loading-stage{min-height:100dvh;display:grid;align-content:center;justify-items:center;gap:18px;color:#eed6aa}
 .loading-stage img{width:140px;max-width:60vw}.loading-stage span{font-size:13px}
 @media(max-width:410px){
- .app-header{height:91px;padding-top:14px}.app-header .brand-wordmark{max-height:77px}
- .app-scroll{padding:7px 15px 140px;min-height:calc(100dvh - 91px)}.dashboard{gap:21px}
+ .app-header{height:133px;padding:7px 9px 5px}.app-header .brand-wordmark{width:min(94%,380px);max-height:146px}
+ .app-scroll{padding:7px 15px 140px;min-height:calc(100dvh - 133px)}.dashboard{gap:21px}
  .welcome-text h1{font-size:21px}.metric-card{min-height:94px;gap:7px;padding:11px 7px}
  .metric-icon{padding-right:6px;min-width:28px}.metric-icon svg{width:24px}.metric-text span{font-size:10px}
  .metric-text strong{font-size:clamp(12px,3.7vw,16px)}.shortcut{min-height:88px;font-size:11px}.shortcut svg{width:24px}
