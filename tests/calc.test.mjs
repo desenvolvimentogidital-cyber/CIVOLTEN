@@ -14,12 +14,20 @@ test('fixos mensais e anuais e variável sem quantidade',()=>{
  assert.equal(variableMonthly({unitCost:20,monthQty:5}),10000);
  assert.equal(variableMonthly({unitCost:20,monthQty:null}),null);
 });
-test('funcionário CLT usa encargos informados, não estimativas inventadas',()=>{
- const r=employeeCost({contractType:'clt',salary:3000,hours:160,fgtsPct:8,
-  employerPct:20,benefits:300,extras:100});
- assert.equal(r.monthly,466667);assert.equal(r.hourly,2917);
- assert.equal(employeeCost({contractType:'clt',salary:3000,hours:160,fgtsPct:null,
-  employerPct:null}).monthly,null);
+test('CLT calcula automaticamente 13º, férias, FGTS, CPP e RAT usando cenário da empresa',()=>{
+ const r=employeeCost({contractType:'clt',salary:3000,hours:160,
+  benefits:300,extras:100});
+ assert.equal(r.monthly,505834);
+ assert.equal(r.hourly,3161);
+ assert.equal(r.breakdown.salary,300000);
+ assert.equal(r.breakdown.vacation,25000);
+ assert.equal(r.breakdown.thirteenth,25000);
+ assert.equal(r.breakdown.fgts,28667);
+ assert.equal(r.breakdown.employer,71667);
+ assert.equal(r.breakdown.rat,7167);
+ assert.equal(r.breakdown.terceiros,0);
+ assert.equal(r.estimated,true);
+ assert.equal(employeeCost({contractType:'clt',salary:2800}).monthly,434778);
 });
 test('prestador mensal e horário',()=>{
  const monthly=employeeCost({contractType:'contractor',rate:4000,
@@ -36,7 +44,7 @@ test('resumo distingue item pendente de custo real confirmado',()=>{
  d.employees.push({name:'Pedreiro',contractType:'clt',salary:3000,hours:160,fgtsPct:8,employerPct:20});
  const r=summary(d);
  assert.equal(r.fixed,120000);assert.equal(r.variable,20000);
- assert.equal(r.team,426667);assert.equal(r.total,566667);
+ assert.equal(r.team,465834);assert.equal(r.total,605834);
  assert.equal(r.missing,1);assert.equal(r.complete,false);
 });
 test('cada conta usa chave independente; nunca toca na base antiga',()=>{
