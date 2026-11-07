@@ -1,9 +1,10 @@
 import {createClient} from '@supabase/supabase-js';
-import {fetchRemote,putRemote,deleteRemote} from './cloud.mjs';
+import {fetchRemote,putRemote,deleteRemote,putPayrollRemote} from './cloud.mjs';
+import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
 import {signupOutcome,authMessage,repeatedSignupMessage,pendingEmailMessage} from './auth-flow.mjs';
 import {fresh,safeLoad,safeSave,validate,summary,employeeCost} from './calc.mjs';
-import {authView,shell,homeView,costsView,teamView,moreView,editorView,e,icon} from './views.mjs';
+import {authView,shell,homeView,costsView,teamView,moreView,editorView,payrollSettingsView,cltBreakdownHtml,e,icon} from './views.mjs';
 const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
 const SUPABASE_PUBLIC_KEY=__CIVOLTEN_SUPABASE_PUBLISHABLE_KEY__;
 const E2E=__CIVOLTEN_E2E__===true&&['127.0.0.1','localhost'].includes(location.hostname);
@@ -154,16 +155,47 @@ function go(view){
  if(window.scrollY)window.scrollTo({top:0,behavior:'instant'});
 }
 function openEditor(kind,id=null){
- if(!['fixed','variable','employees'].includes(kind))return;
+ if(!['fixed','variable','employees','payroll'].includes(kind))return;
  if(state.cloudError){delayToast('Banco indisponível: não é seguro editar antes de sincronizar.');return;}
+ if(kind==='payroll'){
+  state.editor={kind:'payroll'};
+  modal.innerHTML=payrollSettingsView(state.data.payroll);
+  modal.showModal();
+  return;
+ }
  const person=state.data[kind]?.find(x=>x.id===id)||{};
  state.editor={kind,id};
- modal.innerHTML=editorView(kind,person);
+ modal.innerHTML=editorView(kind,person,state.data.payroll);
  modal.showModal();
  toggleContractFields();
+ refreshCltPreview();
 }
 function closeEditor(){
  modal.close();modal.innerHTML='';state.editor=null;
+}
+function refreshCltPreview(){
+ const form=modal.querySelector('#record-form'),area=modal.querySelector('#clt-preview');
+ if(!form||!area)return;
+ const fields=Object.fromEntries(new FormData(form));
+ area.innerHTML=cltBreakdownHtml({salary:fields.salary,
+  benefits:fields.benefits,extras:fields.extras},state.data.payroll);
+}
+async function savePayrollSettings(form){
+ if(!state.user||state.cloudError)return;
+ const btn=form.querySelector('[type="submit"]');
+ if(btn)btn.disabled=true;
+ try{
+  const fields=Object.fromEntries(new FormData(form));
+  const rules=validatePayroll(fields);
+  await putPayrollRemote(auth,state.user.id,rules);
+  state.data={...state.data,payroll:rules};
+  try{safeSave(localStorage,state.user.id,state.data)}catch{/* cache opcional */}
+  closeEditor();render();
+  delayToast('Encargos da empresa atualizados. Custos CLT recalculados.');
+ }catch(err){
+  const node=form.querySelector('#form-error');
+  if(node){node.textContent=String(err.message||'Falha ao salvar');node.hidden=false;}
+ }finally{if(btn)btn.disabled=false;}
 }
 function toggleContractFields(){
  const form=modal.querySelector('#record-form');
@@ -228,6 +260,7 @@ mount.addEventListener('click',async event=>{
  }else if(action==='soon'){delayToast('Esta função será construída após aprovarmos a base.');}
  else if(action==='new-cost'){openEditor(state.costTab);}
  else if(action==='new-employee'){openEditor('employees');}
+ else if(action==='payroll-settings'){openEditor('payroll');}
  else if(action==='edit'){openEditor(b.dataset.kind,b.dataset.id);}
  else if(action==='signout'){await signOut();}
  else if(action==='search-people'){
@@ -254,9 +287,20 @@ modal.addEventListener('click',event=>{
  if(action==='delete-record')void removeRecord();
 });
 modal.addEventListener('change',event=>{
- if(event.target.name==='contractType')toggleContractFields();
+ if(event.target.name==='contractType'){toggleContractFields();refreshCltPreview();}
+ if(event.target.name==='regime'&&event.target.form?.id==='payroll-form'){
+  const p=payrollPreset(event.target.value);
+  for(const key of ['fgtsPct','employerPct','ratPct','terceirosPct'])
+   event.target.form.elements[key].value=p[key];
+ }
+});
+modal.addEventListener('input',event=>{
+ if(['salary','benefits','extras'].includes(event.target.name))refreshCltPreview();
 });
 modal.addEventListener('submit',event=>{
+ if(event.target.id==='payroll-form'){
+  event.preventDefault();void savePayrollSettings(event.target);return;
+ }
  if(event.target.id!=='record-form')return;
  event.preventDefault();void saveRecord(event.target);
 });
