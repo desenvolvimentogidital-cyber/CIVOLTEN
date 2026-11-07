@@ -93,23 +93,36 @@ const server=createServer((req,res)=>{
   await page.locator('#record-form [name="role"]').fill('Eletricista');
   await page.locator('#record-form [name="salary"]').fill('3000');
   await page.locator('#record-form [name="hours"]').fill('160');
-  await page.locator('#record-form [name="fgtsPct"]').fill('8');
-  await page.locator('#record-form [name="employerPct"]').fill('20');
+  assert.match(await page.locator('#clt-preview').innerText(),/4\.658,34/,
+   'O custo completo CLT deve aparecer automaticamente ao informar salário-base');
+  assert.equal(await page.locator('#record-form [name="fgtsPct"]').count(),0,
+   'Percentuais não devem ser pedidos em cada funcionário');
   await page.locator('#record-form button[type="submit"]').click();
   await page.locator('.employee-card').waitFor();
-  assert.match(await page.locator('.team-total').innerText(),/4\.266,67/);
+  assert.match(await page.locator('.team-total').innerText(),/4\.658,34/);
   await page.screenshot({path:'test-artifacts/funcionarios.png',fullPage:true});
   await page.locator('[data-go="home"]').last().click();
   const total=await page.evaluate(()=>window.CIVOLTENPreview.summary().total);
-  assert.equal(total,596667,'Total deve incluir fixos, variáveis e equipe');
+  assert.equal(total,635834,'Total deve incluir fixos, variáveis e equipe CLT completa');
+  // As alíquotas ficam nas Configurações da empresa e alteram o custo de todos.
+  await page.locator('.bottom-nav [data-go="more"]').click();
+  await page.locator('[data-action="payroll-settings"]').click();
+  await page.locator('#payroll-form [name="regime"]').selectOption('simples_other');
+  assert.equal(await page.locator('#payroll-form [name="employerPct"]').inputValue(),'0');
+  assert.equal(await page.locator('#payroll-form [name="ratPct"]').inputValue(),'0');
+  await page.locator('#payroll-form [type="submit"]').click();
+  await page.locator('.settings-panel').waitFor();
+  await page.locator('.bottom-nav [data-go="team"]').click();
+  assert.match(await page.locator('.team-total').innerText(),/3\.870,00/);
+  assert.equal(await page.evaluate(()=>window.CIVOLTENPreview.summary().total),557000);
   await page.reload({waitUntil:'networkidle'});
   await page.locator('.auth-page').waitFor();
   await page.locator('#auth-form [name="email"]').fill('teste@example.com');
   await page.locator('#auth-form [name="password"]').fill('SenhaForte123');
   await page.locator('#auth-form button[type="submit"]').click();
   await page.locator('.dashboard').waitFor();
-  assert.equal(await page.evaluate(()=>window.CIVOLTENPreview.summary().total),596667,
-   'Salvos locais não podem sumir ao fechar/abrir sessão');
+  assert.equal(await page.evaluate(()=>window.CIVOLTENPreview.summary().total),557000,
+   'Encargos da empresa e todos os cadastros devem permanecer salvos no Supabase');
   await page.locator('.bottom-nav [data-go="more"]').click();
   await page.locator('[data-action="signout"]').click();
   await page.locator('.auth-page').waitFor();
