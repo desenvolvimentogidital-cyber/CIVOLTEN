@@ -2,6 +2,7 @@
 // Este módulo não usa chave de administrador nem ignora políticas do banco.
 import {fresh} from './calc.mjs';
 import {payrollConfig} from './payroll.mjs';
+import {companyConfig} from './pricing.mjs';
 export const TABLES={
  fixed:'cv_fixed_costs_v1',
  variable:'cv_variable_costs_v1',
@@ -67,6 +68,16 @@ export async function fetchRemote(client,userId){
   employerPct:Number(one.employer_pct),ratPct:Number(one.rat_pct),
   terceirosPct:Number(one.terceiros_pct),reviewed:one.reviewed
  }:null);
+ const {data:org,error:orgError}=await client.from('cv_company_settings_v1')
+  .select('*').eq('user_id',userId).order('created_at',{ascending:true});
+ if(orgError)throw Error('Falha ao carregar configurações da empresa: '+orgError.message);
+ const a=org?.[0];
+ out.company=companyConfig(a?{
+  companyName:a.company_name,taxRegime:a.tax_regime,annex:a.annex,
+  taxPct:Number(a.tax_pct),marginPct:Number(a.margin_pct),
+  productiveDays:a.productive_days,hoursPerDay:Number(a.hours_per_day),
+  productivePeople:a.productive_people,theme:a.theme,reviewed:a.reviewed
+ }:null);
  return out;
 }
 export async function putRemote(client,userId,kind,item){
@@ -89,6 +100,20 @@ export async function deleteRemote(client,userId,kind,id){
  return true;
 }
 
+export async function putCompanyRemote(client,userId,config){
+ checkId(userId);
+ const c=companyConfig(config);
+ const row={user_id:userId,company_name:c.companyName,tax_regime:c.taxRegime,
+  annex:c.annex,tax_pct:c.taxPct,margin_pct:c.marginPct,
+  productive_days:c.productiveDays,hours_per_day:c.hoursPerDay,
+  productive_people:c.productivePeople,theme:c.theme,reviewed:c.reviewed,
+  updated_at:new Date().toISOString()};
+ const {data,error}=await client.from('cv_company_settings_v1')
+  .upsert(row,{onConflict:'user_id'}).select('user_id').single();
+ if(error)throw Error('Não foi possível salvar as configurações da empresa: '+error.message);
+ if(data?.user_id!==userId)throw Error('O banco não confirmou as configurações da empresa.');
+ return true;
+}
 export async function putPayrollRemote(client,userId,config){
  checkId(userId);
  const row={user_id:userId,regime:config.regime,
