@@ -1,4 +1,5 @@
 import {brl,employeeCost,fixedMonthly,variableMonthly,summary,fmt} from './calc.mjs';
+import {payrollConfig,payrollPreset} from './payroll.mjs';
 const SHAPES={
  home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
  coins:'<ellipse cx="8" cy="6" rx="5" ry="2.5"/><path d="M3 6v5c0 1.5 2 2.5 5 2.5s5-1 5-2.5V6M3 11v5c0 1.5 2 2.5 5 2.5 1.1 0 2-.1 2.8-.3"/><ellipse cx="17" cy="12" rx="5" ry="2.5"/><path d="M12 12v6c0 1.5 2 2.5 5 2.5s5-1 5-2.5v-6"/>',
@@ -142,12 +143,12 @@ export function teamView(data){
   '<div class="team-search" id="team-search" hidden><label>'+icon('search',20)+
   '<input type="search" id="search-people" placeholder="Buscar profissional"></label></div>'+
   '<div class="employee-list">'+(staff.length?staff.map(person=>{
-   const c=employeeCost(person),initials=person.name.split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+   const c=employeeCost(person,data.payroll),initials=person.name.split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();
    return '<button class="employee-card" type="button" data-action="edit" data-kind="employees" data-id="'+e(person.id)+'" data-search-name="'+e(person.name.toLowerCase())+'">'+
    '<span class="employee-top"><span class="employee-avatar"><span>'+e(initials)+'</span></span>'+
    '<span class="employee-info"><b>'+e(person.name)+'</b><em>'+e(person.role||'Profissional')+'</em></span>'+
    '<span class="staff-pill '+(person.active===false?'inactive':'')+'"><span></span>'+(person.active===false?'Inativo':'Ativo')+'</span></span>'+
-   '<span class="employee-bottom"><span class="staff-value">'+icon('calendar',19)+'<span>Custo mensal<b>'+brl(c.monthly)+'</b></span></span>'+
+   '<span class="employee-bottom"><span class="staff-value">'+icon('calendar',19)+'<span>Custo mensal'+(person.contractType==='clt'?' estimado':'')+'<b>'+brl(c.monthly)+'</b></span></span>'+
    '<span class="staff-value">'+icon('clock',19)+'<span>Custo por hora<b>'+brl(c.hourly)+'</b></span></span></span></button>';
   }).join(''):'<div class="empty-state">'+icon('users',32)+'<b>Nenhum funcionário cadastrado</b>'+
   '<span>Cadastre o primeiro profissional para iniciar.</span></div>')+'</div>'+
@@ -159,18 +160,19 @@ export function moreView(user,data){
  '<h1>Configurações</h1><span class="small-square is-empty"></span></div>'+
  '<div class="settings-panel"><div class="settings-user">'+icon('user',34)+'<div><b>'+e(user?.user_metadata?.name||user?.name||'Sua conta')+'</b><span>'+e(user?.email||'')+'</span></div></div>'+
  '<button data-go="costs" class="settings-row">'+icon('coins',21)+' Custos da empresa '+icon('chevron',17)+'</button>'+
- '<button data-go="team" class="settings-row">'+icon('users',21)+' Funcionários '+icon('chevron',17)+'</button>'+
+ '<button data-go="team" class="settings-row">'+icon('users',21)+' Funcionários '+icon('chevron',17)+'</button>'+ 
+ '<button data-action="payroll-settings" class="settings-row">'+icon('settings',21)+' Encargos CLT da empresa '+icon('chevron',17)+'</button>'+
  '<button data-action="soon" class="settings-row">'+icon('file',21)+' Relatórios (em breve) '+icon('chevron',17)+'</button>'+
  '<button data-action="signout" class="settings-row danger">'+icon('logout',21)+' Sair da conta '+icon('chevron',17)+'</button></div>'+
- '<div class="notice-privacy">Os dados cadastrados ficam neste aparelho e são separados por conta. Sincronização entre aparelhos ainda não foi ativada.</div>'+
- '<div class="notice-privacy">Custos com informação incompleta: <b>'+sum.missing+'</b>. Os totais são estimativas até a revisão.</div>';
+ '<div class="notice-privacy">Custos e funcionários são salvos no Supabase da sua conta. Os percentuais CLT são estimativas revisáveis nas configurações.</div>'+
+ '<div class="notice-privacy">Regime CLT: <b>'+e(payrollLabel(data.payroll?.regime))+'</b>'+(data.payroll?.reviewed?' · Configuração revisada':' · Cenário inicial; confirme com a contabilidade.')+'<p>Cadastros pendentes: '+sum.missing+'</p></div>';
 }
 const textInput=(label,name,value='',opts={})=>'<label class="modal-field"><span>'+label+'</span>'+
  '<input name="'+name+'" type="'+(opts.type||'text')+'" placeholder="'+(opts.placeholder||'')+'" value="'+e(value??'')+'" '+(opts.required?'required':'')+
  (opts.type==='number'?' step="any" min="0" inputmode="decimal"':'')+'></label>';
 const select=(label,name,value,values)=>'<label class="modal-field"><span>'+label+'</span><select name="'+name+'">'+
  values.map(([id,title])=>'<option value="'+id+'" '+(id===String(value)?'selected':'')+'>'+title+'</option>').join('')+'</select></label>';
-export function editorView(kind,item={}){
+export function editorView(kind,item={},settings=null){
  const isEmployee=kind==='employees',isFixed=kind==='fixed';
  const title=isEmployee?'Funcionário':isFixed?'Custo fixo':'Custo variável';
  let fields=isEmployee?textInput('Nome completo','name',item.name||'',{required:true})+
@@ -178,11 +180,11 @@ export function editorView(kind,item={}){
  select('Vínculo','contractType',item.contractType||'clt',[['clt','CLT'],['contractor','Prestador / terceirizado']])+
  '<div class="employee-fields" data-contract="clt">'+
  textInput('Salário-base mensal (R$)','salary',item.salary??'',{type:'number'})+
- textInput('Horas produtivas por mês','hours',item.hours??'',{type:'number'})+
- '<div class="form-cols">'+textInput('FGTS (%)','fgtsPct',item.fgtsPct??'',{type:'number'})+
- textInput('Encargos patronais (%)','employerPct',item.employerPct??'',{type:'number'})+'</div>'+
+ '<p class="helper-text">FGTS, 13º, férias e encargos são calculados automaticamente usando as configurações da empresa.</p>'+
+ textInput('Horas produtivas por mês (opcional, para custo/hora)','hours',item.hours??'',{type:'number'})+
  '<div class="form-cols">'+textInput('Benefícios (R$)','benefits',item.benefits??'',{type:'number'})+
- textInput('Outros custos (R$)','extras',item.extras??'',{type:'number'})+'</div></div>'+
+ textInput('Outros custos (R$)','extras',item.extras??'',{type:'number'})+'</div>'+
+ '<div id="clt-preview" class="clt-preview" aria-live="polite"></div></div>'+
  '<div class="employee-fields" data-contract="contractor">'+
  textInput('Valor contratado (R$)','rate',item.rate??'',{type:'number'})+
  select('Cobrança por','rateUnit',item.rateUnit||'hour',[['hour','Hora'],['day','Dia'],['month','Mês']])+
@@ -199,9 +201,51 @@ export function editorView(kind,item={}){
  return '<div class="modal-inner"><div class="modal-heading"><h2>'+(item.id?'Editar '+title:'Novo '+title.toLowerCase())+'</h2>'+
  '<button class="small-square" data-action="close-modal" aria-label="Fechar">×</button></div>'+
  '<form id="record-form"><div class="modal-fields">'+fields+'</div>'+
- (isEmployee?'<p class="helper-text">A CIVOLTEN calcula o custo/hora automaticamente com base no que você cadastrar. Encargos não informados ficam pendentes.</p>':'')+
+ (isEmployee?'<p class="helper-text">Custo CLT gerencial estimado, não é cálculo definitivo da folha. Ajuste o regime e as alíquotas em Mais → Encargos CLT.</p>':'')+
  '<p class="form-error" role="alert" id="form-error" hidden></p>'+
  '<div class="modal-buttons"><button type="button" class="outlined-button" data-action="close-modal">Cancelar</button>'+
  '<button type="submit" class="gold-button">Salvar</button></div></form>'+
  (item.id?'<button type="button" class="delete-link" data-action="delete-record">Excluir cadastro</button>':'')+'</div>';
+}
+
+export function payrollLabel(regime){
+ return ({annex_iv:'Simples Nacional — Anexo IV',simples_other:'Simples Nacional — outros anexos',
+  general:'Lucro Presumido / Real'})[regime]||'Simples Nacional — Anexo IV';
+}
+const breakRow=(label,money)=>'<div class="clt-breakdown-row"><span>'+label+'</span><strong>'+brl(money)+'</strong></div>';
+export function cltBreakdownHtml(p,settings){
+ const cost=employeeCost({...p,contractType:'clt'},settings);
+ if(cost.monthly===null)return '<p class="helper-text">Informe o salário-base para visualizar o custo automático.</p>';
+ const b=cost.breakdown;
+ return '<div class="clt-preview-heading">Custo total mensal estimado<strong>'+brl(cost.monthly)+'</strong></div>'+
+  breakRow('Salário-base',b.salary)+breakRow('13º proporcional',b.thirteenth)+
+  breakRow('Provisão para férias/cobertura',b.vacation)+
+  breakRow('Adicional de 1/3 de férias',b.vacationThird)+
+  breakRow('FGTS ('+b.rates.fgtsPct+'%)',b.fgts)+
+  breakRow('INSS patronal/CPP ('+b.rates.employerPct+'%)',b.employer)+
+  breakRow('RAT estimado ('+b.rates.ratPct+'%)',b.rat)+
+  breakRow('Outras entidades ('+b.rates.terceirosPct+'%)',b.terceiros)+
+  breakRow('Benefícios informados',b.benefits)+breakRow('Outros custos informados',b.extras)+
+  '<p class="helper-text">'+(b.reviewed?'Alíquotas revisadas na empresa.':'Alíquotas iniciais ainda não revisadas com o contador.')+
+  ' Férias/cobertura é provisão gerencial, não uma cobrança extra na folha mensal. Não inclui verbas variáveis ou rescisão.</p>';
+}
+export function payrollSettingsView(settings){
+ const cfg=payrollConfig(settings);
+ const sel=(name,values,value)=>'<label class="modal-field"><span>Regime da empresa</span><select name="'+name+'">'+
+  values.map(([k,label])=>'<option value="'+k+'"'+(value===k?' selected':'')+'>'+label+'</option>').join('')+'</select></label>';
+ const pct=(name,label,val)=>textInput(label+' (%)',name,val,{type:'number',required:true});
+ return '<div class="modal-inner"><div class="modal-heading"><h2>Encargos CLT da empresa</h2>'+
+  '<button type="button" class="small-square" data-action="close-modal" aria-label="Fechar">×</button></div>'+
+  '<p class="helper-text">Configure uma vez. O custo de todos os funcionários CLT será recalculado automaticamente a partir do salário-base. Os percentuais abaixo são um cenário inicial para construção civil, não sua classificação tributária confirmada.</p>'+
+  '<form id="payroll-form"><div class="modal-fields">'+
+  sel('regime',[['annex_iv',payrollLabel('annex_iv')],
+   ['simples_other',payrollLabel('simples_other')],['general',payrollLabel('general')]],cfg.regime)+
+  '<div class="form-cols">'+pct('fgtsPct','FGTS',cfg.fgtsPct)+
+  pct('employerPct','INSS patronal/CPP',cfg.employerPct)+'</div>'+
+  '<div class="form-cols">'+pct('ratPct','RAT/FAP estimado',cfg.ratPct)+
+  pct('terceirosPct','Outras entidades',cfg.terceirosPct)+'</div></div>'+
+  '<p class="helper-text">Se mudar o regime, os percentuais serão sugeridos para aquele cenário; confira RAT/FAP, terceiros e benefícios com a contabilidade antes de usar em orçamentos.</p>'+
+  '<p class="form-error" id="form-error" role="alert" hidden></p>'+
+  '<div class="modal-buttons"><button type="button" class="outlined-button" data-action="close-modal">Cancelar</button>'+
+  '<button type="submit" class="gold-button">Salvar regras</button></div></form></div>';
 }
