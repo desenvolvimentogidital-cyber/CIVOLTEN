@@ -1,7 +1,9 @@
 /* CIVOLTEN: nuvem opcional, sem alterações automáticas dos dados locais. */
 import { createAuthClient } from '@neon/auth';
 const authURL=__CIVOLTEN_NEON_AUTH_URL__;
-const auth=authURL?createAuthClient(authURL):null;
+// O modo de teste só existe em builds de CI e só atua em localhost.
+const localTest=__CIVOLTEN_BROWSER_TEST_MODE__&&['localhost','127.0.0.1'].includes(location.hostname);
+const auth=authURL&&!localTest?createAuthClient(authURL):null;
 const STORAGE='civolten_daily_v2',LEGACY='civolten_premium_proto_v1';
 const host=document.createElement('div');
 host.innerHTML=[
@@ -187,7 +189,7 @@ window.addEventListener('pageshow',()=>{if(isAuto())scheduleAuto();});
 // Nenhum dado local é apagado ao sair. Outra conta fica bloqueada pelo vínculo.
 const loginScreen=window.CIVOLTENAuthScreen?.mount({
  auth,ownerKey:KEY_OWNER,storageKey:STORAGE,
- devFallback:true, // Apenas CI/desenvolvimento em localhost sem Neon configurado.
+ devFallback:localTest, // Apenas CI em localhost; nunca em produção.
  onAccess:()=>refresh().catch(e=>note(e.message||'Falha ao consultar conta')),
  onExit:()=>{currentUserId=null;clearTimeout(scheduled);
   login.hidden=false;actions.hidden=true;note('Sessão encerrada; dados locais preservados.');}
