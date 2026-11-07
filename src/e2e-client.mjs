@@ -53,7 +53,7 @@ export function createE2EClient(){
      const db=read(),all=db[table]||[],i=all.findIndex(x=>x.id===row.id);
      if(i>=0)all[i]=row;else all.push(row);
      db[table]=all;save(db);
-     return {data:{id:row.id},error:null};
+     return {data:{id:row.id,user_id:row.user_id},error:null};
     }})};
    },
    delete(){
