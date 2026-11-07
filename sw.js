@@ -1,4 +1,4 @@
-const CACHE='civolten-premium-ui-v2-20261107-finance';
+const CACHE='civolten-premium-ui-v3-20261107-pricing';
 const PRECACHE=['/','/index.html','/styles.css','/app.js','/manifest.webmanifest',
 '/assets/civolten-logo.png','/assets/civolten-simbolo.png','/assets/skyline.svg',
 '/assets/icon-192.png','/assets/icon-512.png'];
