@@ -60,6 +60,6 @@ test('validação de dados não aceita horas, salário ou percentuais negativos'
  assert.throws(()=>validate('fixed',{name:'',amount:300}),/descrição/);
  assert.throws(()=>validate('fixed',{name:'Aluguel',amount:-1}),/válido/);
  assert.throws(()=>validate('employees',{name:'João',role:'Pedreiro',contractType:'clt',
- salary:3000,fgtsPct:-8}),/entre 0%/);
+ salary:3000,hours:-8}),/maiores que zero/);
  assert.deepEqual(validate('variable',{name:'Gás',unitCost:75,monthQty:''}).monthQty,null);
 });
