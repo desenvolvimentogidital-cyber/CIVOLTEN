@@ -1,0 +1,19 @@
+{
+  "name": "civolten-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CIVOLTEN — interface mobile premium aprovada, custos e funcionários",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/calc.test.mjs",
+    "test:browser": "node tests/browser.cjs"
+  },
+  "dependencies": {
+    "@neon/auth": "0.8.2"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "playwright": "1.56.1"
+  }
+}
