@@ -1,7 +1,9 @@
 /* CIVOLTEN: nuvem opcional, sem alterações automáticas dos dados locais. */
 import { createAuthClient } from '@neon/auth';
 const authURL=__CIVOLTEN_NEON_AUTH_URL__;
-const auth=authURL?createAuthClient(authURL):null;
+// O modo de teste só existe em builds de CI e só atua em localhost.
+const localTest=__CIVOLTEN_BROWSER_TEST_MODE__&&['localhost','127.0.0.1'].includes(location.hostname);
+const auth=authURL&&!localTest?createAuthClient(authURL):null;
 const STORAGE='civolten_daily_v2',LEGACY='civolten_premium_proto_v1';
 const host=document.createElement('div');
 host.innerHTML=[
@@ -86,6 +88,7 @@ async function sign(signUp){
   const result=signUp?await auth.signUp.email({name:email.split('@')[0]||'Usuário',email,password}):await auth.signIn.email({email,password});
   if(result.error)throw new Error(result.error.message||'Falha de autenticação');
   by('cv-cloud-pass').value='';await refresh();
+  await loginScreen?.checkSession();
  }catch(e){note(e.message||'Não foi possível autenticar');}
  finally{setBusy(false);}
 }
@@ -131,7 +134,14 @@ by('cv-cloud-signin').addEventListener('click',()=>sign(false));
 by('cv-cloud-signup').addEventListener('click',()=>sign(true));
 by('cv-cloud-upload').addEventListener('click',upload);
 by('cv-cloud-restore').addEventListener('click',restore);
-by('cv-cloud-logout').addEventListener('click',async()=>{setBusy(true);try{await auth.signOut();await refresh();}catch(e){note(e.message)}finally{setBusy(false)}});
+by('cv-cloud-logout').addEventListener('click',async()=>{
+ setBusy(true);
+ try{if(loginScreen)await loginScreen.signOut();
+  else if(auth)await auth.signOut();
+  await refresh();
+ }catch(e){note(e.message||'Falha ao sair da conta')}
+ finally{setBusy(false)}
+});
 
 
 // O backup automático só começa após consentimento, e só atualiza revisões
@@ -174,3 +184,14 @@ by('cv-cloud-auto').addEventListener('change',async event=>{
 window.addEventListener('civolten:local-saved',()=>scheduleAuto());
 window.addEventListener('online',()=>scheduleAuto());
 window.addEventListener('pageshow',()=>{if(isAuto())scheduleAuto();});
+
+// A tela de login é obrigatória na produção e usa o MESMO Neon Auth do backup.
+// Nenhum dado local é apagado ao sair. Outra conta fica bloqueada pelo vínculo.
+const loginScreen=window.CIVOLTENAuthScreen?.mount({
+ auth,ownerKey:KEY_OWNER,storageKey:STORAGE,
+ devFallback:localTest, // Apenas CI em localhost; nunca em produção.
+ onAccess:()=>refresh().catch(e=>note(e.message||'Falha ao consultar conta')),
+ onExit:()=>{currentUserId=null;clearTimeout(scheduled);
+  login.hidden=false;actions.hidden=true;note('Sessão encerrada; dados locais preservados.');}
+});
+

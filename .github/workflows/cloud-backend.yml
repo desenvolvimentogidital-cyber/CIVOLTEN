@@ -2,9 +2,9 @@ name: CIVOLTEN API Neon
 on:
   push:
     branches: [main]
-    paths: ['reference-integrity-core.js','automation-coverage.js','sinapi-import.js','siurb.js','sinapi-reference-parser.js','tests/reference-integrity.cjs','tests/reference-imports.cjs','auto-productivity-core.js','daily-workflow.js','quick-quote-item.js','quote-automation.js','financial-audit.js','tests/auto-productivity.cjs','proposal-layout.js','automation-risk-core.js','automation-review.js','tests/automation-risk.cjs','tests/smoke-browser.cjs','api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','client/**','scripts/**','operations*.js','tests/operations.cjs','index.html','sw.js','vercel.json','.github/workflows/cloud-backend.yml']
+    paths: ['reference-integrity-core.js','automation-coverage.js','sinapi-import.js','siurb.js','sinapi-reference-parser.js','tests/reference-integrity.cjs','tests/reference-imports.cjs','auto-productivity-core.js','daily-workflow.js','quick-quote-item.js','quote-automation.js','financial-audit.js','tests/auto-productivity.cjs','proposal-layout.js','automation-risk-core.js','automation-review.js','tests/automation-risk.cjs','tests/smoke-browser.cjs','api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','client/**','scripts/**','operations*.js','tests/operations.cjs','index.html','sw.js','auth-screen.js','tests/auth-screen.cjs','vercel.json','.github/workflows/cloud-backend.yml']
   pull_request:
-    paths: ['client/**','index.html','sw.js','tests/smoke-browser.cjs','reference-integrity-core.js','automation-coverage.js','sinapi-import.js','siurb.js','sinapi-reference-parser.js','tests/reference-integrity.cjs','tests/reference-imports.cjs','auto-productivity-core.js','daily-workflow.js','quick-quote-item.js','quote-automation.js','financial-audit.js','tests/auto-productivity.cjs','proposal-layout.js','automation-risk-core.js','automation-review.js','api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','.github/workflows/cloud-backend.yml']
+    paths: ['client/**','index.html','sw.js','auth-screen.js','tests/auth-screen.cjs','tests/smoke-browser.cjs','reference-integrity-core.js','automation-coverage.js','sinapi-import.js','siurb.js','sinapi-reference-parser.js','tests/reference-integrity.cjs','tests/reference-imports.cjs','auto-productivity-core.js','daily-workflow.js','quick-quote-item.js','quote-automation.js','financial-audit.js','tests/auto-productivity.cjs','proposal-layout.js','automation-risk-core.js','automation-review.js','api/cloud-state.js','tests/cloud-state.cjs','package.json','db/migrations/**','.github/workflows/cloud-backend.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,9 +21,12 @@ jobs:
       - name: Compilar PWA e Neon Auth
         env:
           NEON_AUTH_BASE_URL: https://example.invalid/civolten/auth
+          CIVOLTEN_BROWSER_TEST_MODE: 'true'
         run: npm run build
       - name: Conferir arquivos publicados
-        run: test -s dist/index.html && test -s dist/cloud-sync.js && test -s dist/sw.js && test -s dist/proposal-layout.js && test -s dist/automation-review.js && test -s dist/reference-integrity-core.js && test -s dist/automation-coverage.js && test -s dist/auto-productivity-core.js
+        run: test -s dist/index.html && test -s dist/cloud-sync.js && test -s dist/sw.js && test -s dist/proposal-layout.js && test -s dist/automation-review.js && test -s dist/reference-integrity-core.js && test -s dist/automation-coverage.js && test -s dist/auto-productivity-core.js && test -s dist/auth-screen.js
+      - name: Testar vínculo da conta, sessão e proteção de dados locais
+        run: node --test tests/auth-screen.cjs
       - name: Validar contrato da API, conflitos e autenticação
         run: node --test tests/cloud-state.cjs
       - name: Reexecutar auditoria financeira
@@ -37,7 +40,7 @@ jobs:
       - name: Conferir importação de referências, índices, preço e conflito
         run: node --test tests/reference-integrity.cjs tests/reference-imports.cjs
       - name: Verificar sintaxe dos módulos operacionais
-        run: node --check reference-integrity-core.js && node --check automation-coverage.js && node --check sinapi-reference-parser.js && node --check sinapi-import.js && node --check siurb.js && node --check auto-productivity-core.js && node --check daily-workflow.js && node --check quote-automation.js && node --check quick-quote-item.js && node --check operations.js && node --check operations-core.js && node --check client/cloud-sync.mjs && node --check proposal-layout.js && node --check automation-risk-core.js && node --check automation-review.js
+        run: node --check auth-screen.js && node --check reference-integrity-core.js && node --check automation-coverage.js && node --check sinapi-reference-parser.js && node --check sinapi-import.js && node --check siurb.js && node --check auto-productivity-core.js && node --check daily-workflow.js && node --check quote-automation.js && node --check quick-quote-item.js && node --check operations.js && node --check operations-core.js && node --check client/cloud-sync.mjs && node --check proposal-layout.js && node --check automation-risk-core.js && node --check automation-review.js
       - name: Instalar navegador gratuito para teste de ponta a ponta
         run: npx playwright install --with-deps chromium
       - name: Testar interface no Chromium
