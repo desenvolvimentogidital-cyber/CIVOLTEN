@@ -85,6 +85,12 @@ const server=createServer((req,res)=>{
   await page.locator('.bottom-nav [data-go="more"]').click();
   await page.locator('[data-action="signout"]').click();
   await page.locator('.auth-page').waitFor();
+  await page.goto('http://127.0.0.1:'+port+'/?token=token-de-teste',{waitUntil:'networkidle'});
+  await page.locator('#auth-form [name="password"]').fill('NovaSenhaForte123');
+  await page.locator('#auth-form button[type="submit"]').click();
+  await page.locator('#auth-form [name="email"]').waitFor();
+  assert.equal(new URL(page.url()).searchParams.has('token'),false,
+    'A senha não deve ficar exposta por parâmetros antigos após recuperação');
   assert.deepEqual(errors,[],'Erros JavaScript encontrados: '+errors.join('; '));
   console.log('PASSOU: login, identidade visual, painel, custos, equipe, recarga e saída da conta');
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
