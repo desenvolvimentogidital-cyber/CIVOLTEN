@@ -1,0 +1,57 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {decimal,cents,fixedMonthly,variableMonthly,employeeCost,
+ summary,validate,fresh,safeLoad,safeSave,brl} from '../src/calc.mjs';
+test('real brasileiro é convertido sem transformar vazio em zero',()=>{
+ assert.equal(decimal('1.250,99'),1250.99);
+ assert.equal(cents('1.250,99'),125099);
+ assert.equal(cents(''),null);
+ assert.match(brl(120000),/1\.200,00/);
+});
+test('fixos mensais e anuais e variável sem quantidade',()=>{
+ assert.equal(fixedMonthly({amount:1200,frequency:'monthly'}),120000);
+ assert.equal(fixedMonthly({amount:1200,frequency:'annual'}),10000);
+ assert.equal(variableMonthly({unitCost:20,monthQty:5}),10000);
+ assert.equal(variableMonthly({unitCost:20,monthQty:null}),null);
+});
+test('funcionário CLT usa encargos informados, não estimativas inventadas',()=>{
+ const r=employeeCost({contractType:'clt',salary:3000,hours:160,fgtsPct:8,
+  employerPct:20,benefits:300,extras:100});
+ assert.equal(r.monthly,466667);assert.equal(r.hourly,2917);
+ assert.equal(employeeCost({contractType:'clt',salary:3000,hours:160,fgtsPct:null,
+  employerPct:null}).monthly,null);
+});
+test('prestador mensal e horário',()=>{
+ const monthly=employeeCost({contractType:'contractor',rate:4000,
+  rateUnit:'month',hours:160});
+ assert.equal(monthly.monthly,400000);assert.equal(monthly.hourly,2500);
+ const daily=employeeCost({contractType:'contractor',rate:250,
+  rateUnit:'day',hours:8,quantity:20});
+ assert.equal(daily.monthly,500000);assert.equal(daily.hourly,3125);
+});
+test('resumo distingue item pendente de custo real confirmado',()=>{
+ const d=fresh();
+ d.fixed.push({amount:1200,frequency:'monthly'});
+ d.variable.push({unitCost:20,monthQty:10},{unitCost:30,monthQty:null});
+ d.employees.push({name:'Pedreiro',contractType:'clt',salary:3000,hours:160,fgtsPct:8,employerPct:20});
+ const r=summary(d);
+ assert.equal(r.fixed,120000);assert.equal(r.variable,20000);
+ assert.equal(r.team,426667);assert.equal(r.total,566667);
+ assert.equal(r.missing,1);assert.equal(r.complete,false);
+});
+test('cada conta usa chave independente; nunca toca na base antiga',()=>{
+ const mem=new Map([['civolten_daily_v2','{"quotes":[{"id":"q-antigo"}]}']]);
+ const storage={getItem:k=>mem.get(k)||null,setItem:(k,v)=>mem.set(k,v)};
+ const d=fresh();d.fixed.push({name:'Aluguel',amount:1000,frequency:'monthly'});
+ safeSave(storage,'user-a',d);
+ assert.equal(safeLoad(storage,'user-a').fixed.length,1);
+ assert.equal(safeLoad(storage,'user-b').fixed.length,0);
+ assert.match(mem.get('civolten_daily_v2'),/q-antigo/);
+});
+test('validação de dados não aceita horas, salário ou percentuais negativos',()=>{
+ assert.throws(()=>validate('fixed',{name:'',amount:300}),/descrição/);
+ assert.throws(()=>validate('fixed',{name:'Aluguel',amount:-1}),/válido/);
+ assert.throws(()=>validate('employees',{name:'João',role:'Pedreiro',contractType:'clt',
+ salary:3000,fgtsPct:-8}),/entre 0%/);
+ assert.deepEqual(validate('variable',{name:'Gás',unitCost:75,monthQty:''}).monthQty,null);
+});
