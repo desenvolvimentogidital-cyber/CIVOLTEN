@@ -11,6 +11,7 @@ function testAuth(){
   signUp:{email:async({name,email})=>({data:{user:{id:'test-user',name,email}}})},
   signIn:{email:async({email})=>{user={id:'test-user',name:'Teste CIVOLTEN',email};return {data:{user}}}},
   signOut:async()=>{user=null;return {data:null}},
+  resetPassword:async()=>({data:{success:true}}),
   requestPasswordReset:async()=>({data:true})
  };
 }
