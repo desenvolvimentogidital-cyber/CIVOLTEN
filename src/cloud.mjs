@@ -1,0 +1,71 @@
+// CIVOLTEN: todos os cadastros são isolados por auth.uid() via RLS no Supabase.
+// Este módulo não usa chave de administrador nem ignora políticas do banco.
+import {fresh} from './calc.mjs';
+export const TABLES={
+ fixed:'cv_fixed_costs_v1',
+ variable:'cv_variable_costs_v1',
+ employees:'cv_employees_v1'
+};
+const normalize=(k,row)=>{
+ if(k==='fixed')return {id:row.id,name:row.name,category:row.category||'',
+  amount:Number(row.amount),frequency:row.frequency};
+ if(k==='variable')return {id:row.id,name:row.name,category:row.category||'',
+  unit:row.unit,unitCost:Number(row.unit_cost),
+  monthQty:row.month_qty===null?null:Number(row.month_qty)};
+ return {id:row.id,name:row.name,role:row.role,contractType:row.contract_type,
+  active:row.active,salary:row.salary===null?null:Number(row.salary),
+  hours:row.hours===null?null:Number(row.hours),
+  fgtsPct:row.fgts_pct===null?null:Number(row.fgts_pct),
+  employerPct:row.employer_pct===null?null:Number(row.employer_pct),
+  benefits:Number(row.benefits||0),extras:Number(row.extras||0),
+  rate:row.rate===null?null:Number(row.rate),rateUnit:row.rate_unit,
+  quantity:row.quantity===null?null:Number(row.quantity)};
+};
+const payload=(k,item,userId)=>{
+ const base={id:item.id,user_id:userId,updated_at:new Date().toISOString()};
+ if(k==='fixed')return {...base,name:item.name,category:item.category,
+  amount:item.amount,frequency:item.frequency};
+ if(k==='variable')return {...base,name:item.name,category:item.category,
+  unit:item.unit,unit_cost:item.unitCost,month_qty:item.monthQty};
+ if(k==='employees')return {...base,name:item.name,role:item.role,
+  contract_type:item.contractType,active:item.active,salary:item.salary??null,
+  hours:item.hours??null,fgts_pct:item.fgtsPct??null,
+  employer_pct:item.employerPct??null,benefits:item.benefits??0,
+  extras:item.extras??0,rate:item.rate??null,rate_unit:item.rateUnit??null,
+  quantity:item.quantity??null};
+ throw new Error('Cadastro inválido');
+};
+const checkId=userId=>{
+ if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(userId||''))
+  throw Error('Sessão inválida: identificador do usuário ausente.');
+};
+export async function fetchRemote(client,userId){
+ checkId(userId);
+ const out=fresh();
+ await Promise.all(Object.keys(TABLES).map(async kind=>{
+  const {data,error}=await client.from(TABLES[kind])
+   .select('*').eq('user_id',userId).order('created_at',{ascending:true});
+  if(error)throw Error('Falha ao consultar '+kind+': '+error.message);
+  out[kind]=(data||[]).map(row=>normalize(kind,row));
+ }));
+ return out;
+}
+export async function putRemote(client,userId,kind,item){
+ checkId(userId);
+ if(!TABLES[kind])throw Error('Tipo de cadastro inválido.');
+ const row=payload(kind,item,userId);
+ const {data,error}=await client.from(TABLES[kind]).upsert(row,{onConflict:'id'})
+  .select('id').single();
+ if(error)throw Error('Falha ao salvar no banco: '+error.message);
+ if(!data?.id||data.id!==item.id)throw Error('Banco não confirmou o salvamento.');
+ return item;
+}
+export async function deleteRemote(client,userId,kind,id){
+ checkId(userId);
+ if(!TABLES[kind])throw Error('Tipo de cadastro inválido.');
+ const {data,error}=await client.from(TABLES[kind]).delete()
+  .eq('id',id).eq('user_id',userId).select('id');
+ if(error)throw Error('Falha ao excluir no banco: '+error.message);
+ if(!Array.isArray(data)||data.length!==1)throw Error('Banco não confirmou a exclusão.');
+ return true;
+}

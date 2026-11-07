@@ -21,6 +21,12 @@ jobs:
           node-version: '22'
       - name: Instalar dependências
         run: npm install --no-audit --no-fund
+      - name: Guardar lockfile para reprodução do build
+        uses: actions/upload-artifact@v4
+        with:
+          name: civolten-package-lock
+          path: package-lock.json
+          if-no-files-found: error
       - name: Testes de cálculos e dados locais
         run: npm test
       - name: Construir somente as telas novas
@@ -40,6 +46,8 @@ jobs:
           node --check src/main.mjs
           node --check src/views.mjs
           node --check src/calc.mjs
+          node --check src/cloud.mjs
+          node --check src/e2e-client.mjs
       - name: Instalar Chromium gratuito
         run: npx playwright install --with-deps chromium
       - name: Testar login e navegação no celular

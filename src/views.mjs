@@ -80,7 +80,7 @@ function heading(iconName,title){
  return '<div class="section-label"><span class="section-icon">'+icon(iconName,22)+'</span><h2>'+title+'</h2><div class="section-streak"></div></div>';
 }
 export function homeView(data,user){
- const s=summary(data);const first=String(user?.name||user?.email?.split('@')[0]||'').trim().split(/\s+/)[0]||'usuário';
+ const s=summary(data);const first=String(user?.user_metadata?.name||user?.name||user?.email?.split('@')[0]||'').trim().split(/\s+/)[0]||'usuário';
  const count=s.employees;
  return '<div class="dashboard">'+
   '<div class="welcome-row"><div class="avatar-outline">'+icon('user',25)+'</div><div class="welcome-text"><h1>Olá, '+e(first)+'</h1>'+
@@ -157,7 +157,7 @@ export function moreView(user,data){
  const sum=summary(data);
  return '<div class="page-heading"><button class="small-square" data-go="home" aria-label="Voltar">'+icon('back',25)+'</button>'+
  '<h1>Configurações</h1><span class="small-square is-empty"></span></div>'+
- '<div class="settings-panel"><div class="settings-user">'+icon('user',34)+'<div><b>'+e(user?.name||'Sua conta')+'</b><span>'+e(user?.email||'')+'</span></div></div>'+
+ '<div class="settings-panel"><div class="settings-user">'+icon('user',34)+'<div><b>'+e(user?.user_metadata?.name||user?.name||'Sua conta')+'</b><span>'+e(user?.email||'')+'</span></div></div>'+
  '<button data-go="costs" class="settings-row">'+icon('coins',21)+' Custos da empresa '+icon('chevron',17)+'</button>'+
  '<button data-go="team" class="settings-row">'+icon('users',21)+' Funcionários '+icon('chevron',17)+'</button>'+
  '<button data-action="soon" class="settings-row">'+icon('file',21)+' Relatórios (em breve) '+icon('chevron',17)+'</button>'+

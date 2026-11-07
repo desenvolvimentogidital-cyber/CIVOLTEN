@@ -12,8 +12,10 @@ await build({
  entryPoints:['src/main.mjs'],outfile:path.join(dest,'app.js'),
  bundle:true,format:'iife',platform:'browser',target:['es2022'],minify:true,
  define:{
-  __CIVOLTEN_AUTH_URL__:JSON.stringify(process.env.NEON_AUTH_BASE_URL||''),
+  __CIVOLTEN_SUPABASE_URL__:JSON.stringify(process.env.SUPABASE_URL||'https://rvhnuowqfdugcecgmxnv.supabase.co'),
+  // Publishable key: intended to be public in browser clients. Never use service_role!
+  __CIVOLTEN_SUPABASE_PUBLISHABLE_KEY__:JSON.stringify(process.env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_UpkP7prNZFMBacZw31SuRg_8E-ea3TP"),
   __CIVOLTEN_E2E__:JSON.stringify(process.env.CIVOLTEN_E2E==='true')
  }
 });
-console.log('CIVOLTEN premium: build concluído. Neon Auth configurado:',Boolean(process.env.NEON_AUTH_BASE_URL));
+console.log('CIVOLTEN premium: build concluído com Supabase Auth e banco RLS.');
