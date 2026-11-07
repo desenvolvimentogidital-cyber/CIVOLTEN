@@ -38,23 +38,24 @@ export const e=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 const BRAND='<img src="/assets/civolten-logo.png" class="brand-wordmark" alt="CIVOLTEN — Elétrica & Construção Civil">';
 const MARK='<img src="/assets/civolten-simbolo.png" class="brand-symbol" alt="">';
 export function authView(mode='login',error='',busy=false){
- const signup=mode==='signup',reset=mode==='reset';
+ const signup=mode==='signup',reset=mode==='reset',newpass=mode==='newpass';
  const sub=signup?'Crie sua conta para organizar a operação.':reset?
- 'Informe seu e-mail para recuperar o acesso.':'Gestão inteligente para elétrica e construção civil';
+ 'Informe seu e-mail para recuperar o acesso.':newpass?
+ 'Defina uma nova senha para sua conta.':'Gestão inteligente para elétrica e construção civil';
  return '<main class="auth-page"><div class="auth-top-glow"></div><div class="auth-inner">'+
   '<div class="auth-brand">'+MARK+BRAND+'</div>'+
   '<p class="auth-tagline">'+e(sub)+'</p><div class="glow-rule"></div>'+
   '<form id="auth-form" class="auth-form">'+
   (signup?'<label class="auth-field">'+icon('user',23)+'<input name="name" required placeholder="Seu nome" autocomplete="name"></label>':'')+
-  '<label class="auth-field">'+icon('mail',23)+'<input type="email" name="email" placeholder="E-mail" autocomplete="email" required></label>'+
+  (newpass?'':'<label class="auth-field">'+icon('mail',23)+'<input type="email" name="email" placeholder="E-mail" autocomplete="email" required></label>')+
   (reset?'':('<label class="auth-field">'+icon('lock',23)+'<input type="password" id="password" name="password" placeholder="Senha" autocomplete="'+(signup?'new-password':'current-password')+'" minlength="8" required>'+
   '<button type="button" class="icon-button show-password" data-action="toggle-password" aria-label="Mostrar senha">'+icon('eye',22)+'</button></label>'))+
   (error?'<p class="auth-error" role="alert">'+e(error)+'</p>':'')+
   '<button class="gold-button auth-submit" type="submit"'+(busy?' disabled':'')+'>'+
-  (busy?'Verificando...':reset?'Enviar instruções':signup?'Criar conta':'Entrar')+'</button></form>'+
-  '<button type="button" class="outlined-button auth-alt" data-action="auth-mode" data-mode="'+(signup||reset?'login':'signup')+'">'+
-  (signup?'Já tenho conta':reset?'Voltar ao login':'Criar conta')+'</button>'+
-  (!signup&&!reset?'<button type="button" class="auth-forgot" data-action="auth-mode" data-mode="reset">Esqueci minha senha</button>':'')+
+  (busy?'Verificando...':reset?'Enviar instruções':newpass?'Salvar nova senha':signup?'Criar conta':'Entrar')+'</button></form>'+
+  '<button type="button" class="outlined-button auth-alt" data-action="auth-mode" data-mode="'+(signup||reset||newpass?'login':'signup')+'">'+
+  (signup?'Já tenho conta':reset||newpass?'Voltar ao login':'Criar conta')+'</button>'+
+  (!signup&&!reset&&!newpass?'<button type="button" class="auth-forgot" data-action="auth-mode" data-mode="reset">Esqueci minha senha</button>':'')+
   '</div><div class="industrial-skyline" aria-hidden="true"></div>'+
   '<footer class="auth-footer">'+icon('lock',18)+'<span>Acesse sua operação com segurança</span></footer></main>';
 }
