@@ -88,7 +88,7 @@ export function homeView(data,user){
   '<span>Bem-vindo ao seu painel</span></div><button class="small-square" type="button" data-action="notifications" aria-label="Notificações">'+icon('bell',23)+'</button></div>'+
   '<div class="horizontal-glow"></div><section class="metric-grid" aria-label="Resumo da empresa">'+
   metric('Custos fixos','coins',brl(s.fixed))+metric('Custos variáveis','chart',brl(s.variable))+
-  metric('Funcionários','users',String(count))+metric('Total mensal','calendar',brl(s.total),true)+
+  metric('Funcionários','users',String(count))+metric('Custo mensal','calendar',brl(s.total),true)+
   '</section>'+heading('wrench','Acesso rápido')+
   '<div class="shortcut-grid">'+[
    ['Empresa','building','costs'],['Equipe','users','team'],['Relatórios','file','reports'],['Financeiro','coins','finance']
