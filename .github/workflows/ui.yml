@@ -1,0 +1,53 @@
+name: CIVOLTEN — interface premium e cálculos
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar dependências
+        run: npm install --no-audit --no-fund
+      - name: Testes de cálculos e dados locais
+        run: npm test
+      - name: Construir somente as telas novas
+        env:
+          NEON_AUTH_BASE_URL: https://example.invalid/neon/auth
+          CIVOLTEN_E2E: 'true'
+        run: npm run build
+      - name: Conferir o build e ativos da marca
+        run: |
+          test -s dist/index.html
+          test -s dist/app.js
+          test -s dist/styles.css
+          test -s dist/assets/civolten-logo.png
+          test -s dist/assets/civolten-simbolo.png
+          test -s dist/assets/skyline.svg
+          node --check scripts/build.mjs
+          node --check src/main.mjs
+          node --check src/views.mjs
+          node --check src/calc.mjs
+      - name: Instalar Chromium gratuito
+        run: npx playwright install --with-deps chromium
+      - name: Testar login e navegação no celular
+        run: npm run test:browser
+      - name: Guardar capturas das quatro telas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-civolten-premium
+          path: test-artifacts/
+          if-no-files-found: ignore
