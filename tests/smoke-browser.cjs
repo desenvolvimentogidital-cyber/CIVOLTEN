@@ -253,6 +253,30 @@ const close=()=>new Promise(resolve=>server.close(resolve));
   assert.ok(review.errors.some(x=>x.code==='reference-pending'),
    'Proposta com custo incompleto segue protegida, embora o item tenha sido salvo');
 
+  // Cadastro de serviços SINAPI: funções oficiais verificáveis não devem
+  // exigir checkbox manual de produtividade no momento de salvar.
+  await page.evaluate(()=>{
+   db.workers=[{id:'prof-pedreiro',name:'Pedreiro A',role:'Pedreiro',cost:38,unit:'hora'}];
+   db.services=[{id:'svc-alvenaria-analitica',origin:'SINAPI',
+    name:'ALVENARIA DE TIJOLO MACIÇO ANALÍTICA',unit:'M2',
+    sourceCode:'900001',sourceDate:'2026-07',regime:'onerada',uf:'SP',
+    verifiedUF:true,analytical:true,kind:'composicao',cost:150,
+    analyticLabor:[{role:'Pedreiro',hoursPerUnit:1.25}],analyticItems:[],
+    labor:0,material:0,analyticalReviewNeeded:true}];
+   s.page='services';s.modal='addservice';s.edit=db.services[0];render();
+  });
+  assert.equal(await page.locator('[name="slConfirmed"]').count(),0,
+   'Cadastro não deve exigir marcar conferência de produtividade');
+  await page.locator('[data-action="sl-fill"]').click();
+  assert.equal(await page.locator('[name="qaHours0"]').inputValue(),'1.25');
+  await page.locator('#modal-form button[type="submit"]').click();
+  const autoSaved=await page.evaluate(()=>db.services[0]);
+  assert.equal(autoSaved.analyticalReviewNeeded,false);
+  assert.equal(autoSaved.productivity.crew[0].hours,1.25);
+  assert.equal(autoSaved.productivity.crew[0].workerId,'prof-pedreiro');
+  assert.equal(autoSaved.productivity.productivitySource,
+   'SINAPI - associação automática de coeficientes diretos');
+
   await page.evaluate(()=>{s.modal=null;s.page='services';render()});
   await page.locator('.cv-auto-panel h3').waitFor();
   assert.match(await page.locator('.cv-auto-panel').innerText(),/Motor de automação/);
