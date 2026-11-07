@@ -130,12 +130,20 @@
     if(decimal(input.productiveHours)!==null&&hours<=0)throw new Error('Horas produtivas devem ser maiores que zero.');
     if(trimmed(input.fgtsPct)&&fgts===null||trimmed(input.employerPct)&&employer===null)
      throw new Error('Informe percentuais entre 0 e 100.');
+    for(const key of ['benefits','extras']){
+     const value=amount(input[key]);
+     if(value!==null&&value<0)throw new Error('Custos adicionais não podem ser negativos.');
+    }
     return {id,name,role,type,salary,productiveHours:hours,fgtsPct:fgts,employerPct:employer,
      benefits:amount(input.benefits)||0,extras:amount(input.extras)||0};
    }
    const rate=amount(input.rate),qty=decimal(input.monthlyQty);
-   if(rate===null||rate<0)throw new Error('Informe o valor contratado.');
+   if(rate===null||rate<=0)throw new Error('Informe um valor de contrato maior que zero.');
    if(qty!==null&&qty<0)throw new Error('Quantidade mensal deve ser positiva.');
+   for(const k of ['hoursDay','hoursMonth']){
+    const value=decimal(input[k]);
+    if(value!==null&&value<=0)throw new Error('Horas previstas devem ser maiores que zero.');
+   }
    return {id,name,role,type,rate,rateUnit:['hour','day','month'].includes(input.rateUnit)?input.rateUnit:'hour',
     monthlyQty:qty,hoursDay:decimal(input.hoursDay),hoursMonth:decimal(input.hoursMonth)};
   }
