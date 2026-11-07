@@ -85,20 +85,23 @@
  modalSubmit=function(form){
   if(s.modal!=='addservice')return oldSubmit(form);
   const id=s.edit?.id,oldLength=db.services.length,vals=captureTemplate(form),sum=crewTotals(vals.crew);
-  if(sum.entries.some(e=>e.rate<=0)){toast('Confira os custos dos profissionais antes de salvar a produtividade.');return}
+  const missingRates=sum.entries.some(e=>e.rate<=0);
+  // Salvar o catálogo mesmo quando uma taxa de mão de obra ainda não existe.
+  // A pendência fica explícita e não pode transformar R$ 0 em preço confiável.
   oldSubmit(form);
   let service=id?db.services.find(x=>x.id===id):db.services.length>oldLength?db.services[db.services.length-1]:null;
   if(!service)return;
-  service.productivity=vals;
+  service.productivity={...vals,pendingRates:missingRates};
   const isSiurb=service.origin==='SIURB'&&service.costSplitConfirmed;
   if(isSiurb){
    // A divisão oficial conferida nunca deve ser sobrescrita pelo custo da empresa.
    if(service.referenceLabor===undefined)service.referenceLabor=round(n(service.labor));
    if(service.referenceMaterial===undefined)service.referenceMaterial=round(n(service.material));
   }
-  if(sum.entries.length){
+  if(sum.entries.length&&!missingRates){
    service.labor=round(isSiurb?sum.cost:Math.max(n(service.labor),sum.cost));
   }
+  if(missingRates)service.analyticalReviewNeeded=true;
   const mat=db.materials.find(m=>m.id===vals.materialId);
   if(mat)service.material=round(isSiurb?n(mat.cost)*vals.materialQty:Math.max(n(service.material),n(mat.cost)*vals.materialQty));
   save();render();
@@ -351,7 +354,7 @@
    (forecast.hasData?'<div class="qa-compare"><span>Horas-homem previstas</span><b>'+round(forecast.hours)+' hh</b></div>'+
    '<div class="qa-compare"><span>Equivalente em jornadas de 8 horas</span><b>'+round(forecast.personDays)+' dias-pessoa</b></div>'+
    '<p class="qa-note">Isso não equivale necessariamente a dias corridos; depende da equipe, paralelismo e condições da obra.</p>':
-   '<p class="qa-warning">Nenhuma produtividade cadastrada para os itens. Configure horas por unidade em Mais → Serviços para estimar automaticamente.</p>')+
+   '<p class="qa-warning">Algumas composições ainda não fornecem horas oficiais completas. Elas permanecem pendentes no rascunho; não é necessário digitar produtividade para incluir o serviço.</p>')+
    '<h4>Despesas cadastradas para adicionar com um toque</h4>'+
    '<p class="qa-note">Selecione apenas as aplicáveis. Confira dias, pessoas, quilômetros e alimentação antes da proposta.</p>'+
    '<div class="qa-suggested-expenses">'+expenses.map(x=>'<button type="button" class="qa-suggest-btn" data-action="qa-apply-expense" data-id="'+esc(x.id)+'"><span>'+esc(x.name)+'</span><b>+ '+money(x.cost)+'</b></button>').join('')+

@@ -268,8 +268,8 @@ function scheduleView(){
  '<p class="wp-muted">Se ativado, considera '+forecast.paid+' horas pagas por pessoa e dia pelo maior período entre o prazo desejado e o calculado; a diferença acima da mão de obra já orçada vira custo adicional de disponibilidade. Se a equipe trabalhar só nas horas produtivas do serviço, mantenha desligado.</p>'+
  '<div class="wp-headline"><span>Adicional de equipe dedicada</span><strong>'+money(forecast.reserve)+'</strong></div>'+
  (forecast.unknownCost?'<p class="wp-warning">Há função sem custo/hora cadastrado. Complete o valor antes de contratar equipe dedicada.</p>':'')+
- '<label class="wp-check"><input type="checkbox" name="wfConfirmed" '+(schedule.confirmed?'checked':'')+'> Conferi produtividade, equipe, calendário e despesas desta obra</label>'+
- '<button class="btn btn-gold block" type="button" data-action="wf-save">Salvar cronograma no orçamento</button>'+
+ '<p class="wp-muted">Cronograma automático calculado dos itens. Referências incompletas permanecem sinalizadas para a revisão da proposta, sem impedir salvar.</p>'+
+ '<button class="btn btn-gold block" type="button" data-action="wf-save">Salvar cronograma automático</button>'+
  '<button class="btn btn-outline block" type="button" data-action="wf-back">Voltar ao orçamento</button></div>':
  '<div class="form-card"><p class="wp-muted">Cronograma salvo como planejamento. Para editar equipe ou custo, abra o orçamento em modo de edição.</p>'+
  '<button class="btn btn-outline block" data-action="wf-edit-quote" data-id="'+esc(q.id)+'">Editar orçamento e cronograma</button></div>';
@@ -385,14 +385,19 @@ document.addEventListener('click',e=>{
  if(action==='wf-open'){e.preventDefault();e.stopPropagation();go('schedule');return}
  if(action==='wf-back'){e.preventDefault();e.stopPropagation();go('newquote');s.step=2;render();return}
  if(action==='wf-save'){e.preventDefault();e.stopPropagation();if(!s.wizard)return;
-  const sch=ensureSchedule(s.wizard);const view=calculate(s.wizard);
-  if(view.missing){toast('Há itens sem produtividade. Configure os serviços antes de confirmar.');return}
-  if(view.projectDays>view.days){toast('Prazo estimado acima do desejado. Ajuste equipe ou prazo.');return}
-  if(!sch.confirmed){toast('Confirme produtividade, equipe, calendário e despesas.');return}
-  if(sch.dedicated&&view.unknownCost){toast('Equipe dedicada exige custo/hora para cada função.');return}
-  sch.savedAt=new Date().toISOString();
+  const sch=ensureSchedule(s.wizard),view=calculate(s.wizard),reasons=[];
+  if(view.missing)reasons.push(view.missing+' serviço(s) sem produtividade verificada');
+  if(view.projectDays>view.days)reasons.push('prazo estimado superior ao desejado');
+  if(sch.dedicated&&view.unknownCost)reasons.push('custo/hora de equipe dedicada ausente');
+  // Salvar sempre o planejamento gerado, sem declarar falsa conferência
+  // humana nem deixar pendências técnicas impedir o trabalho no rascunho.
+  sch.automaticStatus=reasons.length?'pending':'calculated';
+  sch.automaticReasons=reasons;sch.automaticCalculatedAt=new Date().toISOString();
+  sch.savedAt=sch.automaticCalculatedAt;
+  if(reasons.length)sch.confirmed=false;
   updateReserve(s.wizard);keepTemp();go('newquote');s.step=2;render();
-  toast('Cronograma salvo no rascunho.');return;
+  toast(reasons.length?'Cronograma salvo com pendências internas para a proposta.':
+   'Cronograma automático salvo no orçamento.');return;
  }
  if(action==='wf-edit-quote'){e.preventDefault();e.stopPropagation();
   const q=db.quotes.find(x=>x.id===el.dataset.id);if(!q)return;

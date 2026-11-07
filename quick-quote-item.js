@@ -59,8 +59,8 @@ function summary(form){
   lines.push('<div class="qi-line qi-cost"><span>Custo direto interno estimado</span><strong>'+fmt(direct)+'</strong></div>');
   lines.push('<p class="qi-muted">Preço final de venda, encargos indiretos, tributos e margem aparecem na revisão do orçamento.</p>');
  }
- if(unverified)lines.push('<p class="qi-warning">Composição pública ainda não validada na sua biblioteca. Os coeficientes mostrados podem ser apenas diretos; confira equipe, custos e subcomposições antes de emitir uma proposta.</p>');
- if(incompleteMaterial)lines.push('<p class="qi-warning">A composição prevê materiais/subcomposições, mas não há custo interno de fornecimento. Abra Detalhes avançados para completar.</p>');
+ if(unverified)lines.push('<p class="qi-muted">O item pode ser salvo agora. Referências públicas incompletas serão indicadas na revisão financeira, sem exigir que você digite produtividade.</p>');
+ if(incompleteMaterial)lines.push('<p class="qi-warning">Materiais ainda sem custo interno verificado. O serviço será salvo como pendente; a proposta não será emitida com custos incompletos.</p>');
  else if(noCost)lines.push('<p class="qi-warning">A referência ainda não contém custo interno confiável para precificação. O item pode ser salvo como pendente no rascunho; não será liberado para envio sem custos válidos.</p>');
  return lines.join('');
 }
@@ -86,7 +86,7 @@ modalUI=function(){
  // Manter todos os campos do fluxo original sem alterar nomes, validações e cálculos.
  const before=html.slice(0,start).replace(
   /<p class="dw-help">Selecione um resultado[\s\S]*?<\/p>\s*<p class="dw-help">A descrição[\s\S]*?<\/p>/,
-  '<p class="qi-muted">Escolha uma composição e informe a quantidade. Horas, equipe e custos são preenchidos automaticamente quando as bases oficiais e os cadastros permitem. O realizado é lançado durante a obra.</p>');
+  '<p class="qi-muted">Selecione o serviço e toque em Salvar. A CIVOLTEN registra automaticamente a composição, as horas e os custos disponíveis; informações faltantes ficam pendentes para a proposta. O realizado só é lançado durante a obra.</p>');
  const old=s.edit||{};
  const qty=field('Quantidade a executar','qty','Ex.: 300',old.qty||1,'number',true)
   .replace('name="qty"','name="qty" id="qi-qty" inputmode="decimal"');

@@ -196,6 +196,88 @@ const close=()=>new Promise(resolve=>server.close(resolve));
   await page.locator('#modal-form button[type="submit"]').click();
   assert.equal(await page.evaluate(()=>s.wizard.items[0].referencePending),false);
 
+  // Caso real relatado: selecionar alvenaria de tijolo maciço e Salvar,
+  // sem preencher atividades, horas, equipe ou marcar composição conferida.
+  await page.evaluate(()=>{
+   db.siurbItems=[{
+    id:'siurb-alvenaria-tijolo-macico',code:'TJM-001',group:'EDIF',
+    name:'ALVENARIA DE TIJOLO MACIÇO',unit:'M2',cost:null
+   }];
+   db.siurbMeta={regime:'onerada',base:'07/2026'};
+   db.services=[];db.workers=[];
+   window.CIVOLTENSINAPI.getRecords=()=>[];
+   s.wizard={clientId:'test-client',clientName:'Cliente teste',
+    title:'Orçamento de alvenaria',type:'Mão de obra',items:[],
+    status:'Rascunho',priceMode:'auto',profit:20,tax:0,fees:0,
+    overhead:5,reserve:3,extraCost:0,discount:0};
+   s.page='newquote';s.step=2;s.modal=null;render();
+  });
+  await page.locator('[data-action="additem"]').click();
+  await page.locator('#dw-service-search').fill('ALVENARIA DE TIJOLO MACIÇO');
+  assert.equal(await page.locator('#modal-form').getAttribute('novalidate'),'',
+    'Cadastro rápido não pode bloquear a inclusão por campos avançados ocultos');
+  const chosen=await page.evaluate(()=>{
+   const f=document.getElementById('modal-form');
+   return {id:f.elements.sourceId.value,service:f.elements.service.value,qty:f.elements.qty.value};
+  });
+  assert.equal(chosen.id,'siurb-alvenaria-tijolo-macico');
+  assert.equal(chosen.qty,'1','Quantidade inicial automática de uma unidade');
+  await page.locator('#modal-form button[type="submit"]').click();
+  const alvenaria=await page.evaluate(()=>({
+   count:s.wizard.items.length,item:s.wizard.items[0],
+   onDisk:JSON.parse(localStorage.getItem('civolten_daily_v2')).quotes.length
+  }));
+  assert.equal(alvenaria.count,1,'Salvar deve fechar modal e incluir o serviço');
+  assert.equal(alvenaria.item.service,'ALVENARIA DE TIJOLO MACIÇO');
+  assert.equal(alvenaria.item.unit,'M2');
+  assert.equal(alvenaria.item.qty,1);
+  assert.equal(alvenaria.item.referencePending,true);
+  assert.equal(alvenaria.item.referencePricePending,true);
+  assert.equal(alvenaria.item.referenceCost,null,
+   'Não inventar custo público ou produtividade de alvenaria sem planilha');
+  // O cronograma também pode ser salvo sem exigir marcação de atividade.
+  await page.evaluate(()=>go('schedule'));
+  assert.equal(await page.locator('[name="wfConfirmed"]').count(),0,
+    'Não exigir conferência técnica manual para salvar o planejamento');
+  await page.locator('[data-action="wf-save"]').click();
+  const plan=await page.evaluate(()=>({
+   page:s.page,mode:s.wizard.schedule.automaticStatus,
+   reasons:s.wizard.schedule.automaticReasons,
+   item:s.wizard.items[0]
+  }));
+  assert.equal(plan.page,'newquote');
+  assert.equal(plan.mode,'pending');
+  assert.ok(plan.reasons.some(t=>/produtividade/i.test(t)));
+  assert.equal(plan.item.service,'ALVENARIA DE TIJOLO MACIÇO');
+  const review=await page.evaluate(()=>window.CIVOLTENFinancialAudit.inspect(s.wizard));
+  assert.ok(review.errors.some(x=>x.code==='reference-pending'),
+   'Proposta com custo incompleto segue protegida, embora o item tenha sido salvo');
+
+  // Cadastro de serviços SINAPI: funções oficiais verificáveis não devem
+  // exigir checkbox manual de produtividade no momento de salvar.
+  await page.evaluate(()=>{
+   db.workers=[{id:'prof-pedreiro',name:'Pedreiro A',role:'Pedreiro',cost:38,unit:'hora'}];
+   db.services=[{id:'svc-alvenaria-analitica',origin:'SINAPI',
+    name:'ALVENARIA DE TIJOLO MACIÇO ANALÍTICA',unit:'M2',
+    sourceCode:'900001',sourceDate:'2026-07',sourceUF:'SP',sourceFile:'Analitico SP.xlsx',regime:'onerada',uf:'SP',
+    verifiedUF:true,analytical:true,kind:'composicao',cost:150,
+    analyticLabor:[{role:'Pedreiro',hoursPerUnit:1.25}],analyticItems:[],
+    labor:0,material:0,analyticalReviewNeeded:true}];
+   s.page='services';s.modal='addservice';s.edit=db.services[0];render();
+  });
+  assert.equal(await page.locator('[name="slConfirmed"]').count(),0,
+   'Cadastro não deve exigir marcar conferência de produtividade');
+  // Não clicar no botão opcional de preencher: o próprio Salvar deve
+  // resolver coeficientes e alocar o profissional cadastrado.
+  assert.equal(await page.locator('[name="qaHours0"]').inputValue(),'');
+  await page.locator('#modal-form button[type="submit"]').click();
+  const autoSaved=await page.evaluate(()=>db.services[0]);
+  assert.equal(autoSaved.analyticalReviewNeeded,false);
+  assert.equal(autoSaved.productivity.crew[0].hours,1.25);
+  assert.equal(autoSaved.productivity.crew[0].workerId,'prof-pedreiro');
+  assert.equal(autoSaved.productivity.productivitySource,
+   'SINAPI - associação automática de coeficientes diretos');
+
   await page.evaluate(()=>{s.modal=null;s.page='services';render()});
   await page.locator('.cv-auto-panel h3').waitFor();
   assert.match(await page.locator('.cv-auto-panel').innerText(),/Motor de automação/);

@@ -1,4 +1,4 @@
-const VERSION='civolten-auth-login-v36-20261106';
+const VERSION='civolten-salvar-servico-v37-20261107';
 const CORE=['/','/index.html','/siurb.css','/siurb.js','/cost-modes.js','/payroll-cost.js','/auto-productivity-core.js','/daily-workflow.js','/quote-automation.js','/job-expense-presets.js','/workforce-schedule.js','/commercial-proposal.js','/reference-compare.js','/reference-integrity-core.js','/sinapi-reference-parser.js','/sinapi-import.js','/sinapi-labor-link.js','/unified-catalog.js','/quick-quote-item.js','/financial-audit.js','/operations-core.js','/operations.js','/proposal-layout.js','/automation-risk-core.js','/automation-review.js','/automation-coverage.js','/auth-screen.js','/cloud-sync.js','/manifest.webmanifest','/assets/civolten-logo.png','/icons/civolten-simbolo.png','/icons/icon-192.png','/icons/icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(CORE)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==VERSION).map(k=>caches.delete(k)))));self.clients.claim()});
