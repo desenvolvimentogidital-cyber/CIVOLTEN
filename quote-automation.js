@@ -351,7 +351,7 @@
    (forecast.hasData?'<div class="qa-compare"><span>Horas-homem previstas</span><b>'+round(forecast.hours)+' hh</b></div>'+
    '<div class="qa-compare"><span>Equivalente em jornadas de 8 horas</span><b>'+round(forecast.personDays)+' dias-pessoa</b></div>'+
    '<p class="qa-note">Isso não equivale necessariamente a dias corridos; depende da equipe, paralelismo e condições da obra.</p>':
-   '<p class="qa-warning">Nenhuma produtividade cadastrada para os itens. Configure horas por unidade em Mais → Serviços para estimar automaticamente.</p>')+
+   '<p class="qa-warning">Algumas composições ainda não fornecem horas oficiais completas. Elas permanecem pendentes no rascunho; não é necessário digitar produtividade para incluir o serviço.</p>')+
    '<h4>Despesas cadastradas para adicionar com um toque</h4>'+
    '<p class="qa-note">Selecione apenas as aplicáveis. Confira dias, pessoas, quilômetros e alimentação antes da proposta.</p>'+
    '<div class="qa-suggested-expenses">'+expenses.map(x=>'<button type="button" class="qa-suggest-btn" data-action="qa-apply-expense" data-id="'+esc(x.id)+'"><span>'+esc(x.name)+'</span><b>+ '+money(x.cost)+'</b></button>').join('')+
