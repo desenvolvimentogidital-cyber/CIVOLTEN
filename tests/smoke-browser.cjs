@@ -199,7 +199,57 @@ const close=()=>new Promise(resolve=>server.close(resolve));
   await page.evaluate(()=>{s.modal=null;s.page='services';render()});
   await page.locator('.cv-auto-panel h3').waitFor();
   assert.match(await page.locator('.cv-auto-panel').innerText(),/Motor de automação/);
-      assert.deepEqual(runtimeErrors,[],'Erros JavaScript no navegador: '+runtimeErrors.join('; '));
+  // Login real será homologado com Neon; aqui testamos a UI sem contas reais.
+  // Fake de Auth restrito ao contexto efêmero deste teste em localhost.
+  await page.evaluate(()=>{
+   document.querySelector('#cv-auth-screen')?.remove();
+   const session={user:null};
+   const fake={
+    getSession:async()=>({data:{user:session.user}}),
+    signUp:{email:async({email,name})=>{
+     session.user={id:'auth-test-user',email,name};return {data:{user:session.user}};
+    }},
+    signIn:{email:async({email})=>{
+     session.user={id:email==='segundo@example.test'?'outro-user':'auth-test-user',email};
+     return {data:{user:session.user}};
+    }},
+    signOut:async()=>{session.user=null;return {data:{success:true}}}
+   };
+   window.__cvAuthFake=session;
+   window.__cvAuthGate=window.CIVOLTENAuthScreen.mount({
+    auth:fake,ownerKey:'civolten_auth_test_owner',storageKey:'civolten_daily_v2'
+   });
+  });
+  await page.locator('#cv-auth-form').waitFor();
+  await page.locator('[data-cv-auth="signup"]').click();
+  await page.locator('#cv-auth-name').fill('Teste CIVOLTEN');
+  await page.locator('#cv-auth-email').fill('teste@example.test');
+  await page.locator('#cv-auth-password').fill('SenhaTeste123');
+  await page.locator('#cv-auth-form button[type="submit"]').click();
+  await page.locator('[data-cv-auth="bind"]').waitFor();
+  const binding=await page.evaluate(()=>localStorage.getItem('civolten_auth_test_owner'));
+  assert.equal(binding,null,'Não vincular o aparelho sem confirmação expressa');
+  await page.locator('[data-cv-auth="bind"]').click();
+  assert.equal(await page.evaluate(()=>localStorage.getItem('civolten_auth_test_owner')),'auth-test-user');
+  assert.equal(await page.evaluate(()=>document.documentElement.classList.contains('cv-auth-locked')),false);
+  const quotesBefore=await page.evaluate(()=>JSON.parse(localStorage.getItem('civolten_daily_v2')).quotes.length);
+  await page.evaluate(()=>window.__cvAuthGate.signOut());
+  await page.locator('#cv-auth-form').waitFor();
+  assert.equal(await page.evaluate(()=>document.documentElement.classList.contains('cv-auth-locked')),true);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('civolten_daily_v2')).quotes.length),quotesBefore,
+    'Sair não pode apagar orçamentos locais');
+  await page.locator('#cv-auth-email').fill('teste@example.test');
+  await page.locator('#cv-auth-password').fill('SenhaTeste123');
+  await page.locator('#cv-auth-form button[type="submit"]').click();
+  await page.waitForFunction(()=>!document.documentElement.classList.contains('cv-auth-locked'));
+  await page.evaluate(()=>window.__cvAuthGate.signOut());
+  await page.locator('#cv-auth-email').fill('segundo@example.test');
+  await page.locator('#cv-auth-password').fill('SenhaTeste123');
+  await page.locator('#cv-auth-form button[type="submit"]').click();
+  await page.locator('.cv-notice').filter({hasText:'Acesso bloqueado'}).waitFor();
+  assert.equal(await page.evaluate(()=>document.getElementById('app').inert),true,
+    'Outra conta não pode visualizar os dados do primeiro usuário');
+        assert.deepEqual(runtimeErrors,[],'Erros JavaScript no navegador: '+runtimeErrors.join('; '));
   console.log('SMOKE PASSOU: Android, produtividade SINAPI automática, SIURB pendente seguro, orçamento, custo e PDF');
  }finally{
   if(browser)await browser.close();
