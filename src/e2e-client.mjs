@@ -7,12 +7,29 @@ export function createE2EClient(){
  const auth={
   getUser:async()=>({data:{user},error:null}),
   getSession:async()=>({data:{session:user?{user}:null},error:null}),
-  signUp:async({email,options})=>({data:{user:{id:'00000000-0000-4000-8000-000000000001',
-   email,user_metadata:{name:options?.data?.name||'Teste'}}},error:null}),
-  signInWithPassword:async({email})=>{
+  signUp:async({email,password,options})=>{
+   const key='cv_e2e_registered_emails';
+   const registered=JSON.parse(localStorage.getItem(key)||'{}');
+   if(registered[email]){
+    // O Supabase oculta a existência da conta devolvendo identities=[] e HTTP 200.
+    return {data:{user:{id:'00000000-0000-4000-8000-000000000001',
+     email,identities:[]},session:null},error:null};
+   }
+   registered[email]={password,name:options?.data?.name||'Teste CIVOLTEN'};
+   localStorage.setItem(key,JSON.stringify(registered));
+   return {data:{user:{id:'00000000-0000-4000-8000-000000000001',
+     email,identities:[{provider:'email'}]},session:null},error:null};
+  },
+  signInWithPassword:async({email,password})=>{
+   const registered=JSON.parse(localStorage.getItem('cv_e2e_registered_emails')||'{}');
+   if(registered[email]&&registered[email].password!==password){
+    return {data:{user:null,session:null},
+     error:{code:'invalid_credentials',message:'Invalid login credentials'}};
+   }
    user={id:'00000000-0000-4000-8000-000000000001',
-    email,user_metadata:{name:'Teste CIVOLTEN'},name:'Teste CIVOLTEN'};
-   return {data:{user},error:null};
+    email,user_metadata:{name:registered[email]?.name||'Teste CIVOLTEN'},
+    name:registered[email]?.name||'Teste CIVOLTEN'};
+   return {data:{user,session:{user}},error:null};
   },
   resetPasswordForEmail:async()=>({data:{},error:null}),
   updateUser:async()=>({data:{user},error:null}),
