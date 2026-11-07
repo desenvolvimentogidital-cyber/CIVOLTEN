@@ -11,14 +11,17 @@ export function createE2EClient(){
    const key='cv_e2e_registered_emails';
    const registered=JSON.parse(localStorage.getItem(key)||'{}');
    if(registered[email]){
-    // O Supabase oculta a existência da conta devolvendo identities=[] e HTTP 200.
-    return {data:{user:{id:'00000000-0000-4000-8000-000000000001',
-     email,identities:[]},session:null},error:null};
+    // Supabase, com Confirm Email desligado, retorna erro de conta existente.
+    return {data:{user:null,session:null},
+     error:{code:'user_already_exists',message:'User already registered'}};
    }
    registered[email]={password,name:options?.data?.name||'Teste CIVOLTEN'};
    localStorage.setItem(key,JSON.stringify(registered));
-   return {data:{user:{id:'00000000-0000-4000-8000-000000000001',
-     email,identities:[{provider:'email'}]},session:null},error:null};
+   user={id:'00000000-0000-4000-8000-000000000001',
+    email,identities:[{provider:'email'}],
+    user_metadata:{name:registered[email].name}};
+   // Com Confirm Email desativado, cadastro conclui com sessão autenticada.
+   return {data:{user,session:{user}},error:null};
   },
   signInWithPassword:async({email,password})=>{
    const registered=JSON.parse(localStorage.getItem('cv_e2e_registered_emails')||'{}');
