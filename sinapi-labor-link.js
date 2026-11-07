@@ -66,10 +66,24 @@ modalUI=function(){
 const oldSubmit=modalSubmit;
 modalSubmit=function(form){
  if(s.modal!=='addservice'||!s.edit?.analytical)return oldSubmit(form);
- const didSuggest=form.elements.slProposed?.value==='yes';
+ let didSuggest=form.elements.slProposed?.value==='yes';
  const status=window.CIVOLTENAutoProductivity?.analyze(
   s.edit,db.workers,w=>window.CIVOLTENPayroll?.hourly?.(w)||0);
  const complete=!!(status?.status==='ready'&&status.rows.length<=3);
+ const hasOwnTemplate=Array.from({length:3},(_,i)=>
+  !!form.elements['qaWorker'+i]?.value&&num(form.elements['qaHours'+i]?.value)>0
+ ).some(Boolean);
+ // Apenas no serviço sem equipe própria configurada: aplicar os coeficientes
+ // oficiais automaticamente, sem depender de outro clique ou checkbox.
+ if(complete&&!didSuggest&&!hasOwnTemplate){
+  status.rows.forEach((row,i)=>{
+   if(form.elements['qaWorker'+i])form.elements['qaWorker'+i].value=row.workerId;
+   if(form.elements['qaHours'+i])form.elements['qaHours'+i].value=row.perUnitHours;
+   if(form.elements['qaCount'+i])form.elements['qaCount'+i].value=1;
+  });
+  if(form.elements.slProposed)form.elements.slProposed.value='yes';
+  didSuggest=true;
+ }
  const oldId=s.edit.id;
  const previous=structuredClone(s.edit.productivity||{});
  oldSubmit(form);
