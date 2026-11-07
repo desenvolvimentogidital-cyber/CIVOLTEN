@@ -95,7 +95,15 @@ async function submitLogin(form){
     await auth.auth.signUp({email,password:fields.password,
      options:{data:{name:fields.name},emailRedirectTo:location.origin+'/'}}):
     await auth.auth.signInWithPassword({email,password:fields.password});
-   if(result.error)throw Error(authMessage(result.error,creating?'signup':'login'));
+   if(result.error){
+    // Quando o Supabase informa conta existente (Confirm Email desligado),
+    // voltar ao login e permitir a recuperação da senha imediatamente.
+    if(creating&&['user_already_exists','user_already_registered','email_exists']
+       .includes(String(result.error.code||'').toLowerCase())){
+     state.authMode='login';
+    }
+    throw Error(authMessage(result.error,creating?'signup':'login'));
+   }
    if(creating){
     const outcome=signupOutcome(result);
     if(outcome==='repeated'){
