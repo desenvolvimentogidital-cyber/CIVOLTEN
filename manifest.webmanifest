@@ -1,14 +1,14 @@
 {
   "id": "/",
-  "name": "CIVOLTEN — Orçamentos",
+  "name": "CIVOLTEN — Gestão da Empresa",
   "short_name": "CIVOLTEN",
-  "description": "Aplicativo de orçamentos da CIVOLTEN: elétrica e construção civil",
+  "description": "Gestão de custos fixos, variáveis e funcionários da CIVOLTEN.",
   "lang": "pt-BR",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#17181b",
-  "theme_color": "#17181b",
+  "background_color": "#16171a",
+  "theme_color": "#16171a",
   "orientation": "portrait",
   "icons": [
     {

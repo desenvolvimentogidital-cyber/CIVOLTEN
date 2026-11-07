@@ -1,10 +1,10 @@
 {
   "name": "civolten",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "PWA CIVOLTEN e API segura Neon",
+  "description": "CIVOLTEN Base — configurações de custos da empresa e funcionários",
   "scripts": {
-    "test": "node tests/financial-audit.cjs && node --test tests/cloud-state.cjs tests/operations.cjs",
+    "test": "node --test tests/core-costs.cjs tests/auth-screen.cjs tests/cloud-state.cjs",
     "build": "node scripts/build.mjs",
     "test:browser": "node tests/smoke-browser.cjs"
   },

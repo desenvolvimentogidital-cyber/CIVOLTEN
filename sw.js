@@ -1,5 +1,27 @@
-const VERSION='civolten-salvar-servico-v37-20261107';
-const CORE=['/','/index.html','/siurb.css','/siurb.js','/cost-modes.js','/payroll-cost.js','/auto-productivity-core.js','/daily-workflow.js','/quote-automation.js','/job-expense-presets.js','/workforce-schedule.js','/commercial-proposal.js','/reference-compare.js','/reference-integrity-core.js','/sinapi-reference-parser.js','/sinapi-import.js','/sinapi-labor-link.js','/unified-catalog.js','/quick-quote-item.js','/financial-audit.js','/operations-core.js','/operations.js','/proposal-layout.js','/automation-risk-core.js','/automation-review.js','/automation-coverage.js','/auth-screen.js','/cloud-sync.js','/manifest.webmanifest','/assets/civolten-logo.png','/icons/civolten-simbolo.png','/icons/icon-192.png','/icons/icon-512.png'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(CORE)));self.skipWaiting()});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==VERSION).map(k=>caches.delete(k)))));self.clients.claim()});
-self.addEventListener('fetch',e=>{const url=new URL(e.request.url);if(e.request.method!=='GET'||url.origin!==self.location.origin||url.pathname.startsWith('/api/'))return;e.respondWith(fetch(e.request).then(resp=>{if(resp.ok){const clone=resp.clone();caches.open(VERSION).then(cache=>cache.put(e.request,clone))}return resp}).catch(()=>caches.match(e.request,{ignoreSearch:true}).then(cached=>cached||(e.request.mode==='navigate'?caches.match('/index.html'):Response.error()))))});
+const CACHE='civolten-base-limpa-v1-20261107';
+const FILES=['/','/index.html','/auth-screen.js','/core/app.js',
+ '/core/cost-engine.js','/core/styles.css','/login.js','/manifest.webmanifest',
+ '/assets/civolten-logo.png','/icons/civolten-simbolo.png',
+ '/icons/icon-192.png','/icons/icon-512.png'];
+self.addEventListener('install',event=>{
+ event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)));
+ self.skipWaiting();
+});
+self.addEventListener('activate',event=>{
+ event.waitUntil(caches.keys().then(keys=>Promise.all(
+  keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))));
+ self.clients.claim();
+});
+self.addEventListener('fetch',event=>{
+ const req=event.request,url=new URL(req.url);
+ if(req.method!=='GET'||url.origin!==location.origin||
+  url.pathname.startsWith('/api/')||url.pathname.startsWith('/login'))return;
+ event.respondWith(fetch(req).then(response=>{
+  if(response.ok){
+   const clone=response.clone();
+   caches.open(CACHE).then(cache=>cache.put(req,clone)).catch(()=>{});
+  }
+  return response;
+ }).catch(()=>caches.match(req,{ignoreSearch:true})
+   .then(cached=>cached||(req.mode==='navigate'?caches.match('/index.html'):Response.error()))));
+});
