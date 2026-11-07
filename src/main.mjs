@@ -1,27 +1,23 @@
-import {createAuthClient} from '@neon/auth';
+import {createClient} from '@supabase/supabase-js';
+import {fetchRemote,putRemote,deleteRemote} from './cloud.mjs';
+import {createE2EClient} from './e2e-client.mjs';
 import {fresh,safeLoad,safeSave,validate,summary,employeeCost} from './calc.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,e,icon} from './views.mjs';
-const BASE_URL=__CIVOLTEN_AUTH_URL__;
+const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
+const SUPABASE_PUBLIC_KEY=__CIVOLTEN_SUPABASE_PUBLISHABLE_KEY__;
 const E2E=__CIVOLTEN_E2E__===true&&['127.0.0.1','localhost'].includes(location.hostname);
-function testAuth(){
- // Somente build explícita de teste local. Jamais ativada em produção.
- let user=null;
- return {
-  getSession:async()=>({data:{user}}),
-  signUp:{email:async({name,email})=>({data:{user:{id:'test-user',name,email}}})},
-  signIn:{email:async({email})=>{user={id:'test-user',name:'Teste CIVOLTEN',email};return {data:{user}}}},
-  signOut:async()=>{user=null;return {data:null}},
-  resetPassword:async()=>({data:{success:true}}),
-  requestPasswordReset:async()=>({data:true})
- };
-}
-const auth=E2E?testAuth():BASE_URL?createAuthClient(BASE_URL):null;
+const auth=E2E?createE2EClient():
+ (SUPABASE_URL&&SUPABASE_PUBLIC_KEY?
+ createClient(SUPABASE_URL,SUPABASE_PUBLIC_KEY,{
+  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+ }):null);
 const recoveryToken=new URLSearchParams(location.search).get('token');
 const mount=document.getElementById('app');
 const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',authMode:recoveryToken?'newpass':'login',
+ cloudError:null,
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
 };
@@ -31,7 +27,7 @@ const delayToast=(text)=>{
 };
 function render(){
  if(!state.checkedSession){mount.innerHTML='<div class="loading-stage"><img src="/assets/civolten-simbolo.png" alt=""><span>Preparando CIVOLTEN...</span></div>';return;}
- if(!state.user){
+ if(!state.user||state.authMode==='newpass'){
   mount.innerHTML=authView(state.authMode,state.authError,state.authBusy);
   return;
  }
@@ -42,17 +38,30 @@ function render(){
  else html=moreView(state.user,state.data);
  mount.innerHTML=shell(state.view,html);
 }
+async function loadForUser(user){
+ state.cloudError=null;
+ try{
+  state.data=await fetchRemote(auth,user.id);
+  try{safeSave(localStorage,user.id,state.data)}catch{/* cache é opcional */}
+ }catch(err){
+  state.cloudError=String(err.message||'Banco de dados indisponível');
+  state.data=safeLoad(localStorage,user.id);
+  delayToast('Não foi possível sincronizar. Consulte o banco antes de editar: '+state.cloudError);
+ }
+}
 async function session(){
  if(!auth){
   state.checkedSession=true;state.user=null;
-  state.authError='O login ainda não está configurado nesta publicação. Dados anteriores permanecem preservados.';
+  state.authError='Supabase Auth não configurado. Nenhum dado foi apagado.';
   render();return;
  }
  try{
-  const result=await auth.getSession();
-  if(result.error)throw Error(result.error.message||'Sessão indisponível');
+  const result=await auth.auth.getUser();
+  if(result.error&&result.error.code!=='session_not_found'&&result.error.code!=='auth_session_missing')
+   throw Error(result.error.message||'Falha de sessão');
   state.user=result.data?.user||null;
-  state.data=state.user?safeLoad(localStorage,state.user.id):fresh();
+  if(state.user)await loadForUser(state.user);
+  else state.data=fresh();
  }catch(err){
   state.user=null;
   state.authError='Não foi possível verificar seu acesso: '+(err.message||'falha na conexão');
@@ -62,36 +71,35 @@ async function submitLogin(form){
  const fields=Object.fromEntries(new FormData(form));
  state.authBusy=true;state.authError='';render();
  try{
-  if(!auth)throw Error('Autenticação não configurada.');
+  if(!auth)throw Error('Supabase Auth não configurado.');
   if(state.authMode==='newpass'){
-   if(!recoveryToken||typeof auth.resetPassword!=='function')throw Error('Link de recuperação inválido.');
-   const result=await auth.resetPassword({newPassword:fields.password,token:recoveryToken});
-   if(result.error)throw Error(result.error.message||'Não foi possível alterar a senha');
+   const result=await auth.auth.updateUser({password:fields.password});
+   if(result.error)throw Error(result.error.message||'Falha ao alterar a senha');
    history.replaceState(null,'',location.pathname);
    state.authMode='login';
+   await auth.auth.signOut();
+   state.user=null;state.data=fresh();
    delayToast('Senha atualizada. Entre novamente com sua nova senha.');
   }else if(state.authMode==='reset'){
-   if(typeof auth.requestPasswordReset!=='function')
-    throw Error('Recuperação de senha indisponível. Entre em contato com o suporte.');
-   const result=await auth.requestPasswordReset({email:fields.email,
+   const result=await auth.auth.resetPasswordForEmail(fields.email,{
     redirectTo:location.origin+'/'});
-   if(result.error)throw Error(result.error.message||'Não foi possível enviar o e-mail');
+   if(result.error)throw Error(result.error.message||'Falha no e-mail de recuperação');
    state.authMode='login';
    delayToast('Se houver uma conta neste e-mail, você receberá instruções de recuperação.');
   }else{
    const result=state.authMode==='signup'?
-    await auth.signUp.email({name:fields.name,email:fields.email,password:fields.password}):
-    await auth.signIn.email({email:fields.email,password:fields.password});
+    await auth.auth.signUp({email:fields.email,password:fields.password,
+     options:{data:{name:fields.name},emailRedirectTo:location.origin+'/'}}):
+    await auth.auth.signInWithPassword({email:fields.email,password:fields.password});
    if(result.error)throw Error(result.error.message||'Não foi possível autenticar.');
-   const check=await auth.getSession();
-   if(check.error)throw Error(check.error.message||'Não foi possível confirmar a sessão');
+   // Supabase exige confirmação de e-mail por padrão: cadastro não garante sessão.
+   const check=await auth.auth.getUser();
    const user=check.data?.user||null;
    if(!user){
     state.authMode='login';
-    delayToast('Cadastro recebido. Confirme seu e-mail, se necessário, e faça login.');
+    delayToast('Cadastro realizado. Confirme o e-mail, se solicitado, antes de entrar.');
    }else{
-    state.user=user;state.data=safeLoad(localStorage,user.id);state.view='home';
-    state.authMode='login';
+    state.user=user;await loadForUser(user);state.view='home';state.authMode='login';
     delayToast('Bem-vindo ao CIVOLTEN!');
    }
   }
@@ -102,8 +110,8 @@ async function signOut(){
  if(!auth)return;
  state.busy=true;delayToast('Saindo da sua conta...');
  try{
-  const r=await auth.signOut();if(r?.error)throw Error(r.error.message||'Falha ao sair');
-  state.user=null;state.data=fresh();state.view='home';state.authMode='login';
+  const r=await auth.auth.signOut();if(r?.error)throw Error(r.error.message||'Falha ao sair');
+  state.user=null;state.data=fresh();state.cloudError=null;state.view='home';state.authMode='login';
   state.authError='';render();delayToast('Sessão encerrada. Seus dados locais foram preservados.');
  }catch(err){delayToast(err.message||'Não foi possível sair.');}
  finally{state.busy=false;}
@@ -116,6 +124,7 @@ function go(view){
 }
 function openEditor(kind,id=null){
  if(!['fixed','variable','employees'].includes(kind))return;
+ if(state.cloudError){delayToast('Banco indisponível: não é seguro editar antes de sincronizar.');return;}
  const person=state.data[kind]?.find(x=>x.id===id)||{};
  state.editor={kind,id};
  modal.innerHTML=editorView(kind,person);
@@ -132,35 +141,39 @@ function toggleContractFields(){
  for(const wrap of form.querySelectorAll('[data-contract]'))
   wrap.hidden=wrap.dataset.contract!==type;
 }
-function saveRecord(form){
+async function saveRecord(form){
  if(!state.editor||!state.user)return;
- const {kind,id}=state.editor;
- const input=Object.fromEntries(new FormData(form));
+ const {kind,id}=state.editor,input=Object.fromEntries(new FormData(form));
  if(kind==='employees'&&input.contractType==='contractor')input.hours=input.contractHours;
+ const submit=form.querySelector('[type=submit]');
+ if(submit)submit.disabled=true;
  try{
   const nextRecord=validate(kind,input);
   nextRecord.id=id||crypto.randomUUID();
+  await putRemote(auth,state.user.id,kind,nextRecord);
   const copy=structuredClone(state.data);
-  const i=copy[kind].findIndex(item=>item.id===id);
-  if(i>=0)copy[kind][i]=nextRecord;
-  else copy[kind].push(nextRecord);
-  state.data=safeSave(localStorage,state.user.id,copy);
-  closeEditor();render();delayToast('Cadastro salvo com sucesso.');
+  const ix=copy[kind].findIndex(item=>item.id===id);
+  if(ix>=0)copy[kind][ix]=nextRecord;else copy[kind].push(nextRecord);
+  state.data=copy;
+  try{safeSave(localStorage,state.user.id,copy)}catch{/* cache opcional */}
+  closeEditor();render();delayToast('Salvo no Supabase com sucesso.');
  }catch(err){
   const node=form.querySelector('#form-error');
   node.textContent=err.message||'Confira os campos.';node.hidden=false;
- }
+ }finally{if(submit)submit.disabled=false;}
 }
-function removeRecord(){
+async function removeRecord(){
  if(!state.editor||!state.user)return;
  const {kind,id}=state.editor,item=state.data[kind].find(x=>x.id===id);
  if(!item)return;
  if(!confirm('Excluir "'+item.name+'"? Esta ação não pode ser desfeita.'))return;
  try{
+  await deleteRemote(auth,state.user.id,kind,id);
   const copy=structuredClone(state.data);
   copy[kind]=copy[kind].filter(x=>x.id!==id);
-  state.data=safeSave(localStorage,state.user.id,copy);
-  closeEditor();render();delayToast('Cadastro excluído.');
+  state.data=copy;
+  try{safeSave(localStorage,state.user.id,copy)}catch{/* cache opcional */}
+  closeEditor();render();delayToast('Excluído do Supabase.');
  }catch(err){delayToast('Não foi possível excluir: '+err.message);}
 }
 mount.addEventListener('click',async event=>{
@@ -207,18 +220,25 @@ modal.addEventListener('click',event=>{
  const b=event.target.closest('[data-action]');if(!b)return;
  const action=b.dataset.action;
  if(action==='close-modal')closeEditor();
- if(action==='delete-record')removeRecord();
+ if(action==='delete-record')void removeRecord();
 });
 modal.addEventListener('change',event=>{
  if(event.target.name==='contractType')toggleContractFields();
 });
 modal.addEventListener('submit',event=>{
  if(event.target.id!=='record-form')return;
- event.preventDefault();saveRecord(event.target);
+ event.preventDefault();void saveRecord(event.target);
 });
 modal.addEventListener('click',event=>{if(event.target===modal)closeEditor();});
 if('serviceWorker' in navigator&&!E2E)
  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+if(auth?.auth?.onAuthStateChange){
+ auth.auth.onAuthStateChange((event)=>{
+  if(event==='PASSWORD_RECOVERY'){
+   state.checkedSession=true;state.authMode='newpass';render();
+  }
+ });
+}
 render();
 session();
 window.CIVOLTENPreview={get view(){return state.view},get data(){return structuredClone(state.data)},
