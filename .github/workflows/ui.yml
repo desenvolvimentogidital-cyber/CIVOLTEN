@@ -48,11 +48,13 @@ jobs:
           node --check src/calc.mjs
           node --check src/cloud.mjs
           node --check src/e2e-client.mjs
+          node --check src/finance.mjs
+          node --check src/finance-ui.mjs
       - name: Instalar Chromium gratuito
         run: npx playwright install --with-deps chromium
       - name: Testar login e navegação no celular
         run: npm run test:browser
-      - name: Guardar capturas das quatro telas
+      - name: Guardar capturas do aplicativo e módulos financeiros
         if: always()
         uses: actions/upload-artifact@v4
         with:
