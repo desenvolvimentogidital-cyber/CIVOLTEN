@@ -56,9 +56,10 @@ async function session(){
   render();return;
  }
  try{
-  const result=await auth.auth.getUser();
-  if(result.error&&result.error.code!=='session_not_found'&&result.error.code!=='auth_session_missing')
-   throw Error(result.error.message||'Falha de sessão');
+  const saved=await auth.auth.getSession();
+  if(saved.error)throw Error(saved.error.message||'Falha ao verificar sessão');
+  const result=saved.data?.session?await auth.auth.getUser():{data:{user:null},error:null};
+  if(result.error)throw Error(result.error.message||'Falha de sessão');
   state.user=result.data?.user||null;
   if(state.user)await loadForUser(state.user);
   else state.data=fresh();
