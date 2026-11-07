@@ -85,20 +85,23 @@
  modalSubmit=function(form){
   if(s.modal!=='addservice')return oldSubmit(form);
   const id=s.edit?.id,oldLength=db.services.length,vals=captureTemplate(form),sum=crewTotals(vals.crew);
-  if(sum.entries.some(e=>e.rate<=0)){toast('Confira os custos dos profissionais antes de salvar a produtividade.');return}
+  const missingRates=sum.entries.some(e=>e.rate<=0);
+  // Salvar o catálogo mesmo quando uma taxa de mão de obra ainda não existe.
+  // A pendência fica explícita e não pode transformar R$ 0 em preço confiável.
   oldSubmit(form);
   let service=id?db.services.find(x=>x.id===id):db.services.length>oldLength?db.services[db.services.length-1]:null;
   if(!service)return;
-  service.productivity=vals;
+  service.productivity={...vals,pendingRates:missingRates};
   const isSiurb=service.origin==='SIURB'&&service.costSplitConfirmed;
   if(isSiurb){
    // A divisão oficial conferida nunca deve ser sobrescrita pelo custo da empresa.
    if(service.referenceLabor===undefined)service.referenceLabor=round(n(service.labor));
    if(service.referenceMaterial===undefined)service.referenceMaterial=round(n(service.material));
   }
-  if(sum.entries.length){
+  if(sum.entries.length&&!missingRates){
    service.labor=round(isSiurb?sum.cost:Math.max(n(service.labor),sum.cost));
   }
+  if(missingRates)service.analyticalReviewNeeded=true;
   const mat=db.materials.find(m=>m.id===vals.materialId);
   if(mat)service.material=round(isSiurb?n(mat.cost)*vals.materialQty:Math.max(n(service.material),n(mat.cost)*vals.materialQty));
   save();render();
