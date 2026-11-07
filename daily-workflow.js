@@ -65,7 +65,7 @@ function serviceHits(q){
 }
 function selectedMaterial(){const v=db.materials||[];return v.map(x=>option(x.id,x.name+' • '+BRL(x.cost)+'/'+x.unit,false)).join('')}
 function selectedWorker(){return (db.workers||[]).map(x=>option(x.id,x.name+' — '+x.role+' ('+BRL(workerHour(x))+'/h)',false)).join('')}
-function modalWrapper(title,inner){return '<div class="overlay" id="overlay"><div class="modal dw-modal" role="dialog" aria-modal="true"><div class="modal-header"><h2>'+title+'</h2><button class="icon-btn" data-action="closemodal" type="button" aria-label="Fechar">'+I('close')+'</button></div><form id="modal-form">'+inner+'<div class="form-actions"><button type="button" class="btn btn-light" data-action="closemodal">Cancelar</button><button type="submit" class="btn btn-gold">Salvar</button></div></form></div></div>'}
+function modalWrapper(title,inner){return '<div class="overlay" id="overlay"><div class="modal dw-modal" role="dialog" aria-modal="true"><div class="modal-header"><h2>'+title+'</h2><button class="icon-btn" data-action="closemodal" type="button" aria-label="Fechar">'+I('close')+'</button></div><form id="modal-form" '+(s.modal==='additem'?'novalidate':'')+'>'+inner+'<div class="form-actions"><button type="button" class="btn btn-light" data-action="closemodal">Cancelar</button><button type="submit" class="btn btn-gold">Salvar</button></div></form></div></div>'}
 function selectedSourceInfo(){const d=selected?.data||s.edit||{};const ref=number(d.referenceCost??d.cost);return ref}
 function addItemHTML(){
  const e=s.edit||{},key='additem:'+(e.id||'new');
@@ -249,8 +249,11 @@ function saveItem(form){
  workerId:w?.id||'',hoursUnit:number(x.hoursUnit),workersCount:number(x.workersCount)||1,
  materialId:x.materialId||'',materialQty:number(x.materialQty)||1,materialSourceCode:chosenMaterialRef?.code||'',source:source?'SIURB':'',sourceCode:source?.sourceCode||source?.code||'',
  sourceGroup:source?.sourceGroup||source?.group||'',sourceDate:source?.sourceDate||'07/2026',
- referenceCost:source?number(source.referenceCost??source.cost):0,splitConfirmed:!!form.elements.siurbChecked?.checked,companyProductivityConfirmed:companyProductivity,
- referencePending:!!source&&!form.elements.siurbChecked?.checked&&!companyProductivity};
+ referenceCost:source&&number(source.referenceCost??source.cost)>0?number(source.referenceCost??source.cost):null,
+ referencePricePending:!!source&&!(number(source.referenceCost??source.cost)>0),
+ splitConfirmed:!!form.elements.siurbChecked?.checked,companyProductivityConfirmed:companyProductivity,
+ referencePending:!!source&&!form.elements.siurbChecked?.checked&&!companyProductivity,
+ automaticStatus:'conferir-na-proposta'};
  if(source&&form.elements.siurbSaveLibrary?.checked&&form.elements.siurbChecked?.checked){
   let service=db.services.find(v=>v.origin==='SIURB'&&v.sourceCode===item.sourceCode&&v.sourceGroup===item.sourceGroup);
   if(!service){
@@ -263,7 +266,10 @@ function saveItem(form){
   const index=s.wizard.items.findIndex(v=>v.id===s.edit.id);
   if(index>=0)s.wizard.items[index]=item;else s.wizard.items.push(item);
  } else s.wizard.items.push(item);
+ const pending=!(item.labor>0)||item.referencePending||item.referencePricePending;
  selected=null;chosenMaterialRef=null;modalIdentity=null;s.edit=null;s.modal=null;keepTemp();save();render();
+ toast(pending?'Serviço incluído! Dados de custo pendentes serão conferidos na proposta.':
+  'Serviço incluído com a composição automática.');
 }
 function saveWorker(form){
  const v=Object.fromEntries(new FormData(form).entries());if(!v.name?.trim()){toast('Informe o nome do profissional.');return}
@@ -365,6 +371,20 @@ click=function(action,el){
 document.addEventListener('click',e=>{
  const btn=e.target.closest('[data-action]');if(!btn)return;
  if(btn.dataset.action.startsWith('dw-')){e.preventDefault();e.stopPropagation();click(btn.dataset.action,btn)}
+},true);
+// Ao tocar em Salvar, escolher automaticamente a única referência exata se
+// ainda não houve clique explícito. Dados ambíguos nunca são atribuídos.
+document.addEventListener('submit',e=>{
+ if(e.target?.id!=='modal-form'||s.modal!=='additem')return;
+ const form=e.target;
+ if(selected||form.elements.serviceId?.value||form.elements.sourceId?.value)return;
+ const typed=String(form.elements.service?.value||'').trim();
+ if(!typed)return;
+ const matches=matchingServices(typed).filter(x=>
+  norm(x.label).trim()===norm(typed).trim()||norm(x.code).trim()===norm(typed).trim());
+ const mine=matches.filter(x=>x.kind==='catalog');
+ const match=mine.length===1?mine[0]:!mine.length&&matches.length===1?matches[0]:null;
+ if(match)chooseService({id:match.id,kind:match.kind});
 },true);
 document.addEventListener('input',e=>{
  const form=document.getElementById('modal-form');
