@@ -15,11 +15,12 @@ function testAuth(){
  };
 }
 const auth=E2E?testAuth():BASE_URL?createAuthClient(BASE_URL):null;
+const recoveryToken=new URLSearchParams(location.search).get('token');
 const mount=document.getElementById('app');
 const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
- user:null,data:fresh(),view:'home',costTab:'fixed',authMode:'login',
+ user:null,data:fresh(),view:'home',costTab:'fixed',authMode:recoveryToken?'newpass':'login',
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
 };
@@ -61,7 +62,14 @@ async function submitLogin(form){
  state.authBusy=true;state.authError='';render();
  try{
   if(!auth)throw Error('Autenticação não configurada.');
-  if(state.authMode==='reset'){
+  if(state.authMode==='newpass'){
+   if(!recoveryToken||typeof auth.resetPassword!=='function')throw Error('Link de recuperação inválido.');
+   const result=await auth.resetPassword({newPassword:fields.password,token:recoveryToken});
+   if(result.error)throw Error(result.error.message||'Não foi possível alterar a senha');
+   history.replaceState(null,'',location.pathname);
+   state.authMode='login';
+   delayToast('Senha atualizada. Entre novamente com sua nova senha.');
+  }else if(state.authMode==='reset'){
    if(typeof auth.requestPasswordReset!=='function')
     throw Error('Recuperação de senha indisponível. Entre em contato com o suporte.');
    const result=await auth.requestPasswordReset({email:fields.email,
