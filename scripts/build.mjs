@@ -15,6 +15,7 @@ await build({
  entryPoints:['client/cloud-sync.mjs'],
  outfile:path.join(output,'cloud-sync.js'),
  bundle:true,platform:'browser',format:'iife',target:['es2022'],minify:true,
- define:{__CIVOLTEN_NEON_AUTH_URL__:JSON.stringify(process.env.NEON_AUTH_BASE_URL||'')}
+ define:{__CIVOLTEN_NEON_AUTH_URL__:JSON.stringify(process.env.NEON_AUTH_BASE_URL||''),
+  __CIVOLTEN_BROWSER_TEST_MODE__:JSON.stringify(process.env.CIVOLTEN_BROWSER_TEST_MODE==='true')}
 });
 console.log('CIVOLTEN: PWA e interface de nuvem compilados. Auth:',Boolean(process.env.NEON_AUTH_BASE_URL));
