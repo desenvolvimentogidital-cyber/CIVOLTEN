@@ -69,7 +69,10 @@ modalSubmit=function(form){
  let didSuggest=form.elements.slProposed?.value==='yes';
  const status=window.CIVOLTENAutoProductivity?.analyze(
   s.edit,db.workers,w=>window.CIVOLTENPayroll?.hourly?.(w)||0);
- const complete=!!(status?.status==='ready'&&status.rows.length<=3);
+ const traceable=!!(s.edit?.origin==='SINAPI'&&s.edit.sourceCode&&
+  s.edit.sourceDate&&((s.edit.sourceUF==='SP'&&s.edit.sourceFile)||
+   (s.edit.uf==='SP'&&s.edit.verifiedUF===true)));
+ const complete=!!(traceable&&status?.status==='ready'&&status.rows.length<=3);
  const hasOwnTemplate=Array.from({length:3},(_,i)=>
   !!form.elements['qaWorker'+i]?.value&&num(form.elements['qaHours'+i]?.value)>0
  ).some(Boolean);
@@ -114,7 +117,9 @@ document.addEventListener('click',event=>{
  const result=summarize(s.edit);
  const safe=window.CIVOLTENAutoProductivity?.analyze(
   s.edit,db.workers,w=>window.CIVOLTENPayroll?.hourly?.(w)||0);
- if(result.tooMany||result.noRoles||result.indirect||result.unmapped.length||
+ const traceable=s.edit?.origin==='SINAPI'&&s.edit.sourceCode&&s.edit.sourceDate&&
+  ((s.edit.sourceUF==='SP'&&s.edit.sourceFile)||(s.edit.uf==='SP'&&s.edit.verifiedUF===true));
+ if(!traceable||result.tooMany||result.noRoles||result.indirect||result.unmapped.length||
     result.unlinked.length||safe?.status!=='ready'){
   toast('Composição analítica incompleta. O serviço pode ser salvo com pendência; sem produtividade inventada.');return;
  }
