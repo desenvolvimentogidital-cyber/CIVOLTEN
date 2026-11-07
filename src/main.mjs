@@ -1,6 +1,7 @@
 import {createClient} from '@supabase/supabase-js';
 import {fetchRemote,putRemote,deleteRemote} from './cloud.mjs';
 import {createE2EClient} from './e2e-client.mjs';
+import {signupOutcome,authMessage,repeatedSignupMessage,pendingEmailMessage} from './auth-flow.mjs';
 import {fresh,safeLoad,safeSave,validate,summary,employeeCost} from './calc.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,e,icon} from './views.mjs';
 const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
@@ -82,24 +83,45 @@ async function submitLogin(form){
    state.user=null;state.data=fresh();
    delayToast('Senha atualizada. Entre novamente com sua nova senha.');
   }else if(state.authMode==='reset'){
-   const result=await auth.auth.resetPasswordForEmail(fields.email,{
+   const result=await auth.auth.resetPasswordForEmail(fields.email.trim(),{
     redirectTo:location.origin+'/'});
-   if(result.error)throw Error(result.error.message||'Falha no e-mail de recuperação');
+   if(result.error)throw Error(authMessage(result.error,'reset'));
    state.authMode='login';
-   delayToast('Se houver uma conta neste e-mail, você receberá instruções de recuperação.');
+   state.authError='Se houver uma conta neste e-mail, você receberá instruções de recuperação. Confira também o spam.';
   }else{
-   const result=state.authMode==='signup'?
-    await auth.auth.signUp({email:fields.email,password:fields.password,
+   const creating=state.authMode==='signup';
+   const email=fields.email.trim();
+   const result=creating?
+    await auth.auth.signUp({email,password:fields.password,
      options:{data:{name:fields.name},emailRedirectTo:location.origin+'/'}}):
-    await auth.auth.signInWithPassword({email:fields.email,password:fields.password});
-   if(result.error)throw Error(result.error.message||'Não foi possível autenticar.');
-   // Supabase exige confirmação de e-mail por padrão: cadastro não garante sessão.
-   const check=await auth.auth.getUser();
-   const user=check.data?.user||null;
-   if(!user){
-    state.authMode='login';
-    delayToast('Cadastro realizado. Confirme o e-mail, se solicitado, antes de entrar.');
+    await auth.auth.signInWithPassword({email,password:fields.password});
+   if(result.error)throw Error(authMessage(result.error,creating?'signup':'login'));
+   if(creating){
+    const outcome=signupOutcome(result);
+    if(outcome==='repeated'){
+     // O Supabase pode responder HTTP 200 para um cadastro repetido;
+     // nenhuma identidade nova foi criada. Não declarar sucesso.
+     state.authMode='login';
+     state.authError=repeatedSignupMessage;
+    }else if(outcome==='confirmation'){
+     // Sem sessão: a pessoa precisa confirmar o e-mail antes de entrar.
+     state.authMode='login';
+     state.authError=pendingEmailMessage;
+    }else if(outcome==='no-user'){
+     throw Error('Não foi possível confirmar o cadastro. Tente novamente.');
+    }else{
+     const check=await auth.auth.getUser();
+     if(check.error)throw Error(authMessage(check.error,'login'));
+     const user=check.data?.user||null;
+     if(!user)throw Error('A sessão não foi confirmada. Entre novamente.');
+     state.user=user;await loadForUser(user);state.view='home';state.authMode='login';
+     delayToast('Bem-vindo ao CIVOLTEN!');
+    }
    }else{
+    const check=await auth.auth.getUser();
+    if(check.error)throw Error(authMessage(check.error,'login'));
+    const user=check.data?.user||null;
+    if(!user)throw Error('Não foi possível confirmar sua sessão. Tente entrar novamente.');
     state.user=user;await loadForUser(user);state.view='home';state.authMode='login';
     delayToast('Bem-vindo ao CIVOLTEN!');
    }
