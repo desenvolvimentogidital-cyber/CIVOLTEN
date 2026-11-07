@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 170" preserveAspectRatio="xMaxYMax meet">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#e88e18" stop-opacity="0"/><stop offset=".84" stop-color="#e88306" stop-opacity=".39"/><stop offset="1" stop-color="#aa4a02" stop-opacity=".42"/></linearGradient><linearGradient id="steel" x2="0" y2="1"><stop stop-color="#100e0c" stop-opacity=".1"/><stop offset="1" stop-color="#080706" stop-opacity=".98"/></linearGradient></defs>
+<rect width="620" height="170" fill="url(#sky)"/>
+<g fill="none" stroke="#120c07" stroke-width="3" opacity=".9">
+<path d="M400 167V58h150v109M415 59V21h119v38M415 61l135 0M415 89h135M415 119h135M440 22v145M473 22v145M509 22v145"/>
+<path d="M475 21 589 13 611 30 518 38M575 14V167M610 30V167" stroke-width="2"/>
+<path d="M358 167V103h64M365 102V80h54M385 80V167M405 101V167M348 130h74"/>
+<path d="M546 168V90M557 168V102M568 168V90"/>
+<path d="M487 20 473 2 458 20M514 21 530 0 547 21"/>
+</g>
+<g fill="url(#steel)" opacity=".96"><path d="M327 170v-21h25v-8h23v11h27v-19h35v37zM420 170V62h12V21h12v41h9v108zM473 170V28h17v142zM514 170V21h12v149zM549 170V62h27v108zM580 170v-34h40v34z"/></g>
+<path d="M0 170h620" stroke="#ff9d14" stroke-opacity=".5" stroke-width="4"/>
+</svg>
