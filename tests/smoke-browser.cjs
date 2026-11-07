@@ -87,8 +87,10 @@ const server=http.createServer((req,res)=>{
   await page.locator('#cv-dialog').getByText('Custo por hora',{exact:true}).waitFor();
   await page.locator('[data-action="close-dialog"]').click();
   await page.locator('[data-page="config"]').click();
-  await page.locator('[data-action="delete-fixed"]').first().click({force:true});
-  // Confirm dialog belongs to the browser; accept it before clicking.
+  page.once('dialog',async dialog=>dialog.accept());
+  await page.locator('[data-action="delete-fixed"]').first().click();
+  assert.equal(await page.evaluate(()=>window.CIVOLTENNewApp.state.fixed.length),1,
+   'Excluir deve remover somente o custo selecionado');
   assert.deepEqual(errors,[],'Erros JavaScript: '+errors.join('; '));
   console.log('CIVOLTEN BASE CLEAN — PASS: home, empresa, custo fixo/variável, funcionário, persistência e legado preservado');
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
