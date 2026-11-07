@@ -259,7 +259,7 @@ const close=()=>new Promise(resolve=>server.close(resolve));
    db.workers=[{id:'prof-pedreiro',name:'Pedreiro A',role:'Pedreiro',cost:38,unit:'hora'}];
    db.services=[{id:'svc-alvenaria-analitica',origin:'SINAPI',
     name:'ALVENARIA DE TIJOLO MACIÇO ANALÍTICA',unit:'M2',
-    sourceCode:'900001',sourceDate:'2026-07',regime:'onerada',uf:'SP',
+    sourceCode:'900001',sourceDate:'2026-07',sourceUF:'SP',sourceFile:'Analitico SP.xlsx',regime:'onerada',uf:'SP',
     verifiedUF:true,analytical:true,kind:'composicao',cost:150,
     analyticLabor:[{role:'Pedreiro',hoursPerUnit:1.25}],analyticItems:[],
     labor:0,material:0,analyticalReviewNeeded:true}];
