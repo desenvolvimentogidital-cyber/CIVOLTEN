@@ -6,6 +6,7 @@ export function createE2EClient(){
  function save(data){localStorage.setItem(KEY,JSON.stringify(data))}
  const auth={
   getUser:async()=>({data:{user},error:null}),
+  getSession:async()=>({data:{session:user?{user}:null},error:null}),
   signUp:async({email,options})=>({data:{user:{id:'00000000-0000-4000-8000-000000000001',
    email,user_metadata:{name:options?.data?.name||'Teste'}}},error:null}),
   signInWithPassword:async({email})=>{
