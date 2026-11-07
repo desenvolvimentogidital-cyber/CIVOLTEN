@@ -267,8 +267,9 @@ const close=()=>new Promise(resolve=>server.close(resolve));
   });
   assert.equal(await page.locator('[name="slConfirmed"]').count(),0,
    'Cadastro não deve exigir marcar conferência de produtividade');
-  await page.locator('[data-action="sl-fill"]').click();
-  assert.equal(await page.locator('[name="qaHours0"]').inputValue(),'1.25');
+  // Não clicar no botão opcional de preencher: o próprio Salvar deve
+  // resolver coeficientes e alocar o profissional cadastrado.
+  assert.equal(await page.locator('[name="qaHours0"]').inputValue(),'');
   await page.locator('#modal-form button[type="submit"]').click();
   const autoSaved=await page.evaluate(()=>db.services[0]);
   assert.equal(autoSaved.analyticalReviewNeeded,false);
