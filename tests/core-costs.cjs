@@ -75,4 +75,6 @@ test('cadastro exige apenas dados básicos, não impede casos parciais',()=>{
  assert.equal(row.salary,3200);assert.equal(C.employeeCost(row).status,'partial');
  assert.throws(()=>C.itemInput('fixed',{name:'',amount:'100'},'f'),/descrição/);
  assert.throws(()=>C.itemInput('employees',{name:'A',salary:'',type:'clt'},'w'),/salário/);
+ assert.throws(()=>C.itemInput('employees',{name:'A',salary:'2000',benefits:'-500',type:'clt'},'w'),/negativos/);
+ assert.throws(()=>C.itemInput('employees',{name:'A',rate:'0',type:'contractor'},'w'),/maior que zero/);
 });
