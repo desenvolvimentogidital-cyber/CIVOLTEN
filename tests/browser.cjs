@@ -82,7 +82,7 @@ const server=createServer((req,res)=>{
   await page.locator('.dashboard').waitFor();
   assert.equal(await page.evaluate(()=>window.CIVOLTENPreview.summary().total),596667,
    'Salvos locais não podem sumir ao fechar/abrir sessão');
-  await page.locator('[data-go="more"]').click();
+  await page.locator('.bottom-nav [data-go="more"]').click();
   await page.locator('[data-action="signout"]').click();
   await page.locator('.auth-page').waitFor();
   assert.deepEqual(errors,[],'Erros JavaScript encontrados: '+errors.join('; '));
