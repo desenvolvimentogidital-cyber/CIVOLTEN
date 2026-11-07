@@ -1,42 +1,45 @@
-# CIVOLTEN — Interface premium (proposta aprovada)
+# CIVOLTEN — Nova base Supabase
 
-Reimplementação do aplicativo a partir do GitHub limpo, baseada no layout visual aprovado: **preto, prata e dourado**, utilizando o logotipo e o símbolo originais da empresa (arquivos PNG restaurados por hash Git, sem modificação).
+Identidade visual preservada: telas Login, Início, Custos e Funcionários com logotipos CIVOLTEN originais, fundo preto, prata, dourado e navegação inferior.
 
-## Telas
+## Banco de dados
 
-- **Entrar / Criar conta**: UI metálica, login por e-mail/senha via Neon Managed Auth já existente. Esqueci minha senha utiliza a função de recuperação quando disponibilizada pelo Neon.
-- **Início**: saudação, 4 indicadores financeiros, atalhos e resumo mensal.
-- **Custos da empresa**: abas fixos/variáveis, inserção/edição/exclusão, periodicidade mensal ou anual, previsão mensal dos variáveis.
-- **Funcionários**: cadastro CLT/prestador, status, custos mensais e por hora com valores reais informados.
-- **Mais**: configurações, entrada para custos/equipe e saída da conta.
+O aplicativo utiliza o projeto já existente CIVOLTEN-Orcamentos do Supabase, na região São Paulo, restaurado em 7 de novembro de 2026. O projeto Neon antigo foi preservado; nenhum outro projeto da conta foi excluído.
 
-Os botões "Relatórios" e módulos futuros são **apenas referências visuais**, sem prometer funcionalidades ainda não implementadas.
+Três tabelas novas foram adicionadas por meio da migração civolten_premium_base_v1, contida em supabase/schema.sql:
 
-### Dados
+- cv_fixed_costs_v1 — custos fixos mensais ou anuais;
+- cv_variable_costs_v1 — custos variáveis por unidade e previsão mensal;
+- cv_employees_v1 — funcionários CLT, prestadores, encargos e horas.
 
-Os valores do mockup (nomes e valores fictícios) **não são inseridos na base real**. O estado inicial está vazio. Dados editados são gravados no navegador em \`civolten_premium_v1_<userId>\` de forma isolada por sessão. **Não há ainda sincronização nem backup da nova base entre celulares.** A integração Neon existente serve à autenticação. Não se escreve em tabelas antigas.
+Cada uma tem coluna user_id referenciando auth.users, RLS habilitado, uma política para cada operação de leitura, criação, edição e exclusão, e privilégios SQL apenas para authenticated (não para anon). Não contém dados de exemplo.
 
-Custos CLT exibidos são projeções gerenciais com 13º, adicional de 1/3 de férias, encargos/FGTS e benefícios **somente conforme percentuais informados**; encargos ausentes ficam pendentes. Confira regras trabalhistas, CCT e tributação antes de usar os valores contratualmente. Custo variável sem previsão de quantidade não vira custo zero inventado.
+A auditoria inicial encontrou 29 tabelas antigas vazias e uma conta de autenticação anterior. Foram mantidas intactas por segurança. Os projetos OrçaPro e os bancos de outros aplicativos não foram alterados.
 
-### Desenvolvimento gratuito
+## Autenticação
 
-\`\`\`sh
-npm install --no-audit --no-fund
-npm test
-NEON_AUTH_BASE_URL="https://SEU-ENDPOINT-NEON-AUTH" npm run build
-npm run test:browser
-\`\`\`
+O aplicativo utiliza Supabase Auth (supabase-js v2.119.0), com cadastro por e-mail e senha, login, sessão persistente, saída e recuperação de senha. Se a confirmação de e-mail estiver ativada, o usuário deverá confirmar antes de entrar.
 
-O projeto publica no Vercel com o diretório \`dist\`. É necessária a variável \`NEON_AUTH_BASE_URL\` no build do ambiente de produção. **Nunca defina \`CIVOLTEN_E2E=true\` em produção**: essa opção cria um simulador de sessão exclusivamente em localhost para o teste do layout.
+**Configuração necessária no painel Supabase:** Authentication → URL Configuration → Site URL igual a https://civolten.vercel.app e Redirect URLs incluindo https://civolten.vercel.app/**. Um teste de confirmação com e-mail real é necessário depois da publicação.
 
-## Identidade visual
+No navegador são usados somente a URL e a chave publicável do Supabase. Nenhuma chave secret ou service_role é usada no frontend. O build usa SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY, com fallback para os valores públicos oficiais do projeto CIVOLTEN.
 
-Usa \`assets/civolten-logo.png\` (wordmark original) e \`assets/civolten-simbolo.png\` (símbolo original), além de um fundo SVG decorativo de construção. Quatro telas compartilham navegação inferior, cartões escuros, reflexos metálicos, botões dourados e adaptação para Android. A aparência é fiel ao conceito aprovado, adaptada às restrições de telas reais e conteúdo variável.
+## Persistência
 
-## Validação
+Custos e funcionários são consultados no Supabase quando a sessão inicia, gravados no Supabase antes de confirmar o cadastro e só então replicados num cache local do aparelho. Uma falha na conexão impede gravações divergentes. Usuários não podem acessar registros de outra conta por causa do RLS.
 
-- \`npm test\`: preço fixo mensal/anual, variável com/sem previsão, CLT, prestador e isolamento de contas.
-- \`npm run test:browser\`: renderização, navegação, criar, editar e excluir, voltar após recarga; roda apenas em build de teste local.
-- GitHub Actions realiza ambos antes de permitir merge à \`main\`.
+Não há migração dos registros legados do Neon ou do armazenamento local antigo. Essas informações continuam preservadas na fonte original.
 
-Não foram removidos bancos, contas nem dados existentes no Neon.
+## Testes gratuitos
+
+    npm install --no-audit --no-fund
+    npm test
+    CIVOLTEN_E2E=true npm run build
+    npx playwright install --with-deps chromium
+    npm run test:browser
+
+O modo de teste E2E somente é habilitado em localhost, nunca em produção. Os testes cobrem cálculos, separação entre contas, CRUD, recarga, login simulado, navegação Android e aparência das quatro telas.
+
+## Próximas etapas
+
+O fluxo de cadastro e login com e-mail real precisa ser validado no domínio de produção após o deploy. Orçamento, SIURB/SINAPI, propostas, cronograma e execução continuam desativados até serem reprojetados e aprovados. Não excluir o Neon ou a conta antiga sem conferir a estratégia de migração e recuperação.
