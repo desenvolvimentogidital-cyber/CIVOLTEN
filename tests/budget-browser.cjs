@@ -149,8 +149,8 @@ const server=createServer((req,res)=>{
   });
   assert.equal(helmet.images.length,2,'Capacete deve ter símbolo e logotipo oficiais');
   assert.ok(helmet.images.every(img=>img.loaded),'Marca no capacete deve carregar no PDF');
-  assert.match(helmet.images[0].src,/civolten-simbolo\\.png/);
-  assert.match(helmet.images[1].src,/civolten-logo\\.png/);
+  assert.ok(helmet.images[0].src.endsWith('/civolten-simbolo.png'));
+  assert.ok(helmet.images[1].src.endsWith('/civolten-logo.png'));
   assert.ok(helmet.left>.70&&helmet.left<.90,'Logo deve ficar na área do capacete, à direita');
   assert.ok(helmet.top>.56&&helmet.top<.73,'Logo deve ficar sobre o capacete, não em outro setor');
   assert.equal(helmet.blend,'multiply','Marca deve parecer impressa na superfície do capacete');
