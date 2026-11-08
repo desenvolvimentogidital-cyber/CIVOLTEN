@@ -74,10 +74,23 @@ export async function fetchRemote(client,userId){
  checkId(userId);
  const out=fresh();
  await Promise.all(Object.keys(TABLES).map(async kind=>{
-  const {data,error}=await client.from(TABLES[kind])
-   .select('*').eq('user_id',userId).order('created_at',{ascending:true});
-  if(error)throw Error('Falha ao consultar '+kind+': '+error.message);
-  out[kind]=(data||[]).map(row=>normalize(kind,row));
+  if(kind==='catalog'){
+   // Supabase limita a pagina de leitura. Uma importacao oficial pode ter milhares de itens.
+   const all=[];for(let from=0;from<100000;from+=500){
+    const {data,error}=await client.from(TABLES[kind])
+     .select('*').eq('user_id',userId).order('created_at',{ascending:true})
+     .range(from,from+499);
+    if(error)throw Error('Falha ao consultar catalog: '+error.message);
+    all.push(...(data||[]));
+    if((data||[]).length<500)break;
+   }
+   out[kind]=all.map(row=>normalize(kind,row));
+  }else{
+   const {data,error}=await client.from(TABLES[kind])
+    .select('*').eq('user_id',userId).order('created_at',{ascending:true});
+   if(error)throw Error('Falha ao consultar '+kind+': '+error.message);
+   out[kind]=(data||[]).map(row=>normalize(kind,row));
+  }
  }));
  const {data:rates,error:ratesError}=await client.from('cv_payroll_settings_v1')
   .select('*').eq('user_id',userId).order('created_at',{ascending:true});
@@ -123,6 +136,19 @@ export async function putCostPresetsRemote(client,userId,kind,items){
  const written=new Set((data||[]).map(row=>row.id));
  if(written.size!==items.length||items.some(item=>!written.has(item.id)))
   throw Error('O Supabase não confirmou todos os custos importados.');
+ return items;
+}
+// Persistencia em lotes por RLS: nao altera funcionarios, custos ou orcamentos.
+export async function putCatalogBatchRemote(client,userId,items){
+ checkId(userId);
+ if(!Array.isArray(items)||items.length>100)throw Error('Lote do catalogo invalido.');
+ if(!items.length)return [];
+ const rows=items.map(item=>payload('catalog',item,userId));
+ const {data,error}=await client.from(TABLES.catalog).upsert(rows,{onConflict:'id'}).select('id');
+ if(error)throw Error('Falha na importacao do catalogo: '+error.message);
+ const saved=new Set((data||[]).map(x=>x.id));
+ if(saved.size!==items.length||items.some(item=>!saved.has(item.id)))
+  throw Error('Supabase nao confirmou todos os servicos da importacao.');
  return items;
 }
 export async function deleteRemote(client,userId,kind,id){
