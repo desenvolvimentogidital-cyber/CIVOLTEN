@@ -4,14 +4,19 @@ import {printableBudget,splitServicePages} from '../src/budget-print.mjs';
 import {createService,priceBudget} from '../src/budget.mjs';
 import {brl} from '../src/calc.mjs';
 
+const real=(code,id)=>{
+ const original=createService(code,id);
+ return {...original,source:'manual',sourceCode:'',
+  description:original.description.replace(/\s*\(exemplo\)\s*$/i,'')};
+};
 const budget=(override={})=>({
  id:'12345678-1111-4111-8111-111111111111',
- title:'Reformas de teste',customer:'Cliente ilustrativo',
+ title:'Reforma comercial',customer:'Cliente de referência',
  project:'Reforma da sala',location:'São Paulo / SP',
  expiresOn:'2026-12-01',notes:'Serviços conforme descrito.',
- demo:true,status:'draft',createdAt:'2026-11-07T12:00:00.000Z',
- items:[{...createService('DEMO-E01','item-1'),quantity:2},
-  {...createService('DEMO-C02','item-2'),quantity:3}],
+ demo:false,status:'draft',createdAt:'2026-11-07T12:00:00.000Z',
+ items:[{...real('DEMO-E01','item-1'),quantity:2},
+  {...real('DEMO-C02','item-2'),quantity:3}],
  commercial:{paymentTerms:'Pagamento em duas etapas, conforme acordado',
   executionTerm:'Execução em até 20 dias úteis após liberação da obra',
   warrantyTerms:'Conforme contrato e legislação aplicável',
@@ -63,8 +68,7 @@ test('todas as páginas têm logotipo, número e marca-d’água; sem caixa de s
  assert.equal((html.match(/data-pdf-page=/g)||[]).length,3);
  assert.match(html,/PC-2026-12345678/);
  assert.doesNotMatch(html,/budget-pdf-section-label[^>]*><span>01/);
- assert.match(html,/DEMONSTRAÇÃO · NÃO ENVIAR AO CLIENTE/);
- assert.match(html,/DOCUMENTO DE TESTE/);
+ assert.doesNotMatch(html,/DEMONSTRAÇÃO · NÃO ENVIAR AO CLIENTE|DOCUMENTO DE TESTE/);
 });
 test('paginação divide itens sem alterar totais, e o fechamento permanece no fim',()=>{
  const rows=Array.from({length:30},(_,i)=>({
@@ -73,7 +77,7 @@ test('paginação divide itens sem alterar totais, e o fechamento permanece no f
  const chunks=splitServicePages(rows);
  assert.ok(chunks.length>=4);
  assert.deepEqual(chunks.flat(),rows);
- const b=budget({items:Array.from({length:30},(_,i)=>({...createService('DEMO-E01','i'+i),quantity:i+1}))});
+ const b=budget({items:Array.from({length:30},(_,i)=>({...real('DEMO-E01','i'+i),quantity:i+1}))});
  const html=printableBudget(b),found=pages(html);
  assert.equal(found.length,chunks.length+2);
  assert.equal(found[0].kind,'proposal-cover');
@@ -94,4 +98,8 @@ test('condições comerciais são campos dinâmicos, escapados e sem prazos inve
 });
 test('não gera PDF com preços ainda indisponíveis',()=>{
  assert.equal(printableBudget(budget({pricing:null})),'');
+});
+
+test('propostas antigas sem revisao nao geram PDF comercial',()=>{
+ assert.equal(printableBudget(budget({demo:true})),'');
 });

@@ -95,6 +95,8 @@ const server=createServer((req,res)=>{
   await page.locator('.pricing-capacity').waitFor();
   await page.locator('.bottom-nav [data-go="home"]').click();
   await page.locator('[data-go="budgets"]').first().click();
+  assert.doesNotMatch(await page.locator('.budget-screen').innerText(),/orçamentos de teste|demonstração|serviços fictícios/i);
+
   assert.equal(await page.locator('.budget-demo-flag').count(),0,'Novo orçamento não deve ser marcado como fictício');
   assert.equal(await page.locator('.budget-list-item').count(),0);
   await page.locator('[data-go="catalog"]').first().click();
@@ -216,8 +218,8 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.proposal-conditions').innerText(),/20 dias úteis estimados/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-import-sinapi-siurb-20261108/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-import-sinapi-siurb-20261108/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-orcamentos-producao-20261108/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-orcamentos-producao-20261108/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),

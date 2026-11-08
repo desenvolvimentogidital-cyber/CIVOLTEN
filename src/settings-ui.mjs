@@ -46,7 +46,7 @@ export function pricingPreview(data,hours='8',extra='0'){
    '<div><span>Tributos ('+e(cfg.taxPct)+'% da venda)</span><b>'+money(q.taxes)+'</b></div>'+
    '<div><span>Lucro estimado (margem '+e(cfg.marginPct)+'%)</span><b>'+money(q.grossProfit)+'</b></div>'+
    '<div class="fin-highlight"><span>Preço sugerido</span><b>'+money(q.selling)+'</b></div></div>':
-   '<p class="form-error">Informe horas positivas e custo direto válido para simular.</p>')+'</div>';
+   '<p class="form-error">Informe horas positivas e custo direto válido para calcular.</p>')+'</div>';
 }
 export function companyView(data,hours='8',extra='0'){
  const cfg=companyConfig(data.company),sum=summary(data);
@@ -72,7 +72,7 @@ export function companyView(data,hours='8',extra='0'){
  '<p class="fin-helper">Cadastre somente os profissionais cujas horas serão vendidas. Os custos gerais da empresa são rateados por essas horas. Um funcionário administrativo entra no custo mensal, mas não necessariamente na quantidade de profissionais produtivos.</p>'+
  '<p id="company-error" role="alert" class="form-error" hidden></p>'+
  '<button class="gold-button" type="submit">'+icon('check',18)+' Salvar configuração da empresa</button></form>'+
- '<article class="fin-report-section"><h2>Simulação para os orçamentos</h2>'+
+ '<article class="fin-report-section"><h2>Cálculo rápido de preços</h2>'+
  '<div class="pricing-simulator">'+fld('Horas de mão de obra previstas','quoteHours',hours,'number','min="0.01" max="100000" step="0.25" data-pricing-input')+
  fld('Outros custos diretos deste serviço (R$)','quoteExtra',extra,'number','min="0" step="0.01" data-pricing-input')+'</div>'+
  '<div id="pricing-preview" aria-live="polite">'+pricingPreview(data,hours,extra)+'</div>'+

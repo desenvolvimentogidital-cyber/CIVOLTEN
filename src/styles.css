@@ -1397,3 +1397,8 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
   .catalog-editor .catalog-role-grid{grid-template-columns:1fr}
  }
 }
+
+/* A regularizacao de orcamentos antigos exige revisao de custos antes da proposta. */
+.budget-legacy-note{margin:12px 0;padding:14px;border:1px solid #997335;border-radius:12px;background:#271f16}
+.budget-legacy-note .fin-helper{margin:0 0 12px;color:#ead8bd}
+.budget-legacy-note .outlined-button{width:100%;margin:0}

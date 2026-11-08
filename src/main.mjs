@@ -533,6 +533,21 @@ function removeBudgetItem(id){
  state.budgetDraft.items=state.budgetDraft.items.filter(x=>x.id!==id);
  state.budgetError='';render();
 }
+function regularizeBudget(){
+ const draft=state.budgetDraft;
+ if(!draft||draft.demo===false&&!draft.items.some(item=>item.source==='demo'))return;
+ if(!confirm('Os serviços e valores deste orçamento anterior precisam de revisão. Para uso comercial, confira cada item, informe as horas de trabalho e os custos reais e atualize a base de precificação. Continuar?'))return;
+ draft.items=draft.items.map(item=>item.source==='demo'?{
+  ...item,source:'manual',sourceCode:'',
+  description:String(item.description||'').replace(/\s*\(exemplo\)\s*$/i,'').trim(),
+  laborHours:'',directCost:''
+ }:item);
+ draft.demo=false;
+ draft.pricing=null;
+ state.budgetError='';
+ render();
+ delayToast('Revise cada serviço, preencha os custos e atualize a precificação antes de salvar ou emitir a proposta.');
+}
 function refreshBudgetPricing(){
  if(!state.budgetDraft)return;
  const base=createPricingSnapshot(state.data);
@@ -552,6 +567,8 @@ async function saveBudget(form){
   draft.commercial={...(draft.commercial||{})};
   for(const key of ['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument'])
    if(key in f)draft.commercial[key]=f[key];
+  if(draft.demo!==false||draft.items.some(item=>item.source==='demo'))
+   throw Error('Revise os itens e custos do orçamento anterior antes de salvar como proposta comercial.');
   draft.pricing=draft.pricing||createPricingSnapshot(state.data);
   const valid=validateBudget(draft);
   valid.id=state.budgetDraft.id||crypto.randomUUID();
@@ -563,7 +580,7 @@ async function saveBudget(form){
   state.data=copy;
   try{safeSave(localStorage,state.user.id,copy)}catch{/* cache opcional */}
   state.budgetDraft=null;state.budgetError='';go('budgets');
-  delayToast(valid.demo?'Orçamento de demonstração salvo no Supabase.':'Orçamento CIVOLTEN salvo no Supabase.');
+  delayToast('Orçamento CIVOLTEN salvo no Supabase.');
  }catch(err){
   state.budgetError=String(err.message||err);render();
  }finally{state.busy=false;if(button)button.disabled=false;}
@@ -612,7 +629,7 @@ function exportBudget(){
  try{
   const csv=budgetCsv(state.budgetDraft),blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob),link=document.createElement('a');
-  link.href=url;link.download=state.budgetDraft.demo===false?'civolten-orcamento-civolten.csv':'civolten-orcamento-demonstrativo.csv';
+  link.href=url;link.download='civolten-orcamento-civolten.csv';
   document.body.appendChild(link);link.click();link.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
  }catch(err){delayToast(String(err.message||err));}
@@ -699,6 +716,7 @@ mount.addEventListener('click',async event=>{
  else if(action==='catalog-import-save'){await saveCatalogImport();}
  else if(action==='budget-edit-item'){editBudgetItem(b.dataset.id);}
  else if(action==='budget-remove-item'){removeBudgetItem(b.dataset.id);}
+ else if(action==='budget-regularize'){regularizeBudget();}
  else if(action==='budget-refresh-pricing'){refreshBudgetPricing();}
  else if(action==='budget-schedule-term'){applyScheduleTerm();}
  else if(action==='budget-schedule-export'){exportSchedule();}
