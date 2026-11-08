@@ -34,14 +34,39 @@ export function budgetsView(data){
  '<div class="fin-link-row"><button type="button" data-go="company">Ajustar precificação '+icon('chevron',17)+'</button></div></section>';
 }
 function itemRow(item,index){
- return '<article class="budget-item" data-budget-item="'+e(item.id)+'">'+
+ const quantity=Number(item.quantity).toLocaleString('pt-BR',{maximumFractionDigits:3});
+ const hours=Number(item.laborHours).toLocaleString('pt-BR',{maximumFractionDigits:3});
+ const cost=money(Math.round(Number(item.directCost)*100));
+ return '<article class="budget-item budget-item-compact" data-budget-item="'+e(item.id)+'">'+
   '<div class="budget-item-top"><span>'+e(item.sourceCode||'PERSONALIZADO')+' · item '+(index+1)+'</span>'+
   '<button type="button" class="budget-remove" data-action="budget-remove-item" data-id="'+e(item.id)+'" aria-label="Remover serviço">'+icon('trash',16)+' Remover</button></div>'+
-  field('Descrição do serviço','description',item.description,'text','maxlength="180" required')+
-  '<div class="budget-item-fields">'+field('Unidade','unit',item.unit,'text','maxlength="20" required')+
-  field('Quantidade','quantity',item.quantity,'number','max="100000" required')+
-  field('Horas/unidade','laborHours',item.laborHours,'number','max="10000" required')+
-  field('Custo direto/un. (R$)','directCost',item.directCost,'number','max="999999999" required')+'</div></article>';
+  '<h3>'+e(item.description)+'</h3>'+
+  '<p class="budget-item-summary">'+quantity+' '+e(item.unit)+' · '+hours+' h/un. · custo direto/un. '+cost+'</p>'+
+  '<button type="button" class="budget-item-edit" data-action="budget-edit-item" data-id="'+e(item.id)+'">'+icon('edit',16)+' Editar serviço</button>'+
+  '</article>';
+}
+const serviceField=(label,name,value,type='text',params='')=>
+ '<label class="modal-field"><span>'+label+'</span><input name="'+name+'" type="'+type+'" value="'+e(value??'')+'" '+
+ (type==='number'?'inputmode="decimal" min="0" step="any" ':'')+params+'></label>';
+export function budgetServiceDialog(service,editing=false){
+ return '<div class="modal-inner budget-service-modal">'+
+ '<div class="modal-heading"><h2 id="budget-service-title">'+(editing?'Editar serviço':'Adicionar serviço')+'</h2>'+
+ '<button type="button" class="small-square" data-action="close-modal" aria-label="Fechar formulário">×</button></div>'+
+ '<p class="helper-text">Preencha o serviço aqui mesmo. Ele só entra no orçamento quando você confirmar.</p>'+
+ '<form id="budget-service-form" aria-labelledby="budget-service-title">'+
+ '<div class="modal-fields">'+
+ serviceField('Descrição do serviço','description',service.description,'text','maxlength="180" required')+
+ '<div class="budget-service-grid">'+
+ serviceField('Unidade','unit',service.unit,'text','maxlength="20" required')+
+ serviceField('Quantidade','quantity',service.quantity,'number','max="100000" required')+
+ serviceField('Horas por unidade','laborHours',service.laborHours,'number','max="10000" required')+
+ serviceField('Custo direto por unidade (R$)','directCost',service.directCost,'number','max="999999999" required')+
+ '</div></div>'+
+ '<p id="budget-service-error" class="form-error" role="alert" hidden></p>'+
+ '<div class="modal-buttons">'+
+ '<button type="button" class="outlined-button" data-action="close-modal">Cancelar</button>'+
+ '<button type="submit" class="gold-button">'+icon('check',18)+(editing?' Salvar alterações':' Adicionar serviço')+'</button>'+
+ '</div></form></div>';
 }
 const preview=(draft)=>{
  let p;try{p=priceBudget(draft)}catch(err){return error(err.message||'Dados de serviço inválidos.');}
@@ -86,8 +111,8 @@ export function budgetEditorView(data,draft,err=''){
  '<select id="budget-catalog" aria-label="Catálogo de teste">'+DEMO_SERVICES.map(x=>
  '<option value="'+x.code+'">'+e(x.code)+' · '+e(x.description)+'</option>').join('')+
  '<option value="manual">Serviço personalizado de teste</option></select></label>'+
- '<button type="button" class="outlined-button" data-action="budget-add-item">'+icon('plus',19)+' Adicionar</button></div>'+
- '<p class="fin-helper">Quantidades, horas e custos diretos são editáveis. As estimativas do catálogo são inventadas para teste, não são valores oficiais de engenharia.</p>'+
+ '<button type="button" class="outlined-button" data-action="budget-add-item">'+icon('plus',19)+' Abrir formulário</button></div>'+
+ '<p class="fin-helper">Toque em Adicionar para preencher o serviço em um formulário. Serviços incluídos podem ser editados pelo botão Editar. As estimativas do catálogo são fictícias, não são valores oficiais de engenharia.</p>'+
  (draft.items.length?'<div class="budget-items">'+draft.items.map(itemRow).join('')+'</div>':
  '<div class="fin-empty">Inclua ao menos um serviço para salvar o orçamento.</div>')+
  '<div class="budget-section-heading"><h2>Formação do preço</h2></div>'+
