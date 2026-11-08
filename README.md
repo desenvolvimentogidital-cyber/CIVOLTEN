@@ -260,3 +260,18 @@ na arte. O atlas local também está incluído no precache do PWA.
 Nenhuma integração paga foi contratada. GitHub, navegador de teste local,
 dados existentes do Supabase e publicação padrão da Vercel utilizam
 os recursos gratuitos já configurados no projeto.
+
+## Imagem de fundo real na capa do PDF (arte original enviada pelo usuário)
+
+Na capa da **Proposta Signature**, o arquivo `assets/file_000000007df8820eb700b32dbfca9c55.png`
+foi enviado diretamente pelo usuário à pasta `assets` do GitHub. O identificador do arquivo
+foi mantido, sem exigir renomeação nem novo upload.
+
+O gerador inclui um `<img class="proposal-cover-background">` exclusivamente na
+primeira folha, posicionado por CSS para cobrir integralmente o formato A4.
+O cabeçalho, o título, os dados do cliente, os serviços e os valores continuam
+em HTML e não são gravados na imagem. A impressão verifica que o PNG carregou,
+para evitar um PDF sem a fotografia no Android. O SW precacheia o arquivo para
+disponibilidade quando a aplicação estiver instalada. Nenhum serviço pago é necessário.
+
+A página 2 continua sem preços e a última mostra o preço total uma única vez.
