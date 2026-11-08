@@ -400,3 +400,193 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
  .budget-print footer{border-top:1px solid #888;margin-top:20px;padding-top:12px;font-size:11px}
  .app-header,.bottom-nav,.app-skyline,.industrial-skyline,.edge-glint{display:none!important}
 }
+
+
+/* CIVOLTEN | proposta comercial PDF V4 (design aprovado).
+   Somente impressão: não altera aparência de nenhuma tela nem depende do tema escolhido.
+   As marcas são os PNG oficiais presentes em /assets. */
+@media print{
+ @page{size:A4;margin:0}
+ html,body,#app,.app-screen,.app-scroll,.budget-editor,.budget-screen{
+  width:100%!important;max-width:none!important;min-height:0!important;
+  height:auto!important;margin:0!important;padding:0!important;
+  overflow:visible!important;box-shadow:none!important;
+  border:0!important;background:#fff!important;
+ }
+ .app-screen:before,.app-screen:after,.app-skyline,.edge-glint,.app-header,.bottom-nav{display:none!important}
+ .budget-editor{display:block!important}
+ .budget-editor>*:not(.budget-print){display:none!important}
+ .budget-print.budget-pdf-v4{
+  position:relative;display:block!important;box-sizing:border-box;
+  width:210mm!important;max-width:210mm!important;
+  min-height:0!important;margin:0!important;padding:0 10mm 9mm!important;
+  background:#fff!important;color:#171819!important;overflow:visible!important;
+  font-family:Arial,Helvetica,sans-serif;font-size:9pt;line-height:1.42;
+  -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;
+ }
+ .budget-pdf-v4,.budget-pdf-v4 *{box-sizing:border-box}
+ .budget-pdf-v4 *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ .budget-pdf-v4 .budget-pdf-content{position:relative;z-index:2;width:100%;margin:0;padding:0}
+ .budget-pdf-v4 .budget-pdf-watermark{
+  position:fixed!important;z-index:0;top:86mm;left:50%;width:156mm;
+  height:146mm;transform:translateX(-50%);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2mm;pointer-events:none;
+  opacity:.075;filter:sepia(.6) saturate(.95);
+ }
+ .budget-pdf-v4 .budget-pdf-watermark-icon{width:120mm;height:107mm;object-fit:contain;display:block}
+ .budget-pdf-v4 .budget-pdf-watermark-logo{width:155mm;height:28mm;object-fit:contain;display:block}
+ .budget-pdf-v4 .budget-pdf-header{
+  position:relative;display:flex;align-items:center;justify-content:space-between;gap:5mm;
+  height:46mm;margin:0 -10mm;padding:8mm 12mm 7mm!important;
+  border:0!important;border-bottom:1mm solid #dca72d!important;
+  color:#fff!important;box-shadow:none!important;
+  background:linear-gradient(145deg,#101112 5%,#272522 53%,#0a0a0b 100%)!important;
+  break-inside:avoid;page-break-inside:avoid;
+ }
+ .budget-pdf-v4 .budget-pdf-header:before{
+  content:"";position:absolute;top:0;left:0;width:29mm;height:7mm;
+  background:linear-gradient(100deg,#8c5310,#ffe38b,#b87812)!important;
+  clip-path:polygon(0 0,100% 0,79% 100%,0 100%);
+ }
+ .budget-pdf-v4 .budget-pdf-header:after{
+  content:"";position:absolute;bottom:0;left:0;right:0;height:.8mm;
+  background:linear-gradient(90deg,#a77522,#ffe8a8 50%,#a36b16)!important;
+ }
+ .budget-pdf-v4 .budget-pdf-brand{
+  display:block;flex:1 1 auto;width:128mm;min-width:0;height:29mm;max-height:29mm;
+  object-fit:contain;object-position:left center;filter:drop-shadow(0 1mm 2mm #000c);
+ }
+ .budget-pdf-v4 .budget-pdf-header-divider{flex:0 0 .45mm;width:.45mm;height:24mm;background:#dca329!important}
+ .budget-pdf-v4 .budget-pdf-symbol{
+  display:block;flex:0 0 auto;width:31mm;height:32mm;object-fit:contain;
+  filter:drop-shadow(0 1mm 1.5mm #000b);
+ }
+ .budget-pdf-v4 .budget-pdf-heading{
+  display:flex;align-items:flex-start;gap:5mm;margin:9mm 0 0;
+  break-inside:avoid;page-break-inside:avoid;
+ }
+ .budget-pdf-v4 .budget-pdf-heading-bar{
+  flex:none;width:2mm;height:24mm;border-radius:2mm;
+  background:linear-gradient(180deg,#ffde74,#d79208)!important;
+ }
+ .budget-pdf-v4 .budget-pdf-heading-copy{flex:1;min-width:0}
+ .budget-pdf-v4 .budget-pdf-overline{
+  margin:0 0 1mm!important;color:#866623!important;letter-spacing:.1em;
+  font-size:7pt!important;font-weight:700!important;
+ }
+ .budget-pdf-v4 .budget-pdf-heading h1{
+  margin:0 0 2.5mm!important;max-width:175mm;color:#121315!important;
+  font-size:23pt!important;line-height:1.05!important;letter-spacing:-.035em;
+  font-weight:900;overflow-wrap:anywhere;text-align:left;
+ }
+ .budget-pdf-v4 .budget-pdf-test-tag{
+  display:inline-block;background:#fff7e7!important;border:1px solid #dca135;
+  border-radius:6mm;color:#7a4e13!important;padding:1.3mm 4mm;
+  font-size:9pt;font-weight:800;letter-spacing:.04em;
+ }
+ .budget-pdf-v4 .budget-pdf-subtitle{
+  margin:2.5mm 0 0!important;font-size:9pt!important;line-height:1.4!important;
+  color:#5b5c60!important;font-style:italic;
+ }
+ .budget-pdf-v4 .budget-pdf-client{
+  display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin:9mm 0 0;padding:5mm;
+  border:0.35mm solid #dbac57;border-radius:3mm;
+  background:rgba(255,255,255,.94)!important;
+  break-inside:avoid;page-break-inside:avoid;
+ }
+ .budget-pdf-v4 .budget-pdf-client-col{display:grid;gap:3.4mm;align-content:start;min-width:0}
+ .budget-pdf-v4 .budget-pdf-client-col+div{padding-left:6mm;border-left:.25mm solid #ddbc78}
+ .budget-pdf-v4 .budget-pdf-info-row{display:flex;align-items:start;gap:2.6mm;min-width:0}
+ .budget-pdf-v4 .budget-pdf-info-icon{
+  flex:0 0 6mm;display:flex;align-items:start;justify-content:center;color:#a77119!important;
+ }
+ .budget-pdf-v4 .budget-pdf-info-icon svg{width:4.7mm;height:4.7mm;display:block}
+ .budget-pdf-v4 .budget-pdf-info-value{
+  min-width:0;display:flex;flex-wrap:wrap;gap:0 1.6mm;
+  font-size:8pt;line-height:1.35;overflow-wrap:anywhere;white-space:normal;
+ }
+ .budget-pdf-v4 .budget-pdf-info-value b{color:#151517!important;font-weight:800}
+ .budget-pdf-v4 .budget-pdf-info-value b:after{content:":"}
+ .budget-pdf-v4 .budget-pdf-info-value span{color:#303139!important}
+ .budget-pdf-v4 .budget-pdf-services{margin-top:8mm;position:relative}
+ .budget-pdf-v4 .budget-pdf-section-label{
+  display:flex;align-items:center;gap:2.8mm;margin:0 0 2.8mm;
+  break-after:avoid;page-break-after:avoid;
+ }
+ .budget-pdf-v4 .budget-pdf-section-label>span{
+  display:grid;place-items:center;flex:0 0 7mm;width:7mm;height:7mm;
+  background:#dca62f!important;color:#151515!important;
+  font-size:9pt;font-weight:900;border-radius:2mm;
+ }
+ .budget-pdf-v4 .budget-pdf-section-label h2{
+  margin:0;color:#222325!important;font-size:11pt;font-weight:800;
+ }
+ .budget-pdf-v4 .budget-pdf-table{
+  border-collapse:separate!important;border-spacing:0!important;
+  width:100%!important;max-width:none!important;font-size:8pt!important;
+  table-layout:fixed;box-shadow:none!important;
+ }
+ .budget-pdf-v4 .budget-pdf-col-service{width:59%}
+ .budget-pdf-v4 .budget-pdf-col-qty{width:11%}
+ .budget-pdf-v4 .budget-pdf-col-unit{width:10%}
+ .budget-pdf-v4 .budget-pdf-col-total{width:20%}
+ .budget-pdf-v4 .budget-pdf-table thead{display:table-header-group}
+ .budget-pdf-v4 .budget-pdf-table th{
+  background:#1d1e20!important;color:#edbe55!important;text-align:left;
+  border:0!important;border-right:.22mm solid #786337!important;
+  border-bottom:.75mm solid #dca52e!important;
+  padding:3mm 2.3mm!important;font-weight:800;font-size:8pt!important;
+ }
+ .budget-pdf-v4 .budget-pdf-table th:last-child{border-right:0!important;text-align:right}
+ .budget-pdf-v4 .budget-pdf-table td{
+  background:rgba(255,255,255,.91)!important;color:#202124!important;
+  border:0!important;border-bottom:.22mm solid #c9c7c2!important;
+  padding:3mm 2.3mm!important;font-size:8pt!important;line-height:1.34!important;
+  vertical-align:top;overflow-wrap:anywhere;hyphens:auto;
+ }
+ .budget-pdf-v4 .budget-pdf-table tr{break-inside:avoid;page-break-inside:avoid}
+ .budget-pdf-v4 .budget-pdf-table th:nth-child(2),
+ .budget-pdf-v4 .budget-pdf-table th:nth-child(3),
+ .budget-pdf-v4 .budget-pdf-table td:nth-child(2),
+ .budget-pdf-v4 .budget-pdf-table td:nth-child(3){text-align:center}
+ .budget-pdf-v4 .budget-pdf-table td:last-child{text-align:right;white-space:nowrap;font-weight:700}
+ .budget-pdf-v4 .budget-pdf-table tbody tr:nth-child(even) td{background:#f5f4f1!important}
+ .budget-pdf-v4 .budget-pdf-summary{display:flex;justify-content:flex-end;margin:7mm 0 0;break-inside:avoid}
+ .budget-pdf-v4 .budget-pdf-total{
+  display:flex;align-items:center;justify-content:flex-end;gap:5mm;
+  min-width:112mm;max-width:100%;min-height:17mm;padding:3.4mm 5mm 3.4mm 8mm;
+  border-left:2mm solid #dba01e;border-radius:1.5mm;
+  background:linear-gradient(110deg,#272729,#101112)!important;
+  break-inside:avoid;page-break-inside:avoid;
+ }
+ .budget-pdf-v4 .budget-pdf-total span{color:#fff!important;font-size:14pt;font-weight:850}
+ .budget-pdf-v4 .budget-pdf-total strong{
+  color:#f3c357!important;font-size:20pt;font-weight:900;letter-spacing:-.025em;
+  white-space:nowrap;
+ }
+ .budget-pdf-v4 .budget-pdf-notes{margin:9mm 0 0;break-inside:avoid;page-break-inside:avoid}
+ .budget-pdf-v4 .budget-pdf-notes-title{
+  width:fit-content;display:flex;align-items:center;gap:3mm;
+  padding:2.5mm 5mm 2.5mm 3mm;border-left:2mm solid #dca01e;
+  border-radius:2mm;background:#202123!important;color:#f3c45c!important;
+ }
+ .budget-pdf-v4 .budget-pdf-notes-title h2{
+  margin:0;color:#f3c45c!important;font-size:10pt;font-weight:800;letter-spacing:.06em;
+ }
+ .budget-pdf-v4 .budget-pdf-notes-icon{display:block;color:#f3c45c!important}
+ .budget-pdf-v4 .budget-pdf-notes-body{
+  min-height:18mm;padding:4mm 4mm 5mm;white-space:pre-wrap;overflow-wrap:anywhere;
+  border:.3mm solid #c99731!important;border-radius:0 2.5mm 2.5mm 2.5mm;
+  background:rgba(255,255,255,.80)!important;color:#333!important;
+  font-size:8.5pt;line-height:1.5;
+ }
+ .budget-pdf-v4 .budget-pdf-footer{
+  margin:10mm 0 0;padding:4mm 0 0!important;
+  border:0!important;border-top:.45mm solid #cda044!important;
+  background:transparent!important;color:#353437!important;
+  break-inside:avoid;page-break-inside:avoid;
+ }
+ .budget-pdf-v4 .budget-pdf-footer p{margin:0!important;color:#3a3a3a!important;font-size:7pt!important;line-height:1.5!important}
+ .budget-pdf-v4 .budget-pdf-footer strong{color:#7a5516!important}
+ .budget-pdf-v4 .budget-pdf-origin{margin-top:1mm!important;color:#777!important}
+}
