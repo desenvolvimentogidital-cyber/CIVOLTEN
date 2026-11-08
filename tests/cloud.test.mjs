@@ -100,6 +100,7 @@ test('orçamentos demonstrativos são salvos, atualizados e excluídos via Supab
  const budget={id,title:'Teste de instalação',customer:'Cliente',
   project:'Teste',location:'Obra demonstrativa',expiresOn:'2026-12-20',
   notes:'',items:[item],status:'draft',demo:true,
+  commercial:{paymentTerms:'Parcelado',executionTerm:'10 dias',warrantyTerms:'Conforme contrato'},
   pricing:{monthlyCostCents:100000,productiveHours:160,taxPct:10,marginPct:20,
    companyName:'CIVOLTEN',capturedOn:'2026-11-07'}};
  await putRemote(c,userId,'budgets',budget);
@@ -108,6 +109,8 @@ test('orçamentos demonstrativos são salvos, atualizados e excluídos via Supab
  assert.equal(saved[0].customer,'Cliente');
  assert.equal(saved[0].items[0].sourceCode,'DEMO-E01');
  assert.equal(saved[0].pricing.taxPct,10);
+ assert.equal(saved[0].commercial.paymentTerms,'Parcelado');
+ assert.equal(saved[0].commercial.executionTerm,'10 dias');
  await putRemote(c,userId,'budgets',{...budget,items:[{...item,quantity:3}]});
  saved=(await fetchRemote(c,userId)).budgets;
  assert.equal(saved[0].items[0].quantity,3);
