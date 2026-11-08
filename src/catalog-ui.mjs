@@ -37,10 +37,14 @@ function importer(importData){
  example.map(row=>'<p>'+row.slice(0,Math.min(columns,7)).map(x=>e(String(x??'').slice(0,100))).join(' | ')+'</p>').join('')+'</div>';
  return html+'</section>';
 }
-export function catalogView(data,category='all',back='budgets',importData=null){
+export function catalogView(data,category='all',back='budgets',importData=null,search=''){
  const entries=catalogRows(data.catalog),stats=catalogStats(data.catalog);
  const groups=[...new Set(entries.map(x=>x.category||x.source?.toUpperCase()||'Outros'))].sort();
- const rows=entries.filter(x=>category==='all'||x.category===category);
+ const filtered=entries.filter(x=>(category==='all'||x.category===category)&&
+  (x.description+' '+x.code+' '+x.sinapiCode).normalize('NFD')
+   .replace(/[\u0300-\u036f]/g,'').toLowerCase()
+   .includes(String(search||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()));
+ const rows=filtered.slice(0,150);
  return '<section class="fin-screen catalog-screen">'+
  '<div class="page-heading"><button class="small-square" data-go="'+e(back)+'" aria-label="Voltar">'+icon('back',23)+'</button>'+
  '<h1>Catalogo tecnico CIVOLTEN</h1><span class="small-square is-empty"></span></div>'+
@@ -50,7 +54,9 @@ export function catalogView(data,category='all',back='budgets',importData=null){
  (entries.length?
  '<label class="modal-field catalog-category"><span>Grupo ou fonte</span><select id="catalog-category">'+opt('all','Todos os importados ('+entries.length+')',category)+
  groups.map(g=>opt(g,g+' ('+entries.filter(x=>x.category===g).length+')',category)).join('')+'</select></label>'+
- '<label class="catalog-filter"><span>Buscar por codigo ou nome</span><input id="catalog-search" type="search" placeholder="Pesquisar servico" autocomplete="off"></label>'+
+ '<label class="catalog-filter"><span>Buscar por codigo ou nome</span><input id="catalog-search" type="search" placeholder="Pesquisar servico" autocomplete="off" value="'+e(search)+'"></label>'+
+ '<p class="fin-helper">Exibindo '+rows.length+' de '+filtered.length+
+ ' servicos encontrados. Pesquise por nome ou codigo para localizar qualquer outro.</p>'+
  '<div class="catalog-list">'+rows.map(x=>{
   const ready=catalogReady(x),hh=catalogHours(x);
   const search=(x.description+' '+x.code+' '+x.sinapiCode).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
