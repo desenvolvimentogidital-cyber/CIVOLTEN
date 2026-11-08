@@ -1,5 +1,5 @@
-const CACHE='civolten-premium-ui-v14-20261108-variaveis';
-const PRECACHE=['/','/index.html','/styles.css?v=civolten-custos-variaveis-resumo-20261108','/app.js?v=civolten-custos-variaveis-resumo-20261108','/manifest.webmanifest',
+const CACHE='civolten-premium-ui-v15-20261108-cronograma';
+const PRECACHE=['/','/index.html','/styles.css?v=civolten-cronograma-obras-20261108','/app.js?v=civolten-cronograma-obras-20261108','/manifest.webmanifest',
 '/assets/civolten-logo.png','/assets/civolten-simbolo.png','/assets/proposal-construction.svg','/assets/proposal-photo-atlas.webp','/assets/file_000000007df8820eb700b32dbfca9c55.png','/assets/skyline.svg',
 '/assets/icon-192.png','/assets/icon-512.png'];
 self.addEventListener('install',e=>{
