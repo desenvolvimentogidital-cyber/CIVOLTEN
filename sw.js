@@ -1,4 +1,4 @@
-const CACHE='civolten-premium-ui-v4-20261107-budgets';
+const CACHE='civolten-premium-ui-v5-20261107-commercial-pdf';
 const PRECACHE=['/','/index.html','/styles.css','/app.js','/manifest.webmanifest',
 '/assets/civolten-logo.png','/assets/civolten-simbolo.png','/assets/skyline.svg',
 '/assets/icon-192.png','/assets/icon-512.png'];

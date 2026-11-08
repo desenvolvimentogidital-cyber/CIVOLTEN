@@ -71,6 +71,30 @@ const server=createServer((req,res)=>{
   await page.locator('[data-action="budget-open"]').first().click();
   assert.equal(await page.locator('.budget-item').count(),2);
   assert.match(await page.locator('.budget-print').innerText(),/DOCUMENTO DE TESTE/);
+  // Exportação PDF real (sem chamar impressão do Android), validando o modelo escolhido.
+  await page.emulateMedia({media:'print'});
+  const marks=await page.locator('.budget-pdf-brand,.budget-pdf-symbol,.budget-pdf-watermark img')
+   .evaluateAll(list=>list.map(img=>({ok:img.complete&&img.naturalWidth>0,src:img.getAttribute('src')})));
+  assert.equal(marks.length,4,'Duas logos do cabeçalho e duas marcas-d’água');
+  assert.ok(marks.every(m=>m.ok),'O PDF não pode sair sem as imagens oficiais');
+  assert.equal(await page.locator('.budget-pdf-watermark').evaluate(el=>getComputedStyle(el).position),'fixed');
+  await page.screenshot({path:'test-artifacts/orcamento-pdf-v4.png',fullPage:true});
+  const pdf=await page.pdf({format:'A4',printBackground:true,preferCSSPageSize:true});
+  await fs.promises.writeFile('test-artifacts/orcamento-pdf-v4.pdf',pdf);
+  const pageCount=bytes=>(Buffer.from(bytes).toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;
+  assert.equal(pageCount(pdf),1,'Orçamento curto deve caber em uma única folha A4, sem folha vazia');
+  await page.evaluate(()=>{
+   const tbody=document.querySelector('.budget-pdf-table tbody');
+   const sample=tbody.firstElementChild.cloneNode(true);
+   for(let k=0;k<34;k++)tbody.appendChild(sample.cloneNode(true));
+  });
+  const longPdf=await page.pdf({format:'A4',printBackground:true,preferCSSPageSize:true});
+  assert.ok(pageCount(longPdf)>1,'Uma proposta com muitos serviços precisa paginar');
+  await page.evaluate(()=>{
+   const tbody=document.querySelector('.budget-pdf-table tbody');
+   Array.from(tbody.children).slice(2).forEach(row=>row.remove());
+  });
+  await page.emulateMedia({media:'screen'});
   const pending=page.waitForEvent('download');
   await page.locator('[data-action="budget-export"]').click();
   assert.match((await pending).suggestedFilename(),/orcamento-demonstrativo\.csv/);
