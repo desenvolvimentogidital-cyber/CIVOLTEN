@@ -2,6 +2,7 @@
 // Os nomes e unidades são apenas estrutura interna de trabalho, não códigos SINAPI.
 // Nenhuma produtividade nem custo é presumido. Só utilizar após cadastrar coeficientes.
 import {decimal} from './calc.mjs';
+import {REFERENCE_SERVICES} from './productivity-reference.mjs';
 const raw=[
  ['01','Preparação e terreno',[
   ['Limpeza manual do terreno','m²'],['Limpeza mecanizada do terreno','m²'],
@@ -76,12 +77,15 @@ const raw=[
   ['Comissionamento de sistemas','sistema'],['Entrega técnica de instalações','un']]]
 ];
 export const CATALOG_SECTIONS=Object.freeze(raw.map(([id,title,items])=>
- Object.freeze({id,title,count:items.length})));
+ Object.freeze({id,title,count:items.length+REFERENCE_SERVICES.filter(s=>s.category===id).length})));
 export const CATALOG_PRESETS=Object.freeze(raw.flatMap(([category,name,services])=>
  services.map(([description,unit],i)=>Object.freeze({
   code:'CV-'+category+'-'+String(i+1).padStart(3,'0'),category,categoryName:name,
   description,unit,roles:Object.freeze([]),
   source:'pending',sinapiCode:'',referenceMonth:'',directCost:null
+ })).concat(REFERENCE_SERVICES.map(item=>Object.freeze({
+  ...item,categoryName:raw.find(g=>g[0]===item.category)?.[1]||'',
+  roles:Object.freeze([]),source:'internal',sinapiCode:'',referenceMonth:'',directCost:null
  }))));
 export const catalogByCode=(code)=>CATALOG_PRESETS.find(x=>x.code===code)||null;
 export const catalogRows=(overrides=[])=>{
@@ -89,7 +93,10 @@ export const catalogRows=(overrides=[])=>{
  return CATALOG_PRESETS.map(template=>({...template,...map.get(template.code)}));
 };
 export function catalogHours(record){
- if(!record?.roles?.length)return null;
+ if(!record?.roles?.length){
+  const defaultHours=decimal(record?.hhMid);
+  return defaultHours!==null&&defaultHours>0?defaultHours:null;
+ }
  let value=0;
  for(const r of record.roles){
   const n=decimal(r.hours);
@@ -142,10 +149,12 @@ export function catalogToBudgetItem(record,id){
   id,source:'internal',sourceCode:record.code,
   description:record.description,unit:record.unit,quantity:1,
   laborHours:catalogHours(record),directCost:record.directCost,
-  roles:record.roles.map(r=>({...r})),
+  roles:(record.roles||[]).map(r=>({...r})),
+  ...(record.team?{crewComposition:record.team}:{}),
+  ...(record.hhMin!=null?{hhMin:record.hhMin,hhMax:record.hhMax}:{}),
   reference:record.source==='sinapi'?{
    system:'SINAPI',code:record.sinapiCode,month:record.referenceMonth,
    validation:'informado pelo usuário; conferir composição analítica'
-  }:{system:'INTERNO',validation:'coeficientes próprios da empresa'}
+  }:{system:'INTERNO',validation:record.hhMin!=null?'Faixa HH fornecida pela CIVOLTEN, não validada pelo SINAPI':'coeficientes próprios da empresa'}
  };
 }
