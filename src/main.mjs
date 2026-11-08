@@ -1,9 +1,11 @@
 import {createClient} from '@supabase/supabase-js';
-import {fetchRemote,putRemote,deleteRemote,putPayrollRemote} from './cloud.mjs';
+import {fetchRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote} from './cloud.mjs';
 import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
 import {signupOutcome,authMessage,repeatedSignupMessage,pendingEmailMessage} from './auth-flow.mjs';
 import {fresh,safeLoad,safeSave,validate,summary,employeeCost} from './calc.mjs';
+import {validateCompany,THEMES} from './pricing.mjs';
+import {companyView,appearanceView,pricingPreview} from './settings-ui.mjs';
 import {validateEntry,reportCsv,localToday,currentMonth} from './finance.mjs';
 import {financeView,reportsView,ledgerEditorView} from './finance-ui.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,payrollSettingsView,cltBreakdownHtml,e,icon} from './views.mjs';
@@ -20,7 +22,7 @@ const mount=document.getElementById('app');
 const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
- user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',authMode:recoveryToken?'newpass':'login',
+ user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
  cloudError:null,
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
@@ -30,6 +32,7 @@ const delayToast=(text)=>{
  clearTimeout(state.toastTimer);state.toastTimer=setTimeout(()=>{toastNode.hidden=true},4300);
 };
 function render(){
+ document.documentElement.dataset.civoltenTheme=state.user?(state.data.company?.theme||'gold'):'gold';
  if(!state.checkedSession){mount.innerHTML='<div class="loading-stage"><img src="/assets/civolten-simbolo.png" alt=""><span>Preparando CIVOLTEN...</span></div>';return;}
  if(!state.user||state.authMode==='newpass'){
   mount.innerHTML=authView(state.authMode,state.authError,state.authBusy);
@@ -41,6 +44,8 @@ function render(){
  else if(state.view==='team')html=teamView(state.data);
  else if(state.view==='finance')html=financeView(state.data,state.finMonth,state.finFilter);
  else if(state.view==='reports')html=reportsView(state.data,state.finMonth);
+ else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
+ else if(state.view==='appearance')html=appearanceView(state.data.company);
  else html=moreView(state.user,state.data);
  mount.innerHTML=shell(state.view,html);
 }
@@ -154,7 +159,7 @@ async function signOut(){
 }
 function go(view){
  if(view==='soon'){delayToast('Este recurso será construído na próxima etapa.');return;}
- if(!['home','costs','team','more','finance','reports'].includes(view))return;
+ if(!['home','costs','team','more','finance','reports','company','appearance'].includes(view))return;
  state.view=view;render();
  if(window.scrollY)window.scrollTo({top:0,behavior:'instant'});
 }
@@ -199,6 +204,39 @@ async function savePayrollSettings(form){
   const node=form.querySelector('#form-error');
   if(node){node.textContent=String(err.message||'Falha ao salvar');node.hidden=false;}
  }finally{if(btn)btn.disabled=false;}
+}
+async function saveCompanySettings(form){
+ if(!state.user||state.cloudError||state.busy){delayToast('Não é possível salvar sem sincronizar o banco.');return;}
+ const button=form.querySelector('[type="submit"]');
+ if(button)button.disabled=true;
+ try{
+  const input=Object.fromEntries(new FormData(form));
+  const next=validateCompany(input,state.data.company);
+  await putCompanyRemote(auth,state.user.id,next);
+  state.data={...state.data,company:next};
+  try{safeSave(localStorage,state.user.id,state.data)}catch{/* cache opcional */}
+  render();delayToast('Empresa, tributos, margem e capacidade salvos no Supabase.');
+ }catch(err){
+  const node=form.querySelector('#company-error');
+  if(node){node.textContent=String(err.message||err);node.hidden=false;}
+ }finally{if(button)button.disabled=false;}
+}
+async function chooseTheme(theme){
+ if(!THEMES.includes(theme)||!state.user||state.cloudError||state.busy)return;
+ if(state.data.company?.theme===theme)return;
+ state.busy=true;
+ try{
+  const next={...state.data.company,theme};
+  await putCompanyRemote(auth,state.user.id,next);
+  state.data={...state.data,company:next};
+  try{safeSave(localStorage,state.user.id,state.data)}catch{/* cache opcional */}
+  render();delayToast('Cores do aplicativo atualizadas.');
+ }catch(err){delayToast('Falha ao salvar tema: '+String(err.message||err));}
+ finally{state.busy=false;}
+}
+function refreshPricingPreview(){
+ const area=mount.querySelector('#pricing-preview');
+ if(area)area.innerHTML=pricingPreview(state.data,state.quoteHours,state.quoteExtra);
 }
 function toggleContractFields(){
  const form=modal.querySelector('#record-form');
@@ -272,11 +310,12 @@ mount.addEventListener('change',event=>{
  }
 });
 mount.addEventListener('click',async event=>{
- const b=event.target.closest('[data-go],[data-action],[data-tab],[data-fin-filter]');
+ const b=event.target.closest('[data-go],[data-action],[data-tab],[data-fin-filter],[data-theme-choice]');
  if(!b)return;
  if(b.dataset.go){go(b.dataset.go);return;}
  if(b.dataset.tab){state.costTab=b.dataset.tab;render();return;}
  if(b.dataset.finFilter){state.finFilter=b.dataset.finFilter;render();return;}
+ if(b.dataset.themeChoice){await chooseTheme(b.dataset.themeChoice);return;}
  const action=b.dataset.action;
  if(action==='auth-mode'){
   state.authMode=b.dataset.mode;state.authError='';render();
@@ -308,6 +347,11 @@ mount.addEventListener('click',async event=>{
  }
 });
 mount.addEventListener('input',event=>{
+ if(event.target.matches('[data-pricing-input]')){
+  if(event.target.name==='quoteHours')state.quoteHours=event.target.value;
+  if(event.target.name==='quoteExtra')state.quoteExtra=event.target.value;
+  refreshPricingPreview();return;
+ }
  if(event.target.id!=='search-people')return;
  const query=event.target.value.toLowerCase().trim();
  mount.querySelectorAll('[data-search-name]').forEach(card=>{
@@ -315,6 +359,7 @@ mount.addEventListener('input',event=>{
  });
 });
 mount.addEventListener('submit',event=>{
+ if(event.target.id==='company-form'){event.preventDefault();void saveCompanySettings(event.target);return;}
  if(event.target.id!=='auth-form')return;
  event.preventDefault();submitLogin(event.target);
 });
@@ -355,4 +400,5 @@ if(auth?.auth?.onAuthStateChange){
 render();
 session();
 window.CIVOLTENPreview={get view(){return state.view},get data(){return structuredClone(state.data)},
- get user(){return state.user},go,openEditor,summary:()=>summary(state.data)};
+ get user(){return state.user},go,openEditor,summary:()=>summary(state.data),
+ get company(){return structuredClone(state.data.company)}};
