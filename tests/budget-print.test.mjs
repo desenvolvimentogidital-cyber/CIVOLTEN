@@ -7,7 +7,7 @@ import {brl} from '../src/calc.mjs';
 const real=(code,id)=>{
  const original=createService(code,id);
  return {...original,source:'manual',sourceCode:'',
-  description:original.description.replace(/\\s*\\(exemplo\\)\\s*$/i,'')};
+  description:original.description.replace(/\s*\(exemplo\)\s*$/i,'')};
 };
 const budget=(override={})=>({
  id:'12345678-1111-4111-8111-111111111111',
