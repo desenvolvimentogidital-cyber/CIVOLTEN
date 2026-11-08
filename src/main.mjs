@@ -629,7 +629,7 @@ function exportBudget(){
  try{
   const csv=budgetCsv(state.budgetDraft),blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob),link=document.createElement('a');
-  link.href=url;link.download='civolten-orcamento.csv';
+  link.href=url;link.download='civolten-orcamento-civolten.csv';
   document.body.appendChild(link);link.click();link.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
  }catch(err){delayToast(String(err.message||err));}
