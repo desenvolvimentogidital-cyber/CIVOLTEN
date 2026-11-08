@@ -1,5 +1,5 @@
-// CIVOLTEN · MVP de orçamentos demonstrativos.
-// Catálogo inventado exclusivamente para homologação; nenhuma referência SINAPI/SIURB.
+// CIVOLTEN · orçamentos com referências internas de produtividade.
+// Serviços fictícios são mantidos APENAS para leitura dos orçamentos antigos.
 // Custos e alíquotas guardados como fotografia no rascunho: não mudam silenciosamente.
 import {summary,decimal,cents} from './calc.mjs';
 import {companyConfig,capacity,quoteFromCost} from './pricing.mjs';
@@ -7,6 +7,7 @@ import {validDate,localToday} from './finance.mjs';
 import {validateSchedule,schedulePlan} from './budget-schedule.mjs';
 import {catalogHours} from './service-catalog.mjs';
 
+// Compatibilidade histórica: nunca incluir na seleção de novos orçamentos.
 export const DEMO_SERVICES=Object.freeze([
  {code:'DEMO-E01',description:'Instalação de ponto elétrico residencial (exemplo)',unit:'un',laborHours:2.5,directCost:35},
  {code:'DEMO-E02',description:'Instalação de luminária LED (exemplo)',unit:'un',laborHours:1.5,directCost:20},
@@ -72,8 +73,12 @@ export function validateBudgetItem(row){
   code:safeText(row.reference.code||'',48,'Código de referência'),
   month:safeText(row.reference.month||'',7,'Competência'),
   validation:safeText(row.reference.validation||'',180,'Proveniência')}:null;
+ const hhMin=source==='internal'&&row.hhMin!=null?positive(row.hhMin,'HH mínimo por unidade',{max:10000}):null;
+ const hhMax=source==='internal'&&row.hhMax!=null?positive(row.hhMax,'HH máximo por unidade',{max:10000}):null;
+ if(hhMin!==null&&hhMax!==null&&hhMin>hhMax)throw Error('Faixa de produtividade inválida.');
+ const crewComposition=source==='internal'?safeText(row.crewComposition||'',180,'Equipe estimada'):'';
  return {id,source,sourceCode,description,unit,quantity,laborHours,directCost,
-  ...(source==='internal'?{roles,reference}:{} )};
+  ...(source==='internal'?{roles,reference,crewComposition,hhMin,hhMax}:{} )};
 }
 export function validateCommercial(raw={}){
  // Campos opcionais; nenhum prazo, pagamento ou garantia é presumido.
@@ -103,6 +108,7 @@ export function validateBudget(raw){
  if(raw.items.length>100)throw Error('Máximo de 100 itens por orçamento.');
  const items=raw.items.map(validateBudgetItem);
  if(new Set(items.map(x=>x.id)).size!==items.length)throw Error('Itens duplicados no orçamento.');
+ if(raw.demo===false&&items.some(x=>x.source==='demo'))throw Error('Serviços fictícios não podem entrar no novo orçamento CIVOLTEN.');
  const snapshot=raw.pricing==null?null:validateBudgetSnapshot(raw.pricing);
  return {id:raw.id,title,customer,project,location,notes,expiresOn:expiresOn||null,
   items,commercial:validateCommercial(raw.commercial),pricing:snapshot,status:'draft',demo:raw.demo!==false,createdAt:raw.createdAt||null};
