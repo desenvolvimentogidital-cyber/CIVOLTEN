@@ -7,6 +7,8 @@ import {e,icon} from './views.mjs';
 
 const logo='/assets/civolten-logo.png';
 const mark='/assets/civolten-simbolo.png';
+// Arquivo original enviado pelo proprietário na pasta assets do GitHub.
+const coverBackground='/assets/file_000000007df8820eb700b32dbfca9c55.png';
 const show=(value,empty='Não informado')=>e(String(value||'').trim()||empty);
 const dateBR=value=>{
  if(!value)return 'Não informada';
@@ -63,6 +65,7 @@ const footer=(number,total,demo)=>'<footer class="proposal-footer">'+
  '</footer>';
 const page=(cls,no,total,ref,demo,body,tag='PROPOSTA COMERCIAL')=>
  '<section class="proposal-page '+cls+'" data-pdf-page="'+no+'">'+
+ (cls==='proposal-cover'?'<img class="proposal-cover-background" src="'+coverBackground+'" alt="" aria-hidden="true" loading="eager" decoding="async">':'')+
  watermark()+header(tag,no,total,ref,demo)+
  '<div class="proposal-page-content">'+
  (demo?'<div class="proposal-demo-ribbon">DEMONSTRAÇÃO · NÃO ENVIAR AO CLIENTE</div>':'')+
