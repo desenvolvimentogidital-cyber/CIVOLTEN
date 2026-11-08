@@ -1,5 +1,5 @@
-const CACHE='civolten-premium-ui-v11-20261108-servicos-modal';
-const PRECACHE=['/','/index.html','/styles.css?v=civolten-servicos-modal-capa-legivel-20261108','/app.js?v=civolten-servicos-modal-capa-legivel-20261108','/manifest.webmanifest',
+const CACHE='civolten-premium-ui-v12-20261108-capacete-logo';
+const PRECACHE=['/','/index.html','/styles.css?v=civolten-capacete-logo-restaurada-20261108','/app.js?v=civolten-capacete-logo-restaurada-20261108','/manifest.webmanifest',
 '/assets/civolten-logo.png','/assets/civolten-simbolo.png','/assets/proposal-construction.svg','/assets/proposal-photo-atlas.webp','/assets/file_000000007df8820eb700b32dbfca9c55.png','/assets/skyline.svg',
 '/assets/icon-192.png','/assets/icon-512.png'];
 self.addEventListener('install',e=>{
