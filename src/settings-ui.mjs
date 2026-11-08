@@ -26,7 +26,8 @@ export function pricingPreview(data,hours='8',extra='0'){
  if(!cfg.reviewed)return '<div class="fin-empty">Configure dias, horas, equipe, imposto e margem para liberar a precificação.</div>';
  if(!r)return '<div class="fin-empty">Informe uma capacidade produtiva válida antes de calcular.</div>';
  if(!sum.readyForPricing)return '<div class="fin-empty">Existem '+sum.blocking+' custo(s) de valor ou quantidade informados parcialmente. Complete esses cadastros para precificar.</div>';
- const warning=sum.missing?'<p class="fin-helper cost-pending-note">Atenção: '+sum.missing+' despesa(s) ainda estão a preencher. O preço considera somente os custos reais informados; revise os demais antes de usar em uma proposta definitiva.</p>':'';
+ const warning=(sum.missing?'<p class="fin-helper cost-pending-note">Atenção: '+sum.missing+' despesa(s) ainda estão a preencher. O preço considera somente os custos reais informados; revise os demais antes de usar em uma proposta definitiva.</p>':'')+
+  (sum.assumedQuantities?'<p class="fin-helper cost-pending-note">'+sum.assumedQuantities+' custo(s) variável(is) sem quantidade foram calculados como 1 unidade/mês. Revise em Custos → Variáveis antes de emitir proposta definitiva.</p>':'');
  const pHour=quoteFromCost(r.personHour,cfg),pDay=quoteFromCost(r.personDay,cfg);
  const extraMoney=cents(extra),q=extraMoney===null?null:quoteForHours(sum.total,cfg,hours,extraMoney);
  return warning+'<div class="fin-kpi-grid">'+metric('Custo mensal da empresa',r.monthly)+
