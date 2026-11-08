@@ -1,8 +1,7 @@
 // Interface responsiva de orçamento com catálogo interno e histórico compatível.
 import {summary,brl} from './calc.mjs';
 import {priceBudget} from './budget.mjs';
-import {REFERENCE_SERVICES} from './productivity-reference.mjs';
-import {CATALOG_SECTIONS,catalogRows,catalogReady} from './service-catalog.mjs';
+import {catalogRows} from './service-catalog.mjs';
 import {icon,e} from './views.mjs';
 import {printableBudget} from './budget-print.mjs';
 import {companyConfig} from './pricing.mjs';
@@ -174,22 +173,15 @@ export function budgetEditorView(data,draft,err=''){
  field('Contato comercial da empresa (opcional)','companyContact',draft.commercial?.companyContact||'','text','maxlength="200"')+
  field('CNPJ ou identificação da empresa (opcional)','companyDocument',draft.commercial?.companyDocument||'','text','maxlength="40"')+
  '<div class="budget-section-heading"><h2>Serviços</h2><span>'+draft.items.length+' item(ns)</span></div>'+
- '<div class="budget-picker"><label class="modal-field"><span>Adicionar serviço da CIVOLTEN</span>'+
- '<select id="budget-catalog" aria-label="Serviços internos">'+
- CATALOG_SECTIONS.map(section=>{
-  const readyExtras=catalogRows(data.catalog).filter(item=>item.category===section.id&&
-   catalogReady(item)&&!REFERENCE_SERVICES.some(ref=>ref.code===item.code));
-  const references=REFERENCE_SERVICES.filter(ref=>ref.category===section.id);
-  if(!references.length&&!readyExtras.length)return '';
-  return '<optgroup label="'+e(section.title)+'">'+
-   references.map(ref=>'<option value="'+e(ref.code)+'">'+e(ref.description)+' · '+e(ref.unit)+'</option>').join('')+
-   readyExtras.map(item=>'<option value="'+e(item.code)+'">'+e(item.description)+' · '+e(item.unit)+'</option>').join('')+
-   '</optgroup>';
- }).join('')+
- '<option value="manual">Serviço personalizado</option></select></label>'+
- '<button type="button" class="outlined-button" data-action="budget-add-item">'+icon('plus',19)+' Abrir formulário</button></div>'+
- '<p class="fin-helper">Os serviços possuem faixas HH/un informadas pela CIVOLTEN; o ponto médio é uma estimativa inicial ajustável. Revise o método, equipe e custo direto interno antes da proposta.</p>'+
- '<button class="outlined-button" type="button" data-go="catalog">'+icon('clipboard',18)+' Configurar outros serviços nas 11 etapas</button>'+
+ '<div class="budget-picker"><label class="modal-field"><span>Servico importado (SIURB/SINAPI)</span>'+
+ '<select id="budget-catalog" aria-label="Servicos importados">'+
+ '<option value="manual">Servico personalizado</option>'+
+ catalogRows(data.catalog).map(item=>'<option value="'+e(item.code)+'">'+
+ e(item.source.toUpperCase())+' '+e(item.sinapiCode||item.code)+' · '+e(item.description)+' · '+e(item.unit)+'</option>').join('')+
+ '</select></label>'+
+ '<button type="button" class="outlined-button" data-action="budget-add-item">'+icon('plus',19)+' Abrir formulario</button></div>'+
+ '<p class="fin-helper">Importe primeiro a tabela oficial no catalogo. Horas e custos proprios podem ser completados ou ajustados no formulario do orcamento; nenhum preco SIURB/SINAPI e utilizado.</p>'+
+ '<button class="outlined-button" type="button" data-go="catalog">'+icon('clipboard',18)+' Importar catalogo SIURB/SINAPI</button>'+
  (draft.items.length?'<div class="budget-items">'+draft.items.map(itemRow).join('')+'</div>':
  '<div class="fin-empty">Inclua ao menos um serviço para salvar o orçamento.</div>')+
  scheduleControls(data,draft)+

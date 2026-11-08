@@ -42,10 +42,22 @@ export function createE2EClient(){
  function from(table){
   return {
    select(){
-    return {eq:(_key,owner)=>({order:async()=>{
-     if(!user||owner!==user.id)return {data:[],error:null};
-     return {data:(read()[table]||[]).filter(r=>r.user_id===user.id),error:null};
-    }})};
+    return {eq:(_key,owner)=>{
+     const query={
+      from:0,to:Number.MAX_SAFE_INTEGER,
+      order(){return query},
+      range(from,to){query.from=from;query.to=to;return query},
+      then(resolve,reject){return query.run().then(resolve,reject)},
+      async run(){
+       if(!user||owner!==user.id)return {data:[],error:null};
+       const rows=(read()[table]||[]).filter(r=>r.user_id===user.id);
+       return {data:rows.slice(query.from,query.to+1),error:null};
+      }
+     };
+     // order() sem range tambem precisa ser awaitable.
+     query.order=()=>query;
+     return query;
+    }};
    },
    upsert(value){
     const rows=Array.isArray(value)?value:[value];

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createE2EClient} from '../src/e2e-client.mjs';
-import {fetchRemote,putRemote,deleteRemote,putCompanyRemote,TABLES} from '../src/cloud.mjs';
+import {fetchRemote,putRemote,deleteRemote,putCompanyRemote,putCatalogBatchRemote,TABLES} from '../src/cloud.mjs';
 import {summary} from '../src/calc.mjs';
 const userId='00000000-0000-4000-8000-000000000001';
 test('dados financeiros são escritos no banco e lidos com valores reais',async()=>{
@@ -125,19 +125,29 @@ test('orçamentos demonstrativos são salvos, atualizados e excluídos via Supab
  assert.equal((await fetchRemote(c,userId)).budgets.length,0);
 });
 
-test('serviço e produtividade CIVOLTEN persistem por usuário sem mexer no orçamento',async()=>{
+test('importacao SIURB usa RLS sem apagar dados e suporta paginacao',async()=>{
+ const memory=new Map();
+ globalThis.localStorage={getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v)};
  const c=createE2EClient();await c.auth.signInWithPassword({email:'teste@example.com'});
- const entry={id:'12345678-1234-4234-8234-123456789012',code:'CV-05-202',
-  category:'05',description:'Fiação (Enfiamento de cabos elétricos até 6mm²)',
-  unit:'m',source:'internal',roles:[{role:'Eletricista',hours:.04},{role:'Ajudante',hours:.025}],
-  directCost:3.50,sinapiCode:'',referenceMonth:''};
- await putRemote(c,userId,'catalog',entry);
- const data=await fetchRemote(c,userId);
- assert.equal(data.catalog.length,1);
- assert.equal(data.catalog[0].code,'CV-05-202');
- assert.equal(data.catalog[0].unit,'m');
- assert.equal(data.catalog[0].roles[1].hours,.025);
- assert.equal(data.catalog[0].directCost,3.5);
- assert.deepEqual(data.budgets,[],'Não pode afetar orçamento salvo');
- await assert.rejects(putRemote(c,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','catalog',entry),/RLS/);
+ const items=Array.from({length:505},(_,i)=>({
+  id:'00000000-0000-4000-8000-'+String(i+1).padStart(12,'0'),
+  code:'SIURB:'+String(1000+i),category:'SIURB',
+  description:'Servico oficial '+i,unit:'m²',source:'siurb',
+  roles:[{role:'Pedreiro',hours:0.4}],directCost:null,
+  sinapiCode:String(1000+i),referenceMonth:'2026-07'
+ }));
+ for(let i=0;i<items.length;i+=100)
+  await putCatalogBatchRemote(c,userId,items.slice(i,i+100));
+ let loaded=await fetchRemote(c,userId);
+ assert.equal(loaded.catalog.length,505);
+ assert.equal(loaded.catalog[504].code,'SIURB:1504');
+ assert.deepEqual(loaded.budgets,[]);
+ assert.deepEqual(loaded.employees,[]);
+ assert.deepEqual(loaded.fixed,[]);
+ assert.deepEqual(loaded.variable,[]);
+ await putCatalogBatchRemote(c,userId,[{...items[0],directCost:12}]);
+ loaded=await fetchRemote(c,userId);
+ assert.equal(loaded.catalog.length,505,'Nao duplicar servico na reimportacao');
+ assert.equal(loaded.catalog[0].directCost,12);
+ await assert.rejects(putCatalogBatchRemote(c,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',[items[0]]),/RLS/);
 });

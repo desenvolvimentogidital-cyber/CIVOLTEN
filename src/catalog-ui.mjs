@@ -1,64 +1,89 @@
-// Interface do catálogo próprio — coeficientes SINAPI entram por função, nunca preço SINAPI.
-import {CATALOG_SECTIONS,catalogRows,catalogReady,catalogHours,catalogStats} from './service-catalog.mjs';
+// Catalogo tecnico importado pelo usuario: sem dados de exemplo ou precos oficiais.
+import {catalogRows,catalogReady,catalogHours,catalogStats} from './service-catalog.mjs';
+import {FIELD_NAMES} from './catalog-import.mjs';
 import {icon,e} from './views.mjs';
 import {brl} from './calc.mjs';
-const opt=(v,label,current)=>'<option value="'+e(v)+'"'+(String(v)===String(current)?' selected':'')+'>'+e(label)+'</option>';
-export function catalogView(data,category='01',back='budgets'){
- const entries=catalogRows(data.catalog);
- const list=entries.filter(x=>x.category===category);
- const stats=catalogStats(data.catalog);
- return '<section class="fin-screen catalog-screen">'+
- '<div class="page-heading"><button class="small-square" data-go="'+back+'" aria-label="Voltar">'+icon('back',23)+'</button>'+
- '<h1>Catálogo CIVOLTEN</h1><span class="small-square is-empty"></span></div>'+
- '<p class="fin-intro">Catálogo CIVOLTEN com faixas de horas-homem fornecidas pela empresa e serviços distribuídos em 11 etapas. Cada registro usa sua unidade própria; coeficientes profissionais podem ser conferidos depois em composições SINAPI ou medições de campo.</p>'+ 
- '<div class="catalog-status"><b>'+stats.total+' serviços</b><b>'+stats.ready+' configurados</b><span>'+stats.pending+' sem produtividade/custo completo</span></div>'+
- '<p class="cost-pending-note">'+icon('clipboard',16)+' As faixas HH de referência não foram verificadas no SINAPI e não individualizam a produtividade de cada funcionário. Preencha o custo direto interno e ajuste os coeficientes da equipe antes da proposta.</p>'+ 
- '<label class="modal-field catalog-category"><span>Etapa da obra</span><select id="catalog-category">'+
- CATALOG_SECTIONS.map(s=>opt(s.id,s.id+' · '+s.title+' ('+s.count+')',category)).join('')+
- '</select></label>'+
- '<label class="catalog-filter"><span>Buscar serviço pelo nome</span><input id="catalog-search" placeholder="Filtrar serviço" type="search" autocomplete="off"></label>'+
- '<div class="catalog-list">'+list.map(x=>{
-  const ready=catalogReady(x),hh=catalogHours(x);
-  const roles=x.roles?.length?x.roles.map(r=>e(r.role)+' '+e(r.hours)+' HH/'+e(x.unit)).join(' · '):x.team?'Equipe estimada: '+e(x.team):'Produtividade ainda não informada';
-  const value=ready?'HH por '+e(x.unit)+': '+e(hh.toLocaleString('pt-BR'))+' · custo direto '+brl(Math.round(x.directCost*100)):(x.hhMin!=null?'Referência '+e(x.hhMin)+'–'+e(x.hhMax)+' HH/'+e(x.unit)+' · custo interno pendente':'Preencher produtividade e custo interno');
-  const search=(x.description+' '+x.code).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  return '<button class="catalog-row" data-action="catalog-edit" data-code="'+e(x.code)+'" data-catalog-search="'+e(search)+'" type="button">'+
-   '<span class="catalog-row-head"><b>'+e(x.description)+'</b><small>Unidade: '+e(x.unit)+'</small></span>'+ 
-   '<span class="catalog-row-coeff">'+roles+'</span>'+
-   '<span class="'+(ready?'catalog-row-ready':'catalog-row-pending')+'">'+value+'</span>'+
-   (x.source==='sinapi'&&x.sinapiCode?'<small>Referência informada: SINAPI '+e(x.sinapiCode)+' · '+e(x.referenceMonth)+' (conferir)</small>':'')+
-   '</button>';
- }).join('')+'</div>'+
- '<p class="fin-helper">Produtividade SINAPI é por função e composição, não uma medição individual de funcionário. Após executar a obra, poderão ser medidos os resultados de cada equipe.</p>'+
- '<div class="fin-link-row"><button type="button" data-go="'+e(back)+'">Voltar '+icon('chevron',17)+'</button></div></section>';
+const opt=(value,label,current)=>'<option value="'+e(value)+'"'+(String(value)===String(current)?' selected':'')+'>'+e(label)+'</option>';
+const field=(label,name,value='',type='text',extra='')=>
+ '<label class="modal-field"><span>'+label+'</span><input type="'+type+'" name="'+name+'" value="'+e(value??'')+'" '+extra+'></label>';
+function importer(importData){
+ let html='<section class="catalog-import"><h2>Importar tabela SIURB ou SINAPI</h2>'+
+ '<p class="fin-helper">Selecione o arquivo oficial XLSX ou CSV. O processamento e feito no seu aparelho. Nao importamos precos: somente codigos, servicos, unidades e coeficientes HH quando existirem e forem mapeados.</p>'+
+ '<div class="catalog-import-fields">'+
+ '<label class="modal-field"><span>Fonte oficial</span><select id="catalog-import-source">'+
+ opt('siurb','SIURB · Prefeitura de Sao Paulo',importData?.source||'siurb')+
+ opt('sinapi','SINAPI · CAIXA',importData?.source||'siurb')+'</select></label>'+
+ '<label class="modal-field"><span>Competencia da planilha</span><input type="month" id="catalog-import-month" value="'+e(importData?.month||'')+'" required></label>'+
+ '<label class="modal-field"><span>Arquivo XLSX, CSV ou TSV</span><input type="file" id="catalog-import-file" accept=".xlsx,.csv,.tsv,.txt"></label></div>';
+ if(!importData?.sheets?.length)return html+
+ '<p class="fin-helper">Use o arquivo de composicoes para obter coeficientes de mao de obra. Em planilhas so de custos unitarios, a produtividade pode nao estar presente.</p></section>';
+ const sheet=importData.sheets[importData.selectedSheet]||importData.sheets[0];
+ const header=sheet.rows[importData.headerIndex]||[];
+ const columns=Math.min(45,Math.max(header.length,...sheet.rows.slice(0,15).map(row=>row.length),0));
+ const labels=Array.from({length:columns},(_,i)=>String.fromCharCode(65+i%26)+(i>=26?' (coluna '+(i+1)+')':'')+
+  ' · '+String(header[i]??'').slice(0,50));
+ html+='<p class="fin-helper">Arquivo carregado: <b>'+e(importData.fileName)+'</b>. Confira abaixo as colunas antes de salvar.</p>'+
+ '<label class="modal-field"><span>Aba da planilha</span><select id="catalog-import-sheet">'+
+ importData.sheets.map((s,i)=>opt(i,s.name+' ('+s.rows.length+' linhas)',importData.selectedSheet)).join('')+'</select></label>'+
+ '<label class="modal-field"><span>Linha dos cabecalhos (a partir de 1)</span><input type="number" min="1" max="'+Math.min(30,sheet.rows.length)+'" id="catalog-import-header" value="'+(importData.headerIndex+1)+'"></label>'+
+ '<div class="catalog-import-map">'+FIELD_NAMES.map(([name,label])=>
+ '<label class="modal-field"><span>'+e(label)+'</span><select data-catalog-map="'+e(name)+'">'+
+ opt(-1,'Nao importar este campo',importData.mapping[name])+
+ labels.map((label,i)=>opt(i,label,importData.mapping[name])).join('')+'</select></label>').join('')+'</div>'+
+ '<p class="fin-helper">Confira se as colunas estao corretas. Para horas, use SOMENTE coeficientes de mao de obra por funcao; nunca selecione coluna de preco, material ou total. Se o arquivo nao trouxer HH/un separado, deixe as colunas opcionais sem mapear.</p>'+
+ '<button class="gold-button" type="button" data-action="catalog-import-save">'+icon('check',18)+' Importar servicos no Supabase</button>';
+ const example=sheet.rows.slice(importData.headerIndex+1,importData.headerIndex+4);
+ html+='<div class="catalog-sample"><strong>Amostra de linhas para conferencia</strong>'+
+ example.map(row=>'<p>'+row.slice(0,Math.min(columns,7)).map(x=>e(String(x??'').slice(0,100))).join(' | ')+'</p>').join('')+'</div>';
+ return html+'</section>';
 }
-const textField=(label,name,value='',type='text',extra='')=>
- '<label class="modal-field"><span>'+label+'</span><input type="'+type+'" name="'+name+'" value="'+e(value??'')+'" '+
- (type==='number'?'step="any" min="0" inputmode="decimal" ':'')+extra+'></label>';
+export function catalogView(data,category='all',back='budgets',importData=null,search=''){
+ const entries=catalogRows(data.catalog),stats=catalogStats(data.catalog);
+ const groups=[...new Set(entries.map(x=>x.category||x.source?.toUpperCase()||'Outros'))].sort();
+ const filtered=entries.filter(x=>(category==='all'||x.category===category)&&
+  (x.description+' '+x.code+' '+x.sinapiCode).normalize('NFD')
+   .replace(/[\u0300-\u036f]/g,'').toLowerCase()
+   .includes(String(search||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()));
+ const rows=filtered.slice(0,150);
+ return '<section class="fin-screen catalog-screen">'+
+ '<div class="page-heading"><button class="small-square" data-go="'+e(back)+'" aria-label="Voltar">'+icon('back',23)+'</button>'+
+ '<h1>Catalogo tecnico CIVOLTEN</h1><span class="small-square is-empty"></span></div>'+
+ '<p class="fin-intro">Catalogo vazio por padrao. Somente os servicos importados por voce entram aqui. O custo da proposta continua sendo calculado com os dados da CIVOLTEN.</p>'+
+ '<div class="catalog-status"><b>'+stats.total+' servicos</b><b>'+stats.ready+' completos</b><span>'+stats.pending+' aguardando HH/custo</span></div>'+
+ importer(importData)+
+ (entries.length?
+ '<label class="modal-field catalog-category"><span>Grupo ou fonte</span><select id="catalog-category">'+opt('all','Todos os importados ('+entries.length+')',category)+
+ groups.map(g=>opt(g,g+' ('+entries.filter(x=>x.category===g).length+')',category)).join('')+'</select></label>'+
+ '<label class="catalog-filter"><span>Buscar por codigo ou nome</span><input id="catalog-search" type="search" placeholder="Pesquisar servico" autocomplete="off" value="'+e(search)+'"></label>'+
+ '<p class="fin-helper">Exibindo '+rows.length+' de '+filtered.length+
+ ' servicos encontrados. Pesquise por nome ou codigo para localizar qualquer outro.</p>'+
+ '<div class="catalog-list">'+rows.map(x=>{
+  const ready=catalogReady(x),hh=catalogHours(x);
+  const search=(x.description+' '+x.code+' '+x.sinapiCode).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  return '<button class="catalog-row" type="button" data-action="catalog-edit" data-code="'+e(x.code)+'" data-catalog-search="'+e(search)+'">'+
+   '<span class="catalog-row-head"><b>'+e(x.description)+'</b><small>'+e(x.source.toUpperCase())+' '+e(x.sinapiCode||x.code)+' · unidade '+e(x.unit)+'</small></span>'+
+   '<span class="catalog-row-coeff">'+(hh===null?'HH nao configurado':e(String(hh))+' HH/'+e(x.unit))+'</span>'+
+   '<span class="'+(ready?'catalog-row-ready':'catalog-row-pending')+'">'+
+   (x.directCost===null?'Custo direto a informar':'Custo direto interno '+brl(Math.round(x.directCost*100)))+'</span></button>';
+ }).join('')+'</div>':
+ '<div class="fin-empty">Nenhum servico cadastrado. Importe o XLSX/CSV SIURB ou SINAPI acima para iniciar.</div>')+
+ '<p class="fin-helper">A importacao nao altera funcionarios, contratos, custos mensais nem orcamentos ja salvos. Servicos antigos permanecem somente dentro dos orcamentos historicos.</p>'+
+ '<button class="outlined-button" type="button" data-go="'+e(back)+'">Voltar</button></section>';
+}
 export function catalogEditorDialog(item){
- const roles=Array.isArray(item.roles)?item.roles:[];
- const coefficient=(i)=>'<div class="catalog-role-grid">'+
-  textField('Função / profissional '+i,'role'+i,roles[i-1]?.role||'','text','maxlength="80" placeholder="Ex.: eletricista"')+
-  textField('Coeficiente HH por '+e(item.unit),'hours'+i,roles[i-1]?.hours??'','number','max="10000"')+'</div>';
- const source=item.source==='sinapi'?'sinapi':'internal';
- return '<div class="modal-inner catalog-editor"><div class="modal-heading"><h2 id="catalog-form-title">Produtividade do serviço</h2>'+
- '<button type="button" class="small-square" data-action="close-modal" aria-label="Fechar">×</button></div>'+
+ const roles=(item.roles||[]).map(r=>r.role+'; '+r.hours).join('\n');
+ return '<div class="modal-inner catalog-editor"><div class="modal-heading"><h2 id="catalog-form-title">Revisar servico importado</h2>'+
+ '<button class="small-square" type="button" data-action="close-modal" aria-label="Fechar">×</button></div>'+
  '<form id="catalog-form" aria-labelledby="catalog-form-title">'+
- '<p class="helper-text">Código CIVOLTEN: '+e(item.code)+'. Os valores abaixo são salvos apenas na sua conta e podem ser revisados depois.</p>'+
- textField('Descrição','description',item.description,'text','maxlength="180" required')+
- textField('Unidade de medida','unit',item.unit,'text','maxlength="20" required')+
- '<label class="modal-field"><span>Origem da produtividade</span><select name="source">'+
- opt('internal','Base própria CIVOLTEN',source)+
- opt('sinapi','Coeficientes consultados no SINAPI',source)+'</select></label>'+
- textField('Código da composição SINAPI (se utilizado)','sinapiCode',item.sinapiCode||'','text','maxlength="48" placeholder="Código oficial da composição"')+
- textField('Competência de referência (AAAA-MM)','referenceMonth',item.referenceMonth||'','month','')+
- (item.hhMin!=null?'<p class="helper-text">Referência CIVOLTEN informada: '+e(item.hhMin)+' a '+e(item.hhMax)+' HH/'+e(item.unit)+' · equipe sugerida: '+e(item.team)+'. Para não inventar HH por função, deixamos os campos individuais em branco. O ponto médio é usado no cronograma até você registrar coeficientes próprios.</p>':'')+
- '<p class="helper-text">Se escolher origem SINAPI, informe o código e competência da composição analítica verificada. Nunca atribua os coeficientes totais da equipe a cada trabalhador.</p>'+ 
- coefficient(1)+coefficient(2)+coefficient(3)+
- textField('Custo direto interno por '+e(item.unit)+' (R$)','directCost',item.directCost??'','number','max="999999999" placeholder="0 se não houver material/equipamento"')+
- '<p class="helper-text">Este custo direto não inclui salários/encargos já considerados nos custos mensais da CIVOLTEN. Se não houver materiais ou equipamentos, informe 0.</p>'+
+ '<p class="helper-text">Origem '+e(item.source.toUpperCase())+' · codigo '+e(item.sinapiCode||item.code)+' · competencia '+e(item.referenceMonth||'a informar')+'</p>'+
+ field('Descricao','description',item.description,'text','maxlength="180" required')+
+ field('Unidade','unit',item.unit,'text','maxlength="20" required')+
+ '<label class="modal-field"><span>Coeficientes da equipe: Funcao; HH/un (uma por linha)</span>'+
+ '<textarea name="coefficients" rows="6" placeholder="Eletricista; 0,30&#10;Ajudante; 0,20">'+e(roles)+'</textarea></label>'+
+ '<p class="helper-text">Confirme se os coeficientes vieram da composicao analitica. Servicos auxiliares podem exigir calculo adicional. Ajustes proprios ficam salvos somente na sua conta.</p>'+
+ field('Custo direto proprio por '+e(item.unit)+' (R$)','directCost',item.directCost??'','number','min="0" step="0.01" max="999999999" placeholder="Materiais/equipamentos: 0 se nenhum"')+
+ '<p class="helper-text">Nao inclua salarios e encargos ja considerados no custo mensal da empresa. Nenhum preco oficial e copiado.</p>'+
  '<p class="form-error" id="catalog-form-error" role="alert" hidden></p>'+
  '<div class="modal-buttons"><button class="outlined-button" type="button" data-action="close-modal">Cancelar</button>'+
- '<button class="gold-button" type="submit">'+icon('check',18)+' Salvar no Supabase</button></div>'+
- '</form></div>';
+ '<button class="gold-button" type="submit">'+icon('check',18)+' Salvar no Supabase</button></div></form></div>';
 }

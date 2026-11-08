@@ -275,3 +275,33 @@ para evitar um PDF sem a fotografia no Android. O SW precacheia o arquivo para
 disponibilidade quando a aplicação estiver instalada. Nenhum serviço pago é necessário.
 
 A página 2 continua sem preços e a última mostra o preço total uma única vez.
+
+## Catalogo tecnico SIURB/SINAPI por importacao (08/11/2026)
+
+A lista fixa CIVOLTEN de servicos/produtividades foi removida. O catalogo abre vazio
+e recebe somente servicos importados na conta autenticada. Orcamentos historicos
+continuam com as descricoes e valores que foram salvos originalmente.
+
+1. Acesse **Orcamentos > Abrir catalogo**. Selecione **SIURB** ou **SINAPI** e a competencia AAAA-MM.
+2. Escolha um arquivo **XLSX/CSV/TSV** oficial. O arquivo e aberto no proprio aparelho,
+   sem servico pago nem envio a conversores externos.
+3. Confira a aba e associe as colunas **codigo, descricao, unidade**.
+   A funcao/profissional e o coeficiente **HH por unidade** podem ser associados
+   se estiverem expressos na composicao analitica.
+4. Revise a amostra e importe. Os registros sao salvos em lotes de 100 no Supabase
+   com RLS; reimportacoes preservam custos diretos e produtividades editadas.
+5. No orcamento, selecione o servico importado ou cadastre um item manual.
+   Os custos unitarios oficiais **nao sao copiados**; o preco e calculado pelos custos
+   reais/horas produtivas da CIVOLTEN, mais materiais, equipamentos, tributos e margem.
+
+**Cuidado:** planilhas de custos unitarios nao necessariamente trazem coeficientes
+de mao de obra. Para HH, consulte as composicoes analiticas e seus servicos
+auxiliares. Caso nao haja coeficiente confiavel, o campo fica vazio para
+preenchimento/validacao da empresa. Nao duplique salarios ja incluidos no custo
+mensal ao informar custo direto de servico.
+
+Fontes: [SIURB Sao Paulo](https://prefeitura.sp.gov.br/web/obras/w/tabelas_de_custos/355179)
+e [SINAPI CAIXA](https://www.caixa.gov.br/poder-publico/modernizacao-gestao/sinapi/Paginas/default.aspx).
+
+A tabela Supabase `cv_service_catalog_v1` foi preservada. Restricoes ampliadas
+para fonte SIURB e ate 30 funcoes por servico. Nenhuma outra tabela foi apagada.
