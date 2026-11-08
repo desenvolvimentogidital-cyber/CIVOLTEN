@@ -4,7 +4,7 @@ import {prepareCostPresets} from './cost-presets.mjs';
 import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
 import {signupOutcome,authMessage,repeatedSignupMessage,pendingEmailMessage} from './auth-flow.mjs';
-import {fresh,safeLoad,safeSave,validate,summary,employeeCost} from './calc.mjs';
+import {fresh,safeLoad,safeSave,validate,summary,employeeCost,variableMonthly,variableQuantity,brl} from './calc.mjs';
 import {validateCompany,THEMES} from './pricing.mjs';
 import {companyView,appearanceView,pricingPreview} from './settings-ui.mjs';
 import {validateEntry,reportCsv,localToday,currentMonth} from './finance.mjs';
@@ -182,7 +182,7 @@ function openEditor(kind,id=null,suggested='income'){
  state.editor={kind,id};
  modal.innerHTML=kind==='ledger'?ledgerEditorView(person,suggested):editorView(kind,person,state.data.payroll);
  modal.showModal();
- if(kind!=='ledger'){toggleContractFields();refreshCltPreview();}
+ if(kind!=='ledger'){toggleContractFields();refreshCltPreview();refreshVariableCostPreview();}
 }
 function closeEditor(){
  modal.close();modal.innerHTML='';state.editor=null;
@@ -193,6 +193,18 @@ function refreshCltPreview(){
  const fields=Object.fromEntries(new FormData(form));
  area.innerHTML=cltBreakdownHtml({salary:fields.salary,
   benefits:fields.benefits,extras:fields.extras},state.data.payroll);
+}
+function refreshVariableCostPreview(){
+ const form=modal.querySelector('#record-form'),area=modal.querySelector('#variable-cost-preview');
+ if(!form||!area)return;
+ const item=Object.fromEntries(new FormData(form)),value=variableMonthly(item);
+ const quantity=variableQuantity(item);
+ if(value===null){
+  area.textContent='Informe um preço para calcular o total mensal.';
+  return;
+ }
+ area.textContent='Total variável no mês: '+brl(value)+
+  (item.monthQty===''&&quantity===1?' (1 unidade/mês como padrão)':'');
 }
 async function savePayrollSettings(form){
  if(!state.user||state.cloudError)return;
@@ -588,6 +600,7 @@ modal.addEventListener('click',event=>{
 });
 modal.addEventListener('change',event=>{
  if(event.target.name==='contractType'){toggleContractFields();refreshCltPreview();}
+ if(event.target.name==='unit'&&event.target.form?.id==='record-form')refreshVariableCostPreview();
  if(event.target.name==='regime'&&event.target.form?.id==='payroll-form'){
   const p=payrollPreset(event.target.value);
   for(const key of ['fgtsPct','employerPct','ratPct','terceirosPct'])
@@ -596,6 +609,7 @@ modal.addEventListener('change',event=>{
 });
 modal.addEventListener('input',event=>{
  if(['salary','benefits','extras'].includes(event.target.name))refreshCltPreview();
+ if(['unitCost','monthQty'].includes(event.target.name))refreshVariableCostPreview();
 });
 modal.addEventListener('submit',event=>{
  if(event.target.id==='budget-service-form'){
