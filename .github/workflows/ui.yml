@@ -52,6 +52,8 @@ jobs:
           node --check src/finance-ui.mjs
           node --check src/pricing.mjs
           node --check src/settings-ui.mjs
+          node --check src/budget.mjs
+          node --check src/budget-ui.mjs
       - name: Instalar Chromium gratuito
         run: npx playwright install --with-deps chromium
       - name: Testar login e navegação no celular
