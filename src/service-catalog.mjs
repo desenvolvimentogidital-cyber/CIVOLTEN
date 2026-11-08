@@ -66,7 +66,7 @@ export function catalogToBudgetItem(record,id){
  if(!record||!id)throw Error('Servico do catalogo invalido.');
  const system=record.source==='siurb'?'SIURB':record.source==='sinapi'?'SINAPI':'INTERNO';
  return {id,source:'internal',sourceCode:record.code,description:record.description,
-  unit:record.unit,quantity:1,laborHours:catalogHours(record)??0,
+  unit:record.unit,quantity:1,laborHours:catalogHours(record)??'',
   directCost:record.directCost??null,
   roles:(record.roles||[]).map(r=>({...r})),
   reference:{system,code:record.sinapiCode||'',month:record.referenceMonth||'',
