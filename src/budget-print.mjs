@@ -61,7 +61,7 @@ const footer=(number,total,demo)=>'<footer class="proposal-footer">'+
  '<div class="proposal-footer-three"><span>'+icon('hardhat',16)+' Segurança em cada etapa</span>'+
  '<span>'+icon('check',16)+' Qualidade nos serviços</span>'+
  '<span>'+icon('calendar',16)+' Compromisso com o prazo</span></div>')+
- (demo?'<small>DOCUMENTO DE TESTE · Serviços fictícios, sem referência oficial de preços · '+number+'/'+total+'</small>':'')+
+ ''+
  '</footer>';
 const page=(cls,no,total,ref,demo,body,tag='PROPOSTA COMERCIAL')=>
  '<section class="proposal-page '+cls+'" data-pdf-page="'+no+'">'+
@@ -73,7 +73,7 @@ const page=(cls,no,total,ref,demo,body,tag='PROPOSTA COMERCIAL')=>
  '</div>':'')+
  watermark()+header(tag,no,total,ref,demo)+
  '<div class="proposal-page-content">'+
- (demo?'<div class="proposal-demo-ribbon">DEMONSTRAÇÃO · NÃO ENVIAR AO CLIENTE</div>':'')+
+ ''+
  body+'</div>'+
  footer(no,total,demo)+'</section>';
 const coverInfo=(symbol,label,value)=>'<div class="proposal-cover-info-row">'+
@@ -134,11 +134,13 @@ const conditions=(b,p,c)=>
  (c.companyDocument?'<span>Documento: '+e(c.companyDocument)+'</span>':'')+
  '</div>':'');
 export function printableBudget(b){
+ // Documentos anteriores precisam ser convertidos e revisados antes de virar proposta real.
+ if(b?.demo!==false||b?.items?.some(item=>item.source==='demo'))return '';
  let priced;
  try{priced=priceBudget(b)}catch{return '';}
  if(!priced)return '';
  const c=validateCommercial(b.commercial),groups=splitServicePages(priced.rows);
- const total=groups.length+2,ref=proposalRef(b),demo=b.demo!==false;
+ const total=groups.length+2,ref=proposalRef(b),demo=false;
  const pages=[page('proposal-cover',1,total,ref,demo,cover(b,1,total,ref,demo))];
  groups.forEach((chunk,i)=>pages.push(page('proposal-services',i+2,total,ref,demo,
   services(chunk,i+1,groups.length,ref),'PROPOSTA COMERCIAL · SERVIÇOS')));
