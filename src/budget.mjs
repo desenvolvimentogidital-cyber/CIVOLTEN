@@ -95,7 +95,7 @@ export function validateBudget(raw){
 }
 export function createPricingSnapshot(data){
  const cost=summary(data),cfg=companyConfig(data.company),cap=capacity(cfg);
- if(!cfg.reviewed||!cost.complete||!cap||!Number.isSafeInteger(cost.total)||cost.total<=0)return null;
+ if(!cfg.reviewed||!cost.readyForPricing||!cap||!Number.isSafeInteger(cost.total)||cost.total<=0)return null;
  return {monthlyCostCents:cost.total,productiveHours:cap.productiveHours,
   taxPct:cfg.taxPct,marginPct:cfg.marginPct,companyName:cfg.companyName||'CIVOLTEN',
   capturedOn:localToday()};
