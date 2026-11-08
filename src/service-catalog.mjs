@@ -1,6 +1,7 @@
 // Catálogo CIVOLTEN: serviços de construção civil e elétrica, fundação à entrega.
 // Os nomes e unidades são apenas estrutura interna de trabalho, não códigos SINAPI.
-// Nenhuma produtividade nem custo é presumido. Só utilizar após cadastrar coeficientes.
+// As faixas HH recebidas da CIVOLTEN são referências internas, não SINAPI confirmado.
+// Custo direto continua pendente até ser informado pelo usuário.
 import {decimal} from './calc.mjs';
 import {REFERENCE_SERVICES} from './productivity-reference.mjs';
 const raw=[
@@ -85,15 +86,17 @@ const raw=[
 ];
 export const CATALOG_SECTIONS=Object.freeze(raw.map(([id,title,items])=>
  Object.freeze({id,title,count:items.length+REFERENCE_SERVICES.filter(s=>s.category===id).length})));
-export const CATALOG_PRESETS=Object.freeze(raw.flatMap(([category,name,services])=>
- services.map(([description,unit],i)=>Object.freeze({
+export const CATALOG_PRESETS=Object.freeze([
+ ...raw.flatMap(([category,name,services])=>services.map(([description,unit],i)=>Object.freeze({
   code:'CV-'+category+'-'+String(i+1).padStart(3,'0'),category,categoryName:name,
   description,unit,roles:Object.freeze([]),
   source:'pending',sinapiCode:'',referenceMonth:'',directCost:null
- })).concat(REFERENCE_SERVICES.map(item=>Object.freeze({
+ }))),
+ ...REFERENCE_SERVICES.map(item=>Object.freeze({
   ...item,categoryName:raw.find(g=>g[0]===item.category)?.[1]||'',
   roles:Object.freeze([]),source:'internal',sinapiCode:'',referenceMonth:'',directCost:null
- }))));
+ }))
+]);
 export const catalogByCode=(code)=>CATALOG_PRESETS.find(x=>x.code===code)||null;
 export const catalogRows=(overrides=[])=>{
  const map=new Map((overrides||[]).map(x=>[x.code,x]));
