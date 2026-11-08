@@ -1,4 +1,7 @@
 // Referências iniciais fornecidas pela CIVOLTEN em 08/11/2026.
+// Serviços generalistas equivalentes a versões mais específicas da segunda relação
+// foram consolidados; diferentes métodos de execução permanecem separados.
+import {ADDITIONAL_REFERENCES} from './productivity-reference-additional.mjs';
 // NÃO são coeficientes SINAPI verificados; a faixa representa HH totais por unidade
 // do serviço/equipe, sem distribuição fictícia de HH entre funções.
 // O ponto médio é usado só como estimativa inicial ajustável do cronograma.
@@ -31,15 +34,35 @@ const data=[
  ['10','Limpeza pós-obra fina','m²',0.40,0.70,'Auxiliar de Limpeza'],
  ['10','Inspeção final, testes e retoques','h',1.00,1.00,'Engenheiro/Mestre de Obras']
 ];
-export const REFERENCE_SERVICES=Object.freeze(data.map(([category,description,unit,hhMin,hhMax,team],index)=>{
+// Títulos genéricos com mesma execução agora usam a faixa mais recente e específica.
+const superseded=new Set([
+ 'Armação de aço (corte, dobra, montagem)',
+ 'Enfiação de cabos/fios',
+ 'Montagem de quadro de distribuição (médio)',
+ 'Instalação de tomadas/interruptores/luminárias',
+ 'Tubulação de água fria/quente (soldável/pvc)',
+ 'Tubulação de esgoto/águas pluviais',
+ 'Aplicação de chapisco',
+ 'Execução de reboco/emboço',
+ 'Execução de contrapiso',
+ 'Assentamento de piso cerâmico/porcelanato',
+ 'Instalação de portas (kit porta pronta)',
+ 'Instalação de janelas/vidros',
+ 'Limpeza pós-obra fina'
+]);
+const previous=data.map(([category,description,unit,hhMin,hhMax,team],index)=>{
+ const normalizedCategory=category==='10'?'11':category;
  const sequence=data.slice(0,index+1).filter(x=>x[0]===category).length;
  return Object.freeze({
-  code:'CV-'+category+'-'+String(100+sequence).padStart(3,'0'),
-  category,description,unit,hhMin,hhMax,
-  hhMid:Math.round((hhMin+hhMax)/2*100000)/100000,
+  code:'CV-'+normalizedCategory+'-'+String(100+sequence).padStart(3,'0'),
+  category:normalizedCategory,description,unit,hhMin,hhMax,
+  hhMid:Math.round((hhMin+hhMax)/2*1000)/1000,
   team,origin:'CIVOLTEN - referência fornecida pela empresa (não verificada no SINAPI)'
  });
-}));
+}).filter(x=>!superseded.has(x.description));
+export const REFERENCE_SERVICES=Object.freeze([
+ ...ADDITIONAL_REFERENCES,...previous
+]);
 export function referenceService(code){
  return REFERENCE_SERVICES.find(x=>x.code===code)||null;
 }
