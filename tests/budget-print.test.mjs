@@ -19,6 +19,8 @@ test('PDF V4 integra os dois arquivos oficiais da marca e marca-d’água por p�
  assert.match(html,/budget-pdf-watermark-icon/);
  assert.match(html,/budget-pdf-watermark-logo/);
  assert.match(html,/ORÇAMENTO DEMONSTRATIVO/);
+ assert.match(html,/<h2>Descrição dos serviços<\/h2>/);
+ assert.doesNotMatch(html,/budget-pdf-section-label[^>]*><span>01<\/span>/);
  assert.match(html,/NÃO ENVIAR AO CLIENTE/);
  assert.match(html,/DOCUMENTO DE TESTE/);
  assert.match(html,/CV-12345678/);
