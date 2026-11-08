@@ -8,9 +8,14 @@ export const TABLES={
  variable:'cv_variable_costs_v1',
  employees:'cv_employees_v1',
  ledger:'cv_financial_entries_v1',
- budgets:'cv_budget_drafts_v1'
+ budgets:'cv_budget_drafts_v1',
+ catalog:'cv_service_catalog_v1'
 };
 const normalize=(k,row)=>{
+ if(k==='catalog')return {id:row.id,code:row.code,category:row.category,
+  description:row.description,unit:row.unit,source:row.source,
+  roles:Array.isArray(row.roles)?row.roles:[],directCost:row.direct_cost===null?null:Number(row.direct_cost),
+  sinapiCode:row.sinapi_code||'',referenceMonth:row.reference_month||''};
  if(k==='fixed')return {id:row.id,name:row.name,category:row.category||'',
   amount:Number(row.amount),frequency:row.frequency};
  if(k==='variable')return {id:row.id,name:row.name,category:row.category||'',
@@ -36,6 +41,10 @@ const normalize=(k,row)=>{
 };
 const payload=(k,item,userId)=>{
  const base={id:item.id,user_id:userId,updated_at:new Date().toISOString()};
+ if(k==='catalog')return {...base,code:item.code,category:item.category,
+  description:item.description,unit:item.unit,source:item.source,
+  roles:item.roles||[],direct_cost:item.directCost,
+  sinapi_code:item.sinapiCode||'',reference_month:item.referenceMonth||''};
  if(k==='fixed')return {...base,name:item.name,category:item.category,
   amount:item.amount,frequency:item.frequency};
  if(k==='variable')return {...base,name:item.name,category:item.category,
