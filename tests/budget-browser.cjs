@@ -59,11 +59,37 @@ const server=createServer((req,res)=>{
   await page.locator('#budget-form [name="paymentTerms"]').fill('40% na assinatura e 60% na entrega');
   await page.locator('#budget-form [name="executionTerm"]').fill('Até 18 dias úteis após liberação');
   await page.locator('#budget-form [name="warrantyTerms"]').fill('Conforme contrato');
+  await page.locator('#budget-form [name="project"]').fill('Reforma do Centro Comercial');
   await page.locator('#budget-catalog').selectOption('DEMO-E01');
   await page.locator('[data-action="budget-add-item"]').click();
-  await page.locator('.budget-item [name="quantity"]').fill('2');
+  assert.equal(await page.locator('#budget-service-form').count(),1);
+  assert.equal(await page.locator('.budget-item').count(),0,'Abrir o modal não deve adicionar o serviço');
+  assert.equal(await page.locator('#budget-service-form [name="quantity"]').inputValue(),'1');
+  await fs.promises.mkdir(path.join(__dirname,'../test-artifacts'),{recursive:true});
+  await page.screenshot({path:'test-artifacts/orcamento-modal-servico.png',fullPage:true});
+  await page.locator('#budget-service-form [data-action="close-modal"]').click();
+  assert.equal(await page.locator('.budget-item').count(),0,'Cancelar o modal não insere item');
+  // O mesmo serviço pode ser cadastrado com validação antes de alterar o rascunho.
+  await page.locator('[data-action="budget-add-item"]').click();
+  await page.locator('#budget-service-form [name="quantity"]').fill('0');
+  await page.locator('#budget-service-form [type="submit"]').click();
+  assert.match(await page.locator('#budget-service-error').innerText(),/quantidade válido/);
+  assert.equal(await page.locator('.budget-item').count(),0);
+  await page.locator('#budget-service-form [name="quantity"]').fill('2');
+  await page.locator('#budget-service-form [type="submit"]').click();
+  assert.equal(await page.locator('.budget-item').count(),1);
+  assert.match(await page.locator('.budget-item').first().innerText(),/2 un/);
+  assert.equal(await page.locator('.budget-item input').count(),0,'A lista fica compacta, sem formulário embutido');
+  await page.locator('[data-action="budget-edit-item"]').first().click();
+  assert.match(await page.locator('.modal-heading h2').innerText(),/Editar serviço/);
+  assert.equal(await page.locator('#budget-service-form [name="quantity"]').inputValue(),'2');
+  await page.locator('#budget-service-form [name="quantity"]').fill('4');
+  await page.locator('#budget-service-form [type="submit"]').click();
+  assert.match(await page.locator('.budget-item').first().innerText(),/4 un/);
   await page.locator('#budget-catalog').selectOption('DEMO-C02');
   await page.locator('[data-action="budget-add-item"]').click();
+  await page.locator('#budget-service-form [name="quantity"]').fill('1');
+  await page.locator('#budget-service-form [type="submit"]').click();
   assert.equal(await page.locator('.budget-item').count(),2);
   assert.match(await page.locator('#budget-price-preview').innerText(),/Preço final para o cliente/);
   await fs.promises.mkdir(path.join(__dirname,'../test-artifacts'),{recursive:true});
@@ -83,8 +109,8 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.proposal-conditions').innerText(),/18 dias úteis/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-capa-arte-original-20261108/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-capa-arte-original-20261108/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-servicos-modal-capa-legivel-20261108/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-servicos-modal-capa-legivel-20261108/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),
@@ -113,6 +139,20 @@ const server=createServer((req,res)=>{
   assert.ok(photo.coverage>.99&&photo.coverage<1.01,'O fundo fotográfico ocupa a largura A4 inteira');
   assert.equal(await page.locator('.proposal-watermark').first().evaluate(el=>getComputedStyle(el).position),'absolute');
   assert.equal(await page.locator('.proposal-cover .proposal-page-content').evaluate(el=>getComputedStyle(el).backgroundImage),'none');
+  const coverFont=await page.locator('.proposal-cover-card').evaluate(card=>{
+   const values=[...card.querySelectorAll('.proposal-cover-info-row em')];
+   const project=values[1],client=values[0];
+   const box=card.getBoundingClientRect(),
+    footer=card.closest('.proposal-cover').querySelector('.proposal-cover-bottom').getBoundingClientRect();
+   return {
+    project:parseFloat(getComputedStyle(project).fontSize),
+    client:parseFloat(getComputedStyle(client).fontSize),
+    fit:box.bottom<footer.top
+   };
+  });
+  assert.ok(coverFont.project>coverFont.client,'Obra / Local deve se destacar na capa');
+  assert.ok(coverFont.client>14,'Os dados do cliente devem estar maiores e legíveis');
+  assert.ok(coverFont.fit,'O cartão de informações não pode encobrir o rodapé da capa');
   await page.screenshot({path:'test-artifacts/proposta-signature-preview.png',fullPage:true});
   const pdf=await page.pdf({format:'A4',printBackground:true,preferCSSPageSize:true});
   await fs.promises.writeFile('test-artifacts/proposta-signature-3-paginas.pdf',pdf);
@@ -122,7 +162,9 @@ const server=createServer((req,res)=>{
   const pending=page.waitForEvent('download');
   await page.locator('[data-action="budget-export"]').click();
   assert.match((await pending).suggestedFilename(),/orcamento-demonstrativo\.csv/);
-  await page.locator('.budget-item').first().locator('[name="quantity"]').fill('3');
+  await page.locator('[data-action="budget-edit-item"]').first().click();
+  await page.locator('#budget-service-form [name="quantity"]').fill('3');
+  await page.locator('#budget-service-form [type="submit"]').click();
   await page.locator('#budget-form [type="submit"]').click();
   await page.locator('.budget-list-item').first().waitFor();
   await page.reload({waitUntil:'networkidle'});
@@ -130,7 +172,10 @@ const server=createServer((req,res)=>{
   await page.locator('[data-go="budgets"]').first().click();
   assert.equal(await page.locator('.budget-list-item').count(),1);
   await page.locator('[data-action="budget-open"]').first().click();
-  assert.equal(await page.locator('.budget-item').first().locator('[name="quantity"]').inputValue(),'3');
+  assert.match(await page.locator('.budget-item').first().innerText(),/3 un/);
+  await page.locator('[data-action="budget-edit-item"]').first().click();
+  assert.equal(await page.locator('#budget-service-form [name="quantity"]').inputValue(),'3');
+  await page.locator('#budget-service-form [data-action="close-modal"]').click();
   assert.equal(await page.locator('#budget-form [name="paymentTerms"]').inputValue(),'40% na assinatura e 60% na entrega');
   page.once('dialog',d=>d.accept());
   await page.locator('[data-action="budget-delete"]').click();
