@@ -59,11 +59,14 @@ export function schedulePlan(items,raw={},capacity={}){
  }));
  const totalHours=Math.round(rows.reduce((sum,item)=>sum+item.hours,0)*1000)/1000;
  const crewDefault=settings.crew??people;
- const usingDays=settings.goal==='days'&&settings.days!==null;
+ if(settings.goal==='days'&&settings.days===null)
+  throw Error('Informe o prazo desejado em dias úteis para calcular os profissionais.');
+ const usingDays=settings.goal==='days';
  const crew=usingDays?Math.max(1,Math.ceil(totalHours/(settings.days*hoursPerDay))):
   crewDefault;
  const days=usingDays?settings.days:totalHours>0?
   Math.max(1,Math.ceil(totalHours/(crew*hoursPerDay))):0;
+ if(days>730)throw Error('Prazo estimado excede 730 dias úteis. Revise a equipe ou os serviços.');
  const neededPeople=usingDays?crew:totalHours>0?Math.ceil(totalHours/(Math.max(1,days)*hoursPerDay)):0;
  const available=people>=crew;
  const daySlots=settings.startDate&&days?workingDays(settings.startDate,days):[];
