@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DEMO_SERVICES,createService,validateBudget,priceBudget,createPricingSnapshot,budgetCsv} from '../src/budget.mjs';
+import {DEMO_SERVICES,createService,validateBudget,validateCommercial,priceBudget,createPricingSnapshot,budgetCsv} from '../src/budget.mjs';
 const company={companyName:'Construtora Teste',taxRegime:'simples',annex:'IV',taxPct:10,marginPct:20,
  productiveDays:20,hoursPerDay:8,productivePeople:2,reviewed:true};
 const priced={monthlyCostCents:1600000,productiveHours:320,
@@ -61,4 +61,14 @@ test('invalida quantidades, horas, datas, duplicatas, limites e nomes',()=>{
 test('exportação CSV protege campos inseridos pelo usuário contra fórmulas',()=>{
  const b=validateBudget(raw({title:'=2+2',items:[{...createService('DEMO-E01','i1'),description:'@cmd'}]}));
  const csv=budgetCsv(b);assert.match(csv,/'=2\+2/);assert.match(csv,/'@cmd/);
+});
+
+test('condições comerciais opcionais validadas, sem presumir prazo ou garantia',()=>{
+ const input=raw({commercial:{paymentTerms:'30% na entrada e 70% na conclusão',
+  executionTerm:'Até 18 dias',warrantyTerms:'Conforme contrato',scopeNotes:'Sem fornecimento de luminárias'}});
+ const parsed=validateBudget(input);
+ assert.equal(parsed.commercial.paymentTerms,'30% na entrada e 70% na conclusão');
+ assert.equal(parsed.commercial.executionTerm,'Até 18 dias');
+ assert.equal(validateBudget(raw()).commercial.warrantyTerms,'');
+ assert.throws(()=>validateCommercial({paymentTerms:'x'.repeat(501)}),/muito longo/);
 });
