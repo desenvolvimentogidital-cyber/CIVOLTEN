@@ -65,7 +65,12 @@ const footer=(number,total,demo)=>'<footer class="proposal-footer">'+
  '</footer>';
 const page=(cls,no,total,ref,demo,body,tag='PROPOSTA COMERCIAL')=>
  '<section class="proposal-page '+cls+'" data-pdf-page="'+no+'">'+
- (cls==='proposal-cover'?'<img class="proposal-cover-background" src="'+coverBackground+'" alt="" aria-hidden="true" loading="eager" decoding="async">':'')+
+ (cls==='proposal-cover'?'<img class="proposal-cover-background" src="'+coverBackground+'" alt="" aria-hidden="true" loading="eager" decoding="async">'+
+ // Restaura a marca do capacete da arte aprovada, sem alterar a fotografia nem os dados dinâmicos.
+ '<div class="proposal-helmet-brand" aria-hidden="true">'+
+ '<img class="proposal-helmet-mark" src="'+mark+'" alt="">'+
+ '<img class="proposal-helmet-wordmark" src="'+logo+'" alt="">'+
+ '</div>':'')+
  watermark()+header(tag,no,total,ref,demo)+
  '<div class="proposal-page-content">'+
  (demo?'<div class="proposal-demo-ribbon">DEMONSTRAÇÃO · NÃO ENVIAR AO CLIENTE</div>':'')+

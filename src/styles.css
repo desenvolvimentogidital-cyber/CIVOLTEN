@@ -1203,3 +1203,32 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
   font-weight:850!important;color:#171717!important;
  }
 }
+
+
+/* Restauração pontual: logo CIVOLTEN estampado no capacete da foto aprovada.
+   Usar os ativos oficiais no HTML mantém o restante da capa intacto. */
+@media print {
+ .budget-pdf-v5 .proposal-cover>.proposal-helmet-brand {
+  position:absolute!important;z-index:4!important;
+  display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:flex-start!important;
+  left:77%!important;top:60.9%!important;
+  width:19.7%!important;height:10.6%!important;
+  transform:rotate(-2deg) skewY(-1deg)!important;
+  transform-origin:center center!important;
+  opacity:.94!important;pointer-events:none!important;
+  mix-blend-mode:multiply!important;
+  filter:brightness(.64) saturate(.88) contrast(1.15)!important;
+ }
+ .budget-pdf-v5 .proposal-helmet-brand .proposal-helmet-mark {
+  display:block!important;width:38%!important;height:51%!important;
+  max-width:none!important;object-fit:contain!important;
+  margin:0 auto!important;border:0!important;
+ }
+ .budget-pdf-v5 .proposal-helmet-brand .proposal-helmet-wordmark {
+  display:block!important;width:96%!important;height:43%!important;
+  max-width:none!important;object-fit:cover!important;
+  object-position:center center!important;
+  margin:-1mm auto 0!important;border:0!important;
+ }
+}

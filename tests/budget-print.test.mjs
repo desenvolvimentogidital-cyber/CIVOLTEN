@@ -30,6 +30,12 @@ test('Signature possui capa, serviços e condições nessa ordem',()=>{
  assert.match(html,/Proposta<br><strong>Comercial<\/strong>/);
  assert.equal((html.match(/class="proposal-cover-background"/g)||[]).length,1);
  assert.match(html,/src="\/assets\/file_000000007df8820eb700b32dbfca9c55\.png"/);
+ assert.equal((html.match(/class="proposal-helmet-brand"/g)||[]).length,1,'Logo do capacete aparece só na capa');
+ assert.match(html,/class="proposal-helmet-mark" src="\/assets\/civolten-simbolo\.png"/);
+ assert.match(html,/class="proposal-helmet-wordmark" src="\/assets\/civolten-logo\.png"/);
+ const parts=section(html);
+ assert.match(parts[0],/proposal-helmet-brand/);
+ assert.doesNotMatch(parts[1]+parts[2],/proposal-helmet-brand/);
  assert.equal((html.match(/class="proposal-cover-background"/g)||[]).length,1);
  assert.match(html,/Descrição dos serviços/);
  assert.match(html,/INVESTIMENTO TOTAL/);
