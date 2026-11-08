@@ -29,8 +29,16 @@ export function fixedMonthly(item){
  if(val===null||val<0)return null;
  return item.frequency==='annual'?Math.round(val/12):val;
 }
+// Se há preço positivo e nenhuma quantidade, 1 unidade/mês é a previsão mínima
+// explícita da UI. Quantidade 0 informada pelo usuário continua zerando o custo.
+// Modelos ainda sem preço NÃO são somados nem recebem quantidade presumida.
+export function variableQuantity(item){
+ const price=cents(item.unitCost),quantity=decimal(item.monthQty);
+ if(quantity!==null)return quantity;
+ return price!==null&&price>0?1:null;
+}
 export function variableMonthly(item){
- const val=cents(item.unitCost),quantity=decimal(item.monthQty);
+ const val=cents(item.unitCost),quantity=variableQuantity(item);
  if(val===null||val<0||quantity===null||quantity<0)return null;
  return Math.round(val*quantity);
 }
@@ -64,6 +72,8 @@ export function summary(data){
  const variableReady=va.filter((x,i)=>x!==null&&cents((data.variable||[])[i].unitCost)>0);
  const workforceMissing=ep.filter(x=>x.status!=='ready'||x.monthly===null).length;
  const missing=(fx.length-fixedReady.length)+(va.length-variableReady.length)+workforceMissing;
+ const assumedQuantities=(data.variable||[]).filter(item=>
+  cents(item.unitCost)>0&&decimal(item.monthQty)===null).length;
  // Os modelos zerados não bloqueiam preços já configurados, mas permanecem
  // sinalizados: serão incorporados automaticamente quando receberem valores reais.
  // Um custo real com preço informado e quantidade ausente continua bloqueando.
@@ -71,7 +81,7 @@ export function summary(data){
   va.filter((x,i)=>x===null&&cents((data.variable||[])[i].unitCost)!==0).length+
   workforceMissing;
  return {fixed,variable,team,total:fixed+variable+team,employees:ep.length,
-  missing,complete:missing===0,readyForPricing:blocking===0,blocking,
+  missing,assumedQuantities,complete:missing===0,readyForPricing:blocking===0,blocking,
   knownItems:fixedReady.length+variableReady.length+ep.filter(x=>x.monthly!==null).length};
 }
 export function validate(kind,fields){
@@ -87,8 +97,10 @@ export function validate(kind,fields){
   const unitCost=requireAmount(fields.unitCost,'o custo unitário');
   const monthQty=pick(fields.monthQty);
   if(monthQty!==null&&monthQty<0)throw Error('A quantidade não pode ser negativa.');
+  // Um preço com quantidade em branco vira um custo mensal de 1 unidade.
+  // Assim os próximos registros já ficam completos no Supabase.
   return {name,category:String(fields.category||'').trim(),unit:String(fields.unit||'un'),
-    unitCost,monthQty};
+    unitCost,monthQty:monthQty===null&&unitCost>0?1:monthQty};
  }
  if(kind==='employees'){
   const role=String(fields.role||'').trim(),contractType=fields.contractType==='contractor'?'contractor':'clt';
