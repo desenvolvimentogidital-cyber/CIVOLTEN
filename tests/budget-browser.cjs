@@ -81,6 +81,7 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('.budget-item').count(),0,'Cancelar o modal não insere item');
   // O mesmo serviço pode ser cadastrado com validação antes de alterar o rascunho.
   await page.locator('[data-action="budget-add-item"]').click();
+  await page.locator('#budget-service-form [name="directCost"]').fill('35');
   await page.locator('#budget-service-form [name="quantity"]').fill('0');
   await page.locator('#budget-service-form [type="submit"]').click();
   assert.match(await page.locator('#budget-service-error').innerText(),/quantidade válido/);
