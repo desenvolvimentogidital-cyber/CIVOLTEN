@@ -117,6 +117,7 @@ export function budgetEditorView(data,draft,err=''){
  '<div class="fin-empty">Inclua ao menos um serviço para salvar o orçamento.</div>')+
  '<div class="budget-section-heading"><h2>Formação do preço</h2></div>'+
  (summary(data).missing?'<p class="fin-helper cost-pending-note">Atenção: '+summary(data).missing+' custo(s) da empresa ainda estão a preencher. O cálculo usa somente os valores cadastrados; revise antes de enviar proposta definitiva.</p>':'')+
+ (summary(data).assumedQuantities?'<p class="fin-helper cost-pending-note">'+summary(data).assumedQuantities+' custo(s) variáveis estão incluídos com 1 unidade/mês como padrão. Revise as quantidades antes de enviar a proposta.</p>':'')+
  '<p class="fin-helper">O preço utiliza a fotografia do custo mensal, capacidade produtiva, alíquota e margem salvos no rascunho. Mudanças na configuração geral não modificam os orçamentos antigos automaticamente.</p>'+
  '<button type="button" data-action="budget-refresh-pricing" class="budget-refresh">'+icon('chart',18)+' Atualizar base de preços</button>'+
  '<div id="budget-price-preview" aria-live="polite">'+preview(draft)+'</div>'+
