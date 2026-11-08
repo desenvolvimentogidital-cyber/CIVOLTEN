@@ -138,7 +138,7 @@ export function costsView(data,tab='fixed'){
   '<button role="tab" aria-selected="'+!isFixed+'" data-tab="variable" class="'+(!isFixed?'selected':'')+'">Variáveis ('+(data.variable||[]).length+')</button></div>'+
   '<div class="total-cost-card"><span class="cost-big-icon">'+icon('coins',35)+'</span><div class="total-copy"><h2>'+(isFixed?'Total fixo mensal':'Total variável previsto')+'</h2>'+
   '<p>'+(isFixed?'Soma dos custos com valor informado':'Quantidades e preços reais informados')+'</p></div><strong>'+brl(total)+'</strong></div>'+
-  (pending?'<p class="cost-pending-note">'+icon('info',16)+' '+pending+' custo(s) aguardando valor ou quantidade. Não foram somados como despesas reais.</p>':'')+
+  (pending?'<p class="cost-pending-note">'+icon('clipboard',16)+' '+pending+' custo(s) aguardando valor ou quantidade. Não foram somados como despesas reais.</p>':'')+
   (all.length>6?'<label class="cost-search-label"><span>Buscar custo</span><input type="search" id="cost-search" placeholder="Nome ou categoria" autocomplete="off"></label>':'')+
   '<div class="cost-list">'+(all.length?all.map(item=>{
    const amount=isFixed?fixedMonthly(item):variableMonthly(item);
