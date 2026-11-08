@@ -89,7 +89,7 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.total-cost-card').innerText(),/50,00/);
   await page.locator('[data-go="home"]').last().click();
   assert.match(await page.locator('.metric-card').filter({hasText:'Custos variáveis'}).innerText(),/50,00/);
-  assert.match(await page.locator('.metric-card').filter({hasText:'Custo mensal'}).innerText(),/1\\.250,00/);
+  assert.ok((await page.locator('.metric-card').filter({hasText:'Custo mensal'}).innerText()).includes('1.250,00'));
   await page.locator('[data-go="costs"]').last().click();
   await page.locator('.cost-row').first().click();
   assert.equal(await page.locator('#record-form [name="monthQty"]').inputValue(),'1');
