@@ -235,3 +235,28 @@ não existentes são carregadas vazias.
 continuam identificadas como demonstração e não devem ser enviadas a clientes.
 A proposta não expõe imposto, margem, custo/hora ou custos internos. O CSV
 administrativo permanece completo, mas não é o documento comercial.
+
+
+## Artes reais do PDF Signature — sem fornecedores pagos
+
+O visual da proposta comercial passou a incorporar a arte fotográfica
+\`assets/proposal-photo-atlas.webp\` — fotografia recortada das artes
+de referência aprovadas, armazenada **diretamente no GitHub**, sem carregar
+imagens de serviços externos na impressão. O arquivo otimizado contém,
+em um único atlas, a cena de obra e capacete para a capa, uma vista de
+obra ao pôr do sol para o cabeçalho e a silhueta de obras para o rodapé.
+O CSS recorta cada trecho para a composição A4. Os logotipos oficiais
+\`civolten-logo.png\` e \`civolten-simbolo.png\` continuam no repositório;
+o cabeçalho recebeu tratamento que elimina as grandes bordas vazias
+dos PNGs e dá à marca o destaque do mockup.
+
+As três páginas têm layout fotográfico em grafite, ouro e prata; a
+primeira exibe foto e dados do cliente, a segunda mostra serviços,
+unidades e quantidades **sem valores**, e a última traz um **único valor
+total** e condições comerciais. Custo interno, impostos e margem não
+aparecem. Texto, cliente e valores são HTML dinâmico, não pixels gravados
+na arte. O atlas local também está incluído no precache do PWA.
+
+Nenhuma integração paga foi contratada. GitHub, navegador de teste local,
+dados existentes do Supabase e publicação padrão da Vercel utilizam
+os recursos gratuitos já configurados no projeto.
