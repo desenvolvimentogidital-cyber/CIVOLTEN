@@ -59,7 +59,8 @@ test('invalida quantidades, horas, datas, duplicatas, limites e nomes',()=>{
  assert.throws(()=>validateBudget(raw({customer:''})),/cliente/);
 });
 test('exportação CSV protege campos inseridos pelo usuário contra fórmulas',()=>{
- const b=validateBudget(raw({title:'=2+2',items:[{...createService('DEMO-E01','i1'),description:'@cmd'}]}));
+ const b=validateBudget(raw({demo:false,title:'=2+2',items:[{...createService('manual','i1'),
+  description:'@cmd',unit:'un',laborHours:2,directCost:35}]}));
  const csv=budgetCsv(b);assert.match(csv,/'=2\+2/);assert.match(csv,/'@cmd/);
 });
 
@@ -71,4 +72,8 @@ test('condições comerciais opcionais validadas, sem presumir prazo ou garantia
  assert.equal(parsed.commercial.executionTerm,'Até 18 dias');
  assert.equal(validateBudget(raw()).commercial.warrantyTerms,'');
  assert.throws(()=>validateCommercial({paymentTerms:'x'.repeat(501)}),/muito longo/);
+});
+
+test('CSV comercial exige regularizacao de orcamentos anteriores',()=>{
+ assert.throws(()=>budgetCsv(validateBudget(raw())),/Revise os servicos/);
 });
