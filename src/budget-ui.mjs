@@ -16,13 +16,16 @@ const field=(label,name,value='',type='text',params='')=>
 const textarea=(label,name,value='')=>'<label class="modal-field"><span>'+label+'</span><textarea name="'+name+
  '" data-budget-field="'+name+'" rows="3">'+e(value)+'</textarea></label>';
 const m=(value,highlight=false)=>'<div class="fin-kpi'+(highlight?' fin-kpi-featured':'')+'"><span>'+value[0]+'</span><strong>'+value[1]+'</strong></div>';
-const status=(draft)=>draft?.demo!==false?'<span class="budget-demo-flag">'+icon('wrench',15)+' Orçamento antigo de demonstração</span>':'';
+const needsReview=draft=>draft?.demo!==false||draft?.items?.some(item=>item.source==='demo');
+const status=draft=>needsReview(draft)?
+ '<div class="budget-legacy-note"><p class="fin-helper">Este orçamento foi criado com referências anteriores. Para utilizar como proposta comercial, revise os serviços, a produtividade e os custos reais da empresa.</p>'+
+ '<button type="button" class="outlined-button" data-action="budget-regularize">'+icon('edit',16)+' Revisar para uso comercial</button></div>':'';
 function error(msg){return '<p class="form-error" role="alert">'+e(msg)+'</p>';}
 export function budgetsView(data){
  const rows=(data.budgets||[]).slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
  return '<section class="fin-screen budget-screen">'+header('Orçamentos','home')+
- '<p class="fin-intro">Orçamentos com produtividade por HH/un e custo direto interno. As faixas de HH foram fornecidas pela CIVOLTEN; não foram verificadas como composições SINAPI.</p>'+
- '<button type="button" class="outlined-button" data-go="catalog">'+icon('clipboard',18)+' Abrir catálogo completo de serviços</button>'+
+ '<p class="fin-intro">Elabore propostas comerciais com produtividade por HH/un, composições importadas da SIURB/SINAPI e custos reais da CIVOLTEN.</p>'+
+ '<button type="button" class="outlined-button" data-go="catalog">'+icon('clipboard',18)+' Catálogo de serviços SIURB/SINAPI</button>'+
  '<button class="gold-button budget-new-button" type="button" data-action="budget-new">'+icon('plus',22)+' Novo orçamento CIVOLTEN</button>'+
  (rows.length?'<div class="budget-list">'+rows.map(b=>{
   let price=null;try{price=priceBudget(b)}catch{/* registros antigos devem continuar acessíveis */}
@@ -30,8 +33,8 @@ export function budgetsView(data){
    '<span class="budget-list-icon">'+icon('clipboard',22)+'</span>'+
    '<span class="budget-list-copy"><b>'+e(b.title)+'</b><small>'+e(b.customer||'Cliente não informado')+
    '</small><em>'+b.items.length+' serviço(s) · '+dateBR(b.createdAt?.slice(0,10))+'</em></span>'+
-   '<span class="budget-list-total"><strong>'+(price?money(price.totalSale):'Sem preço')+'</strong>'+
-   '<small>Rascunho</small></span></button>';
+   '<span class="budget-list-total"><strong>'+(needsReview(b)?'A revisar':price?money(price.totalSale):'Sem preço')+'</strong>'+
+   '<small>'+(needsReview(b)?'Revisão pendente':'Rascunho')+'</small></span></button>';
  }).join('')+'</div>':
  '<div class="fin-empty">Nenhum orçamento salvo. Crie seu primeiro orçamento com os serviços do catálogo interno.</div>')+
  '<div class="fin-link-row"><button type="button" data-go="company">Ajustar precificação '+icon('chevron',17)+'</button></div></section>';
@@ -41,7 +44,7 @@ function itemRow(item,index){
  const hours=Number(item.laborHours).toLocaleString('pt-BR',{maximumFractionDigits:3});
  const cost=item.directCost==null?'A informar':money(Math.round(Number(item.directCost)*100));
  return '<article class="budget-item budget-item-compact" data-budget-item="'+e(item.id)+'">'+
-  '<div class="budget-item-top"><span>'+(item.source==='demo'?'Serviço antigo de teste':item.source==='internal'?'Serviço CIVOLTEN':'Personalizado')+' · item '+(index+1)+'</span>'+
+  '<div class="budget-item-top"><span>'+(item.source==='demo'?'Serviço a revisar':item.source==='internal'?'Serviço CIVOLTEN':'Personalizado')+' · item '+(index+1)+'</span>'+
   '<button type="button" class="budget-remove" data-action="budget-remove-item" data-id="'+e(item.id)+'" aria-label="Remover serviço">'+icon('trash',16)+' Remover</button></div>'+
   '<h3>'+e(item.description)+'</h3>'+
   '<p class="budget-item-summary">'+quantity+' '+e(item.unit)+' · '+hours+' HH/un. · custo direto/un. '+cost+'</p>'+ 
@@ -133,6 +136,7 @@ const scheduleControls=(data,draft)=>{
   '<p class="fin-helper">Preço por dias: (custo mensal da empresa ÷ dias produtivos/mês) × dias da obra + custos diretos; aplica depois imposto e margem. O custo mensal já inclui a equipe cadastrada, sem duplicá-la.</p>';
 };
 const preview=(draft)=>{
+ if(needsReview(draft))return '<div class="fin-empty">Antes de calcular ou emitir a proposta, revise os itens anteriores e confirme horas, materiais e custos próprios.</div>';
  let p;try{p=priceBudget(draft)}catch(err){return error(err.message||'Dados de serviço inválidos.');}
  if(!p)return '<div class="fin-empty">Preço ainda indisponível. Conclua o custo mensal e as configurações em Mais → Empresa e precificação; depois use “Atualizar base de preços”. Você pode salvar o rascunho sem valores.</div>';
  return '<div class="fin-kpi-grid">'+
@@ -152,7 +156,7 @@ const preview=(draft)=>{
 export function budgetPreview(draft){return preview(draft);}
 export function budgetEditorView(data,draft,err=''){
  if(!draft)return budgetsView(data);
- let priced=false;try{priced=!!priceBudget(draft)}catch{/* mostrar erro no preview */}
+ let priced=false;try{priced=!needsReview(draft)&&!!priceBudget(draft)}catch{/* mostrar erro no preview */}
  return '<section class="fin-screen budget-screen budget-editor">'+header('Montar orçamento','budgets')+
  status(draft)+
  '<form id="budget-form" class="budget-form" novalidate>'+
@@ -192,7 +196,7 @@ export function budgetEditorView(data,draft,err=''){
  '<button type="button" data-action="budget-refresh-pricing" class="budget-refresh">'+icon('chart',18)+' Atualizar base de preços</button>'+
  '<div id="budget-price-preview" aria-live="polite">'+preview(draft)+'</div>'+
  (err?error(err):'')+
- '<button class="gold-button budget-save-button" type="submit">'+icon('check',19)+' Salvar rascunho</button></form>'+
+ '<button class="gold-button budget-save-button" type="submit"'+(needsReview(draft)?' disabled':'')+'>'+icon('check',19)+' Salvar rascunho</button></form>'+
  '<div class="budget-secondary-actions"><button type="button" class="outlined-button" data-action="budget-print"'+(priced?'':' disabled')+'>'+icon('file',18)+' Visualizar / PDF</button>'+
  '<button type="button" class="outlined-button" data-action="budget-export"'+(priced?'':' disabled')+'>'+icon('file',18)+' Exportar CSV</button></div>'+ 
  '<p class="budget-pdf-model-label">'+icon('check',15)+' Proposta Signature · 3 páginas · CIVOLTEN</p>'+
