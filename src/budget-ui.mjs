@@ -73,6 +73,14 @@ export function budgetEditorView(data,draft,err=''){
  field('Local da obra','location',draft.location,'text','maxlength="240"')+
  field('Validade da proposta','expiresOn',draft.expiresOn||'','date')+
  textarea('Observações','notes',draft.notes)+
+ '<div class="budget-section-heading"><h2>Condições comerciais</h2></div>'+ 
+ '<p class="fin-helper">São exibidas somente na última página da proposta. Preencha condições reais; campos vazios serão marcados como a definir, sem inventar prazos ou garantias.</p>'+ 
+ textarea('Condições de pagamento','paymentTerms',draft.commercial?.paymentTerms||'')+
+ textarea('Prazo de execução','executionTerm',draft.commercial?.executionTerm||'')+
+ textarea('Garantia dos serviços','warrantyTerms',draft.commercial?.warrantyTerms||'')+
+ textarea('Escopo e exclusões','scopeNotes',draft.commercial?.scopeNotes||'')+
+ field('Contato comercial da empresa (opcional)','companyContact',draft.commercial?.companyContact||'','text','maxlength="200"')+
+ field('CNPJ ou identificação da empresa (opcional)','companyDocument',draft.commercial?.companyDocument||'','text','maxlength="40"')+
  '<div class="budget-section-heading"><h2>Serviços</h2><span>'+draft.items.length+' item(ns)</span></div>'+
  '<div class="budget-picker"><label class="modal-field"><span>Adicionar serviço fictício</span>'+
  '<select id="budget-catalog" aria-label="Catálogo de teste">'+DEMO_SERVICES.map(x=>
@@ -90,7 +98,7 @@ export function budgetEditorView(data,draft,err=''){
  '<button class="gold-button budget-save-button" type="submit">'+icon('check',19)+' Salvar rascunho</button></form>'+
  '<div class="budget-secondary-actions"><button type="button" class="outlined-button" data-action="budget-print"'+(priced?'':' disabled')+'>'+icon('file',18)+' Visualizar / PDF</button>'+
  '<button type="button" class="outlined-button" data-action="budget-export"'+(priced?'':' disabled')+'>'+icon('file',18)+' Exportar CSV</button></div>'+ 
- '<p class="budget-pdf-model-label">'+icon('check',15)+' Modelo comercial V4 · identidade CIVOLTEN</p>'+
+ '<p class="budget-pdf-model-label">'+icon('check',15)+' Proposta Signature · 3 páginas · CIVOLTEN</p>'+
  (draft.id?'<button type="button" class="fin-delete" data-action="budget-delete">'+icon('trash',18)+' Excluir orçamento</button>':'')+
  '<div class="fin-link-row"><button type="button" data-go="company">Configurar custo, imposto e margem '+icon('chevron',17)+'</button></div>'+
  printableBudget(draft)+'</section>';
