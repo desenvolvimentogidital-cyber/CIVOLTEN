@@ -62,6 +62,7 @@ const server=createServer((req,res)=>{
    'B200;Pintura de parede;m²;Pintor;0,4;12,50\n';
   await page.locator('#catalog-import-file').setInputFiles({
    name:'siurb-composicoes.csv',mimeType:'text/csv',buffer:Buffer.from(content)});
+  await page.locator('#catalog-import-sheet').waitFor();
   await page.locator('#catalog-import-month').fill('2026-07');
   assert.equal(await page.locator('[data-catalog-map="hours"]').inputValue(),'4');
   await page.locator('[data-action="catalog-import-save"]').click();
