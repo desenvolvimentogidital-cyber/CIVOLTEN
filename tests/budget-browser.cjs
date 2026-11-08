@@ -76,12 +76,15 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.budget-print').innerText(),/DOCUMENTO DE TESTE/);
   assert.match(await page.locator('.budget-pdf-model-label').innerText(),/Signature/);
   assert.equal(await page.locator('.proposal-page').count(),3);
+  assert.equal(await page.locator('.proposal-cover-background').count(),1);
+  assert.equal(await page.locator('.proposal-services .proposal-cover-background').count(),0);
+  assert.match(await page.locator('.proposal-cover-background').getAttribute('src'),/file_000000007df8820eb700b32dbfca9c55\.png/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/40% na assinatura/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/18 dias úteis/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-signature-foto-gratis-20261108/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-signature-foto-gratis-20261108/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-capa-arte-original-20261108/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-capa-arte-original-20261108/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),
@@ -99,8 +102,17 @@ const server=createServer((req,res)=>{
    .evaluateAll(list=>list.map(img=>({ok:img.complete&&img.naturalWidth>0,src:img.getAttribute('src')})));
   assert.equal(marks.length,12,'Logo e marca-d’água em cada uma das três páginas');
   assert.ok(marks.every(m=>m.ok),'O PDF não pode sair sem as imagens oficiais');
+  const photo=await page.locator('.proposal-cover-background').evaluate(img=>({
+   loaded:img.complete&&img.naturalWidth>0,ratio:img.naturalWidth/img.naturalHeight,
+   coverage:img.getBoundingClientRect().width/img.parentElement.getBoundingClientRect().width,
+   position:getComputedStyle(img).position,fit:getComputedStyle(img).objectFit
+  }));
+  assert.ok(photo.loaded,'A imagem PNG enviada ao GitHub deve carregar antes do PDF');
+  assert.equal(photo.position,'absolute');
+  assert.equal(photo.fit,'cover');
+  assert.ok(photo.coverage>.99&&photo.coverage<1.01,'O fundo fotográfico ocupa a largura A4 inteira');
   assert.equal(await page.locator('.proposal-watermark').first().evaluate(el=>getComputedStyle(el).position),'absolute');
-  assert.ok(await page.locator('.proposal-cover .proposal-page-content').evaluate(el=>getComputedStyle(el).backgroundImage.includes('proposal-photo-atlas.webp')));
+  assert.equal(await page.locator('.proposal-cover .proposal-page-content').evaluate(el=>getComputedStyle(el).backgroundImage),'none');
   await page.screenshot({path:'test-artifacts/proposta-signature-preview.png',fullPage:true});
   const pdf=await page.pdf({format:'A4',printBackground:true,preferCSSPageSize:true});
   await fs.promises.writeFile('test-artifacts/proposta-signature-3-paginas.pdf',pdf);

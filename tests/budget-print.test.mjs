@@ -28,6 +28,9 @@ test('Signature possui capa, serviços e condições nessa ordem',()=>{
  assert.match(html,/budget-pdf-v5/);
  assert.deepEqual(pages(html).map(x=>x.kind),['proposal-cover','proposal-services','proposal-conditions']);
  assert.match(html,/Proposta<br><strong>Comercial<\/strong>/);
+ assert.equal((html.match(/class="proposal-cover-background"/g)||[]).length,1);
+ assert.match(html,/src="\/assets\/file_000000007df8820eb700b32dbfca9c55\.png"/);
+ assert.equal((html.match(/class="proposal-cover-background"/g)||[]).length,1);
  assert.match(html,/Descrição dos serviços/);
  assert.match(html,/INVESTIMENTO TOTAL/);
 });

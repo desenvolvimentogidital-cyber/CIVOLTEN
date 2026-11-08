@@ -44,6 +44,7 @@ jobs:
           test -s dist/assets/skyline.svg
           test -s dist/assets/proposal-construction.svg
           test -s dist/assets/proposal-photo-atlas.webp
+          test -s dist/assets/file_000000007df8820eb700b32dbfca9c55.png
           node --check src/budget-print.mjs
           node --check scripts/build.mjs
           node --check src/main.mjs

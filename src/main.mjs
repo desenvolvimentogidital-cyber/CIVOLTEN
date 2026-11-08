@@ -404,13 +404,21 @@ function exportBudget(){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
  }catch(err){delayToast(String(err.message||err));}
 }
-function printBudget(){
+async function printBudget(){
  try{
   if(!state.budgetDraft||!priceBudget(state.budgetDraft))
    throw Error('Configure e calcule os valores antes de gerar o PDF.');
   render();
   if(!mount.querySelector('.budget-pdf-v5 .proposal-page'))
    throw Error('Proposta Signature indisponível. Atualize o aplicativo e tente novamente.');
+  // A arte enviada para o GitHub deve estar decodificada ANTES da prévia Android.
+  // Caso contrário o Chrome pode gerar a página sem o fundo fotográfico.
+  const cover=mount.querySelector('.proposal-cover-background');
+  if(!cover)throw Error('Imagem de fundo da proposta não encontrada.');
+  if((!cover.complete||!cover.naturalWidth)&&typeof cover.decode==='function')
+   await cover.decode();
+  if(!cover.naturalWidth)
+   throw Error('Não foi possível carregar a imagem da capa. Verifique a conexão e tente novamente.');
   window.print();
  }catch(err){delayToast(String(err.message||err));}
 }
@@ -456,7 +464,7 @@ mount.addEventListener('click',async event=>{
  else if(action==='budget-remove-item'){removeBudgetItem(b.dataset.id);}
  else if(action==='budget-refresh-pricing'){refreshBudgetPricing();}
  else if(action==='budget-export'){exportBudget();}
- else if(action==='budget-print'){printBudget();}
+ else if(action==='budget-print'){await printBudget();}
  else if(action==='budget-delete'){await removeBudget();}
  else if(action==='new-income'){openEditor('ledger',null,'income');}
  else if(action==='new-expense'){openEditor('ledger',null,'expense');}
