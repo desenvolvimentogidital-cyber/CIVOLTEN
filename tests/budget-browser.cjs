@@ -80,8 +80,8 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.proposal-conditions').innerText(),/18 dias úteis/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-proposta-signature-3p-20261108/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-proposta-signature-3p-20261108/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-signature-foto-gratis-20261108/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-signature-foto-gratis-20261108/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),
@@ -100,7 +100,7 @@ const server=createServer((req,res)=>{
   assert.equal(marks.length,12,'Logo e marca-d’água em cada uma das três páginas');
   assert.ok(marks.every(m=>m.ok),'O PDF não pode sair sem as imagens oficiais');
   assert.equal(await page.locator('.proposal-watermark').first().evaluate(el=>getComputedStyle(el).position),'absolute');
-  assert.ok(await page.locator('.proposal-cover .proposal-page-content').evaluate(el=>getComputedStyle(el).backgroundImage.includes('proposal-construction.svg')));
+  assert.ok(await page.locator('.proposal-cover .proposal-page-content').evaluate(el=>getComputedStyle(el).backgroundImage.includes('proposal-photo-atlas.webp')));
   await page.screenshot({path:'test-artifacts/proposta-signature-preview.png',fullPage:true});
   const pdf=await page.pdf({format:'A4',printBackground:true,preferCSSPageSize:true});
   await fs.promises.writeFile('test-artifacts/proposta-signature-3-paginas.pdf',pdf);
