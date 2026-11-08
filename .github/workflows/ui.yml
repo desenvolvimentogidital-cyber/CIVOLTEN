@@ -50,6 +50,8 @@ jobs:
           node --check src/e2e-client.mjs
           node --check src/finance.mjs
           node --check src/finance-ui.mjs
+          node --check src/pricing.mjs
+          node --check src/settings-ui.mjs
       - name: Instalar Chromium gratuito
         run: npx playwright install --with-deps chromium
       - name: Testar login e navegação no celular

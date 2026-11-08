@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createE2EClient} from '../src/e2e-client.mjs';
-import {fetchRemote,putRemote,deleteRemote,TABLES} from '../src/cloud.mjs';
+import {fetchRemote,putRemote,deleteRemote,putCompanyRemote,TABLES} from '../src/cloud.mjs';
 const userId='00000000-0000-4000-8000-000000000001';
 test('dados financeiros são escritos no banco e lidos com valores reais',async()=>{
  const rows=new Map();
@@ -67,4 +67,26 @@ test('lançamentos de faturamento são persistidos e isolados por usuário',asyn
  assert.equal((await fetchRemote(c,userId)).ledger[0].paidDate,'2026-11-10');
  await deleteRemote(c,userId,'ledger',invoice.id);
  assert.equal((await fetchRemote(c,userId)).ledger.length,0);
+});
+
+test('configurações da empresa e tema persistem sem tocar nos custos existentes',async()=>{
+ const c=createE2EClient();
+ await c.auth.signInWithPassword({email:'teste@example.com',password:'senha-forte'});
+ const id=userId;
+ const config={companyName:'CIVOLTEN Elétrica',taxRegime:'simples',annex:'IV',
+  taxPct:11.5,marginPct:20,productiveDays:20,hoursPerDay:8,productivePeople:2,
+  theme:'blue',reviewed:true};
+ await putCompanyRemote(c,id,config);
+ const loaded=await fetchRemote(c,id);
+ assert.equal(loaded.company.companyName,'CIVOLTEN Elétrica');
+ assert.equal(loaded.company.taxPct,11.5);
+ assert.equal(loaded.company.theme,'blue');
+ assert.equal(loaded.company.productivePeople,2);
+ const newTheme={...loaded.company,theme:'emerald'};
+ await putCompanyRemote(c,id,newTheme);
+ assert.equal((await fetchRemote(c,id)).company.marginPct,20);
+ assert.equal((await fetchRemote(c,id)).company.theme,'emerald');
+ const other='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ await assert.rejects(putCompanyRemote(c,other,config),/RLS/);
+ assert.equal((await fetchRemote(c,other)).company.reviewed,false);
 });
