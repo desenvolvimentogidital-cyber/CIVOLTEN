@@ -1,6 +1,7 @@
 import {brl,employeeCost,fixedMonthly,variableMonthly,summary,fmt} from './calc.mjs';
 import {payrollConfig,payrollPreset} from './payroll.mjs';
 const SHAPES={
+ zap:'<path d="m13 2-9 11h7l-1 9 10-12h-7l1-8z"/>',
  home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
  coins:'<ellipse cx="8" cy="6" rx="5" ry="2.5"/><path d="M3 6v5c0 1.5 2 2.5 5 2.5s5-1 5-2.5V6M3 11v5c0 1.5 2 2.5 5 2.5 1.1 0 2-.1 2.8-.3"/><ellipse cx="17" cy="12" rx="5" ry="2.5"/><path d="M12 12v6c0 1.5 2 2.5 5 2.5s5-1 5-2.5v-6"/>',
  users:'<path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="6" r="4"/><path d="M22 20v-2a4 4 0 0 0-3-3.87M16 2.13a4 4 0 0 1 0 7.75"/>',
