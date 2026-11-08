@@ -10,17 +10,17 @@ export function catalogView(data,category='01',back='budgets'){
  return '<section class="fin-screen catalog-screen">'+
  '<div class="page-heading"><button class="small-square" data-go="'+back+'" aria-label="Voltar">'+icon('back',23)+'</button>'+
  '<h1>Catálogo CIVOLTEN</h1><span class="small-square is-empty"></span></div>'+
- '<p class="fin-intro">Serviços próprios da fundação à entrega. A produtividade por função pode ser informada com os coeficientes HH/un da composição analítica SINAPI, usando o custo interno da empresa.</p>'+
+ '<p class="fin-intro">Catálogo próprio da CIVOLTEN, com 27 referências de HH por unidade e equipes informadas pela empresa. Os demais serviços das 10 etapas podem receber coeficientes internos ou SINAPI verificados.</p>'+ 
  '<div class="catalog-status"><b>'+stats.total+' serviços</b><b>'+stats.ready+' configurados</b><span>'+stats.pending+' sem produtividade/custo completo</span></div>'+
- '<p class="cost-pending-note">'+icon('clipboard',16)+' Nenhuma produtividade SINAPI foi presumida. Preencha o coeficiente de cada profissional e a competência da composição. Um serviço só entra no orçamento após ser configurado.</p>'+
+ '<p class="cost-pending-note">'+icon('clipboard',16)+' As faixas HH de referência não foram verificadas no SINAPI e não individualizam a produtividade de cada funcionário. Preencha o custo direto interno e ajuste os coeficientes da equipe antes da proposta.</p>'+ 
  '<label class="modal-field catalog-category"><span>Etapa da obra</span><select id="catalog-category">'+
  CATALOG_SECTIONS.map(s=>opt(s.id,s.id+' · '+s.title+' ('+s.count+')',category)).join('')+
  '</select></label>'+
  '<label class="catalog-filter"><span>Buscar serviço da etapa</span><input id="catalog-search" placeholder="Filtrar por nome ou código" type="search" autocomplete="off"></label>'+
  '<div class="catalog-list">'+list.map(x=>{
   const ready=catalogReady(x),hh=catalogHours(x);
-  const roles=x.roles?.length?x.roles.map(r=>e(r.role)+' '+e(r.hours)+' HH/'+e(x.unit)).join(' · '):'Produtividade ainda não informada';
-  const value=ready?'HH por '+e(x.unit)+': '+e(hh.toLocaleString('pt-BR'))+' · custo direto '+brl(Math.round(x.directCost*100)):'Preencher produtividade e custo interno';
+  const roles=x.roles?.length?x.roles.map(r=>e(r.role)+' '+e(r.hours)+' HH/'+e(x.unit)).join(' · '):x.team?'Equipe estimada: '+e(x.team):'Produtividade ainda não informada';
+  const value=ready?'HH por '+e(x.unit)+': '+e(hh.toLocaleString('pt-BR'))+' · custo direto '+brl(Math.round(x.directCost*100)):(x.hhMin!=null?'Referência '+e(x.hhMin)+'–'+e(x.hhMax)+' HH/'+e(x.unit)+' · custo interno pendente':'Preencher produtividade e custo interno');
   const search=(x.description+' '+x.code).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   return '<button class="catalog-row" data-action="catalog-edit" data-code="'+e(x.code)+'" data-catalog-search="'+e(search)+'" type="button">'+
    '<span class="catalog-row-head"><b>'+e(x.description)+'</b><small>'+e(x.code)+' · '+e(x.unit)+'</small></span>'+
@@ -30,7 +30,7 @@ export function catalogView(data,category='01',back='budgets'){
    '</button>';
  }).join('')+'</div>'+
  '<p class="fin-helper">Produtividade SINAPI é por função e composição, não uma medição individual de funcionário. Após executar a obra, poderão ser medidos os resultados de cada equipe.</p>'+
- '<div class="fin-link-row"><button type="button" data-go="budget-edit">Voltar ao orçamento '+icon('chevron',17)+'</button></div></section>';
+ '<div class="fin-link-row"><button type="button" data-go="'+e(back)+'">Voltar '+icon('chevron',17)+'</button></div></section>';
 }
 const textField=(label,name,value='',type='text',extra='')=>
  '<label class="modal-field"><span>'+label+'</span><input type="'+type+'" name="'+name+'" value="'+e(value??'')+'" '+
@@ -52,7 +52,8 @@ export function catalogEditorDialog(item){
  opt('sinapi','Coeficientes consultados no SINAPI',source)+'</select></label>'+
  textField('Código da composição SINAPI (se utilizado)','sinapiCode',item.sinapiCode||'','text','maxlength="48" placeholder="Código oficial da composição"')+
  textField('Competência de referência (AAAA-MM)','referenceMonth',item.referenceMonth||'','month','')+
- '<p class="helper-text">Os coeficientes são horas-homem por unidade para cada função. Copie os valores da composição analítica correspondente ao método de execução e depois confira no caderno técnico da CAIXA.</p>'+
+ (item.hhMin!=null?'<p class="helper-text">Referência CIVOLTEN informada: '+e(item.hhMin)+' a '+e(item.hhMax)+' HH/'+e(item.unit)+' · equipe sugerida: '+e(item.team)+'. Para não inventar HH por função, deixamos os campos individuais em branco. O ponto médio é usado no cronograma até você registrar coeficientes próprios.</p>':'')+
+ '<p class="helper-text">Se escolher origem SINAPI, informe o código e competência da composição analítica verificada. Nunca atribua os coeficientes totais da equipe a cada trabalhador.</p>'+ 
  coefficient(1)+coefficient(2)+coefficient(3)+
  textField('Custo direto interno por '+e(item.unit)+' (R$)','directCost',item.directCost??'','number','max="999999999" placeholder="0 se não houver material/equipamento"')+
  '<p class="helper-text">Este custo direto não inclui salários/encargos já considerados nos custos mensais da CIVOLTEN. Se não houver materiais ou equipamentos, informe 0.</p>'+
