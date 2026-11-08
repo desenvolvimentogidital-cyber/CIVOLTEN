@@ -181,3 +181,22 @@ permanecem na interface do administrador e **não são enviados no PDF**.
 Nenhuma tabela, cadastro ou valor no Supabase foi modificado por esta
 alteração de apresentação. Testes unitários e testes Playwright
 renderizam PDF verdadeiro com logo, marca-d’água e paginação.
+
+
+## Atualização do layout comercial no aplicativo instalado (PWA)
+
+Após uma publicação, uma aba do Android já aberta continua executando o JavaScript
+que foi carregado antes do deploy. Nesta versão os endereços de CSS e JS contêm
+um identificador específico para não reutilizar os arquivos antigos no cache.
+
+O service worker mantém o uso offline de recursos previamente baixados, mas,
+quando há rede, solicita o HTML, JS e CSS sem cache HTTP antigo. A verificação
+do worker é repetida no foco da janela. Caso o worker mude durante uma sessão
+ativa, o sistema exibe **Atualizar aplicativo**; o clique recarrega a página e
+alerta sobre possíveis edições não salvas no orçamento.
+
+Em **Orçamentos → editar**, é exibido o rótulo **Modelo comercial V4 · identidade
+CIVOLTEN**, para confirmar visualmente que a interface atual foi recebida.
+O botão **Visualizar / PDF** verifica se o template V4 está disponível antes
+de abrir a impressão. Teste de navegador garante que o botão usa a nova versão,
+além de validar logo, marca-d’água e paginação A4.
