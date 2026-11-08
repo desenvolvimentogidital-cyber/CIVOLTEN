@@ -89,7 +89,8 @@ export function budgetEditorView(data,draft,err=''){
  (err?error(err):'')+
  '<button class="gold-button budget-save-button" type="submit">'+icon('check',19)+' Salvar rascunho</button></form>'+
  '<div class="budget-secondary-actions"><button type="button" class="outlined-button" data-action="budget-print"'+(priced?'':' disabled')+'>'+icon('file',18)+' Visualizar / PDF</button>'+
- '<button type="button" class="outlined-button" data-action="budget-export"'+(priced?'':' disabled')+'>'+icon('file',18)+' Exportar CSV</button></div>'+
+ '<button type="button" class="outlined-button" data-action="budget-export"'+(priced?'':' disabled')+'>'+icon('file',18)+' Exportar CSV</button></div>'+ 
+ '<p class="budget-pdf-model-label">'+icon('check',15)+' Modelo comercial V4 · identidade CIVOLTEN</p>'+
  (draft.id?'<button type="button" class="fin-delete" data-action="budget-delete">'+icon('trash',18)+' Excluir orçamento</button>':'')+
  '<div class="fin-link-row"><button type="button" data-go="company">Configurar custo, imposto e margem '+icon('chevron',17)+'</button></div>'+
  printableBudget(draft)+'</section>';
