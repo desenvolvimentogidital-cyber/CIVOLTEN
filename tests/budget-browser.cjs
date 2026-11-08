@@ -3,6 +3,49 @@
 const {chromium}=require('playwright');
 const {createServer}=require('node:http');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+
+const {deflateRawSync}=require('node:zlib');
+function excelFixture(){
+ // Planilha XLSX minima e compactada, sem bibliotecas pagas ou CDN.
+ const workbook='<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Composicoes" sheetId="1" r:id="rId1"/></sheets></workbook>';
+ const rels='<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>';
+ const row=(n,values)=>'<row r="'+n+'">'+values.map((value,i)=>
+  '<c r="'+String.fromCharCode(65+i)+n+'" t="inlineStr"><is><t>'+value+'</t></is></c>').join('')+'</row>';
+ const sheet='<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'+
+  row(1,['Codigo','Descricao','Unidade','Profissional','Coeficiente HH'])+
+  row(2,['S100','Instalacao eletrica','un','Eletricista','2.25'])+
+  '</sheetData></worksheet>';
+ const inputs=[['xl/workbook.xml',workbook],['xl/_rels/workbook.xml.rels',rels],
+  ['xl/worksheets/sheet1.xml',sheet]];
+ const local=[],central=[];let offset=0,centralSize=0;
+ const crc32=buffer=>{
+  let crc=0xffffffff;
+  for(const byte of buffer){crc^=byte;for(let j=0;j<8;j++)
+   crc=crc&1?(crc>>>1)^0xedb88320:crc>>>1;}
+  return (crc^0xffffffff)>>>0;
+ };
+ for(const [name,text] of inputs){
+  const data=Buffer.from(text),compressed=deflateRawSync(data),nameBytes=Buffer.from(name);
+  const crc=crc32(data);
+  const localHeader=Buffer.alloc(30+nameBytes.length);
+  localHeader.writeUInt32LE(0x04034b50,0);localHeader.writeUInt16LE(20,4);
+  localHeader.writeUInt16LE(8,8);localHeader.writeUInt32LE(crc,14);
+  localHeader.writeUInt32LE(compressed.length,18);localHeader.writeUInt32LE(data.length,22);
+  localHeader.writeUInt16LE(nameBytes.length,26);nameBytes.copy(localHeader,30);
+  local.push(localHeader,compressed);
+  const cd=Buffer.alloc(46+nameBytes.length);cd.writeUInt32LE(0x02014b50,0);
+  cd.writeUInt16LE(20,4);cd.writeUInt16LE(20,6);cd.writeUInt16LE(8,10);
+  cd.writeUInt32LE(crc,16);cd.writeUInt32LE(compressed.length,20);
+  cd.writeUInt32LE(data.length,24);cd.writeUInt16LE(nameBytes.length,28);
+  cd.writeUInt32LE(offset,42);nameBytes.copy(cd,46);
+  central.push(cd);centralSize+=cd.length;offset+=localHeader.length+compressed.length;
+ }
+ const eocd=Buffer.alloc(22);eocd.writeUInt32LE(0x06054b50,0);
+ eocd.writeUInt16LE(inputs.length,8);eocd.writeUInt16LE(inputs.length,10);
+ eocd.writeUInt32LE(centralSize,12);eocd.writeUInt32LE(offset,16);
+ return Buffer.concat([...local,...central,eocd]);
+}
+
 const root=path.resolve(__dirname,'../dist');
 const types={'.html':'text/html;charset=utf-8','.js':'text/javascript;charset=utf-8',
  '.css':'text/css;charset=utf-8','.png':'image/png','.svg':'image/svg+xml',
@@ -71,6 +114,22 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.catalog-list').innerText(),/Quadro de distribuicao/);
   assert.equal((await page.evaluate(()=>window.CIVOLTENPreview.data.catalog))[0].directCost,null);
   assert.equal((await page.evaluate(()=>window.CIVOLTENPreview.data.catalog))[0].roles[0].hours,5);
+
+  // XLSX real (ZIP Deflate + XML), validando a importacao direta da planilha.
+  await page.locator('#catalog-import-file').setInputFiles({
+   name:'sinapi-composicoes.xlsx',
+   mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+   buffer:excelFixture()});
+  await page.locator('#catalog-import-sheet').waitFor();
+  await page.locator('#catalog-import-source').selectOption('sinapi');
+  await page.locator('#catalog-import-month').fill('2026-10');
+  await page.locator('[data-action="catalog-import-save"]').click();
+  await page.locator('.catalog-row').nth(2).waitFor();
+  const importedCatalog=await page.evaluate(()=>window.CIVOLTENPreview.data.catalog);
+  assert.equal(importedCatalog.length,3);
+  assert.equal(importedCatalog.find(x=>x.code==='SINAPI:S100').roles[0].hours,2.25);
+  assert.equal(importedCatalog.find(x=>x.code==='SINAPI:S100').directCost,null);
+
   await page.locator('[data-go="budgets"]').last().click();
   await page.locator('[data-action="budget-new"]').click();
   await page.locator('#budget-form [name="customer"]').fill('Cliente fictício');
