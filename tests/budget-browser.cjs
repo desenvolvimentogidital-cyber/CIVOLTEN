@@ -137,6 +137,23 @@ const server=createServer((req,res)=>{
   assert.equal(photo.position,'absolute');
   assert.equal(photo.fit,'cover');
   assert.ok(photo.coverage>.99&&photo.coverage<1.01,'O fundo fotográfico ocupa a largura A4 inteira');
+  const helmet=await page.locator('.proposal-cover>.proposal-helmet-brand').evaluate(node=>{
+   const pageBox=node.parentElement.getBoundingClientRect(),box=node.getBoundingClientRect();
+   const images=[...node.querySelectorAll('img')];
+   return {
+    images:images.map(img=>({src:img.getAttribute('src'),loaded:img.complete&&img.naturalWidth>0})),
+    left:(box.left-pageBox.left)/pageBox.width,
+    top:(box.top-pageBox.top)/pageBox.height,
+    blend:getComputedStyle(node).mixBlendMode
+   };
+  });
+  assert.equal(helmet.images.length,2,'Capacete deve ter símbolo e logotipo oficiais');
+  assert.ok(helmet.images.every(img=>img.loaded),'Marca no capacete deve carregar no PDF');
+  assert.match(helmet.images[0].src,/civolten-simbolo\\.png/);
+  assert.match(helmet.images[1].src,/civolten-logo\\.png/);
+  assert.ok(helmet.left>.70&&helmet.left<.90,'Logo deve ficar na área do capacete, à direita');
+  assert.ok(helmet.top>.56&&helmet.top<.73,'Logo deve ficar sobre o capacete, não em outro setor');
+  assert.equal(helmet.blend,'multiply','Marca deve parecer impressa na superfície do capacete');
   assert.equal(await page.locator('.proposal-watermark').first().evaluate(el=>getComputedStyle(el).position),'absolute');
   assert.equal(await page.locator('.proposal-cover .proposal-page-content').evaluate(el=>getComputedStyle(el).backgroundImage),'none');
   const coverFont=await page.locator('.proposal-cover-card').evaluate(card=>{
