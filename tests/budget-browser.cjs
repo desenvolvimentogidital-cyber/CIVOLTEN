@@ -71,6 +71,19 @@ const server=createServer((req,res)=>{
   await page.locator('[data-action="budget-open"]').first().click();
   assert.equal(await page.locator('.budget-item').count(),2);
   assert.match(await page.locator('.budget-print').innerText(),/DOCUMENTO DE TESTE/);
+  assert.match(await page.locator('.budget-pdf-model-label').innerText(),/Modelo comercial V4/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-pdf-v4-20261108/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-pdf-v4-20261108/);
+  await page.evaluate(()=>{
+   window.print=()=>{window.__civoltenPrintTest={
+    v4:!!document.querySelector('.budget-print.budget-pdf-v4'),
+    logo:!!document.querySelector('.budget-pdf-brand'),
+    watermark:!!document.querySelector('.budget-pdf-watermark-icon')
+   }};
+  });
+  await page.locator('[data-action="budget-print"]').click();
+  assert.deepEqual(await page.evaluate(()=>window.__civoltenPrintTest),
+   {v4:true,logo:true,watermark:true},'O botão deve chamar o modelo V4 novo');
   // Exportação PDF real (sem chamar impressão do Android), validando o modelo escolhido.
   await page.emulateMedia({media:'print'});
   const marks=await page.locator('.budget-pdf-brand,.budget-pdf-symbol,.budget-pdf-watermark img')
