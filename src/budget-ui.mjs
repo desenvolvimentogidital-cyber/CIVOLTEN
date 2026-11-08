@@ -2,6 +2,7 @@
 import {summary,brl} from './calc.mjs';
 import {priceBudget,DEMO_SERVICES} from './budget.mjs';
 import {icon,e} from './views.mjs';
+import {printableBudget} from './budget-print.mjs';
 const money=brl;
 const dateBR=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'')?v.slice(8,10)+'/'+v.slice(5,7)+'/'+v.slice(0,4):'Não definida';
 const header=(text,back)=>'<div class="page-heading"><button type="button" class="small-square" data-go="'+back+'" aria-label="Voltar">'+
@@ -58,22 +59,6 @@ const preview=(draft)=>{
  '<strong>'+money(row.selling)+'</strong></div>').join('')+'</div>';
 };
 export function budgetPreview(draft){return preview(draft);}
-function printable(b){
- let p;try{p=priceBudget(b)}catch{return '';}
- if(!p)return '';
- return '<div class="budget-print"><header><h1>'+e(p.snapshot.companyName||'CIVOLTEN')+'</h1>'+
- '<h2>ORÇAMENTO DEMONSTRATIVO — NÃO ENVIAR AO CLIENTE</h2>'+
- '<p>Serviços fictícios utilizados apenas para validação do sistema.</p></header>'+
- '<section class="budget-print-details"><p><b>Proposta:</b> '+e(b.title)+'</p><p><b>Cliente:</b> '+e(b.customer||'—')+
- '</p><p><b>Obra:</b> '+e(b.project||'—')+'</p><p><b>Local:</b> '+e(b.location||'—')+
- '</p><p><b>Validade:</b> '+dateBR(b.expiresOn)+'</p></section>'+
- '<table><thead><tr><th>Serviço</th><th>Qtd.</th><th>Un.</th><th>Preço total</th></tr></thead><tbody>'+
- p.rows.map(item=>'<tr><td>'+e(item.description)+'</td><td>'+e(item.quantity)+'</td><td>'+e(item.unit)+
- '</td><td>'+money(item.selling)+'</td></tr>').join('')+'</tbody></table>'+
- '<p class="budget-print-total">TOTAL: '+money(p.totalSale)+'</p>'+
- '<p class="budget-print-notes">'+e(b.notes||'')+'</p>'+
- '<footer>DOCUMENTO DE TESTE. Não é proposta comercial válida nem contém referência oficial de preços.</footer></div>';
-}
 export function budgetEditorView(data,draft,err=''){
  if(!draft)return budgetsView(data);
  let priced=false;try{priced=!!priceBudget(draft)}catch{/* mostrar erro no preview */}
@@ -107,5 +92,5 @@ export function budgetEditorView(data,draft,err=''){
  '<button type="button" class="outlined-button" data-action="budget-export"'+(priced?'':' disabled')+'>'+icon('file',18)+' Exportar CSV</button></div>'+
  (draft.id?'<button type="button" class="fin-delete" data-action="budget-delete">'+icon('trash',18)+' Excluir orçamento</button>':'')+
  '<div class="fin-link-row"><button type="button" data-go="company">Configurar custo, imposto e margem '+icon('chevron',17)+'</button></div>'+
- printable(draft)+'</section>';
+ printableBudget(draft)+'</section>';
 }
