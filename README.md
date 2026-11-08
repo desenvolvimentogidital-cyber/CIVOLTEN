@@ -200,3 +200,38 @@ CIVOLTEN**, para confirmar visualmente que a interface atual foi recebida.
 O botão **Visualizar / PDF** verifica se o template V4 está disponível antes
 de abrir a impressão. Teste de navegador garante que o botão usa a nova versão,
 além de validar logo, marca-d’água e paginação A4.
+
+
+## CIVOLTEN Signature: proposta comercial com 3 ou mais páginas
+
+Novo modelo impresso da tela **Orçamentos → Visualizar / PDF**, inspirado no
+layout de capa 2 aprovado e construído com HTML/CSS/SVG + marcas originais.
+
+**Divisão obrigatória e apresentação comercial**:
+- **Página 1 — Capa**: identidade CIVOLTEN em preto/dourado, ilustração
+  vetorial de construção, informações do cliente, obra, local, data e validade.
+- **Página 2 — Descrição dos serviços**: apenas nome/descrição, unidade e
+  quantidade. **Não mostra preço unitário, custo, subtotal ou preço final.**
+  Com muitos itens, o gerador cria páginas adicionais de serviços e numera
+  todas as páginas automaticamente.
+- **Última página — Investimento e condições comerciais**: **único valor
+  monetário exibido em toda a proposta**, retirado diretamente do cálculo
+  validado do orçamento. Mostra pagamento, execução, validade, garantia,
+  observações, escopo e espaços de aceite. Não presume prazos ou garantias.
+  Os campos não preenchidos aparecem como “A definir entre as partes”.
+- As páginas têm o logotipo e o símbolo oficiais, marca-d’água discreta,
+  rodapé em preto/dourado e paginação A4. A ilustração da obra é um SVG local
+  original, sem dependências de imagens externas ou serviços pagos.
+
+**Configuração adicional da proposta**: os seis campos opcionais
+\`paymentTerms\`, \`executionTerm\`, \`warrantyTerms\`, \`scopeNotes\`,
+\`companyContact\` e \`companyDocument\` são salvos em
+\`cv_budget_drafts_v1.commercial\` (JSONB, conta isolada por RLS).
+Aplicar \`supabase/budget_commercial_v1.sql\` **antes** do novo frontend em
+produção. Orçamentos anteriores preservam os itens, preços e dados; condições
+não existentes são carregadas vazias.
+
+**Fase de teste**: enquanto os serviços forem fictícios, todas as páginas
+continuam identificadas como demonstração e não devem ser enviadas a clientes.
+A proposta não expõe imposto, margem, custo/hora ou custos internos. O CSV
+administrativo permanece completo, mas não é o documento comercial.
