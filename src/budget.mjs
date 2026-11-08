@@ -210,10 +210,12 @@ const csvSafe=v=>{
  return '"'+text.replace(/"/g,'""')+'"';
 };
 export function budgetCsv(budget){
+ if(budget?.demo!==false||budget?.items?.some(item=>item.source==='demo'))
+  throw Error('Revise os servicos e os custos do orcamento anterior antes de exportar.');
  const p=priceBudget(budget);
  if(!p)throw Error('Configure a empresa e calcule os preços antes de exportar.');
  const cells=[
- [budget.demo===false?'Orçamento CIVOLTEN':'Orçamento demonstrativo',budget.title],['Cliente',budget.customer],
+ [ 'Orçamento CIVOLTEN',budget.title],['Cliente',budget.customer],
  ['Obra',budget.project],['Local',budget.location],['Validade',budget.expiresOn||''],
  ['Base de custo',p.snapshot.capturedOn],
  ['Modalidade do preço',p.pricingMode==='days'?'Por dias úteis de execução':'Por horas-homem'],
