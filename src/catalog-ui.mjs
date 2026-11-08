@@ -10,20 +10,20 @@ export function catalogView(data,category='01',back='budgets'){
  return '<section class="fin-screen catalog-screen">'+
  '<div class="page-heading"><button class="small-square" data-go="'+back+'" aria-label="Voltar">'+icon('back',23)+'</button>'+
  '<h1>Catálogo CIVOLTEN</h1><span class="small-square is-empty"></span></div>'+
- '<p class="fin-intro">Catálogo próprio da CIVOLTEN, com 27 referências de HH por unidade e equipes informadas pela empresa. Os demais serviços das 10 etapas podem receber coeficientes internos ou SINAPI verificados.</p>'+ 
+ '<p class="fin-intro">Catálogo CIVOLTEN com faixas de horas-homem fornecidas pela empresa e serviços distribuídos em 11 etapas. Cada registro usa sua unidade própria; coeficientes profissionais podem ser conferidos depois em composições SINAPI ou medições de campo.</p>'+ 
  '<div class="catalog-status"><b>'+stats.total+' serviços</b><b>'+stats.ready+' configurados</b><span>'+stats.pending+' sem produtividade/custo completo</span></div>'+
  '<p class="cost-pending-note">'+icon('clipboard',16)+' As faixas HH de referência não foram verificadas no SINAPI e não individualizam a produtividade de cada funcionário. Preencha o custo direto interno e ajuste os coeficientes da equipe antes da proposta.</p>'+ 
  '<label class="modal-field catalog-category"><span>Etapa da obra</span><select id="catalog-category">'+
  CATALOG_SECTIONS.map(s=>opt(s.id,s.id+' · '+s.title+' ('+s.count+')',category)).join('')+
  '</select></label>'+
- '<label class="catalog-filter"><span>Buscar serviço da etapa</span><input id="catalog-search" placeholder="Filtrar por nome ou código" type="search" autocomplete="off"></label>'+
+ '<label class="catalog-filter"><span>Buscar serviço pelo nome</span><input id="catalog-search" placeholder="Filtrar serviço" type="search" autocomplete="off"></label>'+
  '<div class="catalog-list">'+list.map(x=>{
   const ready=catalogReady(x),hh=catalogHours(x);
   const roles=x.roles?.length?x.roles.map(r=>e(r.role)+' '+e(r.hours)+' HH/'+e(x.unit)).join(' · '):x.team?'Equipe estimada: '+e(x.team):'Produtividade ainda não informada';
   const value=ready?'HH por '+e(x.unit)+': '+e(hh.toLocaleString('pt-BR'))+' · custo direto '+brl(Math.round(x.directCost*100)):(x.hhMin!=null?'Referência '+e(x.hhMin)+'–'+e(x.hhMax)+' HH/'+e(x.unit)+' · custo interno pendente':'Preencher produtividade e custo interno');
   const search=(x.description+' '+x.code).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   return '<button class="catalog-row" data-action="catalog-edit" data-code="'+e(x.code)+'" data-catalog-search="'+e(search)+'" type="button">'+
-   '<span class="catalog-row-head"><b>'+e(x.description)+'</b><small>'+e(x.code)+' · '+e(x.unit)+'</small></span>'+
+   '<span class="catalog-row-head"><b>'+e(x.description)+'</b><small>Unidade: '+e(x.unit)+'</small></span>'+ 
    '<span class="catalog-row-coeff">'+roles+'</span>'+
    '<span class="'+(ready?'catalog-row-ready':'catalog-row-pending')+'">'+value+'</span>'+
    (x.source==='sinapi'&&x.sinapiCode?'<small>Referência informada: SINAPI '+e(x.sinapiCode)+' · '+e(x.referenceMonth)+' (conferir)</small>':'')+
