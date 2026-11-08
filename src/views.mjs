@@ -189,7 +189,7 @@ export function moreView(user,data){
  '<button data-go="costs" class="settings-row">'+icon('coins',21)+' Custos da empresa '+icon('chevron',17)+'</button>'+
  '<button data-go="team" class="settings-row">'+icon('users',21)+' Funcionários '+icon('chevron',17)+'</button>'+ 
   '<button data-go="finance" class="settings-row">'+icon('chart',21)+' Financeiro e faturamento '+icon('chevron',17)+'</button>'+
- '<button data-go="budgets" class="settings-row">'+icon('clipboard',21)+' Orçamentos de teste '+icon('chevron',17)+'</button>'+ 
+ '<button data-go="budgets" class="settings-row">'+icon('clipboard',21)+' Orçamentos '+icon('chevron',17)+'</button>'+ 
  '<button data-go="company" class="settings-row">'+icon('building',21)+' Empresa e precificação '+icon('chevron',17)+'</button>'+
  '<button data-go="appearance" class="settings-row">'+icon('chart',21)+' Cores do aplicativo '+icon('chevron',17)+'</button>'+
  '<button data-action="payroll-settings" class="settings-row">'+icon('settings',21)+' Encargos CLT da empresa '+icon('chevron',17)+'</button>'+
