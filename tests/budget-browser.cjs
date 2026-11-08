@@ -85,7 +85,7 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('#budget-service-form [name="quantity"]').inputValue(),'1');
   assert.equal(await page.locator('#budget-service-form [name="laborHours"]').inputValue(),'5');
   assert.equal(await page.locator('#budget-service-form [name="directCost"]').inputValue(),'');
-  assert.match(await page.locator('.budget-service-modal').innerText(),/Quadro de distribuicao/);
+  assert.equal(await page.locator('#budget-service-form [name="description"]').inputValue(),'Quadro de distribuicao');
   await fs.promises.mkdir(path.join(__dirname,'../test-artifacts'),{recursive:true});
   await page.screenshot({path:'test-artifacts/orcamento-modal-servico.png',fullPage:true});
   await page.locator('#budget-service-form [data-action="close-modal"]').click();
