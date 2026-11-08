@@ -1098,3 +1098,25 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
   color:#f6d274!important;
  }
 }
+
+
+/* CAPA DO PDF • fotografia PNG original que o usuário enviou ao GitHub.
+   É uma imagem de fundo de página inteira (A4), não uma miniatura no canto.
+   Título, cliente, data e validade continuam HTML dinâmico por cima. */
+@media print {
+ .budget-pdf-v5 .proposal-page.proposal-cover {
+  background:#12161b!important;
+ }
+ .budget-pdf-v5 .proposal-cover>.proposal-cover-background {
+  position:absolute!important;inset:0!important;z-index:0!important;
+  display:block!important;width:100%!important;height:100%!important;
+  object-fit:cover!important;object-position:center center!important;
+  opacity:1!important;
+ }
+ .budget-pdf-v5 .proposal-cover .proposal-page-content {
+  background-image:none!important;background-color:transparent!important;
+ }
+ .budget-pdf-v5 .proposal-cover .proposal-cover-visual{
+  background:linear-gradient(90deg,#0e121620 0%,#10151a10 44%,transparent 72%)!important;
+ }
+}
