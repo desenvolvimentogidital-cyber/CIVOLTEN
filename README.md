@@ -149,3 +149,35 @@ contratos ou execução de obra. A impressão contém aviso visível de teste.
 (SINAPI ou outro referencial), estado, mês-base, composições e insumos reais,
 unidades, produtividade e metodologia de BDI com rastreabilidade. A estrutura
 de orçamento atual não inventa código oficial nem valor de referência.
+
+
+## PDF de proposta comercial — identidade CIVOLTEN V4 aprovada
+
+A saída **Orçamentos → Visualizar / PDF** utiliza o modelo V4 aprovado:
+cabeçalho grafite/preto e dourado, logo e símbolo oficiais da CIVOLTEN
+(\`assets/civolten-logo.png\`, \`assets/civolten-simbolo.png\`),
+marca-d’água com símbolo e nome da empresa ampliados e translúcidos
+ao centro **de cada folha**, informações do cliente/obra/validade,
+tabela de serviços, total destacado, observações e rodapé.
+
+O conteúdo é HTML/CSS de impressão, não uma imagem estática: reflete os
+dados efetivamente cadastrados e recalcula o total com \`priceBudget\`.
+A marca, os cabeçalhos da tabela, as informações de identificação e as
+linhas são produzidos com elementos reais para preservar legibilidade.
+A impressão pode gerar múltiplas folhas A4 quando houver muitos itens;
+a página de impressão não mostra as ferramentas de edição do aplicativo.
+No celular, abra o orçamento e use **Visualizar / PDF → Salvar como PDF**.
+
+**Importante:** enquanto o módulo utilizar o catálogo \`DEMO-*\`, o PDF
+exibirá **ORÇAMENTO DEMONSTRATIVO / NÃO ENVIAR AO CLIENTE / DOCUMENTO DE TESTE**.
+O layout já está preparado para apresentar "PROPOSTA COMERCIAL" quando
+uma etapa futura validar serviços oficiais e o documento deixar de ser
+demonstrativo. Não ative documentos comerciais reais apenas ocultando
+os avisos; é preciso revisar preços, documentos fiscais e condições.
+
+A saída mostra **somente preços finais das linhas**. Custos mensais,
+horas de formação interna, tributos calculados e lucro gerencial
+permanecem na interface do administrador e **não são enviados no PDF**.
+Nenhuma tabela, cadastro ou valor no Supabase foi modificado por esta
+alteração de apresentação. Testes unitários e testes Playwright
+renderizam PDF verdadeiro com logo, marca-d’água e paginação.
