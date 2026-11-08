@@ -43,6 +43,7 @@ jobs:
           test -s dist/assets/civolten-simbolo.png
           test -s dist/assets/skyline.svg
           test -s dist/assets/proposal-construction.svg
+          test -s dist/assets/proposal-photo-atlas.webp
           node --check src/budget-print.mjs
           node --check scripts/build.mjs
           node --check src/main.mjs

@@ -35,17 +35,30 @@ const imageBrand=()=>'<img class="proposal-wordmark" src="'+logo+'" alt="CIVOLTE
 const watermark=()=>'<div class="proposal-watermark" aria-hidden="true">'+
  '<img class="budget-pdf-watermark-icon" src="'+mark+'" alt="">'+
  '<img class="budget-pdf-watermark-logo" src="'+logo+'" alt=""></div>';
-const header=(kind,number,total,ref,demo)=>'<header class="proposal-header">'+
+const header=(kind,number,total,ref,demo)=>{
+ const caption=kind.includes('SERVIÇOS')
+  ?'<b>PROPOSTA <strong>COMERCIAL</strong></b><small>DESCRIÇÃO DOS SERVIÇOS</small>'
+  :kind.includes('INVESTIMENTO')
+   ?'<b>INVESTIMENTO E<br><strong>CONDIÇÕES COMERCIAIS</strong></b>'
+   :'<b>PROPOSTA COMERCIAL</b>';
+ return '<header class="proposal-header">'+
  '<div class="proposal-brand-area">'+imageBrand()+'</div>'+
  '<div class="proposal-header-art" aria-hidden="true"></div>'+
- '<div class="proposal-header-caption"><span>'+kind+'</span>'+
- '<span>'+show(ref)+' · PÁGINA '+number+' DE '+total+'</span></div>'+
+ '<div class="proposal-header-caption">'+
+ '<div class="proposal-header-caption-title">'+caption+'</div>'+
+ '<div class="proposal-header-caption-meta"><b>Proposta nº '+show(ref)+'</b>'+
+ '<small>Página '+number+' de '+total+'</small></div></div>'+
  '</header>';
+};
 const footer=(number,total,demo)=>'<footer class="proposal-footer">'+
  '<div class="proposal-footer-accent" aria-hidden="true"></div>'+
+ (number===total?
+ '<div class="proposal-footer-slogan"><span>'+icon('zap',22)+'</span>'+
+ '<div>SOLUÇÕES EM ELÉTRICA E CONSTRUÇÃO CIVIL<br>'+
+ '<strong>COM SEGURANÇA, QUALIDADE E RESULTADO.</strong></div></div>':
  '<div class="proposal-footer-three"><span>'+icon('hardhat',16)+' Segurança em cada etapa</span>'+
  '<span>'+icon('check',16)+' Qualidade nos serviços</span>'+
- '<span>'+icon('calendar',16)+' Compromisso com o prazo</span></div>'+
+ '<span>'+icon('calendar',16)+' Compromisso com o prazo</span></div>')+
  (demo?'<small>DOCUMENTO DE TESTE · Serviços fictícios, sem referência oficial de preços · '+number+'/'+total+'</small>':'')+
  '</footer>';
 const page=(cls,no,total,ref,demo,body,tag='PROPOSTA COMERCIAL')=>
@@ -72,7 +85,8 @@ const cover=(b,no,total,ref,demo)=>
  '<div class="proposal-cover-bottom">'+
  '<div>'+icon('wrench',19)+' Instalações elétricas</div>'+
  '<div>'+icon('building',19)+' Construção civil</div>'+
- '<div>'+icon('clipboard',19)+' Serviços técnicos</div></div>';
+ '<div>'+icon('clipboard',19)+' Projetos técnicos</div>'+
+ '<div>'+icon('check',19)+' Consultoria e execução</div></div>';
 const services=(rows,index,count,ref)=>
  '<div class="proposal-section-heading"><h1>Descrição dos serviços</h1>'+
  '<p>Escopo previsto para execução conforme o orçamento informado.</p></div>'+

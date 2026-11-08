@@ -1,6 +1,6 @@
-const CACHE='civolten-premium-ui-v8-20261108-proposta-signature';
-const PRECACHE=['/','/index.html','/styles.css?v=civolten-proposta-signature-3p-20261108','/app.js?v=civolten-proposta-signature-3p-20261108','/manifest.webmanifest',
-'/assets/civolten-logo.png','/assets/civolten-simbolo.png','/assets/proposal-construction.svg','/assets/skyline.svg',
+const CACHE='civolten-premium-ui-v9-20261108-signature-foto';
+const PRECACHE=['/','/index.html','/styles.css?v=civolten-signature-foto-gratis-20261108','/app.js?v=civolten-signature-foto-gratis-20261108','/manifest.webmanifest',
+'/assets/civolten-logo.png','/assets/civolten-simbolo.png','/assets/proposal-construction.svg','/assets/proposal-photo-atlas.webp','/assets/skyline.svg',
 '/assets/icon-192.png','/assets/icon-512.png'];
 self.addEventListener('install',e=>{
  e.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(PRECACHE)));
