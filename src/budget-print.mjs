@@ -57,7 +57,7 @@ export function printableBudget(b){
      '</div>'+
    '</section>'+
    '<section class="budget-pdf-services" aria-label="Serviços da proposta">'+
-    '<div class="budget-pdf-section-label"><span>01</span><h2>Descrição dos serviços</h2></div>'+
+    '<div class="budget-pdf-section-label"><h2>Descrição dos serviços</h2></div>'+
     '<table class="budget-pdf-table"><colgroup><col class="budget-pdf-col-service"><col class="budget-pdf-col-qty"><col class="budget-pdf-col-unit"><col class="budget-pdf-col-total"></colgroup>'+
      '<thead><tr><th>Serviço</th><th>Qtd.</th><th>Un.</th><th>Preço total</th></tr></thead><tbody>'+
       p.rows.map(item=>'<tr><td>'+e(item.description)+'</td><td>'+e(item.quantity.toLocaleString('pt-BR'))+'</td>'+
