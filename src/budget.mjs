@@ -59,17 +59,17 @@ export function validateBudgetItem(row){
  const source=row.source==='demo'?'demo':row.source==='internal'?'internal':'manual';
  const sourceCode=source==='demo'||source==='internal'?
   safeText(row.sourceCode,48,'Código do serviço'):'';
- if(source==='internal'&&!/^CV-\d\d-\d{3}$/.test(sourceCode))
+ if(source==='internal'&&!(/^(CV-\d\d-\d{3}|(?:SIURB|SINAPI):.{1,41})$/.test(sourceCode)))
   throw Error('Código interno do serviço inválido.');
  if(source==='demo'&&!DEMO_SERVICES.some(s=>s.code===sourceCode))
   throw Error('Código fictício de serviço inválido.');
  const id=safeText(row.id,64,'Identificador do item');
  if(!id)throw Error('Identificador do item ausente.');
  const roles=source==='internal'&&Array.isArray(row.roles)?
-  row.roles.slice(0,3).map(r=>({role:safeText(r.role,80,'Profissional'),
+  row.roles.slice(0,30).map(r=>({role:safeText(r.role,80,'Profissional'),
    hours:positive(r.hours,'coeficiente HH por unidade',{max:10000})})):[];
  const reference=source==='internal'&&row.reference&&typeof row.reference==='object'?{
-  system:row.reference.system==='SINAPI'?'SINAPI':'INTERNO',
+  system:['SINAPI','SIURB'].includes(row.reference.system)?row.reference.system:'INTERNO',
   code:safeText(row.reference.code||'',48,'Código de referência'),
   month:safeText(row.reference.month||'',7,'Competência'),
   validation:safeText(row.reference.validation||'',180,'Proveniência')}:null;
