@@ -50,7 +50,7 @@ export function companyView(data,hours='8',extra='0'){
  const cfg=companyConfig(data.company),sum=summary(data);
  return '<section class="fin-screen company-screen">'+heading('Configurações da empresa')+
  '<div class="fin-kpi-grid">'+metric('Custo mensal da empresa',sum.total)+
- metric('Equipe ativa',sum.employees)+'</div>'+
+ '<div class="fin-kpi"><span>Funcionários ativos</span><strong>'+sum.employees+'</strong></div></div>'+
  '<p class="fin-intro">Esses parâmetros serão usados como padrão para formar preços de mão de obra e futuros orçamentos. Não alteram os custos originais.</p>'+
  '<form id="company-form" class="company-form">'+
  '<h2>Identificação e tributação</h2>'+
