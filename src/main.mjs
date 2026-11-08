@@ -403,7 +403,10 @@ function printBudget(){
  try{
   if(!state.budgetDraft||!priceBudget(state.budgetDraft))
    throw Error('Configure e calcule os valores antes de gerar o PDF.');
-  render();window.print();
+  render();
+  if(!mount.querySelector('.budget-pdf-v4'))
+   throw Error('Modelo de PDF V4 indisponível. Atualize o aplicativo e tente novamente.');
+  window.print();
  }catch(err){delayToast(String(err.message||err));}
 }
 
@@ -511,7 +514,25 @@ modal.addEventListener('submit',event=>{
 });
 modal.addEventListener('click',event=>{if(event.target===modal)closeEditor();});
 if('serviceWorker' in navigator&&!E2E)
- window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+ window.addEventListener('load',()=>{
+  const previouslyControlled=Boolean(navigator.serviceWorker.controller);
+  // Não interrompe formulários nem edições: o usuário decide quando recarregar.
+  if(previouslyControlled)navigator.serviceWorker.addEventListener('controllerchange',()=>{
+   if(document.querySelector('#civolten-update-prompt'))return;
+   const bar=document.createElement('div');
+   bar.id='civolten-update-prompt';
+   bar.innerHTML='<span>Nova versão disponível, incluindo o PDF comercial.</span>'+
+    '<button type="button">Atualizar aplicativo</button>';
+   bar.querySelector('button').addEventListener('click',()=>{
+    if(state.view==='budget-edit'&&!confirm('Atualizar agora? Edições ainda não salvas podem ser perdidas.'))return;
+    location.reload();
+   });
+   document.body.appendChild(bar);
+  });
+  navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'}).then(reg=>{
+   window.addEventListener('focus',()=>reg.update().catch(()=>{}));
+  }).catch(()=>{});
+ });
 if(auth?.auth?.onAuthStateChange){
  auth.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY'){
