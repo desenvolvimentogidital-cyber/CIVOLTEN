@@ -1,107 +1,80 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ADDITIONAL_REFERENCES} from '../src/productivity-reference-additional.mjs';
-import {REFERENCE_SERVICES,referenceService,referenceToBudgetItem} from '../src/productivity-reference.mjs';
-import {CATALOG_SECTIONS,CATALOG_PRESETS,catalogByCode,catalogRows,catalogReady,catalogStats,
- catalogHours,catalogToBudgetItem,validateCatalogRecord} from '../src/service-catalog.mjs';
-import {validateBudget,validateBudgetItem,priceBudget} from '../src/budget.mjs';
-import {fresh} from '../src/calc.mjs';
+import {parseDelimited,parseDecimal,suggestColumns,buildCatalogImport} from '../src/catalog-import.mjs';
+import {CATALOG_PRESETS,catalogByCode,catalogRows,catalogHours,catalogReady,
+ catalogStats,validateCatalogRecord,catalogToBudgetItem} from '../src/service-catalog.mjs';
+import {validateBudgetItem,validateBudget,priceBudget} from '../src/budget.mjs';
 
-const snap={monthlyCostCents:1600000,productiveHours:320,productiveDays:20,
- hoursPerDay:8,productivePeople:2,taxPct:10,marginPct:20,
- companyName:'CIVOLTEN',capturedOn:'2026-11-08'};
-test('segunda tabela inclui exatamente 63 serviços, onze grupos, unidades e faixas originais',()=>{
- assert.equal(ADDITIONAL_REFERENCES.length,63);
- assert.equal(CATALOG_SECTIONS.length,11);
- const expected={'01':5,'02':8,'03':6,'04':4,'05':8,'06':6,'07':5,'08':10,'09':6,'10':3,'11':2};
- for(const [cat,count] of Object.entries(expected))
-  assert.equal(ADDITIONAL_REFERENCES.filter(r=>r.category===cat).length,count,cat);
- assert.equal(new Set(ADDITIONAL_REFERENCES.map(r=>r.code)).size,63);
- assert.ok(ADDITIONAL_REFERENCES.every(r=>r.description&&!/^\d+\.\d+/.test(r.description)));
- assert.ok(ADDITIONAL_REFERENCES.every(r=>r.hhMin>0&&r.hhMax>=r.hhMin&&r.hhMid>=r.hhMin&&r.hhMid<=r.hhMax));
- assert.ok(ADDITIONAL_REFERENCES.every(r=>r.unit&&r.origin.includes('não homologada pelo SINAPI')));
- const find=name=>ADDITIONAL_REFERENCES.find(r=>r.description===name);
- assert.deepEqual([find('Limpeza, capina e roçada do terreno').unit,
-  find('Limpeza, capina e roçada do terreno').hhMin,
-  find('Limpeza, capina e roçada do terreno').hhMax],['m²',.1,.2]);
- assert.deepEqual([find('Fiação Pesada (Cabos de alimentação > 10mm²)').unit,
-  find('Fiação Pesada (Cabos de alimentação > 10mm²)').hhMin,
-  find('Fiação Pesada (Cabos de alimentação > 10mm²)').hhMax],['m',.15,.25]);
- assert.deepEqual([find('Infraestrutura para Ar-Condicionado (Dreno + Cobre)').unit,
-  find('Infraestrutura para Ar-Condicionado (Dreno + Cobre)').hhMin,
-  find('Infraestrutura para Ar-Condicionado (Dreno + Cobre)').hhMax],['pt',3,5]);
- assert.equal(find('Testes de Estanqueidade (Pressurização de rede)').unit,'cj');
- assert.equal(find('Inspeção final, testes e retoques'),undefined,'Mantido separadamente da primeira relação');
+test('catalogo inicia vazio: sem servicos ficticios, predefinidos ou precos inventados',()=>{
+ assert.deepEqual(CATALOG_PRESETS,[]);
+ assert.deepEqual(catalogRows([]),[]);
+ assert.deepEqual(catalogStats([]),{total:0,ready:0,pending:0});
+ assert.equal(catalogByCode([], 'CV-05-204'),null);
 });
-test('revisão mantém serviços complementares antigos sem duplicar genéricos superados',()=>{
- const old=REFERENCE_SERVICES.filter(r=>Number(r.code.split('-')[2])<200);
- assert.ok(old.length>0&&old.length<27);
- assert.equal(REFERENCE_SERVICES.length,63+old.length);
- assert.equal(new Set(REFERENCE_SERVICES.map(r=>r.code)).size,REFERENCE_SERVICES.length);
- assert.ok(!old.some(r=>r.description==='Aplicação de chapisco'));
- assert.ok(!old.some(r=>r.description==='Instalação de portas (kit porta pronta)'));
- assert.ok(REFERENCE_SERVICES.some(r=>r.description==='Inspeção final, testes e retoques'&&r.category==='11'));
- assert.ok(REFERENCE_SERVICES.some(r=>r.description==='Impermeabilização com manta asfáltica'));
- const allCodes=CATALOG_PRESETS.map(r=>r.code);
- assert.equal(new Set(allCodes).size,allCodes.length,'Todos os códigos internos devem ser únicos');
- assert.ok(CATALOG_PRESETS.length>REFERENCE_SERVICES.length);
- assert.equal(catalogRows([]).length,CATALOG_PRESETS.length);
- assert.equal(catalogStats([]).ready,0,'Sem inventar custo direto de materiais');
+test('CSV oficial traz codigo, unidade, mao de obra; ignora coluna de preco',()=>{
+ const rows=parseDelimited('Codigo;Descricao;Unidade;Profissional;Coeficiente HH;Preco de tabela\n'+
+  'A100;Quadro de distribuicao;un;Eletricista;3,5;999,99\n'+
+  'A100;Quadro de distribuicao;un;Ajudante;1,5;999,99\n'+
+  'A200;Limpeza da obra;m²;Servente;0,25;4,99\n');
+ assert.equal(rows.length,4);
+ assert.equal(parseDecimal('1.234,56'),1234.56);
+ const mapping=suggestColumns(rows);
+ assert.deepEqual([mapping.code,mapping.description,mapping.unit,mapping.role,mapping.hours],[0,1,2,3,4]);
+ const result=buildCatalogImport(rows,{source:'siurb',month:'2026-07',headerIndex:0,mapping});
+ assert.equal(result.items.length,2);
+ assert.equal(result.items[0].code,'SIURB:A100');
+ assert.equal(result.items[0].source,'siurb');
+ assert.equal(result.items[0].sinapiCode,'A100');
+ assert.equal(result.items[0].referenceMonth,'2026-07');
+ assert.equal(result.items[0].directCost,null);
+ assert.equal(catalogHours(result.items[0]),5);
+ assert.equal(catalogReady(result.items[0]),false,'nao inventar custo proprio');
+ assert.deepEqual(result.items[0].roles,[{role:'Eletricista',hours:3.5},{role:'Ajudante',hours:1.5}]);
+ assert.equal(result.loadedLabor,3);
 });
-test('faixas geram ponto médio HH por unidade, e preço por m² usa custo interno',()=>{
- const ref=ADDITIONAL_REFERENCES.find(r=>r.description==='Chapisco (Traço convencional ou industrializado)');
- assert.equal(ref.unit,'m²');
- assert.equal(ref.hhMin,.15);assert.equal(ref.hhMax,.25);assert.equal(ref.hhMid,.2);
- const item=referenceToBudgetItem(ref,'item-01');
- assert.equal(item.laborHours,.2);
- assert.equal(item.directCost,null,'Não inventar custo direto por m²');
- assert.throws(()=>validateBudgetItem(item),/Custo direto/);
- const configured=validateBudgetItem({...item,quantity:100,directCost:12});
- assert.equal(configured.unit,'m²');
- assert.equal(configured.hhMin,.15);assert.equal(configured.hhMax,.25);
- const draft=validateBudget({id:'budget-01',title:'Reforma',customer:'Cliente',items:[configured],
-  pricing:snap,demo:false,commercial:{}});
- const result=priceBudget(draft);
- assert.equal(result.totalHours,20);
- assert.equal(result.rows[0].labor,100000);
- assert.equal(result.rows[0].materials,120000);
- assert.equal(result.totalCost,220000);
- assert.equal(result.totalSale,314286);
- assert.equal(Math.round(result.rows[0].unitSelling),3143,'Preço por unidade em centavos');
+test('reimportacao nao sobrescreve custo/produtividade editados e fontes nao se misturam',()=>{
+ const lines=[['Codigo','Descricao','Unidade','Profissional','HH'],
+  ['100','Alvenaria','m²','Pedreiro','1.1']];
+ const mapping={code:0,description:1,unit:2,role:3,hours:4,category:-1};
+ const existing=[{id:'11111111-1111-4111-8111-111111111111',code:'SIURB:100',
+  description:'Alvenaria ajustada',unit:'m²',source:'siurb',category:'SIURB',
+  roles:[{role:'Pedreiro',hours:0.8}],directCost:12}];
+ const siurb=buildCatalogImport(lines,{source:'siurb',month:'2026-07',mapping,existing});
+ assert.equal(siurb.items[0].id,existing[0].id);
+ assert.equal(siurb.items[0].directCost,12);
+ assert.equal(catalogHours(siurb.items[0]),.8);
+ assert.equal(siurb.items[0].description,'Alvenaria ajustada');
+ const sinapi=buildCatalogImport(lines,{source:'sinapi',month:'2026-09',mapping,existing});
+ assert.equal(sinapi.items[0].code,'SINAPI:100');
+ assert.equal(sinapi.items[0].directCost,null);
 });
-test('referência SINAPI não é atribuída sem código/competência verificados',()=>{
- const template=catalogByCode('CV-08-201');
- assert.ok(template);
- assert.equal(template.unit,'m²');
- assert.equal(catalogHours(template),.2);
- assert.equal(catalogReady(template),false);
- const fields={description:template.description,unit:template.unit,source:'internal',
-  role1:'Pedreiro',hours1:'0.12',role2:'Ajudante',hours2:'0.08',directCost:'15'};
- const record=validateCatalogRecord(fields,template);
- assert.equal(record.roles.length,2);
- assert.equal(record.directCost,15);
- assert.equal(catalogHours(record),.2);
- const [combined]=catalogRows([{...record,id:'11111111-1111-4111-8111-111111111111'}])
-  .filter(row=>row.code===template.code);
- assert.equal(combined.hhMin,.15);
- assert.equal(combined.hhMax,.25);
- assert.equal(catalogReady(combined),true);
- const budgetItem=catalogToBudgetItem(combined,'item-02');
- assert.equal(budgetItem.laborHours,.2);
- assert.equal(budgetItem.roles.length,2);
- assert.equal(budgetItem.reference.system,'INTERNO');
- assert.throws(()=>validateCatalogRecord({...fields,source:'sinapi'},template),
-  /Referência SINAPI exige código/);
+test('editar importado sem perder identidade e referenciar SIURB no orcamento da empresa',()=>{
+ const imported={id:'22222222-2222-4222-8222-222222222222',code:'SIURB:A100',
+  source:'siurb',category:'SIURB',description:'Quadro',unit:'un',sinapiCode:'A100',
+  referenceMonth:'2026-07',roles:[],directCost:null};
+ const configured=validateCatalogRecord({description:'Quadro',unit:'un',
+  coefficients:'Eletricista; 3,5\nAjudante; 1,5',directCost:'35'},imported,imported.id);
+ assert.equal(catalogHours(configured),5);
+ assert.equal(configured.directCost,35);
+ assert.equal(catalogReady(configured),true);
+ const item=validateBudgetItem({...catalogToBudgetItem(configured,'i1'),quantity:2});
+ assert.equal(item.reference.system,'SIURB');
+ assert.equal(item.reference.code,'A100');
+ assert.equal(item.laborHours,5);
+ const pricing={monthlyCostCents:1600000,productiveHours:320,productiveDays:20,
+  hoursPerDay:8,productivePeople:2,taxPct:10,marginPct:20,companyName:'CIVOLTEN',capturedOn:'2026-11-08'};
+ const priced=priceBudget(validateBudget({id:'b1',title:'Instalacao',customer:'Cliente',
+  demo:false,items:[item],pricing,commercial:{}}));
+ assert.equal(priced.totalHours,10);
+ assert.equal(priced.rows[0].labor,50000);
+ assert.equal(priced.rows[0].materials,7000);
 });
-test('base de dados existente mantém orçamentos, equipe e custos sem alterações',()=>{
- const state=fresh();
- assert.deepEqual(state.catalog,[]);
- assert.deepEqual(state.budgets,[]);
- assert.deepEqual(state.fixed,[]);
- assert.deepEqual(state.variable,[]);
- assert.deepEqual(state.employees,[]);
- const ref=referenceService('CV-05-204');
- assert.match(ref.description,/Quadros de Distribuição/);
- assert.equal(ref.unit,'un');
- assert.equal(ref.hhMid,5);
+test('planilha sem coeficiente nao ganha HH presumida; entrada incorreta falha fechada',()=>{
+ const rows=parseDelimited('codigo;descricao;unidade;preco\n100;Piso;m²;99,00');
+ const mapping={code:0,description:1,unit:2,role:-1,hours:-1,category:-1};
+ const result=buildCatalogImport(rows,{source:'sinapi',month:'2026-10',mapping});
+ assert.equal(catalogHours(result.items[0]),null);
+ assert.equal(result.items[0].directCost,null);
+ assert.throws(()=>buildCatalogImport(rows,{source:'siurb',month:'',mapping}),/competencia/);
+ assert.throws(()=>buildCatalogImport(rows,{source:'sinapi',month:'2026-10',mapping:{code:0,description:-1,unit:2}}),/colunas/);
 });
