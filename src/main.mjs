@@ -522,7 +522,7 @@ async function saveBudget(form){
   state.data=copy;
   try{safeSave(localStorage,state.user.id,copy)}catch{/* cache opcional */}
   state.budgetDraft=null;state.budgetError='';go('budgets');
-  delayToast('Orçamento de demonstração salvo no Supabase.');
+  delayToast(valid.demo?'Orçamento de demonstração salvo no Supabase.':'Orçamento CIVOLTEN salvo no Supabase.');
  }catch(err){
   state.budgetError=String(err.message||err);render();
  }finally{state.busy=false;if(button)button.disabled=false;}
@@ -530,7 +530,7 @@ async function saveBudget(form){
 async function removeBudget(){
  const item=state.budgetDraft;
  if(!item?.id||!state.user||state.busy||state.cloudError)return;
- if(!confirm('Excluir o orçamento de demonstração "'+item.title+'"? A ação é irreversível.'))return;
+ if(!confirm('Excluir o orçamento "'+item.title+'"? A ação é irreversível.'))return;
  state.busy=true;
  try{
   await deleteRemote(auth,state.user.id,'budgets',item.id);
@@ -538,7 +538,7 @@ async function removeBudget(){
   copy.budgets=copy.budgets.filter(x=>x.id!==item.id);
   state.data=copy;
   try{safeSave(localStorage,state.user.id,copy)}catch{/* cache opcional */}
-  state.budgetDraft=null;go('budgets');delayToast('Orçamento de teste excluído.');
+  state.budgetDraft=null;go('budgets');delayToast('Orçamento excluído.');
  }catch(err){delayToast('Falha ao excluir orçamento: '+String(err.message||err));}
  finally{state.busy=false;}
 }
@@ -571,7 +571,7 @@ function exportBudget(){
  try{
   const csv=budgetCsv(state.budgetDraft),blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob),link=document.createElement('a');
-  link.href=url;link.download='civolten-orcamento-demonstrativo.csv';
+  link.href=url;link.download=state.budgetDraft.demo===false?'civolten-orcamento-civolten.csv':'civolten-orcamento-demonstrativo.csv';
   document.body.appendChild(link);link.click();link.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
  }catch(err){delayToast(String(err.message||err));}
