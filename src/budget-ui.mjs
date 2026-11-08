@@ -1,6 +1,8 @@
-// Interface responsiva de orçamento demonstrativo. Sem consulta à SINAPI/SIURB.
+// Interface responsiva de orçamento com catálogo interno e histórico compatível.
 import {summary,brl} from './calc.mjs';
-import {priceBudget,DEMO_SERVICES} from './budget.mjs';
+import {priceBudget} from './budget.mjs';
+import {REFERENCE_SERVICES} from './productivity-reference.mjs';
+import {CATALOG_SECTIONS,catalogRows,catalogReady} from './service-catalog.mjs';
 import {icon,e} from './views.mjs';
 import {printableBudget} from './budget-print.mjs';
 import {companyConfig} from './pricing.mjs';
@@ -15,14 +17,14 @@ const field=(label,name,value='',type='text',params='')=>
 const textarea=(label,name,value='')=>'<label class="modal-field"><span>'+label+'</span><textarea name="'+name+
  '" data-budget-field="'+name+'" rows="3">'+e(value)+'</textarea></label>';
 const m=(value,highlight=false)=>'<div class="fin-kpi'+(highlight?' fin-kpi-featured':'')+'"><span>'+value[0]+'</span><strong>'+value[1]+'</strong></div>';
-const status=()=>'<span class="budget-demo-flag">'+icon('wrench',15)+' Demonstração · sem tabela oficial</span>';
+const status=(draft)=>draft?.demo!==false?'<span class="budget-demo-flag">'+icon('wrench',15)+' Orçamento antigo de demonstração</span>':'';
 function error(msg){return '<p class="form-error" role="alert">'+e(msg)+'</p>';}
 export function budgetsView(data){
  const rows=(data.budgets||[]).slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
  return '<section class="fin-screen budget-screen">'+header('Orçamentos','home')+
- status()+
- '<p class="fin-intro">Monte orçamentos com serviços fictícios para testar o fluxo. Os preços usam a base de custo e o imposto/lucro configurados na empresa. Os exemplos não são SINAPI nem SIURB.</p>'+
- '<button class="gold-button budget-new-button" type="button" data-action="budget-new">'+icon('plus',22)+' Novo orçamento de teste</button>'+
+ '<p class="fin-intro">Orçamentos com produtividade por HH/un e custo direto interno. As 27 referências foram fornecidas pela CIVOLTEN, não são dados SINAPI verificados.</p>'+
+ '<button type="button" class="outlined-button" data-go="catalog">'+icon('clipboard',18)+' Abrir catálogo completo de serviços</button>'+
+ '<button class="gold-button budget-new-button" type="button" data-action="budget-new">'+icon('plus',22)+' Novo orçamento CIVOLTEN</button>'+
  (rows.length?'<div class="budget-list">'+rows.map(b=>{
   let price=null;try{price=priceBudget(b)}catch{/* registros antigos devem continuar acessíveis */}
   return '<button class="budget-list-item" type="button" data-action="budget-open" data-id="'+e(b.id)+'">'+
@@ -32,7 +34,7 @@ export function budgetsView(data){
    '<span class="budget-list-total"><strong>'+(price?money(price.totalSale):'Sem preço')+'</strong>'+
    '<small>Rascunho</small></span></button>';
  }).join('')+'</div>':
- '<div class="fin-empty">Nenhum orçamento salvo. Os serviços de exemplo aparecem somente quando você cria um novo rascunho.</div>')+
+ '<div class="fin-empty">Nenhum orçamento salvo. Crie seu primeiro orçamento com os serviços do catálogo interno.</div>')+
  '<div class="fin-link-row"><button type="button" data-go="company">Ajustar precificação '+icon('chevron',17)+'</button></div></section>';
 }
 function itemRow(item,index){
@@ -40,10 +42,10 @@ function itemRow(item,index){
  const hours=Number(item.laborHours).toLocaleString('pt-BR',{maximumFractionDigits:3});
  const cost=money(Math.round(Number(item.directCost)*100));
  return '<article class="budget-item budget-item-compact" data-budget-item="'+e(item.id)+'">'+
-  '<div class="budget-item-top"><span>'+e(item.sourceCode||'PERSONALIZADO')+' · item '+(index+1)+'</span>'+
+  '<div class="budget-item-top"><span>'+(item.source==='demo'?'Serviço antigo de teste':item.source==='internal'?'Serviço CIVOLTEN':'Personalizado')+' · item '+(index+1)+'</span>'+
   '<button type="button" class="budget-remove" data-action="budget-remove-item" data-id="'+e(item.id)+'" aria-label="Remover serviço">'+icon('trash',16)+' Remover</button></div>'+
   '<h3>'+e(item.description)+'</h3>'+
-  '<p class="budget-item-summary">'+quantity+' '+e(item.unit)+' · '+hours+' h/un. · custo direto/un. '+cost+'</p>'+
+  '<p class="budget-item-summary">'+quantity+' '+e(item.unit)+' · '+hours+' HH/un. · custo direto/un. '+cost+'</p>'+
   '<button type="button" class="budget-item-edit" data-action="budget-edit-item" data-id="'+e(item.id)+'">'+icon('edit',16)+' Editar serviço</button>'+
   '</article>';
 }
@@ -61,9 +63,11 @@ export function budgetServiceDialog(service,editing=false){
  '<div class="budget-service-grid">'+
  serviceField('Unidade','unit',service.unit,'text','maxlength="20" required')+
  serviceField('Quantidade','quantity',service.quantity,'number','max="100000" required')+
- serviceField('Horas por unidade','laborHours',service.laborHours,'number','max="10000" required')+
- serviceField('Custo direto por unidade (R$)','directCost',service.directCost,'number','max="999999999" required')+
+ serviceField('Produtividade adotada (HH por unidade)','laborHours',service.laborHours,'number','max="10000" required')+
+ serviceField('Custo direto interno por unidade (R$)','directCost',service.directCost,'number','max="999999999" required')+
  '</div></div>'+
+ (service.crewComposition?'<p class="fin-helper">Equipe sugerida: '+e(service.crewComposition)+'. Faixa inicial: '+e(service.hhMin)+' a '+e(service.hhMax)+' HH/'+e(service.unit)+'. O ponto médio é pré-selecionado e pode ser ajustado.</p>':'')+
+ '<p class="fin-helper">Preencha o custo direto de materiais/equipamentos. Não repita salários já incluídos nos custos mensais da empresa.</p>'+
  '<p id="budget-service-error" class="form-error" role="alert" hidden></p>'+
  '<div class="modal-buttons">'+
  '<button type="button" class="outlined-button" data-action="close-modal">Cancelar</button>'+
@@ -151,7 +155,7 @@ export function budgetEditorView(data,draft,err=''){
  if(!draft)return budgetsView(data);
  let priced=false;try{priced=!!priceBudget(draft)}catch{/* mostrar erro no preview */}
  return '<section class="fin-screen budget-screen budget-editor">'+header('Montar orçamento','budgets')+
- status()+
+ status(draft)+
  '<form id="budget-form" class="budget-form" novalidate>'+
  '<div class="budget-editor-head"><span>Rascunho · '+(draft.id?'edição':'novo')+'</span>'+
  '<p>Ao salvar, o orçamento fica privado na sua conta. Os itens e custos não alteram Financeiro, contratos ou estoque.</p></div>'+
@@ -170,12 +174,22 @@ export function budgetEditorView(data,draft,err=''){
  field('Contato comercial da empresa (opcional)','companyContact',draft.commercial?.companyContact||'','text','maxlength="200"')+
  field('CNPJ ou identificação da empresa (opcional)','companyDocument',draft.commercial?.companyDocument||'','text','maxlength="40"')+
  '<div class="budget-section-heading"><h2>Serviços</h2><span>'+draft.items.length+' item(ns)</span></div>'+
- '<div class="budget-picker"><label class="modal-field"><span>Adicionar serviço fictício</span>'+
- '<select id="budget-catalog" aria-label="Catálogo de teste">'+DEMO_SERVICES.map(x=>
- '<option value="'+x.code+'">'+e(x.code)+' · '+e(x.description)+'</option>').join('')+
- '<option value="manual">Serviço personalizado de teste</option></select></label>'+
+ '<div class="budget-picker"><label class="modal-field"><span>Adicionar serviço da CIVOLTEN</span>'+
+ '<select id="budget-catalog" aria-label="Serviços internos">'+
+ CATALOG_SECTIONS.map(section=>{
+  const readyExtras=catalogRows(data.catalog).filter(item=>item.category===section.id&&
+   catalogReady(item)&&!REFERENCE_SERVICES.some(ref=>ref.code===item.code));
+  const references=REFERENCE_SERVICES.filter(ref=>ref.category===section.id);
+  if(!references.length&&!readyExtras.length)return '';
+  return '<optgroup label="'+e(section.title)+'">'+
+   references.map(ref=>'<option value="'+e(ref.code)+'">'+e(ref.description)+' · '+e(ref.unit)+'</option>').join('')+
+   readyExtras.map(item=>'<option value="'+e(item.code)+'">'+e(item.description)+' · '+e(item.unit)+'</option>').join('')+
+   '</optgroup>';
+ }).join('')+
+ '<option value="manual">Serviço personalizado</option></select></label>'+
  '<button type="button" class="outlined-button" data-action="budget-add-item">'+icon('plus',19)+' Abrir formulário</button></div>'+
- '<p class="fin-helper">Toque em Adicionar para preencher o serviço em um formulário. Serviços incluídos podem ser editados pelo botão Editar. As estimativas do catálogo são fictícias, não são valores oficiais de engenharia.</p>'+
+ '<p class="fin-helper">As 27 referências CIVOLTEN têm faixa de HH e composição de equipe. O formulário adota inicialmente o ponto médio: revise as horas e informe o custo direto por unidade.</p>'+
+ '<button class="outlined-button" type="button" data-go="catalog">'+icon('clipboard',18)+' Configurar outros serviços nas 10 etapas</button>'+
  (draft.items.length?'<div class="budget-items">'+draft.items.map(itemRow).join('')+'</div>':
  '<div class="fin-empty">Inclua ao menos um serviço para salvar o orçamento.</div>')+
  scheduleControls(data,draft)+
