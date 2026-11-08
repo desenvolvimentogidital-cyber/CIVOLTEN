@@ -47,14 +47,24 @@ export function createE2EClient(){
      return {data:(read()[table]||[]).filter(r=>r.user_id===user.id),error:null};
     }})};
    },
-   upsert(row){
-    return {select:()=>({single:async()=>{
-     if(!user||row.user_id!==user.id)return {data:null,error:{message:'RLS: usuário não autorizado'}};
-     const db=read(),all=db[table]||[],i=all.findIndex(x=>x.id===row.id);
-     if(i>=0)all[i]=row;else all.push(row);
+   upsert(value){
+    const rows=Array.isArray(value)?value:[value];
+    const apply=async()=>{
+     if(!user||rows.some(row=>row.user_id!==user.id))
+      return {data:null,error:{message:'RLS: usuário não autorizado'}};
+     const db=read(),all=db[table]||[];
+     for(const row of rows){
+      const i=all.findIndex(x=>x.id===row.id);
+      if(i>=0)all[i]=row;else all.push(row);
+     }
      db[table]=all;save(db);
-     return {data:{id:row.id,user_id:row.user_id},error:null};
-    }})};
+     const data=rows.map(row=>({id:row.id,user_id:row.user_id}));
+     return {data:Array.isArray(value)?data:data[0],error:null};
+    };
+    return {select:()=>({
+     single:apply,
+     then:(resolve,reject)=>apply().then(resolve,reject)
+    })};
    },
    delete(){
     const where={};

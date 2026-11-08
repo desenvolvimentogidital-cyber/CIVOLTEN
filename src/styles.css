@@ -1232,3 +1232,52 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
   margin:-1mm auto 0!important;border:0!important;
  }
 }
+
+
+/* Catálogo inicial de custos: preenchimento simples, sem estimativas fictícias. */
+@media screen {
+ .cost-presets-panel{
+  display:grid;gap:9px;margin:5px 0 20px;padding:15px 13px;
+  border:1px solid #b89558;border-radius:15px;
+  background:linear-gradient(140deg,#30251a,#1b191c 75%);
+ }
+ .cost-presets-panel strong{
+  display:flex;align-items:center;gap:9px;color:#ffda8d;
+  font-size:13px;line-height:1.4;
+ }
+ .cost-presets-panel p{
+  margin:0;color:#e9ddcc;font-size:11px;line-height:1.55;
+ }
+ .cost-presets-panel small{
+  display:block;color:#d0bfa8;font-size:10px;line-height:1.5;
+ }
+ .cost-presets-panel .cost-presets-ready{
+  display:flex;align-items:center;gap:6px;color:#cde7b3;
+ }
+ .cost-presets-action{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;min-height:47px;padding:11px;
+  border:1px solid #e3b65a;border-radius:10px;
+  background:#45321c;color:#ffdf94;font-size:13px;font-weight:750;
+ }
+ .cost-presets-action:disabled{opacity:.6}
+ .cost-pending-note{
+  display:flex;align-items:flex-start;gap:7px;
+  padding:10px 12px;margin:10px 0 0;border-radius:10px;
+  background:#332720;color:#ffe0ad;font-size:11px;line-height:1.5;
+ }
+ .cost-search-label{
+  display:grid;gap:6px;margin:15px 0 4px;color:#f3e4cb;
+  font-size:12px;font-weight:700;
+ }
+ .cost-search-label input{
+  width:100%;min-height:46px;border:1px solid #9b8d7d;
+  border-radius:10px;background:#1e1b1d;color:#fff;
+  font:inherit;font-size:16px;padding:10px 12px;
+ }
+ .cost-row[hidden]{display:none!important}
+ .cost-row .row-price.is-pending{
+  color:#f5cb8d;font-weight:650;font-size:11px;
+  white-space:normal;text-align:right;
+ }
+}

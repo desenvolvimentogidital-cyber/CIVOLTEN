@@ -59,11 +59,20 @@ export function summary(data){
  const va=(data.variable||[]).map(variableMonthly);
  const ep=(data.employees||[]).filter(e=>e.active!==false).map(e=>employeeCost(e,data.payroll));
  const fixed=sum(fx),variable=sum(va.map(x=>x??0)),team=sum(ep.map(x=>x.monthly??0));
- const missing=fx.filter(x=>x===null).length+va.filter(x=>x===null).length+
-   ep.filter(x=>x.status!=='ready'||x.monthly===null).length;
+ // Custo zero de modelo inicial não deve aparecer como despesa confirmada.
+ const fixedReady=fx.filter((x,i)=>x!==null&&cents((data.fixed||[])[i].amount)>0);
+ const variableReady=va.filter((x,i)=>x!==null&&cents((data.variable||[])[i].unitCost)>0);
+ const workforceMissing=ep.filter(x=>x.status!=='ready'||x.monthly===null).length;
+ const missing=(fx.length-fixedReady.length)+(va.length-variableReady.length)+workforceMissing;
+ // Os modelos zerados não bloqueiam preços já configurados, mas permanecem
+ // sinalizados: serão incorporados automaticamente quando receberem valores reais.
+ // Um custo real com preço informado e quantidade ausente continua bloqueando.
+ const blocking=fx.filter(x=>x===null).length+
+  va.filter((x,i)=>x===null&&cents((data.variable||[])[i].unitCost)!==0).length+
+  workforceMissing;
  return {fixed,variable,team,total:fixed+variable+team,employees:ep.length,
-  missing,complete:missing===0,
-  knownItems:fx.length+va.filter(x=>x!==null).length+ep.filter(x=>x.monthly!==null).length};
+  missing,complete:missing===0,readyForPricing:blocking===0,blocking,
+  knownItems:fixedReady.length+variableReady.length+ep.filter(x=>x.monthly!==null).length};
 }
 export function validate(kind,fields){
  const name=String(fields.name||'').trim();
