@@ -539,7 +539,7 @@ function regularizeBudget(){
  if(!confirm('Os serviços e valores deste orçamento anterior precisam de revisão. Para uso comercial, confira cada item, informe as horas de trabalho e os custos reais e atualize a base de precificação. Continuar?'))return;
  draft.items=draft.items.map(item=>item.source==='demo'?{
   ...item,source:'manual',sourceCode:'',
-  description:String(item.description||'').replace(/\\s*\\(exemplo\\)\\s*$/i,'').trim(),
+  description:String(item.description||'').replace(/\s*\(exemplo\)\s*$/i,'').trim(),
   laborHours:'',directCost:''
  }:item);
  draft.demo=false;
