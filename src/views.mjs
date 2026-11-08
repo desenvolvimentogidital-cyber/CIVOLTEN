@@ -1,4 +1,4 @@
-import {brl,employeeCost,fixedMonthly,variableMonthly,summary,fmt} from './calc.mjs';
+import {brl,employeeCost,fixedMonthly,variableMonthly,variableQuantity,summary,fmt} from './calc.mjs';
 import {costPresetsMissing} from './cost-presets.mjs';
 import {payrollConfig,payrollPreset} from './payroll.mjs';
 const SHAPES={
@@ -104,7 +104,10 @@ export function homeView(data,user){
   '<button class="pending-card" type="button" data-go="more">'+icon('clipboard',28)+
   '<b>'+s.missing+' pendência'+(s.missing===1?'':'s')+'</b><span>para revisar</span>'+
   icon('chevron',20)+'</button></div>'+
-  '<p class="dashboard-note">Valores calculados a partir dos seus cadastros. Nenhum valor de exemplo foi incluído.</p></div>';
+  '<p class="dashboard-note">Valores calculados a partir dos seus cadastros. Nenhum valor de exemplo foi incluído.</p>'+
+  (s.assumedQuantities?'<p class="dashboard-note cost-quantity-assumption">'+
+   icon('clipboard',16)+' '+s.assumedQuantities+' custo(s) variável(is) sem quantidade estão incluídos como 1 unidade por mês. Confira em Custos → Variáveis.</p>':'')+
+  '</div>';
 }
 function costIcon(category){
  const text=String(category||'').toLowerCase();
@@ -121,7 +124,8 @@ export function costsView(data,tab='fixed'){
  const missing=costPresetsMissing(data);
  const templateCount=missing.fixed.length+missing.variable.length;
  const pending=all.filter(item=>isFixed?!(Number(item.amount)>0):
-  !(Number(item.unitCost)>0&&Number(item.monthQty)>=0&&item.monthQty!==null)).length;
+  !(Number(item.unitCost)>0&&variableQuantity(item)!==null)).length;
+ const defaultQty=all.filter(item=>!isFixed&&Number(item.unitCost)>0&&item.monthQty===null).length;
  return '<div class="page-heading"><button class="small-square" data-go="home" aria-label="Voltar">'+icon('back',25)+'</button><h1>Custos da empresa</h1>'+
   '<button class="small-square" data-action="new-cost" aria-label="Adicionar custo">'+icon('plus',26)+'</button></div>'+
   '<section class="cost-presets-panel" aria-label="Custos sugeridos para a empresa">'+
@@ -137,17 +141,21 @@ export function costsView(data,tab='fixed'){
   '<div class="tab-switch" role="tablist"><button role="tab" aria-selected="'+isFixed+'" data-tab="fixed" class="'+(isFixed?'selected':'')+'">Fixos ('+(data.fixed||[]).length+')</button>'+
   '<button role="tab" aria-selected="'+!isFixed+'" data-tab="variable" class="'+(!isFixed?'selected':'')+'">Variáveis ('+(data.variable||[]).length+')</button></div>'+
   '<div class="total-cost-card"><span class="cost-big-icon">'+icon('coins',35)+'</span><div class="total-copy"><h2>'+(isFixed?'Total fixo mensal':'Total variável previsto')+'</h2>'+
-  '<p>'+(isFixed?'Soma dos custos com valor informado':'Quantidades e preços reais informados')+'</p></div><strong>'+brl(total)+'</strong></div>'+
+  '<p>'+(isFixed?'Soma dos custos com valor informado':'Preço por unidade × quantidade mensal (padrão 1)')+'</p></div><strong>'+brl(total)+'</strong></div>'+
+  (defaultQty?'<p class="cost-pending-note">'+icon('clipboard',16)+' '+defaultQty+
+   ' custo(s) com valor salvo e quantidade vazia estão somados como 1 unidade/mês. Toque neles para ajustar.</p>':'')+
   (pending?'<p class="cost-pending-note">'+icon('clipboard',16)+' '+pending+' custo(s) aguardando valor ou quantidade. Não foram somados como despesas reais.</p>':'')+
   (all.length>6?'<label class="cost-search-label"><span>Buscar custo</span><input type="search" id="cost-search" placeholder="Nome ou categoria" autocomplete="off"></label>':'')+
   '<div class="cost-list">'+(all.length?all.map(item=>{
    const amount=isFixed?fixedMonthly(item):variableMonthly(item);
-   const ready=isFixed?Number(item.amount)>0:Number(item.unitCost)>0&&item.monthQty!==null&&Number(item.monthQty)>0;
+   const ready=isFixed?Number(item.amount)>0:Number(item.unitCost)>0&&variableQuantity(item)!==null;
    const searchable=e((item.name+' '+(item.category||'')).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase());
    return '<button type="button" class="cost-row" data-cost-search="'+searchable+'" data-action="edit" data-kind="'+tab+'" data-id="'+e(item.id)+'">'+
    '<span class="row-icon">'+icon(costIcon(item.category||item.name),27)+'</span>'+
    '<span class="row-title"><b>'+e(item.name)+'</b><small>'+e(item.category||'Sem categoria')+
-   '</small><span class="period-pill">'+icon('calendar',14)+(isFixed?(item.frequency==='annual'?'Anual':'Mensal'):(item.monthQty==null?'Previsão pendente':'Mensal'))+'</span></span>'+
+   '</small><span class="period-pill">'+icon('calendar',14)+(isFixed?(item.frequency==='annual'?'Anual':'Mensal'):
+    !ready?'A preencher':item.monthQty==null?'1 '+e(item.unit||'un')+'/mês (padrão)':
+    fmt(item.monthQty)+' '+e(item.unit||'un')+'/mês')+'</span></span>'+
    '<span class="row-price'+(ready?'':' is-pending')+'">'+(ready?brl(amount):'A preencher')+'</span><span class="row-arrow">'+icon('chevron',20)+'</span></button>';
   }).join(''):'<div class="empty-state">'+icon('coins',31)+'<b>Sem custos cadastrados</b>'+
   '<span>Toque em “Salvar custos sugeridos” ou “Novo custo” para começar.</span></div>')+'</div>'+
@@ -220,7 +228,9 @@ export function editorView(kind,item={},settings=null){
  select('Periodicidade','frequency',item.frequency||'monthly',[['monthly','Mensal'],['annual','Anual']]):
  textInput('Preço por unidade (R$)','unitCost',item.unitCost??'',{type:'number',required:true})+
  select('Unidade','unit',item.unit||'un',[['un','Unidade'],['km','Quilômetro'],['h','Hora'],['dia','Dia'],['serviço','Serviço']])+
- textInput('Quantidade prevista no mês (opcional)','monthQty',item.monthQty??'',{type:'number'}));
+ textInput('Quantidade prevista por mês','monthQty',item.monthQty??(Number(item.unitCost)>0?1:''),{type:'number',placeholder:'Padrão: 1'})+
+ '<p class="helper-text">Informe a quantidade usada no mês. Se deixar em branco, 1 unidade por mês será considerada automaticamente. Digite 0 se não houver consumo.</p>'+
+ '<div id="variable-cost-preview" class="variable-cost-preview" aria-live="polite"></div>');
  return '<div class="modal-inner"><div class="modal-heading"><h2>'+(item.id?'Editar '+title:'Novo '+title.toLowerCase())+'</h2>'+
  '<button class="small-square" data-action="close-modal" aria-label="Fechar">×</button></div>'+
  '<form id="record-form"><div class="modal-fields">'+fields+'</div>'+

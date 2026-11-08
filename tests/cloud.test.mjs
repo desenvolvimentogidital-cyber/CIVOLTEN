@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createE2EClient} from '../src/e2e-client.mjs';
 import {fetchRemote,putRemote,deleteRemote,putCompanyRemote,TABLES} from '../src/cloud.mjs';
+import {summary} from '../src/calc.mjs';
 const userId='00000000-0000-4000-8000-000000000001';
 test('dados financeiros são escritos no banco e lidos com valores reais',async()=>{
  const rows=new Map();
@@ -34,8 +35,11 @@ test('custos variáveis e funcionários preservam campos e status',async()=>{
  await putRemote(c,userId,'variable',cost);
  await putRemote(c,userId,'employees',worker);
  const data=await fetchRemote(c,userId);
- assert.equal(data.variable[0].monthQty,null);
+ assert.equal(data.variable[0].monthQty,null,'O banco conserva a informação original');
  assert.equal(data.variable[0].unitCost,1.5);
+ assert.equal(summary(data).variable,150,'O painel conta 1 unidade mesmo para registro antigo com quantidade vazia');
+ assert.equal(summary(data).assumedQuantities,1);
+ assert.equal(summary(data).total,summary(data).fixed+summary(data).variable+summary(data).team);
  assert.equal(data.employees[0].salary,3200);
  assert.equal(data.employees[0].fgtsPct,8);
 });

@@ -1281,3 +1281,20 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
   white-space:normal;text-align:right;
  }
 }
+
+
+/* Custos variáveis: mostrar valor mensal calculado durante a edição. */
+@media screen {
+ .variable-cost-preview{
+  border:1px solid #bc9553;border-radius:10px;
+  background:linear-gradient(110deg,#49351d,#241f1c);
+  color:#ffe0a1;padding:13px 12px;font-size:13px;
+  font-weight:780;line-height:1.55;
+ }
+ .dashboard-note.cost-quantity-assumption{
+  display:flex;align-items:flex-start;gap:7px;
+  color:#f5c989;background:#382b20;
+  border-radius:10px;padding:10px 12px;
+ }
+ .dashboard-note.cost-quantity-assumption svg{flex:none;}
+}

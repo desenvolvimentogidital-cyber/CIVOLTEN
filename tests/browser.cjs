@@ -83,7 +83,18 @@ const server=createServer((req,res)=>{
   await page.locator('[data-action="new-cost"]').last().click();
   await page.locator('#record-form [name="name"]').fill('Combustível');
   await page.locator('#record-form [name="unitCost"]').fill('50');
+  // Quantidade vazia agora conta 1 unidade, sem desaparecer do painel inicial.
+  assert.match(await page.locator('#variable-cost-preview').innerText(),/50,00/);
+  await page.locator('#record-form button[type="submit"]').click();
+  assert.match(await page.locator('.total-cost-card').innerText(),/50,00/);
+  await page.locator('[data-go="home"]').last().click();
+  assert.match(await page.locator('.metric-card').filter({hasText:'Custos variáveis'}).innerText(),/50,00/);
+  assert.ok((await page.locator('.metric-card').filter({hasText:'Custo mensal'}).innerText()).includes('1.250,00'));
+  await page.locator('[data-go="costs"]').last().click();
+  await page.locator('.cost-row').first().click();
+  assert.equal(await page.locator('#record-form [name="monthQty"]').inputValue(),'1');
   await page.locator('#record-form [name="monthQty"]').fill('10');
+  assert.match(await page.locator('#variable-cost-preview').innerText(),/500,00/);
   await page.locator('#record-form button[type="submit"]').click();
   assert.match(await page.locator('.total-cost-card').innerText(),/500,00/);
   const originalCosts=await page.evaluate(()=>window.CIVOLTENPreview.data);
