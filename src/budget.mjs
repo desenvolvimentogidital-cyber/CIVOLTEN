@@ -4,6 +4,7 @@
 import {summary,decimal,cents} from './calc.mjs';
 import {companyConfig,capacity,quoteFromCost} from './pricing.mjs';
 import {validDate,localToday} from './finance.mjs';
+import {validateSchedule,schedulePlan} from './budget-schedule.mjs';
 
 export const DEMO_SERVICES=Object.freeze([
  {code:'DEMO-E01',description:'Instalação de ponto elétrico residencial (exemplo)',unit:'un',laborHours:2.5,directCost:35},
@@ -71,7 +72,8 @@ export function validateCommercial(raw={}){
   warrantyTerms:safeText(c.warrantyTerms,360,'Garantia dos serviços'),
   scopeNotes:safeText(c.scopeNotes,900,'Escopo e exclusões'),
   companyContact:safeText(c.companyContact,200,'Contato da empresa'),
-  companyDocument:safeText(c.companyDocument,40,'Documento da empresa')
+  companyDocument:safeText(c.companyDocument,40,'Documento da empresa'),
+  schedule:validateSchedule(c.schedule)
  };
 }
 export function validateBudget(raw){
@@ -97,6 +99,7 @@ export function createPricingSnapshot(data){
  const cost=summary(data),cfg=companyConfig(data.company),cap=capacity(cfg);
  if(!cfg.reviewed||!cost.readyForPricing||!cap||!Number.isSafeInteger(cost.total)||cost.total<=0)return null;
  return {monthlyCostCents:cost.total,productiveHours:cap.productiveHours,
+  productiveDays:cfg.productiveDays,hoursPerDay:cfg.hoursPerDay,productivePeople:cfg.productivePeople,
   taxPct:cfg.taxPct,marginPct:cfg.marginPct,companyName:cfg.companyName||'CIVOLTEN',
   capturedOn:localToday()};
 }
@@ -106,7 +109,15 @@ export function validateBudgetSnapshot(raw){
  if(!Number.isSafeInteger(cost)||cost<=0||!Number.isFinite(hours)||hours<=0||
   !Number.isFinite(tax)||tax<0||tax>80||!Number.isFinite(margin)||margin<0||margin>80||
   tax+margin>=100)throw Error('Base da precificação inválida.');
+ const days=raw.productiveDays==null?null:Number(raw.productiveDays);
+ const perDay=raw.hoursPerDay==null?null:Number(raw.hoursPerDay);
+ const people=raw.productivePeople==null?null:Number(raw.productivePeople);
+ if((days!==null&&(!Number.isInteger(days)||days<1||days>31))||
+  (perDay!==null&&(!Number.isFinite(perDay)||perDay<=0||perDay>24))||
+  (people!==null&&(!Number.isInteger(people)||people<1||people>1000)))
+  throw Error('Capacidade da empresa no orçamento inválida.');
  return {monthlyCostCents:cost,productiveHours:hours,taxPct:tax,marginPct:margin,
+  productiveDays:days,hoursPerDay:perDay,productivePeople:people,
   companyName:safeText(raw.companyName,160,'Nome da empresa'),
   capturedOn:validDate(raw.capturedOn)?raw.capturedOn:localToday()};
 }
