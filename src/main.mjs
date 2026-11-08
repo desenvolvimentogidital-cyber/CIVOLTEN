@@ -1,5 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
-import {fetchRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote} from './cloud.mjs';
+import {fetchRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote} from './cloud.mjs';
 import {prepareCostPresets} from './cost-presets.mjs';
 import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
@@ -12,8 +12,8 @@ import {financeView,reportsView,ledgerEditorView} from './finance-ui.mjs';
 import {createService,createPricingSnapshot,validateBudget,validateBudgetItem,budgetCsv,priceBudget} from './budget.mjs';
 import {budgetsView,budgetEditorView,budgetPreview,budgetServiceDialog,budgetSchedulePreview,getBudgetSchedule} from './budget-ui.mjs';
 import {scheduleCsv,suggestExecutionTerm} from './budget-schedule.mjs';
-import {referenceService,referenceToBudgetItem} from './productivity-reference.mjs';
-import {catalogByCode,catalogRows,catalogReady,catalogHours,catalogToBudgetItem,validateCatalogRecord} from './service-catalog.mjs';
+import {catalogByCode,catalogToBudgetItem,validateCatalogRecord} from './service-catalog.mjs';
+import {readCatalogFile,suggestColumns,buildCatalogImport} from './catalog-import.mjs';
 import {catalogView,catalogEditorDialog} from './catalog-ui.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,payrollSettingsView,cltBreakdownHtml,e,icon} from './views.mjs';
 const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
@@ -30,7 +30,7 @@ const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
- cloudError:null,budgetDraft:null,budgetError:'',catalogCategory:'03',catalogBack:'budgets',
+ cloudError:null,budgetDraft:null,budgetError:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
 };
@@ -54,7 +54,7 @@ function render(){
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
  else if(state.view==='appearance')html=appearanceView(state.data.company);
  else if(state.view==='budgets')html=budgetsView(state.data);
- else if(state.view==='catalog')html=catalogView(state.data,state.catalogCategory,state.catalogBack);
+ else if(state.view==='catalog')html=catalogView(state.data,state.catalogCategory,state.catalogBack,state.catalogImport);
  else if(state.view==='budget-edit')html=budgetEditorView(state.data,state.budgetDraft,state.budgetError);
  else html=moreView(state.user,state.data);
  mount.innerHTML=shell(state.view,html);
@@ -408,9 +408,9 @@ function openBudgetService(service,editing=false){
  modal.querySelector('[name="description"]')?.focus();
 }
 function openCatalogItem(code){
- const template=catalogByCode(code);
+ const template=catalogByCode(state.data.catalog,code);
  if(!template)return;
- const record=catalogRows(state.data.catalog).find(item=>item.code===code)||template;
+ const record=template;
  state.editor={kind:'catalog',code};
  modal.innerHTML=catalogEditorDialog(record);
  modal.showModal();
@@ -420,7 +420,7 @@ async function saveCatalogItem(form){
  const error=form.querySelector('#catalog-form-error');
  const submit=form.querySelector('[type="submit"]');
  try{
-  const base=catalogByCode(state.editor.code);
+  const base=catalogByCode(state.data.catalog,state.editor.code);
   const previous=(state.data.catalog||[]).find(x=>x.code===state.editor.code);
   const value=validateCatalogRecord(Object.fromEntries(new FormData(form)),base,previous?.id);
   value.id=value.id||crypto.randomUUID();
@@ -436,27 +436,68 @@ async function saveCatalogItem(form){
   else delayToast(String(err.message||err));
  }finally{state.busy=false;if(submit?.isConnected)submit.disabled=false;}
 }
+function bestHeader(rows){
+ let best=0,score=0;
+ for(let i=0;i<Math.min(rows.length,25);i++){
+  const row=(rows[i]||[]).join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const value=Number(/cod|codigo/.test(row))+Number(/descri|servico/.test(row))+Number(/unidade|unid/.test(row));
+  if(value>score){best=i;score=value;}
+ }
+ return best;
+}
+async function loadCatalogImportFile(file){
+ if(!file||!state.user||state.cloudError||state.busy)return;
+ try{
+  const sheets=await readCatalogFile(file);
+  const selectedSheet=Math.max(0,sheets.findIndex(x=>x.rows.length>2));
+  const headerIndex=bestHeader(sheets[selectedSheet].rows);
+  state.catalogImport={fileName:file.name,sheets,selectedSheet,headerIndex,
+   mapping:suggestColumns(sheets[selectedSheet].rows,headerIndex),
+   source:state.catalogImport?.source||'siurb',month:state.catalogImport?.month||''};
+  render();delayToast('Planilha aberta. Confira aba, colunas e competencia antes de importar.');
+ }catch(err){delayToast('Erro ao abrir planilha: '+String(err.message||err));}
+}
+async function saveCatalogImport(){
+ if(!state.user||state.cloudError||state.busy||!state.catalogImport){
+  delayToast('Carregue a planilha com a conta sincronizada.');return;
+ }
+ const cfg=state.catalogImport;
+ try{
+  const sheet=cfg.sheets[cfg.selectedSheet];
+  const result=buildCatalogImport(sheet.rows,{source:cfg.source,month:cfg.month,
+   headerIndex:cfg.headerIndex,mapping:cfg.mapping,existing:state.data.catalog});
+  if(result.items.length>20000)throw Error('Maximo de 20 mil servicos por importacao.');
+  state.busy=true;
+  const btn=mount.querySelector('[data-action="catalog-import-save"]');
+  if(btn){btn.disabled=true;btn.textContent='Gravando servicos no Supabase...';}
+  for(let i=0;i<result.items.length;i+=100){
+   const part=result.items.slice(i,i+100).map(x=>({...x,id:x.id||crypto.randomUUID()}));
+   await putCatalogBatchRemote(auth,state.user.id,part);
+  }
+  state.data=await fetchRemote(auth,state.user.id);
+  try{safeSave(localStorage,state.user.id,state.data)}catch{}
+  state.catalogImport=null;state.catalogCategory='all';render();
+  delayToast(result.items.length+' servicos importados. '+result.loadedLabor+
+    ' coeficientes HH lidos; '+result.skipped+' linhas ignoradas.');
+ }catch(err){
+  try{state.data=await fetchRemote(auth,state.user.id);
+   safeSave(localStorage,state.user.id,state.data);}catch(loadErr){
+    state.cloudError=String(loadErr.message||loadErr);
+  }
+  render();
+  delayToast('Importacao interrompida: '+String(err.message||err));
+ }finally{state.busy=false;}
+}
 function addBudgetItem(){
  if(!state.budgetDraft)return;
- if(state.budgetDraft.items.length>=100){delayToast('Máximo de 100 serviços por orçamento.');return;}
+ if(state.budgetDraft.items.length>=100){delayToast('Maximo de 100 servicos por orcamento.');return;}
  const code=mount.querySelector('#budget-catalog')?.value;
  try{
   const id=crypto.randomUUID();
-  if(code==='manual'){openBudgetService(createService('manual',id));return;}
-  const template=catalogByCode(code);
-  if(!template)throw Error('Escolha um serviço da CIVOLTEN.');
-  const record=catalogRows(state.data.catalog).find(item=>item.code===code)||template;
-  let service;
-  if(catalogReady(record))service=catalogToBudgetItem(record,id);
-  else{
-   const reference=referenceService(code);
-   if(!reference)throw Error('Configure a produtividade e o custo direto desse serviço no catálogo.');
-   service=referenceToBudgetItem(reference,id);
-   const h=catalogHours(record);
-   if(h)service.laborHours=h;
-   if(record.roles?.length)service.roles=record.roles.map(r=>({...r}));
-  }
-  openBudgetService(service);
+  if(!code||code==='manual'){openBudgetService(createService('manual',id));return;}
+  const record=catalogByCode(state.data.catalog,code);
+  if(!record)throw Error('Importe esse servico novamente no catalogo.');
+  openBudgetService(catalogToBudgetItem(record,id));
  }catch(err){delayToast(String(err.message||err));}
 }
 function editBudgetItem(id){
@@ -606,6 +647,26 @@ function exportReport(){
 }
 mount.addEventListener('change',event=>{
  if(event.target.id==='catalog-category'){state.catalogCategory=event.target.value;render();return;}
+ if(event.target.id==='catalog-import-file'){void loadCatalogImportFile(event.target.files?.[0]);return;}
+ if(state.catalogImport){
+  const cfg=state.catalogImport,id=event.target.id;
+  if(id==='catalog-import-source'){cfg.source=event.target.value;return;}
+  if(id==='catalog-import-month'){cfg.month=event.target.value;return;}
+  if(id==='catalog-import-sheet'){
+   cfg.selectedSheet=Number(event.target.value);
+   cfg.headerIndex=bestHeader(cfg.sheets[cfg.selectedSheet].rows);
+   cfg.mapping=suggestColumns(cfg.sheets[cfg.selectedSheet].rows,cfg.headerIndex);
+   render();return;
+  }
+  if(id==='catalog-import-header'){
+   cfg.headerIndex=Math.max(0,Number(event.target.value)-1);
+   cfg.mapping=suggestColumns(cfg.sheets[cfg.selectedSheet].rows,cfg.headerIndex);
+   render();return;
+  }
+  if(event.target.dataset.catalogMap){
+   cfg.mapping[event.target.dataset.catalogMap]=Number(event.target.value);return;
+  }
+ }
  if(event.target.matches('[data-period]')&&/^\d{4}-\d{2}$/.test(event.target.value)){
   state.finMonth=event.target.value;render();
  }
@@ -635,6 +696,7 @@ mount.addEventListener('click',async event=>{
  else if(action==='budget-open'){openBudget(b.dataset.id);}
  else if(action==='budget-add-item'){addBudgetItem();}
  else if(action==='catalog-edit'){openCatalogItem(b.dataset.code);}
+ else if(action==='catalog-import-save'){await saveCatalogImport();}
  else if(action==='budget-edit-item'){editBudgetItem(b.dataset.id);}
  else if(action==='budget-remove-item'){removeBudgetItem(b.dataset.id);}
  else if(action==='budget-refresh-pricing'){refreshBudgetPricing();}
