@@ -52,19 +52,29 @@ const server=createServer((req,res)=>{
   await page.locator('.pricing-capacity').waitFor();
   await page.locator('.bottom-nav [data-go="home"]').click();
   await page.locator('[data-go="budgets"]').first().click();
-  assert.match(await page.locator('.budget-demo-flag').innerText(),/Demonstração/);
+  assert.equal(await page.locator('.budget-demo-flag').count(),0,'Novo orçamento não deve ser marcado como fictício');
   assert.equal(await page.locator('.budget-list-item').count(),0);
+  await page.locator('[data-go="catalog"]').first().click();
+  assert.equal(await page.locator('.catalog-screen').count(),1);
+  await page.locator('#catalog-category').selectOption('11');
+  assert.match(await page.locator('.catalog-list').innerText(),/Limpeza Fina Pós-Obra/);
+  await page.locator('#catalog-category').selectOption('05');
+  assert.match(await page.locator('.catalog-list').innerText(),/Fiação Pesada/);
+  await page.locator('[data-go="budgets"]').last().click();
   await page.locator('[data-action="budget-new"]').click();
   await page.locator('#budget-form [name="customer"]').fill('Cliente fictício');
   await page.locator('#budget-form [name="paymentTerms"]').fill('40% na assinatura e 60% na entrega');
   await page.locator('#budget-form [name="executionTerm"]').fill('Até 18 dias úteis após liberação');
   await page.locator('#budget-form [name="warrantyTerms"]').fill('Conforme contrato');
   await page.locator('#budget-form [name="project"]').fill('Reforma do Centro Comercial');
-  await page.locator('#budget-catalog').selectOption('DEMO-E01');
+  await page.locator('#budget-catalog').selectOption('CV-05-204');
   await page.locator('[data-action="budget-add-item"]').click();
   assert.equal(await page.locator('#budget-service-form').count(),1);
   assert.equal(await page.locator('.budget-item').count(),0,'Abrir o modal não deve adicionar o serviço');
   assert.equal(await page.locator('#budget-service-form [name="quantity"]').inputValue(),'1');
+  assert.equal(await page.locator('#budget-service-form [name="laborHours"]').inputValue(),'5');
+  assert.equal(await page.locator('#budget-service-form [name="directCost"]').inputValue(),'');
+  assert.match(await page.locator('.catalog-screen').count()?await page.locator('.catalog-screen').innerText():await page.locator('.budget-service-modal').innerText(),/Faixa inicial/);
   await fs.promises.mkdir(path.join(__dirname,'../test-artifacts'),{recursive:true});
   await page.screenshot({path:'test-artifacts/orcamento-modal-servico.png',fullPage:true});
   await page.locator('#budget-service-form [data-action="close-modal"]').click();
@@ -76,6 +86,7 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('#budget-service-error').innerText(),/quantidade válido/);
   assert.equal(await page.locator('.budget-item').count(),0);
   await page.locator('#budget-service-form [name="quantity"]').fill('2');
+  await page.locator('#budget-service-form [name="directCost"]').fill('35');
   await page.locator('#budget-service-form [type="submit"]').click();
   assert.equal(await page.locator('.budget-item').count(),1);
   assert.match(await page.locator('.budget-item').first().innerText(),/2 un/);
@@ -86,9 +97,10 @@ const server=createServer((req,res)=>{
   await page.locator('#budget-service-form [name="quantity"]').fill('4');
   await page.locator('#budget-service-form [type="submit"]').click();
   assert.match(await page.locator('.budget-item').first().innerText(),/4 un/);
-  await page.locator('#budget-catalog').selectOption('DEMO-C02');
+  await page.locator('#budget-catalog').selectOption('CV-08-210');
   await page.locator('[data-action="budget-add-item"]').click();
   await page.locator('#budget-service-form [name="quantity"]').fill('1');
+  await page.locator('#budget-service-form [name="directCost"]').fill('12');
   await page.locator('#budget-service-form [type="submit"]').click();
   assert.equal(await page.locator('.budget-item').count(),2);
   assert.match(await page.locator('#budget-schedule-preview').innerText(),/Duração estimada/);
@@ -123,7 +135,7 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('[data-schedule-field="days"]').inputValue(),'20');
   assert.equal(await page.locator('[data-schedule-field="pricingMode"]').inputValue(),'days');
   assert.match(await page.locator('#budget-price-preview').innerText(),/Por dias de execução/);
-  assert.match(await page.locator('.budget-print').innerText(),/DOCUMENTO DE TESTE/);
+  assert.doesNotMatch(await page.locator('.budget-print').innerText(),/DOCUMENTO DE TESTE|DEMONSTRAÇÃO · NÃO ENVIAR/);
   assert.match(await page.locator('.budget-pdf-model-label').innerText(),/Signature/);
   assert.equal(await page.locator('.proposal-page').count(),3);
   assert.equal(await page.locator('.proposal-cover-background').count(),1);
@@ -202,7 +214,7 @@ const server=createServer((req,res)=>{
   await page.emulateMedia({media:'screen'});
   const pending=page.waitForEvent('download');
   await page.locator('[data-action="budget-export"]').click();
-  assert.match((await pending).suggestedFilename(),/orcamento-demonstrativo\.csv/);
+  assert.match((await pending).suggestedFilename(),/orcamento-civolten\.csv/);
   await page.locator('[data-action="budget-edit-item"]').first().click();
   await page.locator('#budget-service-form [name="quantity"]').fill('3');
   await page.locator('#budget-service-form [type="submit"]').click();
@@ -224,6 +236,6 @@ const server=createServer((req,res)=>{
   await page.locator('.budget-list-item').first().waitFor({state:'detached'});
   assert.equal(await page.locator('.budget-list-item').count(),0);
   assert.deepEqual(errors,[],'Não pode haver erros no navegador');
-  console.log('PASSOU: orçamento fictício, criação, alteração, banco simulado, CSV e exclusão.');
+  console.log('PASSOU: serviços CIVOLTEN, HH por unidade, orçamento, PDF, cronograma, banco simulado e CSV.');
  }finally{await browser.close();await new Promise(done=>server.close(done));}
 })().catch(err=>{console.error(err);process.exitCode=1;server.close()});
