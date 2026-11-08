@@ -567,6 +567,8 @@ async function saveBudget(form){
   draft.commercial={...(draft.commercial||{})};
   for(const key of ['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument'])
    if(key in f)draft.commercial[key]=f[key];
+  if(draft.demo!==false||draft.items.some(item=>item.source==='demo'))
+   throw Error('Revise os itens e custos do orçamento anterior antes de salvar como proposta comercial.');
   draft.pricing=draft.pricing||createPricingSnapshot(state.data);
   const valid=validateBudget(draft);
   valid.id=state.budgetDraft.id||crypto.randomUUID();
