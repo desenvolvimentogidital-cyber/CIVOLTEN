@@ -244,3 +244,85 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
  .fin-chart-in{background:#9e7400!important}.fin-chart-out{background:#417e4a!important}
  .fin-report .page-heading h1{color:#111!important}
 }
+
+
+/* Empresa, custo da hora produtiva, preço de venda e temas por conta */
+.company-form{display:grid;gap:13px;border:1px solid #8a7862;background:#211e1d;border-radius:15px;padding:16px 13px}
+.company-form h2{font-size:17px;color:var(--gold);margin:4px 0 0;border-bottom:1px solid #655649;padding-bottom:8px}
+.company-form .gold-button{font-size:14px;min-height:51px;gap:8px}
+.company-form .fin-helper{margin:0 0 5px}
+.company-screen .fin-report-section{gap:15px}
+.pricing-simulator{display:grid;gap:9px;grid-template-columns:1fr 1fr}
+.pricing-capacity{border-radius:11px;border:1px solid #8e7960;padding:12px;background:#241f1b;font-size:12px;color:#ead9c1;line-height:1.5}
+.pricing-quote{display:grid;gap:13px;border-radius:14px;background:linear-gradient(120deg,#352717,#1c191a);border:1px solid #b99a65;padding:13px 12px}
+.pricing-quote h3{font-size:15px;margin:0}
+.pricing-quote>strong{color:var(--gold);font-size:clamp(25px,6vw,32px);overflow-wrap:anywhere}
+.pricing-quote .fin-report-lines{margin-top:5px}
+.appearance-choices{display:grid;gap:11px}
+.appearance-choice{display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:14px;border:1px solid #a09385;background:#242123;color:#f5eada;min-height:67px;font-size:15px;font-weight:760;text-align:left}
+.appearance-choice .appearance-swatch{display:block;flex:none;width:54px;height:39px;border:1px solid #e4d9d6;border-radius:10px;box-shadow:0 2px 9px #0008}
+.appearance-choice span:nth-child(2){flex:1}
+.appearance-choice.active{border:2px solid var(--gold);background:#36302b}
+.appearance-choice svg{color:var(--gold)}
+@media(max-width:355px){.pricing-simulator{grid-template-columns:1fr}}
+@media print{.company-form,.appearance-choices,.pricing-simulator{display:none!important}}
+
+/* Personalização mantém o logotipo original e adapta destaques e botões da interface. */
+:root[data-civolten-theme="blue"]{--gold:#68bcff;--sun:#268ade;--theme-light:#7ccaff;--theme-base:#1765ad;--theme-deep:#142d48;--theme-glow:#1c579b}
+:root[data-civolten-theme="emerald"]{--gold:#65dfb1;--sun:#21a578;--theme-light:#79efb9;--theme-base:#168460;--theme-deep:#143b2b;--theme-glow:#126a50}
+:root[data-civolten-theme="violet"]{--gold:#c8a8ff;--sun:#9366dc;--theme-light:#dec2ff;--theme-base:#7644b3;--theme-deep:#302147;--theme-glow:#6232a6}
+:root[data-civolten-theme="coral"]{--gold:#ffad8f;--sun:#e87b68;--theme-light:#ffd3b4;--theme-base:#cb4e4a;--theme-deep:#462420;--theme-glow:#a74334}
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .gold-button{
+ background:linear-gradient(180deg,var(--theme-light),var(--gold) 35%,var(--theme-base) 100%);
+ border-color:var(--theme-light);box-shadow:inset 0 2px 2px #fff8,inset 0 -2px 0 #0005,0 0 14px var(--theme-glow);
+ color:#0c1716;text-shadow:none
+}
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .app-screen{
+ background:radial-gradient(ellipse at 87% 81%,var(--theme-deep),transparent 36%),linear-gradient(130deg,#090c0c,#101016 48%,#0b0b0c)
+}
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .metric-card.is-featured,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .team-total,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .total-cost-card,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .pending-card,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .fin-kpi-featured,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .pricing-quote{
+ background:linear-gradient(130deg,var(--theme-deep),#171719 80%);border-color:var(--theme-base);box-shadow:0 0 13px #0007
+}
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .metric-card:after,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .horizontal-glow,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .section-streak,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .nav-item.active:after{
+ background:linear-gradient(90deg,transparent,var(--theme-light),transparent);box-shadow:0 0 9px var(--theme-glow)
+}
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .bottom-nav{
+ border-color:var(--theme-base);box-shadow:0 -6px 22px var(--theme-glow)
+}
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .tab-switch button.selected,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .fin-filters button.active{
+ color:#0b1011;background:linear-gradient(180deg,var(--theme-light),var(--theme-base));border-color:var(--theme-light)
+}
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .metric-text strong,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .team-total strong,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .total-cost-card strong,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .fin-kpi-featured strong,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .fin-entry-right strong,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .pricing-quote>strong,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .fin-report-section h2,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .fin-dues strong{
+ color:var(--gold);text-shadow:none
+}
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .metric-icon,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .shortcut svg,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .row-icon,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .section-icon,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .nav-item.active,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .team-image,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .fin-link-row button,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .staff-value svg{
+ color:var(--gold);text-shadow:none;filter:none
+}
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .appearance-choice.active{background:var(--theme-deep)}
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .clt-preview,
+:root[data-civolten-theme]:not([data-civolten-theme="gold"]) .fin-entry-icon{
+ background:var(--theme-deep);border-color:var(--theme-base)
+}
