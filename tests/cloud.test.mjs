@@ -51,7 +51,7 @@ test('outro usuário não consegue salvar, excluir ou ler registros alheios',asy
  assert.deepEqual((await fetchRemote(c,someone)).fixed,[]);
 });
 test('não existe tabela pública sem mapeamento',()=>{
- assert.deepEqual(Object.keys(TABLES),['fixed','variable','employees','ledger']);
+ assert.deepEqual(Object.keys(TABLES),['fixed','variable','employees','ledger','budgets']);
 });
 
 test('lançamentos de faturamento são persistidos e isolados por usuário',async()=>{
@@ -89,4 +89,31 @@ test('configurações da empresa e tema persistem sem tocar nos custos existente
  const other='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
  await assert.rejects(putCompanyRemote(c,other,config),/RLS/);
  assert.equal((await fetchRemote(c,other)).company.reviewed,false);
+});
+
+test('orçamentos demonstrativos são salvos, atualizados e excluídos via Supabase simulado',async()=>{
+ const c=createE2EClient();
+ await c.auth.signInWithPassword({email:'teste@example.com',password:'senha-forte'});
+ const id='66666666-6666-4666-8666-666666666666';
+ const item={id:'item-1',source:'demo',sourceCode:'DEMO-E01',
+  description:'Ponto elétrico demonstrativo',unit:'un',quantity:2,laborHours:2.5,directCost:35};
+ const budget={id,title:'Teste de instalação',customer:'Cliente',
+  project:'Teste',location:'Obra demonstrativa',expiresOn:'2026-12-20',
+  notes:'',items:[item],status:'draft',demo:true,
+  pricing:{monthlyCostCents:100000,productiveHours:160,taxPct:10,marginPct:20,
+   companyName:'CIVOLTEN',capturedOn:'2026-11-07'}};
+ await putRemote(c,userId,'budgets',budget);
+ let saved=(await fetchRemote(c,userId)).budgets;
+ assert.equal(saved.length,1);
+ assert.equal(saved[0].customer,'Cliente');
+ assert.equal(saved[0].items[0].sourceCode,'DEMO-E01');
+ assert.equal(saved[0].pricing.taxPct,10);
+ await putRemote(c,userId,'budgets',{...budget,items:[{...item,quantity:3}]});
+ saved=(await fetchRemote(c,userId)).budgets;
+ assert.equal(saved[0].items[0].quantity,3);
+ const someone='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ await assert.rejects(putRemote(c,someone,'budgets',budget),/RLS/);
+ assert.deepEqual((await fetchRemote(c,someone)).budgets,[]);
+ await deleteRemote(c,userId,'budgets',id);
+ assert.equal((await fetchRemote(c,userId)).budgets.length,0);
 });

@@ -8,6 +8,8 @@ import {validateCompany,THEMES} from './pricing.mjs';
 import {companyView,appearanceView,pricingPreview} from './settings-ui.mjs';
 import {validateEntry,reportCsv,localToday,currentMonth} from './finance.mjs';
 import {financeView,reportsView,ledgerEditorView} from './finance-ui.mjs';
+import {createService,createPricingSnapshot,validateBudget,budgetCsv,priceBudget} from './budget.mjs';
+import {budgetsView,budgetEditorView,budgetPreview} from './budget-ui.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,payrollSettingsView,cltBreakdownHtml,e,icon} from './views.mjs';
 const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
 const SUPABASE_PUBLIC_KEY=__CIVOLTEN_SUPABASE_PUBLISHABLE_KEY__;
@@ -23,7 +25,7 @@ const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
- cloudError:null,
+ cloudError:null,budgetDraft:null,budgetError:'',
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
 };
@@ -46,6 +48,8 @@ function render(){
  else if(state.view==='reports')html=reportsView(state.data,state.finMonth);
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
  else if(state.view==='appearance')html=appearanceView(state.data.company);
+ else if(state.view==='budgets')html=budgetsView(state.data);
+ else if(state.view==='budget-edit')html=budgetEditorView(state.data,state.budgetDraft,state.budgetError);
  else html=moreView(state.user,state.data);
  mount.innerHTML=shell(state.view,html);
 }
@@ -152,14 +156,15 @@ async function signOut(){
  state.busy=true;delayToast('Saindo da sua conta...');
  try{
   const r=await auth.auth.signOut();if(r?.error)throw Error(r.error.message||'Falha ao sair');
-  state.user=null;state.data=fresh();state.cloudError=null;state.view='home';state.authMode='login';
+  state.user=null;state.data=fresh();state.cloudError=null;state.budgetDraft=null;state.budgetError='';state.view='home';state.authMode='login';
   state.authError='';render();delayToast('Sessão encerrada. Seus dados locais foram preservados.');
  }catch(err){delayToast(err.message||'Não foi possível sair.');}
  finally{state.busy=false;}
 }
 function go(view){
  if(view==='soon'){delayToast('Este recurso será construído na próxima etapa.');return;}
- if(!['home','costs','team','more','finance','reports','company','appearance'].includes(view))return;
+ if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit'].includes(view))return;
+ if(view==='budgets'){state.budgetDraft=null;state.budgetError='';}
  state.view=view;render();
  if(window.scrollY)window.scrollTo({top:0,behavior:'instant'});
 }
@@ -295,6 +300,113 @@ async function markPaid(id){
  }catch(err){delayToast('Falha ao registrar baixa: '+String(err.message||err));}
  finally{state.busy=false;}
 }
+
+function newBudget(){
+ if(state.cloudError){delayToast('Banco indisponível: não será criado rascunho offline.');return;}
+ state.budgetDraft={id:null,title:'Orçamento demonstrativo',customer:'',
+  project:'',location:'',expiresOn:'',notes:'',items:[],
+  pricing:createPricingSnapshot(state.data),status:'draft',demo:true,createdAt:null};
+ state.budgetError='';go('budget-edit');
+}
+function openBudget(id){
+ const found=state.data.budgets.find(x=>x.id===id);
+ if(!found)return;
+ state.budgetDraft=structuredClone(found);state.budgetError='';go('budget-edit');
+}
+function updateBudgetField(element){
+ const draft=state.budgetDraft;
+ if(!draft||state.view!=='budget-edit')return false;
+ const key=element.dataset.budgetField;
+ if(!key)return false;
+ const container=element.closest('[data-budget-item]');
+ if(container){
+  const item=draft.items.find(x=>x.id===container.dataset.budgetItem);
+  if(item&&['description','unit','quantity','laborHours','directCost'].includes(key))
+   item[key]=element.value;
+ }else if(['title','customer','project','location','expiresOn','notes'].includes(key))
+  draft[key]=element.value;
+ const node=mount.querySelector('#budget-price-preview');
+ if(node)node.innerHTML=budgetPreview(draft);
+ return true;
+}
+function addBudgetItem(){
+ if(!state.budgetDraft)return;
+ if(state.budgetDraft.items.length>=100){delayToast('Máximo de 100 serviços por orçamento.');return;}
+ const code=mount.querySelector('#budget-catalog')?.value;
+ try{state.budgetDraft.items.push(createService(code,crypto.randomUUID()));
+  state.budgetError='';render();}
+ catch(err){delayToast(String(err.message||err));}
+}
+function removeBudgetItem(id){
+ if(!state.budgetDraft)return;
+ state.budgetDraft.items=state.budgetDraft.items.filter(x=>x.id!==id);
+ state.budgetError='';render();
+}
+function refreshBudgetPricing(){
+ if(!state.budgetDraft)return;
+ const base=createPricingSnapshot(state.data);
+ if(!base){state.budgetError='Complete os custos e a configuração da empresa antes de atualizar o preço.';render();return;}
+ state.budgetDraft.pricing=base;state.budgetError='';render();
+ delayToast('Base de custo atualizada neste rascunho. Salve para confirmar.');
+}
+async function saveBudget(form){
+ if(!state.user||!state.budgetDraft||state.busy||state.cloudError)return;
+ const button=form.querySelector('[type=submit]');
+ if(button)button.disabled=true;state.busy=true;
+ try{
+  const f=Object.fromEntries(new FormData(form));
+  const draft={...state.budgetDraft};
+  for(const key of ['title','customer','project','location','notes','expiresOn'])
+   if(key in f)draft[key]=f[key];
+  draft.pricing=draft.pricing||createPricingSnapshot(state.data);
+  const valid=validateBudget(draft);
+  valid.id=state.budgetDraft.id||crypto.randomUUID();
+  valid.createdAt=state.budgetDraft.createdAt||new Date().toISOString();
+  await putRemote(auth,state.user.id,'budgets',valid);
+  const copy=structuredClone(state.data);
+  const index=copy.budgets.findIndex(x=>x.id===valid.id);
+  if(index>=0)copy.budgets[index]=valid;else copy.budgets.push(valid);
+  state.data=copy;
+  try{safeSave(localStorage,state.user.id,copy)}catch{/* cache opcional */}
+  state.budgetDraft=null;state.budgetError='';go('budgets');
+  delayToast('Orçamento de demonstração salvo no Supabase.');
+ }catch(err){
+  state.budgetError=String(err.message||err);render();
+ }finally{state.busy=false;if(button)button.disabled=false;}
+}
+async function removeBudget(){
+ const item=state.budgetDraft;
+ if(!item?.id||!state.user||state.busy||state.cloudError)return;
+ if(!confirm('Excluir o orçamento de demonstração "'+item.title+'"? A ação é irreversível.'))return;
+ state.busy=true;
+ try{
+  await deleteRemote(auth,state.user.id,'budgets',item.id);
+  const copy=structuredClone(state.data);
+  copy.budgets=copy.budgets.filter(x=>x.id!==item.id);
+  state.data=copy;
+  try{safeSave(localStorage,state.user.id,copy)}catch{/* cache opcional */}
+  state.budgetDraft=null;go('budgets');delayToast('Orçamento de teste excluído.');
+ }catch(err){delayToast('Falha ao excluir orçamento: '+String(err.message||err));}
+ finally{state.busy=false;}
+}
+function exportBudget(){
+ if(!state.budgetDraft)return;
+ try{
+  const csv=budgetCsv(state.budgetDraft),blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=url;link.download='civolten-orcamento-demonstrativo.csv';
+  document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }catch(err){delayToast(String(err.message||err));}
+}
+function printBudget(){
+ try{
+  if(!state.budgetDraft||!priceBudget(state.budgetDraft))
+   throw Error('Configure e calcule os valores antes de gerar o PDF.');
+  render();window.print();
+ }catch(err){delayToast(String(err.message||err));}
+}
+
 function exportReport(){
  const csv=reportCsv(state.data,state.finMonth);
  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
@@ -330,6 +442,14 @@ mount.addEventListener('click',async event=>{
  }else if(action==='month-info'){
   delayToast('Exibindo os valores mensais cadastrados. Histórico por mês virá depois.');
  }else if(action==='soon'){delayToast('Esta função será construída após aprovarmos a base.');}
+ else if(action==='budget-new'){newBudget();}
+ else if(action==='budget-open'){openBudget(b.dataset.id);}
+ else if(action==='budget-add-item'){addBudgetItem();}
+ else if(action==='budget-remove-item'){removeBudgetItem(b.dataset.id);}
+ else if(action==='budget-refresh-pricing'){refreshBudgetPricing();}
+ else if(action==='budget-export'){exportBudget();}
+ else if(action==='budget-print'){printBudget();}
+ else if(action==='budget-delete'){await removeBudget();}
  else if(action==='new-income'){openEditor('ledger',null,'income');}
  else if(action==='new-expense'){openEditor('ledger',null,'expense');}
  else if(action==='mark-paid'){await markPaid(b.dataset.id);}
@@ -347,6 +467,7 @@ mount.addEventListener('click',async event=>{
  }
 });
 mount.addEventListener('input',event=>{
+ if(updateBudgetField(event.target))return;
  if(event.target.matches('[data-pricing-input]')){
   if(event.target.name==='quoteHours')state.quoteHours=event.target.value;
   if(event.target.name==='quoteExtra')state.quoteExtra=event.target.value;
@@ -359,6 +480,7 @@ mount.addEventListener('input',event=>{
  });
 });
 mount.addEventListener('submit',event=>{
+ if(event.target.id==='budget-form'){event.preventDefault();void saveBudget(event.target);return;}
  if(event.target.id==='company-form'){event.preventDefault();void saveCompanySettings(event.target);return;}
  if(event.target.id!=='auth-form')return;
  event.preventDefault();submitLogin(event.target);
@@ -401,4 +523,5 @@ render();
 session();
 window.CIVOLTENPreview={get view(){return state.view},get data(){return structuredClone(state.data)},
  get user(){return state.user},go,openEditor,summary:()=>summary(state.data),
- get company(){return structuredClone(state.data.company)}};
+ get company(){return structuredClone(state.data.company)},
+ get budgets(){return structuredClone(state.data.budgets)}};

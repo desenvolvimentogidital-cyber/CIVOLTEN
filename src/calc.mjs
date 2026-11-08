@@ -22,7 +22,7 @@ export function fmt(value){
  return value==null?'':String(value).replace('.',',');
 }
 export function fresh(){
- return {version:1,fixed:[],variable:[],employees:[],ledger:[],payroll:{...DEFAULT_PAYROLL},company:{...DEFAULT_COMPANY},updatedAt:null};
+ return {version:1,fixed:[],variable:[],employees:[],ledger:[],budgets:[],payroll:{...DEFAULT_PAYROLL},company:{...DEFAULT_COMPANY},updatedAt:null};
 }
 export function fixedMonthly(item){
  const val=cents(item.amount);
@@ -114,6 +114,7 @@ export function safeLoad(storage,userId){
    variable:Array.isArray(raw.variable)?raw.variable:[],
    employees:Array.isArray(raw.employees)?raw.employees:[],
    ledger:Array.isArray(raw.ledger)?raw.ledger:[],
+   budgets:Array.isArray(raw.budgets)?raw.budgets:[],
    payroll:payrollConfig(raw.payroll),company:companyConfig(raw.company)};
  }catch{return fresh();}
 }

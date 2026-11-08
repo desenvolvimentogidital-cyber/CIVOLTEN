@@ -112,3 +112,40 @@ não substitui PGDAS-D/contabilidade, nem emite NF-e ou NFS-e.
 \`cv_company_settings_v1\` com RLS por usuário, uma linha por usuário. Nenhum dado de
 funcionários, custos, faturamento, encargos CLT ou contratos antigos é alterado.
 A tabela precisa existir antes do frontend atualizado entrar em produção.
+
+
+## Orçamentos de demonstração (fase de validação — não oficial)
+
+Acesso em **Início → Orçamentos** ou **Mais → Orçamentos de teste**.
+Este módulo foi desenvolvido para testar a construção de orçamentos antes de importar
+qualquer tabela oficial. O catálogo contém apenas oito serviços **inventados**,
+identificados pelo prefixo \`DEMO-\`. Nenhum deles é SINAPI, SIURB, ORSE,
+SICRO ou qualquer composição pública; preços, horas e insumos são ilustrativos.
+
+**Fluxo de teste:** informar título, cliente, obra, local, validade e notas;
+adicionar itens fictícios ou manual, editar descrição, unidade, quantidade,
+horas por unidade e custo direto por unidade; visualizar custo da mão de obra,
+impostos e margem aplicados; salvar/editar/excluir rascunho no Supabase;
+abrir versão demonstrativa para impressão/PDF e exportar CSV.
+Nenhum orçamento de exemplo é criado automaticamente na conta.
+
+**Precificação:** usa custo mensal da empresa dividido pela capacidade
+produtiva e multiplica pelas horas totais de cada item, acrescentando apenas
+seus custos diretos não incluídos nos custos mensais. Cada linha recebe o
+divisor \`1 - alíquota efetiva - margem desejada\`. O valor final soma as
+linhas, com cálculo monetário em centavos. O snapshot de alíquota, margem,
+custo mensal e capacidade fica no orçamento, evitando mudanças silenciosas
+quando o custo da empresa for atualizado. Para usar os novos valores, o
+usuário deve selecionar **Atualizar base de preços** e salvar novamente.
+Sem base completa o rascunho pode ser salvo, mas não mostra preço de venda.
+
+**Segurança:** \`supabase/budget_drafts_v1.sql\` cria
+\`cv_budget_drafts_v1\`, isolada por \`auth.uid()\` com quatro políticas RLS.
+Apenas rascunhos marcados como demonstração são permitidos nesta fase; não
+existem vínculos automáticos com contas a receber, faturamento, estoque,
+contratos ou execução de obra. A impressão contém aviso visível de teste.
+
+**Próxima fase, apenas após aprovar o fluxo:** escolher fonte pública
+(SINAPI ou outro referencial), estado, mês-base, composições e insumos reais,
+unidades, produtividade e metodologia de BDI com rastreabilidade. A estrutura
+de orçamento atual não inventa código oficial nem valor de referência.

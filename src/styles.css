@@ -326,3 +326,77 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 :root[data-civolten-theme]:not([data-civolten-theme="gold"]) .fin-entry-icon{
  background:var(--theme-deep);border-color:var(--theme-base)
 }
+
+
+/* Orçamentos · fase de teste com serviços fictícios. */
+.budget-screen{gap:15px;min-width:0}
+.budget-demo-flag{display:inline-flex;align-items:center;gap:7px;align-self:flex-start;padding:8px 11px;border:1px solid #daaa4b;border-radius:24px;background:#392b15;color:#ffda89;font-size:12px;font-weight:800}
+.budget-new-button{min-height:55px;font-size:15px}
+.budget-list{display:grid;gap:10px}
+.budget-list-item{width:100%;min-width:0;border:1px solid #ad956e;background:linear-gradient(130deg,#272223,#151415);border-radius:14px;padding:13px 10px;display:flex;align-items:center;gap:9px;color:#fff5e9;text-align:left}
+.budget-list-icon{flex:none;color:var(--gold);background:#3f301c;border:1px solid #9f8051;padding:9px;border-radius:11px}
+.budget-list-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:5px}
+.budget-list-copy b{font-size:13px;overflow-wrap:anywhere}
+.budget-list-copy small{font-size:11px;color:#e4d2be;overflow-wrap:anywhere}
+.budget-list-copy em{font-size:10px;color:#bfae9e;font-style:normal}
+.budget-list-total{display:flex;flex-direction:column;align-items:flex-end;text-align:right;max-width:44%;gap:7px}
+.budget-list-total strong{font-size:12px;color:var(--gold);overflow-wrap:anywhere}
+.budget-list-total small{font-size:10px;color:#e0c58c}
+.budget-form{display:grid;gap:13px}
+.budget-editor-head{background:#25201d;border:1px solid #998065;border-radius:13px;padding:13px;display:grid;gap:7px}
+.budget-editor-head span{font-weight:820;font-size:13px;color:var(--gold)}
+.budget-editor-head p{font-size:12px;line-height:1.5;margin:0;color:#d8c5b2}
+.budget-section-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0 5px;border-bottom:1px solid #887761}
+.budget-section-heading h2{font-size:17px;margin:0;color:#ffdea0}
+.budget-section-heading span{font-size:11px;color:#d3c5b5}
+.budget-picker{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:9px}
+.budget-picker .outlined-button{font-size:12px;padding:8px 10px;min-height:46px;border-radius:10px;gap:5px;display:flex;align-items:center;justify-content:center}
+.budget-picker select{max-width:100%;width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;background:#211e1f;color:#fff;border:1px solid #ad9277;border-radius:10px;min-height:46px;padding:9px 6px;font-size:13px}
+.budget-screen textarea{width:100%;background:#1c1a1b;border:1px solid #a89b91;border-radius:11px;color:#fff;padding:12px;font:inherit;resize:vertical}
+.budget-items{display:grid;gap:11px}
+.budget-item{border:1px solid #958477;border-radius:14px;padding:14px 12px;display:grid;gap:10px;background:linear-gradient(125deg,#242122,#171719)}
+.budget-item-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.budget-item-top span{font-size:10px;color:#f5d5a2;font-weight:780;letter-spacing:.3px}
+.budget-remove{display:flex;align-items:center;gap:5px;background:#3c1e1c;color:#ffb9ab;border:1px solid #a5675c;border-radius:8px;padding:7px;font-size:11px}
+.budget-item-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.budget-item .modal-field{font-size:11px}
+.budget-item .modal-field input{padding:9px 7px;min-width:0;min-height:42px;font-size:15px}
+.budget-refresh{display:flex;align-items:center;gap:9px;padding:11px 12px;border-radius:11px;background:#22211c;color:var(--gold);border:1px solid #a58653;font-weight:790;font-size:12px}
+#budget-price-preview{display:grid;gap:13px}
+.budget-overview{display:grid;gap:8px;border:1px solid #897568;border-radius:12px;padding:12px;background:#201b1d}
+.budget-overview>div{display:flex;justify-content:space-between;gap:10px;font-size:12px;line-height:1.4;color:#dbcfbf}
+.budget-overview b{color:#ffe1a6;text-align:right}
+.budget-priced-items{display:grid;gap:10px;border:1px solid #98816c;border-radius:12px;padding:12px}
+.budget-priced-items>div{display:flex;justify-content:space-between;gap:9px;border-bottom:1px solid #554c48;padding-bottom:9px}
+.budget-priced-items>div:last-child{border:0;padding-bottom:0}
+.budget-priced-items span{font-size:12px;line-height:1.4;flex:1;overflow-wrap:anywhere}
+.budget-priced-items small{display:block;font-size:10px;color:#cbb9a6;margin-top:3px}
+.budget-priced-items strong{font-size:13px;color:#ffdf9c;text-align:right;overflow-wrap:anywhere}
+.budget-save-button{font-size:15px;min-height:54px}
+.budget-secondary-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.budget-secondary-actions button{font-size:12px;min-height:50px;padding:7px 6px;display:flex;align-items:center;justify-content:center;gap:6px}
+.budget-print{display:none}
+@media(max-width:355px){
+ .budget-picker{grid-template-columns:1fr}
+ .budget-picker .outlined-button{width:100%}
+ .budget-item-fields{gap:7px}
+}
+@media print{
+ @page{size:A4;margin:15mm}
+ .budget-editor{display:block!important;color:#111!important;background:#fff!important}
+ .budget-editor>*:not(.budget-print){display:none!important}
+ .budget-print{display:block!important;color:#111;background:#fff;font-family:Arial,sans-serif}
+ .budget-print header{padding:15px 0;border-bottom:2px solid #222}
+ .budget-print h1{margin:0;font-size:22px;color:#111}
+ .budget-print h2{margin:8px 0;font-size:17px;color:#111}
+ .budget-print p{font-size:12px;line-height:1.5}
+ .budget-print-details{margin:12px 0;display:grid;grid-template-columns:1fr 1fr;gap:3px 15px}
+ .budget-print-details p{margin:2px 0}
+ .budget-print table{border-collapse:collapse;width:100%;font-size:11px}
+ .budget-print th,.budget-print td{border:1px solid #666;text-align:left;padding:9px 6px;color:#111;overflow-wrap:anywhere}
+ .budget-print th:last-child,.budget-print td:last-child{text-align:right}
+ .budget-print-total{font-size:20px!important;font-weight:bold;text-align:right;margin-top:17px}
+ .budget-print-notes{white-space:pre-wrap}
+ .budget-print footer{border-top:1px solid #888;margin-top:20px;padding-top:12px;font-size:11px}
+ .app-header,.bottom-nav,.app-skyline,.industrial-skyline,.edge-glint{display:none!important}
+}

@@ -7,7 +7,8 @@ export const TABLES={
  fixed:'cv_fixed_costs_v1',
  variable:'cv_variable_costs_v1',
  employees:'cv_employees_v1',
- ledger:'cv_financial_entries_v1'
+ ledger:'cv_financial_entries_v1',
+ budgets:'cv_budget_drafts_v1'
 };
 const normalize=(k,row)=>{
  if(k==='fixed')return {id:row.id,name:row.name,category:row.category||'',
@@ -15,6 +16,10 @@ const normalize=(k,row)=>{
  if(k==='variable')return {id:row.id,name:row.name,category:row.category||'',
   unit:row.unit,unitCost:Number(row.unit_cost),
   monthQty:row.month_qty===null?null:Number(row.month_qty)};
+ if(k==='budgets')return {id:row.id,title:row.title,customer:row.customer,
+  project:row.project||'',location:row.location||'',notes:row.notes||'',
+  expiresOn:row.expires_on||null,items:row.items||[],pricing:row.pricing||null,
+  status:'draft',demo:true,createdAt:row.created_at||null};
  if(k==='ledger')return {id:row.id,kind:row.kind,title:row.title,
   party:row.party||'',project:row.project||'',category:row.category||'',
   amount:Number(row.amount),dueDate:row.due_date,paidDate:row.paid_date,
@@ -34,6 +39,10 @@ const payload=(k,item,userId)=>{
   amount:item.amount,frequency:item.frequency};
  if(k==='variable')return {...base,name:item.name,category:item.category,
   unit:item.unit,unit_cost:item.unitCost,month_qty:item.monthQty};
+ if(k==='budgets')return {...base,title:item.title,customer:item.customer,
+  project:item.project||'',location:item.location||'',notes:item.notes||'',
+  expires_on:item.expiresOn||null,items:item.items,pricing:item.pricing||null,
+  status:'draft',demo:true};
  if(k==='ledger')return {...base,kind:item.kind,title:item.title,
   party:item.party||'',project:item.project||'',category:item.category||'',
   amount:item.amount,due_date:item.dueDate,paid_date:item.paidDate||null,
