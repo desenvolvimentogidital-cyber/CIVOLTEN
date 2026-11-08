@@ -42,6 +42,8 @@ jobs:
           test -s dist/assets/civolten-logo.png
           test -s dist/assets/civolten-simbolo.png
           test -s dist/assets/skyline.svg
+          test -s dist/assets/proposal-construction.svg
+          node --check src/budget-print.mjs
           node --check scripts/build.mjs
           node --check src/main.mjs
           node --check src/views.mjs
