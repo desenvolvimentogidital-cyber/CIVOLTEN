@@ -8,8 +8,8 @@ import {validateCompany,THEMES} from './pricing.mjs';
 import {companyView,appearanceView,pricingPreview} from './settings-ui.mjs';
 import {validateEntry,reportCsv,localToday,currentMonth} from './finance.mjs';
 import {financeView,reportsView,ledgerEditorView} from './finance-ui.mjs';
-import {createService,createPricingSnapshot,validateBudget,budgetCsv,priceBudget} from './budget.mjs';
-import {budgetsView,budgetEditorView,budgetPreview} from './budget-ui.mjs';
+import {createService,createPricingSnapshot,validateBudget,validateBudgetItem,budgetCsv,priceBudget} from './budget.mjs';
+import {budgetsView,budgetEditorView,budgetPreview,budgetServiceDialog} from './budget-ui.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,payrollSettingsView,cltBreakdownHtml,e,icon} from './views.mjs';
 const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
 const SUPABASE_PUBLIC_KEY=__CIVOLTEN_SUPABASE_PUBLISHABLE_KEY__;
@@ -331,13 +331,47 @@ function updateBudgetField(element){
  if(node)node.innerHTML=budgetPreview(draft);
  return true;
 }
+function openBudgetService(service,editing=false){
+ if(!state.budgetDraft)return;
+ state.editor={kind:'budget-service',id:editing?service.id:null,service:structuredClone(service)};
+ modal.innerHTML=budgetServiceDialog(service,editing);
+ modal.showModal();
+ modal.querySelector('[name="description"]')?.focus();
+}
 function addBudgetItem(){
  if(!state.budgetDraft)return;
  if(state.budgetDraft.items.length>=100){delayToast('Máximo de 100 serviços por orçamento.');return;}
  const code=mount.querySelector('#budget-catalog')?.value;
- try{state.budgetDraft.items.push(createService(code,crypto.randomUUID()));
-  state.budgetError='';render();}
+ try{openBudgetService(createService(code,crypto.randomUUID()));}
  catch(err){delayToast(String(err.message||err));}
+}
+function editBudgetItem(id){
+ const service=state.budgetDraft?.items.find(item=>item.id===id);
+ if(service)openBudgetService(service,true);
+}
+function saveBudgetService(form){
+ if(state.editor?.kind!=='budget-service'||!state.budgetDraft)return;
+ if(!form.reportValidity())return;
+ const errorNode=form.querySelector('#budget-service-error');
+ try{
+  const input=Object.fromEntries(new FormData(form));
+  const service=validateBudgetItem({...state.editor.service,...input});
+  const index=state.budgetDraft.items.findIndex(item=>item.id===service.id);
+  if(state.editor.id){
+   if(index<0)throw Error('Serviço não encontrado no orçamento.');
+   state.budgetDraft.items[index]=service;
+  }else{
+   if(index>=0)throw Error('Identificador de serviço duplicado.');
+   if(state.budgetDraft.items.length>=100)throw Error('Máximo de 100 serviços por orçamento.');
+   state.budgetDraft.items.push(service);
+  }
+  closeEditor();state.budgetError='';render();
+  mount.querySelectorAll('[data-budget-item]').forEach(card=>{
+   if(card.dataset.budgetItem===service.id)card.scrollIntoView({block:'center',behavior:'instant'});
+  });
+ }catch(err){
+  if(errorNode){errorNode.textContent=String(err.message||err);errorNode.hidden=false;}
+ }
 }
 function removeBudgetItem(id){
  if(!state.budgetDraft)return;
@@ -461,6 +495,7 @@ mount.addEventListener('click',async event=>{
  else if(action==='budget-new'){newBudget();}
  else if(action==='budget-open'){openBudget(b.dataset.id);}
  else if(action==='budget-add-item'){addBudgetItem();}
+ else if(action==='budget-edit-item'){editBudgetItem(b.dataset.id);}
  else if(action==='budget-remove-item'){removeBudgetItem(b.dataset.id);}
  else if(action==='budget-refresh-pricing'){refreshBudgetPricing();}
  else if(action==='budget-export'){exportBudget();}
@@ -519,6 +554,9 @@ modal.addEventListener('input',event=>{
  if(['salary','benefits','extras'].includes(event.target.name))refreshCltPreview();
 });
 modal.addEventListener('submit',event=>{
+ if(event.target.id==='budget-service-form'){
+  event.preventDefault();saveBudgetService(event.target);return;
+ }
  if(event.target.id==='payroll-form'){
   event.preventDefault();void savePayrollSettings(event.target);return;
  }
@@ -526,6 +564,7 @@ modal.addEventListener('submit',event=>{
  event.preventDefault();void saveRecord(event.target);
 });
 modal.addEventListener('click',event=>{if(event.target===modal)closeEditor();});
+modal.addEventListener('cancel',event=>{event.preventDefault();closeEditor();});
 if('serviceWorker' in navigator&&!E2E)
  window.addEventListener('load',()=>{
   const previouslyControlled=Boolean(navigator.serviceWorker.controller);
