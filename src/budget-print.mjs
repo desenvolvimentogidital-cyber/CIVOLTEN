@@ -1,80 +1,127 @@
-// CIVOLTEN • modelo aprovado V4 de proposta comercial para PDF/impressão.
-// HTML e CSS com logotipo verdadeiro: texto, linhas e valores continuam dinâmicos.
-// Nesta fase todos os orçamentos são demonstrativos — identificação obrigatória.
+// CIVOLTEN Signature · proposta comercial A4 em 3+ páginas.
+ // Os valores por item servem apenas ao cálculo administrativo.
+ // PDF comercial: serviços SEM preços; valor total EXCLUSIVAMENTE na última folha.
 import {brl} from './calc.mjs';
-import {priceBudget} from './budget.mjs';
+import {priceBudget,validateCommercial} from './budget.mjs';
 import {e,icon} from './views.mjs';
 
-const dateBR=date=>{
- if(!date)return 'Não definida';
- if(/^\d{4}-\d{2}-\d{2}$/.test(date))return date.slice(8,10)+'/'+date.slice(5,7)+'/'+date.slice(0,4);
- return 'Não definida';
+const logo='/assets/civolten-logo.png';
+const mark='/assets/civolten-simbolo.png';
+const show=(value,empty='Não informado')=>e(String(value||'').trim()||empty);
+const dateBR=value=>{
+ if(!value)return 'Não informada';
+ const match=/^(\d{4})-(\d\d)-(\d\d)/.exec(value);
+ return match?match[3]+'/'+match[2]+'/'+match[1]:'Não informada';
 };
-const createdBR=date=>{
- if(!date)return 'Prévia';
- const t=new Date(date);
- return Number.isNaN(t.getTime())?'Prévia':t.toLocaleDateString('pt-BR');
+const proposalRef=b=>{
+ const year=(b.createdAt||new Date().toISOString()).slice(0,4);
+ return b.id?'PC-'+year+'-'+String(b.id).slice(0,8).toUpperCase():'PRÉVIA';
 };
-const info=(symbol,label,value)=>'<div class="budget-pdf-info-row">'+
- '<span class="budget-pdf-info-icon">'+icon(symbol,17)+'</span>'+
- '<span class="budget-pdf-info-value"><b>'+label+'</b><span>'+e(value||'—')+'</span></span></div>';
-
+export function splitServicePages(rows){
+ const groups=[];let buffer=[],weight=0;
+ for(const row of rows){
+  const description=String(row.description||'');
+  const unitWeight=Math.max(3,Math.ceil(description.length/46)+1);
+  if(buffer.length && (weight+unitWeight>21||buffer.length>=8)){
+   groups.push(buffer);buffer=[];weight=0;
+  }
+  buffer.push(row);weight+=unitWeight;
+ }
+ if(buffer.length)groups.push(buffer);
+ return groups;
+}
+const imageBrand=()=>'<img class="proposal-wordmark" src="'+logo+'" alt="CIVOLTEN · Elétrica e Construção Civil">'+
+ '<img class="proposal-brand-icon" src="'+mark+'" alt="">';
+const watermark=()=>'<div class="proposal-watermark" aria-hidden="true">'+
+ '<img class="budget-pdf-watermark-icon" src="'+mark+'" alt="">'+
+ '<img class="budget-pdf-watermark-logo" src="'+logo+'" alt=""></div>';
+const header=(kind,number,total,ref,demo)=>'<header class="proposal-header">'+
+ '<div class="proposal-brand-area">'+imageBrand()+'</div>'+
+ '<div class="proposal-header-art" aria-hidden="true"></div>'+
+ '<div class="proposal-header-caption"><span>'+kind+'</span>'+
+ '<span>'+show(ref)+' · PÁGINA '+number+' DE '+total+'</span></div>'+
+ '</header>';
+const footer=(number,total,demo)=>'<footer class="proposal-footer">'+
+ '<div class="proposal-footer-accent" aria-hidden="true"></div>'+
+ '<div class="proposal-footer-three"><span>'+icon('hardhat',16)+' Segurança em cada etapa</span>'+
+ '<span>'+icon('check',16)+' Qualidade nos serviços</span>'+
+ '<span>'+icon('calendar',16)+' Compromisso com o prazo</span></div>'+
+ (demo?'<small>DOCUMENTO DE TESTE · Serviços fictícios, sem referência oficial de preços · '+number+'/'+total+'</small>':'')+
+ '</footer>';
+const page=(cls,no,total,ref,demo,body,tag='PROPOSTA COMERCIAL')=>
+ '<section class="proposal-page '+cls+'" data-pdf-page="'+no+'">'+
+ watermark()+header(tag,no,total,ref,demo)+
+ '<div class="proposal-page-content">'+
+ (demo?'<div class="proposal-demo-ribbon">DEMONSTRAÇÃO · NÃO ENVIAR AO CLIENTE</div>':'')+
+ body+'</div>'+
+ footer(no,total,demo)+'</section>';
+const coverInfo=(symbol,label,value)=>'<div class="proposal-cover-info-row">'+
+ '<span>'+icon(symbol,20)+'</span><div><b>'+label+'</b><em>'+show(value)+'</em></div></div>';
+const cover=(b,no,total,ref,demo)=>
+ '<div class="proposal-cover-visual" aria-hidden="true"></div>'+
+ '<div class="proposal-cover-band"><b>'+icon('file',16)+' Proposta nº '+show(ref)+'</b>'+
+ '<span>Página '+no+' de '+total+'</span></div>'+
+ '<div class="proposal-cover-text"><span class="proposal-mini-line"></span>'+
+ '<h1>Proposta<br><strong>Comercial</strong></h1>'+
+ '<p>Apresentamos nossa proposta de execução de serviços, com solução técnica, qualidade, segurança e compromisso.</p></div>'+
+ '<div class="proposal-cover-card">'+
+ coverInfo('user','Cliente',b.customer)+
+ coverInfo('home','Obra / Local',[b.project,b.location].filter(Boolean).join(' · '))+
+ coverInfo('calendar','Data da proposta',dateBR(b.createdAt?.slice(0,10)))+
+ coverInfo('clock','Validade',dateBR(b.expiresOn))+'</div>'+
+ '<div class="proposal-cover-bottom">'+
+ '<div>'+icon('wrench',19)+' Instalações elétricas</div>'+
+ '<div>'+icon('building',19)+' Construção civil</div>'+
+ '<div>'+icon('clipboard',19)+' Serviços técnicos</div></div>';
+const services=(rows,index,count,ref)=>
+ '<div class="proposal-section-heading"><h1>Descrição dos serviços</h1>'+
+ '<p>Escopo previsto para execução conforme o orçamento informado.</p></div>'+
+ '<div class="proposal-services-table-wrap"><table class="proposal-services-table">'+
+ '<colgroup><col style="width:73%"><col style="width:13%"><col style="width:14%"></colgroup>'+
+ '<thead><tr><th>Descrição do serviço</th><th>Unidade</th><th>Quantidade</th></tr></thead><tbody>'+
+ rows.map(r=>'<tr><td>'+e(r.description)+'</td><td>'+e(r.unit)+'</td>'+
+ '<td>'+e(Number(r.quantity).toLocaleString('pt-BR',{maximumFractionDigits:3}))+'</td></tr>').join('')+
+ '</tbody></table></div>'+
+ '<div class="proposal-services-caption"><span>'+icon('check',16)+
+ ' Descrições e quantitativos</span><span>Relação '+index+' de '+count+'</span></div>'+
+ '<div class="proposal-services-watermark-note">CIVOLTEN · ELÉTRICA E CONSTRUÇÃO CIVIL</div>';
+const card=(symbol,label,value)=>'<div class="proposal-term">'+
+ '<span class="proposal-term-icon">'+icon(symbol,21)+'</span>'+
+ '<div><h2>'+label+'</h2><p>'+show(value,'A definir entre as partes')+'</p></div></div>';
+const conditions=(b,p,c)=>
+ '<div class="proposal-conditions-heading"><h1>Investimento e<br><strong>Condições Comerciais</strong></h1></div>'+
+ '<div class="proposal-investment"><div><span>'+icon('coins',29)+'</span>'+
+ '<b>INVESTIMENTO TOTAL<br>DA PROPOSTA</b></div>'+
+ '<strong>'+brl(p.totalSale)+'</strong></div>'+
+ '<div class="proposal-terms">'+
+ card('coins','Condições de Pagamento',c.paymentTerms)+
+ card('calendar','Prazo de Execução',c.executionTerm)+
+ card('check','Validade da Proposta',dateBR(b.expiresOn))+
+ card('settings','Garantia dos Serviços',c.warrantyTerms)+
+ '</div>'+
+ (c.scopeNotes?'<div class="proposal-scope"><b>Escopo e exclusões</b><p>'+e(c.scopeNotes)+'</p></div>':'')+
+ '<div class="proposal-notes"><h2>'+icon('file',19)+' Observações</h2>'+
+ '<p>'+show(b.notes,'Sem observações adicionais.')+'</p></div>'+
+ '<div class="proposal-accept"><h2>'+icon('check',19)+' Aceite da Proposta</h2>'+
+ '<p>Declaro ciência do escopo, valor e condições descritos nesta proposta.</p>'+
+ '<div class="proposal-signatures"><div><span></span><b>'+show(p.snapshot.companyName||'CIVOLTEN')+
+ '</b><small>Responsável pela proposta</small></div><div><span></span><b>Cliente / Contratante</b>'+
+ '<small>Nome e assinatura</small></div></div></div>'+
+ (c.companyContact||c.companyDocument?'<div class="proposal-contact">'+
+ (c.companyContact?'<span>Contato: '+e(c.companyContact)+'</span>':'')+
+ (c.companyDocument?'<span>Documento: '+e(c.companyDocument)+'</span>':'')+
+ '</div>':'');
 export function printableBudget(b){
- let p;
- try{p=priceBudget(b)}catch{return '';}
- if(!p)return '';
- const isDemo=b.demo!==false;
- const ref=b.id?'CV-'+String(b.id).slice(0,8).toUpperCase():'Prévia';
- const origin=p.snapshot.companyName?.trim()||'CIVOLTEN';
- return '<div class="budget-print budget-pdf-v4" role="document" aria-label="Proposta comercial CIVOLTEN para impressão">'+
-  '<div class="budget-pdf-watermark" aria-hidden="true">'+
-   '<img class="budget-pdf-watermark-icon" src="/assets/civolten-simbolo.png" alt="">'+
-   '<img class="budget-pdf-watermark-logo" src="/assets/civolten-logo.png" alt=""></div>'+
-  '<div class="budget-pdf-content">'+
-   '<header class="budget-pdf-header">'+
-    '<span class="budget-pdf-header-accent" aria-hidden="true"></span>'+
-    '<img class="budget-pdf-brand" src="/assets/civolten-logo.png" alt="CIVOLTEN — Elétrica & Construção Civil">'+
-    '<span class="budget-pdf-header-divider" aria-hidden="true"></span>'+
-    '<img class="budget-pdf-symbol" src="/assets/civolten-simbolo.png" alt="Ícone da CIVOLTEN">'+
-   '</header>'+
-   '<section class="budget-pdf-heading"><span class="budget-pdf-heading-bar" aria-hidden="true"></span>'+
-    '<div class="budget-pdf-heading-copy"><p class="budget-pdf-overline">CIVOLTEN · ELÉTRICA & CONSTRUÇÃO CIVIL</p>'+
-    '<h1>'+(isDemo?'ORÇAMENTO DEMONSTRATIVO':'PROPOSTA COMERCIAL')+'</h1>'+
-    (isDemo?'<span class="budget-pdf-test-tag">NÃO ENVIAR AO CLIENTE</span>'+
-     '<p class="budget-pdf-subtitle">Serviços fictícios utilizados para validação do sistema.</p>':
-     '<p class="budget-pdf-subtitle">Proposta de execução de serviços de elétrica e construção civil.</p>')+
-    '</div></section>'+
-   '<section class="budget-pdf-client" aria-label="Dados da proposta">'+
-     '<div class="budget-pdf-client-col">'+
-      info('file','Proposta',b.title)+
-      info('building','Obra',b.project||'Não informada')+
-      info('calendar','Validade',dateBR(b.expiresOn))+
-     '</div>'+
-     '<div class="budget-pdf-client-col">'+
-      info('user','Cliente',b.customer)+
-      info('home','Local da obra',b.location||'Não informado')+
-      info('clipboard','Referência',ref)+
-     '</div>'+
-   '</section>'+
-   '<section class="budget-pdf-services" aria-label="Serviços da proposta">'+
-    '<div class="budget-pdf-section-label"><h2>Descrição dos serviços</h2></div>'+
-    '<table class="budget-pdf-table"><colgroup><col class="budget-pdf-col-service"><col class="budget-pdf-col-qty"><col class="budget-pdf-col-unit"><col class="budget-pdf-col-total"></colgroup>'+
-     '<thead><tr><th>Serviço</th><th>Qtd.</th><th>Un.</th><th>Preço total</th></tr></thead><tbody>'+
-      p.rows.map(item=>'<tr><td>'+e(item.description)+'</td><td>'+e(item.quantity.toLocaleString('pt-BR'))+'</td>'+
-       '<td>'+e(item.unit)+'</td><td>'+brl(item.selling)+'</td></tr>').join('')+
-     '</tbody></table>'+
-   '</section>'+
-   '<section class="budget-pdf-summary" aria-label="Valor total da proposta">'+
-    '<div class="budget-pdf-total"><span>TOTAL</span><strong>'+brl(p.totalSale)+'</strong></div>'+
-   '</section>'+
-   '<section class="budget-pdf-notes"><div class="budget-pdf-notes-title">'+
-    '<span class="budget-pdf-notes-icon">'+icon('clipboard',15)+'</span><h2>OBSERVAÇÕES</h2>'+
-   '</div><div class="budget-pdf-notes-body">'+(b.notes?e(b.notes):'')+'</div></section>'+
-   '<footer class="budget-pdf-footer">'+
-    '<p><strong>'+(isDemo?'DOCUMENTO DE TESTE.':'PROPOSTA COMERCIAL.')+'</strong> '+
-      (isDemo?'Não é proposta comercial válida nem contém referência oficial de preços.':
-       'Valores e condições sujeitos à validade indicada nesta proposta.')+'</p>'+
-    '<p class="budget-pdf-origin">Emitido por '+e(origin)+' · '+e(createdBR(b.createdAt))+'</p>'+
-   '</footer>'+
-  '</div></div>';
+ let priced;
+ try{priced=priceBudget(b)}catch{return '';}
+ if(!priced)return '';
+ const c=validateCommercial(b.commercial),groups=splitServicePages(priced.rows);
+ const total=groups.length+2,ref=proposalRef(b),demo=b.demo!==false;
+ const pages=[page('proposal-cover',1,total,ref,demo,cover(b,1,total,ref,demo))];
+ groups.forEach((chunk,i)=>pages.push(page('proposal-services',i+2,total,ref,demo,
+  services(chunk,i+1,groups.length,ref),'PROPOSTA COMERCIAL · SERVIÇOS')));
+ pages.push(page('proposal-conditions',total,total,ref,demo,conditions(b,priced,c),
+  'INVESTIMENTO E CONDIÇÕES COMERCIAIS'));
+ return '<div class="budget-print budget-pdf-v5" role="document" aria-label="Proposta CIVOLTEN Signature para impressão">'+
+ pages.join('')+'</div>';
 }

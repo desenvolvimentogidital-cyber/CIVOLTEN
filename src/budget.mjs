@@ -62,6 +62,18 @@ export function validateBudgetItem(row){
  if(!id)throw Error('Identificador do item ausente.');
  return {id,source,sourceCode,description,unit,quantity,laborHours,directCost};
 }
+export function validateCommercial(raw={}){
+ // Campos opcionais; nenhum prazo, pagamento ou garantia é presumido.
+ const c=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
+ return {
+  paymentTerms:safeText(c.paymentTerms,500,'Condições de pagamento'),
+  executionTerm:safeText(c.executionTerm,260,'Prazo de execução'),
+  warrantyTerms:safeText(c.warrantyTerms,360,'Garantia dos serviços'),
+  scopeNotes:safeText(c.scopeNotes,900,'Escopo e exclusões'),
+  companyContact:safeText(c.companyContact,200,'Contato da empresa'),
+  companyDocument:safeText(c.companyDocument,40,'Documento da empresa')
+ };
+}
 export function validateBudget(raw){
  const title=safeText(raw.title,180,'Título');
  const customer=safeText(raw.customer,180,'Cliente');
@@ -79,7 +91,7 @@ export function validateBudget(raw){
  if(new Set(items.map(x=>x.id)).size!==items.length)throw Error('Itens duplicados no orçamento.');
  const snapshot=raw.pricing==null?null:validateBudgetSnapshot(raw.pricing);
  return {id:raw.id,title,customer,project,location,notes,expiresOn:expiresOn||null,
-  items,pricing:snapshot,status:'draft',demo:true,createdAt:raw.createdAt||null};
+  items,commercial:validateCommercial(raw.commercial),pricing:snapshot,status:'draft',demo:true,createdAt:raw.createdAt||null};
 }
 export function createPricingSnapshot(data){
  const cost=summary(data),cfg=companyConfig(data.company),cap=capacity(cfg);

@@ -1,56 +1,88 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {printableBudget} from '../src/budget-print.mjs';
+import {printableBudget,splitServicePages} from '../src/budget-print.mjs';
 import {createService,priceBudget} from '../src/budget.mjs';
 import {brl} from '../src/calc.mjs';
-const budget=(changes={})=>({
+
+const budget=(override={})=>({
  id:'12345678-1111-4111-8111-111111111111',
- title:'Reformas de teste',customer:'Cliente ilustrativo',project:'Reforma da sala',
- location:'São Paulo / SP',expiresOn:'2026-12-01',notes:'Serviços conforme descrito.',
+ title:'Reformas de teste',customer:'Cliente ilustrativo',
+ project:'Reforma da sala',location:'São Paulo / SP',
+ expiresOn:'2026-12-01',notes:'Serviços conforme descrito.',
  demo:true,status:'draft',createdAt:'2026-11-07T12:00:00.000Z',
- items:[{...createService('DEMO-E01','item-1'),quantity:2}],
+ items:[{...createService('DEMO-E01','item-1'),quantity:2},
+  {...createService('DEMO-C02','item-2'),quantity:3}],
+ commercial:{paymentTerms:'Pagamento em duas etapas, conforme acordado',
+  executionTerm:'Execução em até 20 dias úteis após liberação da obra',
+  warrantyTerms:'Conforme contrato e legislação aplicável',
+  scopeNotes:'Não inclui intervenções não descritas',
+  companyContact:'contato@exemplo.test',companyDocument:'00.000.000/0000-00'},
  pricing:{monthlyCostCents:1600000,productiveHours:320,taxPct:10,marginPct:20,
- companyName:'CIVOLTEN',capturedOn:'2026-11-07'},...changes
+  companyName:'CIVOLTEN',capturedOn:'2026-11-07'},...override
 });
-test('PDF V4 integra os dois arquivos oficiais da marca e marca-d’água por página',()=>{
+const pages=html=>Array.from(html.matchAll(/<section class="proposal-page ([^"]+)" data-pdf-page="(\d+)">/g)).map(x=>({kind:x[1],page:Number(x[2])}));
+const section=html=>html.split(/(?=<section class="proposal-page )/).slice(1);
+
+test('Signature possui capa, serviços e condições nessa ordem',()=>{
  const html=printableBudget(budget());
- assert.match(html,/assets\/civolten-logo\.png/);
- assert.match(html,/assets\/civolten-simbolo\.png/);
- assert.match(html,/budget-pdf-watermark-icon/);
- assert.match(html,/budget-pdf-watermark-logo/);
- assert.match(html,/ORÇAMENTO DEMONSTRATIVO/);
- assert.match(html,/<h2>Descrição dos serviços<\/h2>/);
- assert.doesNotMatch(html,/budget-pdf-section-label[^>]*><span>01<\/span>/);
- assert.match(html,/NÃO ENVIAR AO CLIENTE/);
- assert.match(html,/DOCUMENTO DE TESTE/);
- assert.match(html,/CV-12345678/);
+ assert.match(html,/budget-pdf-v5/);
+ assert.deepEqual(pages(html).map(x=>x.kind),['proposal-cover','proposal-services','proposal-conditions']);
+ assert.match(html,/Proposta<br><strong>Comercial<\/strong>/);
+ assert.match(html,/Descrição dos serviços/);
+ assert.match(html,/INVESTIMENTO TOTAL/);
 });
-test('preço do PDF sempre é o total calculado de linhas, não valor fixo do mockup',()=>{
- const b=budget();
- const html=printableBudget(b);
- assert.ok(html.includes(brl(priceBudget(b).totalSale)));
- assert.ok(html.includes(brl(priceBudget(b).rows[0].selling)));
- assert.ok(!html.includes('47.540,31'));
+test('preço total aparece exclusivamente na folha de condições; nenhuma linha tem preço',()=>{
+ const b=budget(),p=priceBudget(b),html=printableBudget(b);
+ const parts=section(html);
+ assert.equal(parts.length,3);
+ const total=brl(p.totalSale);
+ assert.equal(html.split(total).length-1,1,'Valor único, sem duplicidade na descrição dos serviços');
+ assert.ok(parts[2].includes(total));
+ for(const part of parts.slice(0,2)){
+  assert.doesNotMatch(part,/R\$\s*[\d.]/);
+  assert.doesNotMatch(part,/Valor unitário|Valor total|Preço total|Total dos serviços/);
+ }
+ assert.match(parts[1],/<th>Descrição do serviço<\/th><th>Unidade<\/th><th>Quantidade<\/th>/);
+ assert.match(parts[1],/Instalação de ponto elétrico/);
+ assert.doesNotMatch(parts[1],/<th>.*Valor/);
  assert.doesNotMatch(html,/Lucro gerencial|Alíquota aplicada|Custo mensal da empresa/);
 });
-test('dados de cliente e observações escapam HTML e são dinâmicos',()=>{
- const html=printableBudget(budget({
-  customer:'João <script>alert(1)</script>',
-  notes:'& descrição personalizada'
+test('todas as páginas têm logotipo, número e marca-d’água; sem caixa de seção 01',()=>{
+ const html=printableBudget(budget());
+ assert.equal((html.match(/class="proposal-watermark"/g)||[]).length,3);
+ assert.equal((html.match(/class="proposal-wordmark"/g)||[]).length,3);
+ assert.equal((html.match(/data-pdf-page=/g)||[]).length,3);
+ assert.match(html,/PC-2026-12345678/);
+ assert.doesNotMatch(html,/budget-pdf-section-label[^>]*><span>01/);
+ assert.match(html,/DEMONSTRAÇÃO · NÃO ENVIAR AO CLIENTE/);
+ assert.match(html,/DOCUMENTO DE TESTE/);
+});
+test('paginação divide itens sem alterar totais, e o fechamento permanece no fim',()=>{
+ const rows=Array.from({length:30},(_,i)=>({
+  description:'Serviço executado conforme memorial e especificações '+i,unit:'un',quantity:i+1
  }));
- assert.ok(html.includes('João &lt;script&gt;alert(1)&lt;/script&gt;'));
- assert.ok(!html.includes('<script>alert(1)</script>'));
- assert.ok(html.includes('&amp; descrição personalizada'));
- assert.match(html,/Reforma da sala/);
- assert.match(html,/Cliente ilustrativo|João/);
+ const chunks=splitServicePages(rows);
+ assert.ok(chunks.length>=4);
+ assert.deepEqual(chunks.flat(),rows);
+ const b=budget({items:Array.from({length:30},(_,i)=>({...createService('DEMO-E01','i'+i),quantity:i+1}))});
+ const html=printableBudget(b),found=pages(html);
+ assert.equal(found.length,chunks.length+2);
+ assert.equal(found[0].kind,'proposal-cover');
+ assert.equal(found.at(-1).kind,'proposal-conditions');
+ assert.equal((html.match(/<strong>R\$\s/g)||[]).length,1);
 });
-test('proposta futura sem itens fictícios não recebe aviso de teste',()=>{
- const b=budget({demo:false});
+test('condições comerciais são campos dinâmicos, escapados e sem prazos inventados',()=>{
+ const b=budget({commercial:{paymentTerms:'<script>alert(1)</script>',
+  executionTerm:'até 45 dias',warrantyTerms:'A combinar'}});
  const html=printableBudget(b);
- assert.match(html,/PROPOSTA COMERCIAL/);
- assert.doesNotMatch(html,/NÃO ENVIAR AO CLIENTE/);
- assert.doesNotMatch(html,/DOCUMENTO DE TESTE/);
+ assert.match(html,/&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+ assert.doesNotMatch(html,/<script>/);
+ assert.match(html,/até 45 dias/);
+ assert.match(html,/A combinar/);
+ const blank=printableBudget(budget({commercial:{}}));
+ assert.match(blank,/A definir entre as partes/);
+ assert.doesNotMatch(blank,/Garantia de 12 meses|30 dias corridos/);
 });
-test('rascunho sem preço validado não imprime uma proposta vazia',()=>{
- assert.equal(printableBudget(budget({pricing:null})), '');
+test('não gera PDF com preços ainda indisponíveis',()=>{
+ assert.equal(printableBudget(budget({pricing:null})),'');
 });

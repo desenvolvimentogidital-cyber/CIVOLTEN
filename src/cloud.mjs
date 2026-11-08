@@ -19,6 +19,7 @@ const normalize=(k,row)=>{
  if(k==='budgets')return {id:row.id,title:row.title,customer:row.customer,
   project:row.project||'',location:row.location||'',notes:row.notes||'',
   expiresOn:row.expires_on||null,items:row.items||[],pricing:row.pricing||null,
+  commercial:row.commercial||{},
   status:'draft',demo:true,createdAt:row.created_at||null};
  if(k==='ledger')return {id:row.id,kind:row.kind,title:row.title,
   party:row.party||'',project:row.project||'',category:row.category||'',
@@ -42,6 +43,7 @@ const payload=(k,item,userId)=>{
  if(k==='budgets')return {...base,title:item.title,customer:item.customer,
   project:item.project||'',location:item.location||'',notes:item.notes||'',
   expires_on:item.expiresOn||null,items:item.items,pricing:item.pricing||null,
+  commercial:item.commercial||{},
   status:'draft',demo:true};
  if(k==='ledger')return {...base,kind:item.kind,title:item.title,
   party:item.party||'',project:item.project||'',category:item.category||'',

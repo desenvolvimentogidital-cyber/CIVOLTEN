@@ -304,7 +304,7 @@ async function markPaid(id){
 function newBudget(){
  if(state.cloudError){delayToast('Banco indisponível: não será criado rascunho offline.');return;}
  state.budgetDraft={id:null,title:'Orçamento demonstrativo',customer:'',
-  project:'',location:'',expiresOn:'',notes:'',items:[],
+  project:'',location:'',expiresOn:'',notes:'',items:[],commercial:{},
   pricing:createPricingSnapshot(state.data),status:'draft',demo:true,createdAt:null};
  state.budgetError='';go('budget-edit');
 }
@@ -323,6 +323,8 @@ function updateBudgetField(element){
   const item=draft.items.find(x=>x.id===container.dataset.budgetItem);
   if(item&&['description','unit','quantity','laborHours','directCost'].includes(key))
    item[key]=element.value;
+ }else if(['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument'].includes(key)){
+  draft.commercial={...(draft.commercial||{}),[key]:element.value};
  }else if(['title','customer','project','location','expiresOn','notes'].includes(key))
   draft[key]=element.value;
  const node=mount.querySelector('#budget-price-preview');
@@ -358,6 +360,9 @@ async function saveBudget(form){
   const draft={...state.budgetDraft};
   for(const key of ['title','customer','project','location','notes','expiresOn'])
    if(key in f)draft[key]=f[key];
+  draft.commercial={...(draft.commercial||{})};
+  for(const key of ['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument'])
+   if(key in f)draft.commercial[key]=f[key];
   draft.pricing=draft.pricing||createPricingSnapshot(state.data);
   const valid=validateBudget(draft);
   valid.id=state.budgetDraft.id||crypto.randomUUID();
@@ -404,8 +409,8 @@ function printBudget(){
   if(!state.budgetDraft||!priceBudget(state.budgetDraft))
    throw Error('Configure e calcule os valores antes de gerar o PDF.');
   render();
-  if(!mount.querySelector('.budget-pdf-v4'))
-   throw Error('Modelo de PDF V4 indisponível. Atualize o aplicativo e tente novamente.');
+  if(!mount.querySelector('.budget-pdf-v5 .proposal-page'))
+   throw Error('Proposta Signature indisponível. Atualize o aplicativo e tente novamente.');
   window.print();
  }catch(err){delayToast(String(err.message||err));}
 }
