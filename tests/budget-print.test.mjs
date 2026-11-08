@@ -68,8 +68,7 @@ test('todas as páginas têm logotipo, número e marca-d’água; sem caixa de s
  assert.equal((html.match(/data-pdf-page=/g)||[]).length,3);
  assert.match(html,/PC-2026-12345678/);
  assert.doesNotMatch(html,/budget-pdf-section-label[^>]*><span>01/);
- assert.match(html,/DEMONSTRAÇÃO · NÃO ENVIAR AO CLIENTE/);
- assert.match(html,/DOCUMENTO DE TESTE/);
+ assert.doesNotMatch(html,/DEMONSTRAÇÃO · NÃO ENVIAR AO CLIENTE|DOCUMENTO DE TESTE/);
 });
 test('paginação divide itens sem alterar totais, e o fechamento permanece no fim',()=>{
  const rows=Array.from({length:30},(_,i)=>({
