@@ -794,3 +794,307 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
  .budget-pdf-v5 .proposal-signatures small{font-size:7pt;color:#626060!important}
  .budget-pdf-v5 .proposal-contact{display:flex;justify-content:space-between;gap:4mm;margin-top:3mm;font-size:7.3pt;color:#777!important}
 }
+
+
+/* Signature Artes V2 • fotografia extraída da arte aprovada e armazenada no GitHub.
+   Sem URLs externas, APIs de imagem, fornecedores pagos ou dependência de rede na impressão.
+   CSS mantém todos os textos, preços e dados em elementos HTML dinâmicos. */
+@media print {
+ .budget-pdf-v5 .proposal-page{
+  background:linear-gradient(180deg,#fff 0%,#fff 92%,#fffdf9 100%)!important;
+ }
+ .budget-pdf-v5 .proposal-header{
+  position:absolute!important;display:block!important;height:65mm!important;
+  background:linear-gradient(110deg,#101115 0%,#1d2024 62%,#17171b 100%)!important;
+  border-bottom:.75mm solid #daa132!important;
+  box-shadow:0 1.5mm 1.7mm #13131325!important;
+ }
+ .budget-pdf-v5 .proposal-header:before{
+  z-index:7;top:-4mm;left:4mm;width:30mm;height:8mm;
+  border:0!important;border-left:2mm solid #ffc768!important;
+  background:linear-gradient(100deg,#ecb94e,transparent)!important;
+  transform:rotate(-45deg);
+ }
+ .budget-pdf-v5 .proposal-brand-area{
+  position:absolute;z-index:5;left:8mm;top:2mm;right:auto;
+  width:158mm;max-width:158mm;height:32mm;max-height:32mm;
+  padding:0!important;gap:2mm;display:flex;align-items:center;
+  overflow:hidden;
+ }
+ .budget-pdf-v5 .proposal-brand-icon{
+  display:block;order:0;flex:0 0 33mm;width:33mm!important;height:32mm!important;
+  object-fit:contain!important;max-width:none;
+  filter:drop-shadow(0 .3mm 1mm #0008);
+ }
+ .budget-pdf-v5 .proposal-wordmark{
+  display:block;order:1;flex:0 0 122mm;width:122mm!important;height:31mm!important;
+  max-height:31mm!important;object-fit:cover!important;object-position:center center!important;
+  filter:drop-shadow(0 .2mm .6mm #000a);
+ }
+ .budget-pdf-v5 .proposal-header-art{
+  position:absolute;right:0;top:0;z-index:1;
+  display:block!important;width:86mm;height:36mm;opacity:1!important;
+  background-image:linear-gradient(90deg,#16181c 0%,#16181ca6 27%,#0000 72%),url('/assets/proposal-photo-atlas.webp')!important;
+  background-repeat:no-repeat,no-repeat!important;
+  background-size:100% 100%,auto 270mm!important;
+  background-position:left top,right -200mm!important;
+  filter:saturate(1.1) contrast(1.13);
+ }
+ .budget-pdf-v5 .proposal-header-caption{
+  position:absolute;bottom:0;left:0;right:0;z-index:5;
+  height:29mm!important;min-height:29mm;margin:0!important;
+  border-top:.5mm solid #f1c064!important;border-bottom:.65mm solid #cc8721!important;
+  padding:3mm 10mm 2.5mm!important;
+  background:linear-gradient(100deg,#101115 0%,#181a20 58%,#08090c 100%)!important;
+  box-shadow:inset 0 -.4mm #a6752a!important;
+  display:flex;align-items:center;justify-content:space-between;gap:5mm;
+ }
+ .budget-pdf-v5 .proposal-header-caption-title{
+  flex:1;min-width:0;display:flex;flex-direction:column;gap:1.3mm;
+  text-align:left;align-self:center;
+ }
+ .budget-pdf-v5 .proposal-header-caption-title b{
+  font-weight:950!important;font-size:16.5pt!important;
+  letter-spacing:-.025em;line-height:1.04;color:#fff!important;
+  overflow-wrap:break-word;
+ }
+ .budget-pdf-v5 .proposal-header-caption-title strong{
+  color:#f9c661!important;font-size:inherit!important;
+  font-weight:950!important;
+ }
+ .budget-pdf-v5 .proposal-header-caption-title small{
+  letter-spacing:.26em;color:#f8f6f3!important;font-size:8pt!important;
+  line-height:1.6;font-weight:600;
+ }
+ .budget-pdf-v5 .proposal-header-caption-meta{
+  display:flex;flex:0 0 63mm;min-width:0;flex-direction:column;
+  gap:2.6mm;padding:1mm 0 1mm 5mm;
+  border-left:.5mm solid #dbaa40;align-items:flex-start;
+  text-align:left;font-size:9pt!important;
+ }
+ .budget-pdf-v5 .proposal-header-caption-meta b{
+  color:#f8ca5f!important;font-size:8.8pt!important;font-weight:800;
+  white-space:normal;overflow-wrap:anywhere;
+ }
+ .budget-pdf-v5 .proposal-header-caption-meta small{
+  color:#f8f8f7!important;font-size:9pt!important;font-weight:650;
+ }
+ .budget-pdf-v5 .proposal-page-content{
+  top:65mm!important;bottom:25mm!important;
+  padding:8mm 7mm 4mm!important;
+  background:transparent!important;
+ }
+ .budget-pdf-v5 .proposal-footer{
+  height:25mm!important;z-index:5;
+  padding:5mm 8mm 2mm!important;
+  background:linear-gradient(95deg,#101215 0%,#181c22 65%,#111316 100%)!important;
+  border-top:1.2mm solid #f3bd4b!important;
+  border-radius:11mm 0 0 0!important;
+  box-shadow:0 -1.5mm 2mm #0003!important;
+ }
+ .budget-pdf-v5 .proposal-footer:after{
+  content:"";position:absolute;z-index:0;right:0;top:0;
+  width:66mm;height:24mm;opacity:.88;
+  background-image:linear-gradient(90deg,#17181b 3%,transparent 49%),url('/assets/proposal-photo-atlas.webp')!important;
+  background-repeat:no-repeat!important;
+  background-size:100% 100%,auto 212mm!important;
+  background-position:left top,right bottom!important;
+  pointer-events:none;
+ }
+ .budget-pdf-v5 .proposal-footer-three,
+ .budget-pdf-v5 .proposal-footer-slogan{
+  position:relative;z-index:2;
+ }
+ .budget-pdf-v5 .proposal-footer-slogan{
+  display:flex;align-items:center;justify-content:flex-start;align-self:stretch;
+  gap:4mm;padding-left:4mm;font-size:10.2pt!important;line-height:1.22;
+  color:#f8f6f1!important;font-weight:650;
+ }
+ .budget-pdf-v5 .proposal-footer-slogan>span svg{color:#ffc953!important;width:9mm;height:9mm}
+ .budget-pdf-v5 .proposal-footer-slogan strong{color:#f2be4c!important;font-size:10.2pt!important}
+ .budget-pdf-v5 .proposal-footer small{
+  position:relative;z-index:5;color:#f4dab6!important;
+  font-size:6.2pt!important;text-shadow:0 1px #000;
+ }
+ .budget-pdf-v5 .proposal-watermark{opacity:.10!important;top:112mm!important;}
+ .budget-pdf-v5 .proposal-watermark .budget-pdf-watermark-icon{
+  width:122mm;height:113mm;
+ }
+ .budget-pdf-v5 .proposal-watermark .budget-pdf-watermark-logo{
+  width:166mm;height:35mm;object-fit:cover;object-position:center;
+ }
+ .budget-pdf-v5 .proposal-demo-ribbon{
+  font-size:6.3pt!important;padding:.9mm 2mm!important;
+  color:#775011!important;background:#ffefc7!important;
+  z-index:11;top:1mm;right:7mm;
+ }
+ /* CAPA: foto de obra/capacete do modelo aprovado + textos dinâmicos. */
+ .budget-pdf-v5 .proposal-cover .proposal-header{
+  height:65mm!important;
+ }
+ .budget-pdf-v5 .proposal-cover .proposal-header-caption{
+  height:14mm!important;min-height:14mm!important;
+  justify-content:flex-start;padding:2mm 10mm!important;
+ }
+ .budget-pdf-v5 .proposal-cover .proposal-header-caption-title{display:none!important}
+ .budget-pdf-v5 .proposal-cover .proposal-header-caption-meta{
+  border:0!important;padding:0!important;display:flex;flex-direction:row;
+  align-items:center;justify-content:flex-start;gap:7mm;flex:1;
+ }
+ .budget-pdf-v5 .proposal-cover .proposal-header-caption-meta small{
+  border-left:.4mm solid #c49b48;padding-left:7mm;
+ }
+ .budget-pdf-v5 .proposal-cover .proposal-page-content{
+  inset:65mm 0 25mm 0!important;padding:0!important;
+  background-image:
+    linear-gradient(90deg,#111319 0%,#12151be5 30%,#181d21ba 43%,#1720274f 53%,#0000 66%),
+    url('/assets/proposal-photo-atlas.webp')!important;
+  background-position:left top,right top!important;
+  background-size:100% 100%,auto 281mm!important;
+  background-repeat:no-repeat!important;
+  background-color:#171b1e!important;
+ }
+ .budget-pdf-v5 .proposal-cover-band{display:none!important}
+ .budget-pdf-v5 .proposal-cover-visual{background:linear-gradient(145deg,#0000 50%,#fff8d515 100%)!important}
+ .budget-pdf-v5 .proposal-cover-text{
+  left:13mm!important;top:7mm!important;width:116mm!important;
+  filter:drop-shadow(0 1mm 1.5mm #0006);
+ }
+ .budget-pdf-v5 .proposal-cover-text .proposal-mini-line{
+  height:1.6mm;width:34mm;
+  background:linear-gradient(90deg,#f4b635,#ffeb9d,#dda323)!important;
+  box-shadow:0 0 2mm #ffc25870;
+  margin-bottom:4mm;
+ }
+ .budget-pdf-v5 .proposal-cover-text h1{
+  color:#fff!important;font-size:41pt!important;
+  font-weight:950;line-height:1.04!important;
+  letter-spacing:-.06em!important;
+ }
+ .budget-pdf-v5 .proposal-cover-text h1 strong{
+  color:#ffd06c!important;font-size:41pt!important;
+  text-shadow:0 1mm 2mm #140f0999;
+ }
+ .budget-pdf-v5 .proposal-cover-text p{
+  margin:4mm 0 0!important;
+  max-width:94mm!important;font-size:9.5pt!important;
+  line-height:1.45!important;color:#fff8ed!important;
+ }
+ .budget-pdf-v5 .proposal-cover-card{
+  top:75mm!important;left:8mm!important;width:103mm!important;
+  padding:4mm 5.5mm!important;border-radius:5mm!important;
+  border:.8mm solid #dca13c!important;
+  background:linear-gradient(145deg,#fffefa 0%,#f7f6f3 68%,#efede8)!important;
+  box-shadow:0 0 2.2mm #f4b441aa,0 3mm 6mm #0008!important;
+ }
+ .budget-pdf-v5 .proposal-cover-info-row{min-height:22mm!important;padding:2.8mm 0!important}
+ .budget-pdf-v5 .proposal-cover-info-row b{font-size:9.3pt!important;font-weight:850}
+ .budget-pdf-v5 .proposal-cover-info-row em{font-size:9.1pt!important}
+ .budget-pdf-v5 .proposal-cover-bottom{
+  height:23mm!important;bottom:0!important;left:0;right:0;gap:1mm;
+  padding:3mm 6mm!important;
+  background:linear-gradient(95deg,#101115,#1b1e23 65%,#101114)!important;
+  border-top:1mm solid #f4bf4e!important;
+  border-top-left-radius:9mm;
+  box-shadow:0 -1mm 1mm #aa7428b0!important;
+ }
+ .budget-pdf-v5 .proposal-cover-bottom div{
+  flex:1;gap:1mm;justify-content:center;max-width:25%;
+  font-size:7.3pt!important;color:#f5ecd9!important;white-space:normal;
+ }
+ .budget-pdf-v5 .proposal-cover-bottom svg{flex:none;color:#f3bf4f!important}
+ .budget-pdf-v5 .proposal-cover>.proposal-footer{
+  height:25mm!important;border-radius:0!important;
+ }
+ .budget-pdf-v5 .proposal-cover>.proposal-footer:after{display:none!important}
+ /* SERVIÇOS: tarja dourada angulada e tabela ampla sem coluna de preços. */
+ .budget-pdf-v5 .proposal-services .proposal-page-content{
+  top:65mm!important;bottom:26mm!important;padding:9mm 6mm 4mm!important;
+ }
+ .budget-pdf-v5 .proposal-section-heading{
+  display:block;position:relative;border:0!important;
+  padding:3mm 6mm 2.5mm!important;width:122mm;
+  height:14mm;max-height:14mm;margin:1mm 0 7mm!important;
+  background:linear-gradient(110deg,#ffd77d 0%,#f6b92c 58%,#ffdb79 100%)!important;
+  clip-path:polygon(0 0,100% 0,95% 100%,0 100%);
+  filter:drop-shadow(0 .6mm .5mm #b07224);
+ }
+ .budget-pdf-v5 .proposal-section-heading h1{
+  margin:0!important;color:#17191c!important;font-size:20pt!important;
+  line-height:1.1!important;letter-spacing:-.045em!important;font-weight:950;
+ }
+ .budget-pdf-v5 .proposal-section-heading p{display:none!important}
+ .budget-pdf-v5 .proposal-services-table-wrap{
+  border:.3mm solid #c79b39!important;border-radius:3mm!important;
+  box-shadow:0 .5mm .6mm #9d792844!important;background:#ffffffc4!important;
+ }
+ .budget-pdf-v5 .proposal-services-table th{
+  background:linear-gradient(100deg,#111216,#25272b)!important;
+  color:#fffdfa!important;border-right:.2mm solid #8b712e!important;
+  padding:3.3mm 4mm!important;font-size:9.3pt!important;
+ }
+ .budget-pdf-v5 .proposal-services-table th:last-child{border-right:0!important}
+ .budget-pdf-v5 .proposal-services-table td{
+  background:#ffffffbf!important;border-bottom:.25mm solid #beb8af!important;
+  font-size:9pt!important;line-height:1.3!important;
+  padding:3mm 3.6mm!important;hyphens:auto;
+ }
+ .budget-pdf-v5 .proposal-services-table tbody tr:nth-child(even) td{background:#f8f7f2af!important}
+ .budget-pdf-v5 .proposal-services-caption{
+  border-top:0!important;color:#a17e39!important;justify-content:space-between;
+  padding:2.5mm 3mm 0!important;
+ }
+ .budget-pdf-v5 .proposal-services-watermark-note{font-size:8pt;opacity:.60;letter-spacing:.13em}
+ /* CONDIÇÕES: título grande no cabeçalho, valor único em ouro. */
+ .budget-pdf-v5 .proposal-conditions .proposal-page-content{
+  top:65mm!important;bottom:25mm!important;padding:5mm 6mm 3mm!important;
+ }
+ .budget-pdf-v5 .proposal-conditions-heading{display:none!important}
+ .budget-pdf-v5 .proposal-investment{
+  min-height:29mm!important;display:flex;justify-content:space-between;
+  padding:4mm 4.5mm!important;
+  border:.6mm solid #e5a33c!important;border-radius:4mm!important;
+  box-shadow:0 0 1.7mm #dca73a8c!important;
+  background:linear-gradient(100deg,#101218,#232528)!important;
+ }
+ .budget-pdf-v5 .proposal-investment>div{gap:3mm!important}
+ .budget-pdf-v5 .proposal-investment>div span{color:#ffd25f!important}
+ .budget-pdf-v5 .proposal-investment b{
+  color:#fff9f0!important;font-size:11pt!important;line-height:1.25!important;
+ }
+ .budget-pdf-v5 .proposal-investment strong{
+  padding:5mm 5.3mm!important;
+  color:#141312!important;font-size:23pt!important;
+  background:linear-gradient(110deg,#e6a935,#fff6b3 47%,#cf8d1c)!important;
+  border:1px solid #f5d174;
+  box-shadow:0 1mm 2mm #0008,0 0 2mm #ffd16d80!important;
+ }
+ .budget-pdf-v5 .proposal-term{
+  min-height:17.5mm!important;border-radius:3mm!important;
+  background:#f2f2f0e0!important;
+  box-shadow:inset 0 .25mm #fff!important;
+ }
+ .budget-pdf-v5 .proposal-term-icon{
+  border-radius:3mm!important;color:#efbf49!important;
+  box-shadow:0 .5mm 1mm #0005!important;
+ }
+ .budget-pdf-v5 .proposal-term h2{font-size:10pt!important;font-weight:900}
+ .budget-pdf-v5 .proposal-term p{font-size:8.4pt!important}
+ .budget-pdf-v5 .proposal-notes{
+  border:.4mm solid #dba33b!important;
+  border-left:1.5mm solid #f0b33a!important;
+  box-shadow:0 .3mm 1mm #0001!important;
+ }
+ .budget-pdf-v5 .proposal-accept{
+  border-bottom:0!important;
+  background:#fafaf7b0!important;
+  padding-bottom:3mm!important;
+ }
+ .budget-pdf-v5 .proposal-accept h2{
+  width:fit-content;padding:2.2mm 7mm 2.2mm 3mm!important;
+  background:linear-gradient(105deg,#111217,#292b2f)!important;
+  border-left:2mm solid #f5b23d!important;
+  border-radius:2mm!important;
+  color:#f6d274!important;
+ }
+}
