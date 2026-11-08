@@ -101,6 +101,21 @@ export async function putRemote(client,userId,kind,item){
  if(!data?.id||data.id!==item.id)throw Error('Banco não confirmou o salvamento.');
  return item;
 }
+// Importação em lote, sob a identidade autenticada do usuário (RLS).
+// A lista é limitada aos custos; não altera funcionário, orçamento ou Financeiro.
+export async function putCostPresetsRemote(client,userId,kind,items){
+ checkId(userId);
+ if(!['fixed','variable'].includes(kind))throw Error('Só custos podem ser importados.');
+ if(!Array.isArray(items)||items.length>100)throw Error('Lote de custos inválido.');
+ if(!items.length)return [];
+ const rows=items.map(item=>payload(kind,item,userId));
+ const {data,error}=await client.from(TABLES[kind]).upsert(rows,{onConflict:'id'}).select('id');
+ if(error)throw Error('Não foi possível importar '+kind+': '+error.message);
+ const written=new Set((data||[]).map(row=>row.id));
+ if(written.size!==items.length||items.some(item=>!written.has(item.id)))
+  throw Error('O Supabase não confirmou todos os custos importados.');
+ return items;
+}
 export async function deleteRemote(client,userId,kind,id){
  checkId(userId);
  if(!TABLES[kind])throw Error('Tipo de cadastro inválido.');
