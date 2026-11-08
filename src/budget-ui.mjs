@@ -22,7 +22,7 @@ function error(msg){return '<p class="form-error" role="alert">'+e(msg)+'</p>';}
 export function budgetsView(data){
  const rows=(data.budgets||[]).slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
  return '<section class="fin-screen budget-screen">'+header('Orçamentos','home')+
- '<p class="fin-intro">Orçamentos com produtividade por HH/un e custo direto interno. As 27 referências foram fornecidas pela CIVOLTEN, não são dados SINAPI verificados.</p>'+
+ '<p class="fin-intro">Orçamentos com produtividade por HH/un e custo direto interno. As faixas de HH foram fornecidas pela CIVOLTEN; não foram verificadas como composições SINAPI.</p>'+
  '<button type="button" class="outlined-button" data-go="catalog">'+icon('clipboard',18)+' Abrir catálogo completo de serviços</button>'+
  '<button class="gold-button budget-new-button" type="button" data-action="budget-new">'+icon('plus',22)+' Novo orçamento CIVOLTEN</button>'+
  (rows.length?'<div class="budget-list">'+rows.map(b=>{
@@ -40,12 +40,12 @@ export function budgetsView(data){
 function itemRow(item,index){
  const quantity=Number(item.quantity).toLocaleString('pt-BR',{maximumFractionDigits:3});
  const hours=Number(item.laborHours).toLocaleString('pt-BR',{maximumFractionDigits:3});
- const cost=money(Math.round(Number(item.directCost)*100));
+ const cost=item.directCost==null?'A informar':money(Math.round(Number(item.directCost)*100));
  return '<article class="budget-item budget-item-compact" data-budget-item="'+e(item.id)+'">'+
   '<div class="budget-item-top"><span>'+(item.source==='demo'?'Serviço antigo de teste':item.source==='internal'?'Serviço CIVOLTEN':'Personalizado')+' · item '+(index+1)+'</span>'+
   '<button type="button" class="budget-remove" data-action="budget-remove-item" data-id="'+e(item.id)+'" aria-label="Remover serviço">'+icon('trash',16)+' Remover</button></div>'+
   '<h3>'+e(item.description)+'</h3>'+
-  '<p class="budget-item-summary">'+quantity+' '+e(item.unit)+' · '+hours+' HH/un. · custo direto/un. '+cost+'</p>'+
+  '<p class="budget-item-summary">'+quantity+' '+e(item.unit)+' · '+hours+' HH/un. · custo direto/un. '+cost+'</p>'+ 
   '<button type="button" class="budget-item-edit" data-action="budget-edit-item" data-id="'+e(item.id)+'">'+icon('edit',16)+' Editar serviço</button>'+
   '</article>';
 }
@@ -64,7 +64,7 @@ export function budgetServiceDialog(service,editing=false){
  serviceField('Unidade','unit',service.unit,'text','maxlength="20" required')+
  serviceField('Quantidade','quantity',service.quantity,'number','max="100000" required')+
  serviceField('Produtividade adotada (HH por unidade)','laborHours',service.laborHours,'number','max="10000" required')+
- serviceField('Custo direto interno por unidade (R$)','directCost',service.directCost,'number','max="999999999" required')+
+ serviceField('Custo direto interno por unidade (R$)','directCost',service.directCost??'','number','max="999999999" required')+
  '</div></div>'+
  (service.crewComposition?'<p class="fin-helper">Equipe sugerida: '+e(service.crewComposition)+'. Faixa inicial: '+e(service.hhMin)+' a '+e(service.hhMax)+' HH/'+e(service.unit)+'. O ponto médio é pré-selecionado e pode ser ajustado.</p>':'')+
  '<p class="fin-helper">Preencha o custo direto de materiais/equipamentos. Não repita salários já incluídos nos custos mensais da empresa.</p>'+
@@ -147,7 +147,7 @@ const preview=(draft)=>{
  '<div>Alíquota aplicada <b>'+e(p.snapshot.taxPct)+'%</b></div>'+
  '<div>Margem desejada <b>'+e(p.snapshot.marginPct)+'%</b></div>'+
  '<div>Base congelada em <b>'+dateBR(p.snapshot.capturedOn)+'</b></div></div>'+
- '<div class="budget-priced-items">'+p.rows.map(row=>'<div><span>'+e(row.description)+'<small>'+e(row.quantity)+' '+e(row.unit)+'</small></span>'+
+ '<div class="budget-priced-items">'+p.rows.map(row=>'<div><span>'+e(row.description)+'<small>'+e(row.quantity)+' '+e(row.unit)+' · valor unitário '+money(Math.round(row.unitSelling))+'/'+e(row.unit)+'</small></span>'+
  '<strong>'+money(row.selling)+'</strong></div>').join('')+'</div>';
 };
 export function budgetPreview(draft){return preview(draft);}
@@ -188,8 +188,8 @@ export function budgetEditorView(data,draft,err=''){
  }).join('')+
  '<option value="manual">Serviço personalizado</option></select></label>'+
  '<button type="button" class="outlined-button" data-action="budget-add-item">'+icon('plus',19)+' Abrir formulário</button></div>'+
- '<p class="fin-helper">As 27 referências CIVOLTEN têm faixa de HH e composição de equipe. O formulário adota inicialmente o ponto médio: revise as horas e informe o custo direto por unidade.</p>'+
- '<button class="outlined-button" type="button" data-go="catalog">'+icon('clipboard',18)+' Configurar outros serviços nas 10 etapas</button>'+
+ '<p class="fin-helper">Os serviços possuem faixas HH/un informadas pela CIVOLTEN; o ponto médio é uma estimativa inicial ajustável. Revise o método, equipe e custo direto interno antes da proposta.</p>'+
+ '<button class="outlined-button" type="button" data-go="catalog">'+icon('clipboard',18)+' Configurar outros serviços nas 11 etapas</button>'+
  (draft.items.length?'<div class="budget-items">'+draft.items.map(itemRow).join('')+'</div>':
  '<div class="fin-empty">Inclua ao menos um serviço para salvar o orçamento.</div>')+
  scheduleControls(data,draft)+
