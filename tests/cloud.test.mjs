@@ -55,7 +55,7 @@ test('outro usuário não consegue salvar, excluir ou ler registros alheios',asy
  assert.deepEqual((await fetchRemote(c,someone)).fixed,[]);
 });
 test('não existe tabela pública sem mapeamento',()=>{
- assert.deepEqual(Object.keys(TABLES),['fixed','variable','employees','ledger','budgets']);
+ assert.deepEqual(Object.keys(TABLES),['fixed','variable','employees','ledger','budgets','catalog']);
 });
 
 test('lançamentos de faturamento são persistidos e isolados por usuário',async()=>{
@@ -123,4 +123,21 @@ test('orçamentos demonstrativos são salvos, atualizados e excluídos via Supab
  assert.deepEqual((await fetchRemote(c,someone)).budgets,[]);
  await deleteRemote(c,userId,'budgets',id);
  assert.equal((await fetchRemote(c,userId)).budgets.length,0);
+});
+
+test('serviço e produtividade CIVOLTEN persistem por usuário sem mexer no orçamento',async()=>{
+ const c=createE2EClient();await c.auth.signInWithPassword({email:'teste@example.com'});
+ const entry={id:'12345678-1234-4234-8234-123456789012',code:'CV-05-202',
+  category:'05',description:'Fiação (Enfiamento de cabos elétricos até 6mm²)',
+  unit:'m',source:'internal',roles:[{role:'Eletricista',hours:.04},{role:'Ajudante',hours:.025}],
+  directCost:3.50,sinapiCode:'',referenceMonth:''};
+ await putRemote(c,userId,'catalog',entry);
+ const data=await fetchRemote(c,userId);
+ assert.equal(data.catalog.length,1);
+ assert.equal(data.catalog[0].code,'CV-05-202');
+ assert.equal(data.catalog[0].unit,'m');
+ assert.equal(data.catalog[0].roles[1].hours,.025);
+ assert.equal(data.catalog[0].directCost,3.5);
+ assert.deepEqual(data.budgets,[],'Não pode afetar orçamento salvo');
+ await assert.rejects(putRemote(c,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','catalog',entry),/RLS/);
 });
