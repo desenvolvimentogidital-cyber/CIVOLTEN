@@ -1,4 +1,5 @@
 import {brl,employeeCost,fixedMonthly,variableMonthly,summary,fmt} from './calc.mjs';
+import {costPresetsMissing} from './cost-presets.mjs';
 import {payrollConfig,payrollPreset} from './payroll.mjs';
 const SHAPES={
  zap:'<path d="m13 2-9 11h7l-1 9 10-12h-7l1-8z"/>',
@@ -117,22 +118,39 @@ export function costsView(data,tab='fixed'){
  const isFixed=tab==='fixed',all=isFixed?(data.fixed||[]):(data.variable||[]);
  const total=all.reduce((sum,item)=>sum+(isFixed?fixedMonthly(item):variableMonthly(item)||0),0);
  const date=new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+ const missing=costPresetsMissing(data);
+ const templateCount=missing.fixed.length+missing.variable.length;
+ const pending=all.filter(item=>isFixed?!(Number(item.amount)>0):
+  !(Number(item.unitCost)>0&&Number(item.monthQty)>=0&&item.monthQty!==null)).length;
  return '<div class="page-heading"><button class="small-square" data-go="home" aria-label="Voltar">'+icon('back',25)+'</button><h1>Custos da empresa</h1>'+
   '<button class="small-square" data-action="new-cost" aria-label="Adicionar custo">'+icon('plus',26)+'</button></div>'+
+  '<section class="cost-presets-panel" aria-label="Custos sugeridos para a empresa">'+
+  '<strong>'+icon('clipboard',19)+' Plano de custos para elétrica e construção</strong>'+
+  '<p>Modelos de despesas fixas e variáveis. Valores ficam em aberto para você preencher com dados reais. Funcionários, encargos CLT e tributos sobre vendas são calculados à parte; evite lançar esses valores novamente.</p>'+
+  (templateCount?
+   '<button class="outlined-button cost-presets-action" data-action="import-cost-presets" type="button">'+icon('plus',18)+
+   ' Salvar '+templateCount+' custos sugeridos</button>'+
+   '<small>Adiciona '+missing.fixed.length+' fixos e '+missing.variable.length+' variáveis à sua conta, sem substituir os existentes. Depois você pode editar ou excluir.</small>':
+   '<small class="cost-presets-ready">'+icon('check',16)+' Catálogo inicial disponível. Edite ou exclua os custos que não utiliza.</small>')+
+  '</section>'+
   '<button class="month-selector" data-action="month-info">'+icon('calendar',20)+'<span>'+e(date.charAt(0).toUpperCase()+date.slice(1))+'</span>'+icon('down',17)+'</button>'+
-  '<div class="tab-switch" role="tablist"><button role="tab" aria-selected="'+isFixed+'" data-tab="fixed" class="'+(isFixed?'selected':'')+'">Fixos</button>'+
-  '<button role="tab" aria-selected="'+!isFixed+'" data-tab="variable" class="'+(!isFixed?'selected':'')+'">Variáveis</button></div>'+
+  '<div class="tab-switch" role="tablist"><button role="tab" aria-selected="'+isFixed+'" data-tab="fixed" class="'+(isFixed?'selected':'')+'">Fixos ('+(data.fixed||[]).length+')</button>'+
+  '<button role="tab" aria-selected="'+!isFixed+'" data-tab="variable" class="'+(!isFixed?'selected':'')+'">Variáveis ('+(data.variable||[]).length+')</button></div>'+
   '<div class="total-cost-card"><span class="cost-big-icon">'+icon('coins',35)+'</span><div class="total-copy"><h2>'+(isFixed?'Total fixo mensal':'Total variável previsto')+'</h2>'+
-  '<p>'+(isFixed?'Soma de todos os custos fixos':'Com base nas quantidades informadas')+'</p></div><strong>'+brl(total)+'</strong></div>'+
+  '<p>'+(isFixed?'Soma dos custos com valor informado':'Quantidades e preços reais informados')+'</p></div><strong>'+brl(total)+'</strong></div>'+
+  (pending?'<p class="cost-pending-note">'+icon('info',16)+' '+pending+' custo(s) aguardando valor ou quantidade. Não foram somados como despesas reais.</p>':'')+
+  (all.length>6?'<label class="cost-search-label"><span>Buscar custo</span><input type="search" id="cost-search" placeholder="Nome ou categoria" autocomplete="off"></label>':'')+
   '<div class="cost-list">'+(all.length?all.map(item=>{
    const amount=isFixed?fixedMonthly(item):variableMonthly(item);
-   return '<button type="button" class="cost-row" data-action="edit" data-kind="'+tab+'" data-id="'+e(item.id)+'">'+
+   const ready=isFixed?Number(item.amount)>0:Number(item.unitCost)>0&&item.monthQty!==null&&Number(item.monthQty)>0;
+   const searchable=e((item.name+' '+(item.category||'')).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase());
+   return '<button type="button" class="cost-row" data-cost-search="'+searchable+'" data-action="edit" data-kind="'+tab+'" data-id="'+e(item.id)+'">'+
    '<span class="row-icon">'+icon(costIcon(item.category||item.name),27)+'</span>'+
-   '<span class="row-title"><b>'+e(item.name)+'</b><small>'+e(item.category||'Sem categoria')+'</small>'+
-   '<span class="period-pill">'+icon('calendar',14)+(isFixed?(item.frequency==='annual'?'Anual':'Mensal'):(item.monthQty==null?'Previsão pendente':'Mensal'))+'</span></span>'+
-   '<span class="row-price">'+brl(amount)+'</span><span class="row-arrow">'+icon('chevron',20)+'</span></button>';
+   '<span class="row-title"><b>'+e(item.name)+'</b><small>'+e(item.category||'Sem categoria')+
+   '</small><span class="period-pill">'+icon('calendar',14)+(isFixed?(item.frequency==='annual'?'Anual':'Mensal'):(item.monthQty==null?'Previsão pendente':'Mensal'))+'</span></span>'+
+   '<span class="row-price'+(ready?'':' is-pending')+'">'+(ready?brl(amount):'A preencher')+'</span><span class="row-arrow">'+icon('chevron',20)+'</span></button>';
   }).join(''):'<div class="empty-state">'+icon('coins',31)+'<b>Sem custos cadastrados</b>'+
-  '<span>Toque em “Novo custo” para começar.</span></div>')+'</div>'+
+  '<span>Toque em “Salvar custos sugeridos” ou “Novo custo” para começar.</span></div>')+'</div>'+
   '<div class="action-area"><button class="gold-button" type="button" data-action="new-cost">'+icon('plus',25)+' Novo custo</button></div>';
 }
 export function teamView(data){
