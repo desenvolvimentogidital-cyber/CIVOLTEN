@@ -4,7 +4,7 @@ import {priceBudget,DEMO_SERVICES} from './budget.mjs';
 import {icon,e} from './views.mjs';
 import {printableBudget} from './budget-print.mjs';
 import {companyConfig} from './pricing.mjs';
-import {schedulePlan,dateBR,suggestExecutionTerm} from './budget-schedule.mjs';
+import {schedulePlan} from './budget-schedule.mjs';
 const money=brl;
 const dateBR=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'')?v.slice(8,10)+'/'+v.slice(5,7)+'/'+v.slice(0,4):'Não definida';
 const header=(text,back)=>'<div class="page-heading"><button type="button" class="small-square" data-go="'+back+'" aria-label="Voltar">'+
