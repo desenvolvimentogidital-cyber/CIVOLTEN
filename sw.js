@@ -1,5 +1,5 @@
-const CACHE='civolten-premium-ui-v6-20261108-commercial-pdf-fresh';
-const PRECACHE=['/','/index.html','/styles.css?v=civolten-pdf-v4-20261108','/app.js?v=civolten-pdf-v4-20261108','/manifest.webmanifest',
+const CACHE='civolten-premium-ui-v7-20261108-pdf-sem-numero';
+const PRECACHE=['/','/index.html','/styles.css?v=civolten-pdf-v4-20261108-sem-numeros','/app.js?v=civolten-pdf-v4-20261108-sem-numeros','/manifest.webmanifest',
 '/assets/civolten-logo.png','/assets/civolten-simbolo.png','/assets/skyline.svg',
 '/assets/icon-192.png','/assets/icon-512.png'];
 self.addEventListener('install',e=>{
