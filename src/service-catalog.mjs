@@ -69,7 +69,14 @@ const raw=[
   ['Instalação de fechadura','un'],['Instalação de forro de gesso','m²'],
   ['Instalação de forro PVC','m²'],['Instalação de guarda-corpo','m'],
   ['Instalação de corrimão','m'],['Execução de passeio de concreto','m²']]],
- ['10','Testes e entrega da obra',[
+ ['10','Urbanização e serviços complementares',[
+  ['Execução de calçada e passeio externo','m²'],
+  ['Execução de muro de divisa','m²'],
+  ['Assentamento de piso intertravado externo','m²'],
+  ['Plantio de grama','m²'],
+  ['Preparo de solo para paisagismo','m²'],
+  ['Execução de rampa de acesso','m²']]],
+ ['11','Limpeza, testes e entrega da obra',[
   ['Limpeza grossa de obra','m²'],['Limpeza fina de obra','m²'],
   ['Remoção de entulho','m³'],['Teste de circuitos elétricos','circuito'],
   ['Teste de aterramento','un'],['Teste de instalações hidráulicas','trecho'],
