@@ -1,5 +1,5 @@
-const CACHE='civolten-premium-ui-v5-20261107-commercial-pdf';
-const PRECACHE=['/','/index.html','/styles.css','/app.js','/manifest.webmanifest',
+const CACHE='civolten-premium-ui-v6-20261108-commercial-pdf-fresh';
+const PRECACHE=['/','/index.html','/styles.css?v=civolten-pdf-v4-20261108','/app.js?v=civolten-pdf-v4-20261108','/manifest.webmanifest',
 '/assets/civolten-logo.png','/assets/civolten-simbolo.png','/assets/skyline.svg',
 '/assets/icon-192.png','/assets/icon-512.png'];
 self.addEventListener('install',e=>{
@@ -13,7 +13,9 @@ self.addEventListener('activate',e=>{
 self.addEventListener('fetch',e=>{
  const req=e.request,url=new URL(req.url);
  if(req.method!=='GET'||url.origin!==self.location.origin||url.pathname.startsWith('/api/'))return;
- e.respondWith(fetch(req).then(resp=>{
+ const freshCode=url.pathname==='/'||url.pathname==='/index.html'||
+  url.pathname==='/app.js'||url.pathname==='/styles.css';
+ e.respondWith(fetch(req,freshCode?{cache:'no-store'}:undefined).then(resp=>{
   if(resp.ok){
    const copy=resp.clone();
    e.waitUntil(caches.open(CACHE).then(c=>c.put(req,copy)).catch(()=>{}));
