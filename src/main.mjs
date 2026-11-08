@@ -30,7 +30,7 @@ const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
- cloudError:null,budgetDraft:null,budgetError:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,
+ cloudError:null,budgetDraft:null,budgetError:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
 };
@@ -54,7 +54,7 @@ function render(){
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
  else if(state.view==='appearance')html=appearanceView(state.data.company);
  else if(state.view==='budgets')html=budgetsView(state.data);
- else if(state.view==='catalog')html=catalogView(state.data,state.catalogCategory,state.catalogBack,state.catalogImport);
+ else if(state.view==='catalog')html=catalogView(state.data,state.catalogCategory,state.catalogBack,state.catalogImport,state.catalogSearch);
  else if(state.view==='budget-edit')html=budgetEditorView(state.data,state.budgetDraft,state.budgetError);
  else html=moreView(state.user,state.data);
  mount.innerHTML=shell(state.view,html);
@@ -724,8 +724,12 @@ mount.addEventListener('click',async event=>{
 });
 mount.addEventListener('input',event=>{
  if(event.target.id==='catalog-search'){
-  const query=event.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
-  mount.querySelectorAll('[data-catalog-search]').forEach(row=>row.hidden=!!query&&!row.dataset.catalogSearch.includes(query));
+  state.catalogSearch=event.target.value;
+  const cursor=event.target.selectionStart??state.catalogSearch.length;
+  render();
+  const input=mount.querySelector('#catalog-search');
+  input?.focus();
+  if(input?.setSelectionRange)input.setSelectionRange(cursor,cursor);
   return;
  }
  if(event.target.id==='cost-search'){
