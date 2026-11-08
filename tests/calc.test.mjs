@@ -12,7 +12,9 @@ test('fixos mensais e anuais e variável sem quantidade',()=>{
  assert.equal(fixedMonthly({amount:1200,frequency:'monthly'}),120000);
  assert.equal(fixedMonthly({amount:1200,frequency:'annual'}),10000);
  assert.equal(variableMonthly({unitCost:20,monthQty:5}),10000);
- assert.equal(variableMonthly({unitCost:20,monthQty:null}),null);
+ assert.equal(variableMonthly({unitCost:20,monthQty:null}),2000,'Preço informado, quantidade omitida: 1 unidade/mês');
+ assert.equal(variableMonthly({unitCost:20,monthQty:0}),0,'Quantidade zero explícita permanece zero');
+ assert.equal(variableMonthly({unitCost:0,monthQty:null}),null,'Modelo sem preço continua pendente');
 });
 test('CLT calcula automaticamente 13º, férias, FGTS, CPP e RAT usando cenário da empresa',()=>{
  const r=employeeCost({contractType:'clt',salary:3000,hours:160,
@@ -43,9 +45,9 @@ test('resumo distingue item pendente de custo real confirmado',()=>{
  d.variable.push({unitCost:20,monthQty:10},{unitCost:30,monthQty:null});
  d.employees.push({name:'Pedreiro',contractType:'clt',salary:3000,hours:160,fgtsPct:8,employerPct:20});
  const r=summary(d);
- assert.equal(r.fixed,120000);assert.equal(r.variable,20000);
- assert.equal(r.team,465834);assert.equal(r.total,605834);
- assert.equal(r.missing,1);assert.equal(r.complete,false);
+ assert.equal(r.fixed,120000);assert.equal(r.variable,23000);
+ assert.equal(r.team,465834);assert.equal(r.total,608834);
+ assert.equal(r.missing,0);assert.equal(r.assumedQuantities,1);assert.equal(r.complete,true);
 });
 test('cada conta usa chave independente; nunca toca na base antiga',()=>{
  const mem=new Map([['civolten_daily_v2','{"quotes":[{"id":"q-antigo"}]}']]);
@@ -61,5 +63,7 @@ test('validação de dados não aceita horas, salário ou percentuais negativos'
  assert.throws(()=>validate('fixed',{name:'Aluguel',amount:-1}),/válido/);
  assert.throws(()=>validate('employees',{name:'João',role:'Pedreiro',contractType:'clt',
  salary:3000,hours:-8}),/maiores que zero/);
- assert.deepEqual(validate('variable',{name:'Gás',unitCost:75,monthQty:''}).monthQty,null);
+ assert.equal(validate('variable',{name:'Gás',unitCost:75,monthQty:''}).monthQty,1);
+ assert.equal(validate('variable',{name:'Gás',unitCost:75,monthQty:0}).monthQty,0);
+ assert.equal(validate('variable',{name:'Gás',unitCost:0,monthQty:''}).monthQty,null);
 });
