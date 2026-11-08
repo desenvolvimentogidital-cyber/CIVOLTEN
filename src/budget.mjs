@@ -1,11 +1,13 @@
-// CIVOLTEN · MVP de orçamentos demonstrativos.
-// Catálogo inventado exclusivamente para homologação; nenhuma referência SINAPI/SIURB.
+// CIVOLTEN · orçamentos com referências internas de produtividade.
+// Serviços fictícios são mantidos APENAS para leitura dos orçamentos antigos.
 // Custos e alíquotas guardados como fotografia no rascunho: não mudam silenciosamente.
 import {summary,decimal,cents} from './calc.mjs';
 import {companyConfig,capacity,quoteFromCost} from './pricing.mjs';
 import {validDate,localToday} from './finance.mjs';
 import {validateSchedule,schedulePlan} from './budget-schedule.mjs';
+import {catalogHours} from './service-catalog.mjs';
 
+// Compatibilidade histórica: nunca incluir na seleção de novos orçamentos.
 export const DEMO_SERVICES=Object.freeze([
  {code:'DEMO-E01',description:'Instalação de ponto elétrico residencial (exemplo)',unit:'un',laborHours:2.5,directCost:35},
  {code:'DEMO-E02',description:'Instalação de luminária LED (exemplo)',unit:'un',laborHours:1.5,directCost:20},
@@ -38,8 +40,8 @@ export function createService(code,uuid){
  if(code!=='manual'&&!sample)throw Error('Serviço de demonstração não encontrado.');
  if(typeof uuid!=='string'||!uuid)throw Error('Identificador do item ausente.');
  return {id:uuid,source:sample?'demo':'manual',
-  sourceCode:sample?.code||'',description:sample?.description||'Serviço personalizado (teste)',
-  unit:sample?.unit||'un',quantity:1,laborHours:sample?.laborHours??1,
+  sourceCode:sample?.code||'',description:sample?.description||'Serviço personalizado',
+  unit:sample?.unit||'un',quantity:1,laborHours:sample?.laborHours??0,
   directCost:sample?.directCost??0};
 }
 export function validateBudgetItem(row){
@@ -54,14 +56,29 @@ export function validateBudgetItem(row){
  const directCost=moneyCheck(row.directCost,'Custo direto');
  const unit=safeText(row.unit,20,'Unidade');
  if(!unit)throw Error('Informe a unidade do serviço.');
- const source=row.source==='demo'?'demo':'manual';
- const sourceCode=source==='demo'?
+ const source=row.source==='demo'?'demo':row.source==='internal'?'internal':'manual';
+ const sourceCode=source==='demo'||source==='internal'?
   safeText(row.sourceCode,48,'Código do serviço'):'';
+ if(source==='internal'&&!/^CV-\d\d-\d{3}$/.test(sourceCode))
+  throw Error('Código interno do serviço inválido.');
  if(source==='demo'&&!DEMO_SERVICES.some(s=>s.code===sourceCode))
   throw Error('Código fictício de serviço inválido.');
  const id=safeText(row.id,64,'Identificador do item');
  if(!id)throw Error('Identificador do item ausente.');
- return {id,source,sourceCode,description,unit,quantity,laborHours,directCost};
+ const roles=source==='internal'&&Array.isArray(row.roles)?
+  row.roles.slice(0,3).map(r=>({role:safeText(r.role,80,'Profissional'),
+   hours:positive(r.hours,'coeficiente HH por unidade',{max:10000})})):[];
+ const reference=source==='internal'&&row.reference&&typeof row.reference==='object'?{
+  system:row.reference.system==='SINAPI'?'SINAPI':'INTERNO',
+  code:safeText(row.reference.code||'',48,'Código de referência'),
+  month:safeText(row.reference.month||'',7,'Competência'),
+  validation:safeText(row.reference.validation||'',180,'Proveniência')}:null;
+ const hhMin=source==='internal'&&row.hhMin!=null?positive(row.hhMin,'HH mínimo por unidade',{max:10000}):null;
+ const hhMax=source==='internal'&&row.hhMax!=null?positive(row.hhMax,'HH máximo por unidade',{max:10000}):null;
+ if(hhMin!==null&&hhMax!==null&&hhMin>hhMax)throw Error('Faixa de produtividade inválida.');
+ const crewComposition=source==='internal'?safeText(row.crewComposition||'',180,'Equipe estimada'):'';
+ return {id,source,sourceCode,description,unit,quantity,laborHours,directCost,
+  ...(source==='internal'?{roles,reference,crewComposition,hhMin,hhMax}:{} )};
 }
 export function validateCommercial(raw={}){
  // Campos opcionais; nenhum prazo, pagamento ou garantia é presumido.
@@ -91,9 +108,10 @@ export function validateBudget(raw){
  if(raw.items.length>100)throw Error('Máximo de 100 itens por orçamento.');
  const items=raw.items.map(validateBudgetItem);
  if(new Set(items.map(x=>x.id)).size!==items.length)throw Error('Itens duplicados no orçamento.');
+ if(raw.demo===false&&items.some(x=>x.source==='demo'))throw Error('Serviços fictícios não podem entrar no novo orçamento CIVOLTEN.');
  const snapshot=raw.pricing==null?null:validateBudgetSnapshot(raw.pricing);
  return {id:raw.id,title,customer,project,location,notes,expiresOn:expiresOn||null,
-  items,commercial:validateCommercial(raw.commercial),pricing:snapshot,status:'draft',demo:true,createdAt:raw.createdAt||null};
+  items,commercial:validateCommercial(raw.commercial),pricing:snapshot,status:'draft',demo:raw.demo!==false,createdAt:raw.createdAt||null};
 }
 export function createPricingSnapshot(data){
  const cost=summary(data),cfg=companyConfig(data.company),cap=capacity(cfg);
@@ -126,6 +144,8 @@ export function priceBudget(raw){
  if(!snapshot)return null;
  const p=validateBudgetSnapshot(snapshot);
  if(!Array.isArray(raw.items)||!raw.items.length)return null;
+ if(raw.demo===false&&raw.items.some(item=>!Number.isFinite(Number(item.laborHours))||Number(item.laborHours)<=0))
+  throw Error('Informe produtividade maior que zero em todos os serviços antes de calcular o preço profissional.');
  const config={reviewed:true,taxPct:p.taxPct,marginPct:p.marginPct};
  const settings=validateSchedule(raw.commercial?.schedule);
  if(settings.pricingMode==='days'){
@@ -193,14 +213,14 @@ export function budgetCsv(budget){
  const p=priceBudget(budget);
  if(!p)throw Error('Configure a empresa e calcule os preços antes de exportar.');
  const cells=[
- ['Orçamento demonstrativo',budget.title],['Cliente',budget.customer],
+ [budget.demo===false?'Orçamento CIVOLTEN':'Orçamento demonstrativo',budget.title],['Cliente',budget.customer],
  ['Obra',budget.project],['Local',budget.location],['Validade',budget.expiresOn||''],
  ['Base de custo',p.snapshot.capturedOn],
  ['Modalidade do preço',p.pricingMode==='days'?'Por dias úteis de execução':'Por horas-homem'],
  ['Dias úteis estimados',p.schedule?.days??''],['Profissionais estimados',p.schedule?.crew??''],
  ['Total do orçamento (R$)',(p.totalSale/100).toFixed(2)],
  [],
- ['Código demonstração','Serviço','Unidade','Quantidade','Horas/un','Custo direto/un (R$)',
+ ['Código de serviço','Serviço','Unidade','Quantidade','Horas-homem/un','Custo direto interno/un (R$)',
   'Valor de venda total (R$)']
  ];
  for(const item of p.rows)cells.push([item.sourceCode||'MANUAL',item.description,item.unit,

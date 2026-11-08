@@ -12,6 +12,9 @@ import {financeView,reportsView,ledgerEditorView} from './finance-ui.mjs';
 import {createService,createPricingSnapshot,validateBudget,validateBudgetItem,budgetCsv,priceBudget} from './budget.mjs';
 import {budgetsView,budgetEditorView,budgetPreview,budgetServiceDialog,budgetSchedulePreview,getBudgetSchedule} from './budget-ui.mjs';
 import {scheduleCsv,suggestExecutionTerm} from './budget-schedule.mjs';
+import {referenceService,referenceToBudgetItem} from './productivity-reference.mjs';
+import {catalogByCode,catalogRows,catalogReady,catalogHours,catalogToBudgetItem,validateCatalogRecord} from './service-catalog.mjs';
+import {catalogView,catalogEditorDialog} from './catalog-ui.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,payrollSettingsView,cltBreakdownHtml,e,icon} from './views.mjs';
 const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
 const SUPABASE_PUBLIC_KEY=__CIVOLTEN_SUPABASE_PUBLISHABLE_KEY__;
@@ -27,7 +30,7 @@ const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
- cloudError:null,budgetDraft:null,budgetError:'',
+ cloudError:null,budgetDraft:null,budgetError:'',catalogCategory:'03',catalogBack:'budgets',
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
 };
@@ -51,6 +54,7 @@ function render(){
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
  else if(state.view==='appearance')html=appearanceView(state.data.company);
  else if(state.view==='budgets')html=budgetsView(state.data);
+ else if(state.view==='catalog')html=catalogView(state.data,state.catalogCategory,state.catalogBack);
  else if(state.view==='budget-edit')html=budgetEditorView(state.data,state.budgetDraft,state.budgetError);
  else html=moreView(state.user,state.data);
  mount.innerHTML=shell(state.view,html);
@@ -165,7 +169,8 @@ async function signOut(){
 }
 function go(view){
  if(view==='soon'){delayToast('Este recurso será construído na próxima etapa.');return;}
- if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit'].includes(view))return;
+ if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog'].includes(view))return;
+ if(view==='catalog')state.catalogBack=state.view==='budget-edit'?'budget-edit':'budgets';
  if(view==='budgets'){state.budgetDraft=null;state.budgetError='';}
  state.view=view;render();
  if(window.scrollY)window.scrollTo({top:0,behavior:'instant'});
@@ -352,10 +357,10 @@ async function markPaid(id){
 
 function newBudget(){
  if(state.cloudError){delayToast('Banco indisponível: não será criado rascunho offline.');return;}
- state.budgetDraft={id:null,title:'Orçamento demonstrativo',customer:'',
+ state.budgetDraft={id:null,title:'Proposta CIVOLTEN',customer:'',
   project:'',location:'',expiresOn:'',notes:'',items:[],
   commercial:{schedule:{goal:'crew',startDate:localToday(),pricingMode:'hours'}},
-  pricing:createPricingSnapshot(state.data),status:'draft',demo:true,createdAt:null};
+  pricing:createPricingSnapshot(state.data),status:'draft',demo:false,createdAt:null};
  state.budgetError='';go('budget-edit');
 }
 function openBudget(id){
@@ -402,12 +407,57 @@ function openBudgetService(service,editing=false){
  modal.showModal();
  modal.querySelector('[name="description"]')?.focus();
 }
+function openCatalogItem(code){
+ const template=catalogByCode(code);
+ if(!template)return;
+ const record=catalogRows(state.data.catalog).find(item=>item.code===code)||template;
+ state.editor={kind:'catalog',code};
+ modal.innerHTML=catalogEditorDialog(record);
+ modal.showModal();
+}
+async function saveCatalogItem(form){
+ if(state.editor?.kind!=='catalog'||!state.user||state.cloudError||state.busy)return;
+ const error=form.querySelector('#catalog-form-error');
+ const submit=form.querySelector('[type="submit"]');
+ try{
+  const base=catalogByCode(state.editor.code);
+  const previous=(state.data.catalog||[]).find(x=>x.code===state.editor.code);
+  const value=validateCatalogRecord(Object.fromEntries(new FormData(form)),base,previous?.id);
+  value.id=value.id||crypto.randomUUID();
+  state.busy=true;if(submit)submit.disabled=true;
+  await putRemote(auth,state.user.id,'catalog',value);
+  const copy=structuredClone(state.data);
+  copy.catalog=[...(copy.catalog||[]).filter(x=>x.code!==value.code),value];
+  state.data=copy;
+  try{safeSave(localStorage,state.user.id,copy)}catch{/* cache opcional */}
+  closeEditor();render();delayToast('Serviço e produtividade salvos no Supabase.');
+ }catch(err){
+  if(error){error.textContent=String(err.message||err);error.hidden=false;}
+  else delayToast(String(err.message||err));
+ }finally{state.busy=false;if(submit?.isConnected)submit.disabled=false;}
+}
 function addBudgetItem(){
  if(!state.budgetDraft)return;
  if(state.budgetDraft.items.length>=100){delayToast('Máximo de 100 serviços por orçamento.');return;}
  const code=mount.querySelector('#budget-catalog')?.value;
- try{openBudgetService(createService(code,crypto.randomUUID()));}
- catch(err){delayToast(String(err.message||err));}
+ try{
+  const id=crypto.randomUUID();
+  if(code==='manual'){openBudgetService(createService('manual',id));return;}
+  const template=catalogByCode(code);
+  if(!template)throw Error('Escolha um serviço da CIVOLTEN.');
+  const record=catalogRows(state.data.catalog).find(item=>item.code===code)||template;
+  let service;
+  if(catalogReady(record))service=catalogToBudgetItem(record,id);
+  else{
+   const reference=referenceService(code);
+   if(!reference)throw Error('Configure a produtividade e o custo direto desse serviço no catálogo.');
+   service=referenceToBudgetItem(reference,id);
+   const h=catalogHours(record);
+   if(h)service.laborHours=h;
+   if(record.roles?.length)service.roles=record.roles.map(r=>({...r}));
+  }
+  openBudgetService(service);
+ }catch(err){delayToast(String(err.message||err));}
 }
 function editBudgetItem(id){
  const service=state.budgetDraft?.items.find(item=>item.id===id);
@@ -472,7 +522,7 @@ async function saveBudget(form){
   state.data=copy;
   try{safeSave(localStorage,state.user.id,copy)}catch{/* cache opcional */}
   state.budgetDraft=null;state.budgetError='';go('budgets');
-  delayToast('Orçamento de demonstração salvo no Supabase.');
+  delayToast(valid.demo?'Orçamento de demonstração salvo no Supabase.':'Orçamento CIVOLTEN salvo no Supabase.');
  }catch(err){
   state.budgetError=String(err.message||err);render();
  }finally{state.busy=false;if(button)button.disabled=false;}
@@ -480,7 +530,7 @@ async function saveBudget(form){
 async function removeBudget(){
  const item=state.budgetDraft;
  if(!item?.id||!state.user||state.busy||state.cloudError)return;
- if(!confirm('Excluir o orçamento de demonstração "'+item.title+'"? A ação é irreversível.'))return;
+ if(!confirm('Excluir o orçamento "'+item.title+'"? A ação é irreversível.'))return;
  state.busy=true;
  try{
   await deleteRemote(auth,state.user.id,'budgets',item.id);
@@ -488,7 +538,7 @@ async function removeBudget(){
   copy.budgets=copy.budgets.filter(x=>x.id!==item.id);
   state.data=copy;
   try{safeSave(localStorage,state.user.id,copy)}catch{/* cache opcional */}
-  state.budgetDraft=null;go('budgets');delayToast('Orçamento de teste excluído.');
+  state.budgetDraft=null;go('budgets');delayToast('Orçamento excluído.');
  }catch(err){delayToast('Falha ao excluir orçamento: '+String(err.message||err));}
  finally{state.busy=false;}
 }
@@ -521,7 +571,7 @@ function exportBudget(){
  try{
   const csv=budgetCsv(state.budgetDraft),blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob),link=document.createElement('a');
-  link.href=url;link.download='civolten-orcamento-demonstrativo.csv';
+  link.href=url;link.download=state.budgetDraft.demo===false?'civolten-orcamento-civolten.csv':'civolten-orcamento-demonstrativo.csv';
   document.body.appendChild(link);link.click();link.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
  }catch(err){delayToast(String(err.message||err));}
@@ -555,6 +605,7 @@ function exportReport(){
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 mount.addEventListener('change',event=>{
+ if(event.target.id==='catalog-category'){state.catalogCategory=event.target.value;render();return;}
  if(event.target.matches('[data-period]')&&/^\d{4}-\d{2}$/.test(event.target.value)){
   state.finMonth=event.target.value;render();
  }
@@ -583,6 +634,7 @@ mount.addEventListener('click',async event=>{
  else if(action==='budget-new'){newBudget();}
  else if(action==='budget-open'){openBudget(b.dataset.id);}
  else if(action==='budget-add-item'){addBudgetItem();}
+ else if(action==='catalog-edit'){openCatalogItem(b.dataset.code);}
  else if(action==='budget-edit-item'){editBudgetItem(b.dataset.id);}
  else if(action==='budget-remove-item'){removeBudgetItem(b.dataset.id);}
  else if(action==='budget-refresh-pricing'){refreshBudgetPricing();}
@@ -609,6 +661,11 @@ mount.addEventListener('click',async event=>{
  }
 });
 mount.addEventListener('input',event=>{
+ if(event.target.id==='catalog-search'){
+  const query=event.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+  mount.querySelectorAll('[data-catalog-search]').forEach(row=>row.hidden=!!query&&!row.dataset.catalogSearch.includes(query));
+  return;
+ }
  if(event.target.id==='cost-search'){
   const query=event.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
   mount.querySelectorAll('.cost-row[data-cost-search]').forEach(row=>{
@@ -654,6 +711,7 @@ modal.addEventListener('input',event=>{
  if(['unitCost','monthQty'].includes(event.target.name))refreshVariableCostPreview();
 });
 modal.addEventListener('submit',event=>{
+ if(event.target.id==='catalog-form'){event.preventDefault();void saveCatalogItem(event.target);return;}
  if(event.target.id==='budget-service-form'){
   event.preventDefault();saveBudgetService(event.target);return;
  }
