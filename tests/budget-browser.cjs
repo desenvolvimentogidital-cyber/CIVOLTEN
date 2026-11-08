@@ -91,6 +91,26 @@ const server=createServer((req,res)=>{
   await page.locator('#budget-service-form [name="quantity"]').fill('1');
   await page.locator('#budget-service-form [type="submit"]').click();
   assert.equal(await page.locator('.budget-item').count(),2);
+  assert.match(await page.locator('#budget-schedule-preview').innerText(),/Duração estimada/);
+  assert.match(await page.locator('#budget-schedule-preview').innerText(),/Profissionais necessários/);
+  await page.locator('[data-schedule-field="goal"]').selectOption('days');
+  await page.locator('[data-schedule-field="days"]').fill('20');
+  assert.match(await page.locator('#budget-schedule-preview').innerText(),/20 dias úteis/);
+  assert.match(await page.locator('#budget-schedule-preview').innerText(),/Custo diário da empresa/);
+  await page.locator('[data-schedule-field="pricingMode"]').selectOption('days');
+  assert.match(await page.locator('#budget-price-preview').innerText(),/Por dias de execução/);
+  // A proposta respeita o prazo comercial manual até o usuário decidir substituí-lo.
+  page.once('dialog',d=>d.dismiss());
+  await page.locator('[data-action="budget-schedule-term"]').click();
+  assert.equal(await page.locator('#budget-form [name="executionTerm"]').inputValue(),
+   'Até 18 dias úteis após liberação');
+  await page.locator('#budget-form [name="executionTerm"]').fill('');
+  await page.locator('[data-action="budget-schedule-term"]').click();
+  assert.match(await page.locator('#budget-form [name="executionTerm"]').inputValue(),
+   /20 dias úteis estimados/);
+  const downloadPlan=page.waitForEvent('download');
+  await page.locator('[data-action="budget-schedule-export"]').click();
+  assert.match((await downloadPlan).suggestedFilename(),/cronograma-preliminar.csv/);
   assert.match(await page.locator('#budget-price-preview').innerText(),/Preço final para o cliente/);
   await fs.promises.mkdir(path.join(__dirname,'../test-artifacts'),{recursive:true});
   await page.screenshot({path:'test-artifacts/orcamento-editor.png',fullPage:true});
@@ -99,6 +119,10 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('.budget-list-item').count(),1);
   await page.locator('[data-action="budget-open"]').first().click();
   assert.equal(await page.locator('.budget-item').count(),2);
+  assert.equal(await page.locator('[data-schedule-field="goal"]').inputValue(),'days');
+  assert.equal(await page.locator('[data-schedule-field="days"]').inputValue(),'20');
+  assert.equal(await page.locator('[data-schedule-field="pricingMode"]').inputValue(),'days');
+  assert.match(await page.locator('#budget-price-preview').innerText(),/Por dias de execução/);
   assert.match(await page.locator('.budget-print').innerText(),/DOCUMENTO DE TESTE/);
   assert.match(await page.locator('.budget-pdf-model-label').innerText(),/Signature/);
   assert.equal(await page.locator('.proposal-page').count(),3);
@@ -106,11 +130,11 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('.proposal-services .proposal-cover-background').count(),0);
   assert.match(await page.locator('.proposal-cover-background').getAttribute('src'),/file_000000007df8820eb700b32dbfca9c55\.png/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/40% na assinatura/);
-  assert.match(await page.locator('.proposal-conditions').innerText(),/18 dias úteis/);
+  assert.match(await page.locator('.proposal-conditions').innerText(),/20 dias úteis estimados/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-custos-variaveis-resumo-20261108/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-custos-variaveis-resumo-20261108/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-cronograma-obras-20261108/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-cronograma-obras-20261108/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),
@@ -194,6 +218,7 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('#budget-service-form [name="quantity"]').inputValue(),'3');
   await page.locator('#budget-service-form [data-action="close-modal"]').click();
   assert.equal(await page.locator('#budget-form [name="paymentTerms"]').inputValue(),'40% na assinatura e 60% na entrega');
+  assert.match(await page.locator('#budget-form [name="executionTerm"]').inputValue(),/20 dias úteis estimados/);
   page.once('dialog',d=>d.accept());
   await page.locator('[data-action="budget-delete"]').click();
   await page.locator('.budget-list-item').first().waitFor({state:'detached'});

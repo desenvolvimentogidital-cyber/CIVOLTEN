@@ -10,7 +10,8 @@ import {companyView,appearanceView,pricingPreview} from './settings-ui.mjs';
 import {validateEntry,reportCsv,localToday,currentMonth} from './finance.mjs';
 import {financeView,reportsView,ledgerEditorView} from './finance-ui.mjs';
 import {createService,createPricingSnapshot,validateBudget,validateBudgetItem,budgetCsv,priceBudget} from './budget.mjs';
-import {budgetsView,budgetEditorView,budgetPreview,budgetServiceDialog} from './budget-ui.mjs';
+import {budgetsView,budgetEditorView,budgetPreview,budgetServiceDialog,budgetSchedulePreview,getBudgetSchedule} from './budget-ui.mjs';
+import {scheduleCsv,suggestExecutionTerm} from './budget-schedule.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,payrollSettingsView,cltBreakdownHtml,e,icon} from './views.mjs';
 const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
 const SUPABASE_PUBLIC_KEY=__CIVOLTEN_SUPABASE_PUBLISHABLE_KEY__;
@@ -352,7 +353,8 @@ async function markPaid(id){
 function newBudget(){
  if(state.cloudError){delayToast('Banco indisponível: não será criado rascunho offline.');return;}
  state.budgetDraft={id:null,title:'Orçamento demonstrativo',customer:'',
-  project:'',location:'',expiresOn:'',notes:'',items:[],commercial:{},
+  project:'',location:'',expiresOn:'',notes:'',items:[],
+  commercial:{schedule:{goal:'crew',startDate:localToday(),pricingMode:'hours'}},
   pricing:createPricingSnapshot(state.data),status:'draft',demo:true,createdAt:null};
  state.budgetError='';go('budget-edit');
 }
@@ -364,6 +366,20 @@ function openBudget(id){
 function updateBudgetField(element){
  const draft=state.budgetDraft;
  if(!draft||state.view!=='budget-edit')return false;
+ const scheduleKey=element.dataset.scheduleField;
+ if(scheduleKey){
+  draft.commercial={...(draft.commercial||{}),
+   schedule:{...(draft.commercial?.schedule||{}),[scheduleKey]:element.value}};
+  if(scheduleKey==='goal'||scheduleKey==='pricingMode'){render();return true;}
+  const timeline=mount.querySelector('#budget-schedule-preview');
+  if(timeline)timeline.innerHTML=budgetSchedulePreview(state.data,draft);
+  const price=mount.querySelector('#budget-price-preview');
+  if(price)price.innerHTML=budgetPreview(draft);
+  let ready=false;try{ready=!!priceBudget(draft)}catch{/* formulário incompleto */}
+  for(const btn of mount.querySelectorAll('[data-action="budget-print"],[data-action="budget-export"]'))
+   btn.disabled=!ready;
+  return true;
+ }
  const key=element.dataset.budgetField;
  if(!key)return false;
  const container=element.closest('[data-budget-item]');
@@ -476,6 +492,30 @@ async function removeBudget(){
  }catch(err){delayToast('Falha ao excluir orçamento: '+String(err.message||err));}
  finally{state.busy=false;}
 }
+function applyScheduleTerm(){
+ if(!state.budgetDraft)return;
+ let plan;try{plan=getBudgetSchedule(state.data,state.budgetDraft)}catch(err){
+  delayToast(String(err.message||err));return;
+ }
+ const term=suggestExecutionTerm(plan);
+ if(!term){delayToast('Adicione serviços e defina um cronograma antes de aplicar o prazo.');return;}
+ const existing=state.budgetDraft.commercial?.executionTerm||'';
+ if(existing.trim()&&existing.trim()!==term&&!confirm('Substituir o prazo comercial atual pelo prazo estimado do cronograma?'))return;
+ state.budgetDraft.commercial={...state.budgetDraft.commercial,executionTerm:term};
+ render();delayToast('Prazo estimado aplicado à proposta. Salve o orçamento para confirmar.');
+}
+function exportSchedule(){
+ if(!state.budgetDraft)return;
+ try{
+  const plan=getBudgetSchedule(state.data,state.budgetDraft);
+  if(!plan?.days||!plan.totalHours)throw Error('Adicione serviços com horas antes de exportar o cronograma.');
+  const blob=new Blob([scheduleCsv(plan)],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=url;link.download='civolten-cronograma-preliminar.csv';
+  document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }catch(err){delayToast(String(err.message||err));}
+}
 function exportBudget(){
  if(!state.budgetDraft)return;
  try{
@@ -546,6 +586,8 @@ mount.addEventListener('click',async event=>{
  else if(action==='budget-edit-item'){editBudgetItem(b.dataset.id);}
  else if(action==='budget-remove-item'){removeBudgetItem(b.dataset.id);}
  else if(action==='budget-refresh-pricing'){refreshBudgetPricing();}
+ else if(action==='budget-schedule-term'){applyScheduleTerm();}
+ else if(action==='budget-schedule-export'){exportSchedule();}
  else if(action==='budget-export'){exportBudget();}
  else if(action==='budget-print'){await printBudget();}
  else if(action==='budget-delete'){await removeBudget();}

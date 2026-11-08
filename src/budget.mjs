@@ -4,6 +4,7 @@
 import {summary,decimal,cents} from './calc.mjs';
 import {companyConfig,capacity,quoteFromCost} from './pricing.mjs';
 import {validDate,localToday} from './finance.mjs';
+import {validateSchedule,schedulePlan} from './budget-schedule.mjs';
 
 export const DEMO_SERVICES=Object.freeze([
  {code:'DEMO-E01',description:'Instalação de ponto elétrico residencial (exemplo)',unit:'un',laborHours:2.5,directCost:35},
@@ -71,7 +72,8 @@ export function validateCommercial(raw={}){
   warrantyTerms:safeText(c.warrantyTerms,360,'Garantia dos serviços'),
   scopeNotes:safeText(c.scopeNotes,900,'Escopo e exclusões'),
   companyContact:safeText(c.companyContact,200,'Contato da empresa'),
-  companyDocument:safeText(c.companyDocument,40,'Documento da empresa')
+  companyDocument:safeText(c.companyDocument,40,'Documento da empresa'),
+  schedule:validateSchedule(c.schedule)
  };
 }
 export function validateBudget(raw){
@@ -97,6 +99,7 @@ export function createPricingSnapshot(data){
  const cost=summary(data),cfg=companyConfig(data.company),cap=capacity(cfg);
  if(!cfg.reviewed||!cost.readyForPricing||!cap||!Number.isSafeInteger(cost.total)||cost.total<=0)return null;
  return {monthlyCostCents:cost.total,productiveHours:cap.productiveHours,
+  productiveDays:cfg.productiveDays,hoursPerDay:cfg.hoursPerDay,productivePeople:cfg.productivePeople,
   taxPct:cfg.taxPct,marginPct:cfg.marginPct,companyName:cfg.companyName||'CIVOLTEN',
   capturedOn:localToday()};
 }
@@ -106,7 +109,15 @@ export function validateBudgetSnapshot(raw){
  if(!Number.isSafeInteger(cost)||cost<=0||!Number.isFinite(hours)||hours<=0||
   !Number.isFinite(tax)||tax<0||tax>80||!Number.isFinite(margin)||margin<0||margin>80||
   tax+margin>=100)throw Error('Base da precificação inválida.');
+ const days=raw.productiveDays==null?null:Number(raw.productiveDays);
+ const perDay=raw.hoursPerDay==null?null:Number(raw.hoursPerDay);
+ const people=raw.productivePeople==null?null:Number(raw.productivePeople);
+ if((days!==null&&(!Number.isInteger(days)||days<1||days>31))||
+  (perDay!==null&&(!Number.isFinite(perDay)||perDay<=0||perDay>24))||
+  (people!==null&&(!Number.isInteger(people)||people<1||people>1000)))
+  throw Error('Capacidade da empresa no orçamento inválida.');
  return {monthlyCostCents:cost,productiveHours:hours,taxPct:tax,marginPct:margin,
+  productiveDays:days,hoursPerDay:perDay,productivePeople:people,
   companyName:safeText(raw.companyName,160,'Nome da empresa'),
   capturedOn:validDate(raw.capturedOn)?raw.capturedOn:localToday()};
 }
@@ -116,6 +127,45 @@ export function priceBudget(raw){
  const p=validateBudgetSnapshot(snapshot);
  if(!Array.isArray(raw.items)||!raw.items.length)return null;
  const config={reviewed:true,taxPct:p.taxPct,marginPct:p.marginPct};
+ const settings=validateSchedule(raw.commercial?.schedule);
+ if(settings.pricingMode==='days'){
+  if(!p.productiveDays||!p.productivePeople||!p.hoursPerDay)
+   throw Error('Atualize a base de preços para calcular pela duração da obra.');
+  const plan=schedulePlan(raw.items,settings,{...p});
+  if(!plan||!plan.totalHours||!plan.days)throw Error('Informe horas de trabalho para calcular o cronograma.');
+  if(!plan.available)throw Error('Prazo exige '+plan.crew+' profissionais, mas a empresa tem '+
+   plan.companyPeople+'. Ajuste o prazo ou a equipe antes de usar o preço por dias.');
+  const rows=raw.items.map(item=>{
+   const r=validateBudgetItem(item);
+   return {...r,hours:r.laborHours*r.quantity,
+    materials:Math.round(cents(r.directCost)*r.quantity)};
+  });
+  const totalMaterials=rows.reduce((sum,item)=>sum+item.materials,0);
+  const totalLabor=Math.ceil(p.monthlyCostCents*plan.days/p.productiveDays);
+  const totalCost=totalMaterials+totalLabor;
+  if(!Number.isSafeInteger(totalCost)||totalCost<=0)throw Error('Custo do cronograma excede o limite.');
+  const quote=quoteFromCost(totalCost,config);
+  if(!quote||!Number.isSafeInteger(quote.selling)||quote.selling>99999999999999)
+   throw Error('Preço da obra excede o limite.');
+  let assignedLabor=0,assignedSale=0,assignedTax=0;
+  const distributed=rows.map((row,index)=>{
+   const last=index===rows.length-1;
+   const labor=last?totalLabor-assignedLabor:
+    Math.floor(totalLabor*row.hours/plan.totalHours);
+   assignedLabor+=labor;
+   const cost=row.materials+labor;
+   const selling=last?quote.selling-assignedSale:
+    Math.floor(quote.selling*cost/totalCost);
+   assignedSale+=selling;
+   const tax=last?quote.taxes-assignedTax:
+    Math.floor(quote.taxes*selling/quote.selling);
+   assignedTax+=tax;
+   return {...row,labor,cost,selling,tax,unitSelling:selling/row.quantity};
+  });
+  return {rows:distributed,totalCost,totalSale:quote.selling,totalTax:quote.taxes,
+   totalHours:plan.totalHours,profit:quote.grossProfit,snapshot:p,quantity:rows.length,
+   pricingMode:'days',schedule:plan,totalLabor,totalMaterials};
+ }
  let totalCost=0,totalSale=0,totalHours=0,totalTax=0;
  const rows=raw.items.map(item=>{
   const r=validateBudgetItem(item),hours=r.laborHours*r.quantity;
@@ -132,7 +182,7 @@ export function priceBudget(raw){
  if(!Number.isSafeInteger(totalCost)||!Number.isSafeInteger(totalSale)||
    totalSale>99999999999999)throw Error('Valor final excedeu o limite.');
  return {rows,totalCost,totalSale,totalTax,totalHours,
-  profit:totalSale-totalCost-totalTax,snapshot:p,quantity:rows.length};
+  profit:totalSale-totalCost-totalTax,snapshot:p,quantity:rows.length,pricingMode:'hours'};
 }
 const csvSafe=v=>{
  let text=String(v??'');
@@ -145,7 +195,10 @@ export function budgetCsv(budget){
  const cells=[
  ['Orçamento demonstrativo',budget.title],['Cliente',budget.customer],
  ['Obra',budget.project],['Local',budget.location],['Validade',budget.expiresOn||''],
- ['Base de custo',p.snapshot.capturedOn],['Total do orçamento (R$)',(p.totalSale/100).toFixed(2)],
+ ['Base de custo',p.snapshot.capturedOn],
+ ['Modalidade do preço',p.pricingMode==='days'?'Por dias úteis de execução':'Por horas-homem'],
+ ['Dias úteis estimados',p.schedule?.days??''],['Profissionais estimados',p.schedule?.crew??''],
+ ['Total do orçamento (R$)',(p.totalSale/100).toFixed(2)],
  [],
  ['Código demonstração','Serviço','Unidade','Quantidade','Horas/un','Custo direto/un (R$)',
   'Valor de venda total (R$)']
