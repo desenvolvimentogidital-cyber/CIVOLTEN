@@ -56,6 +56,9 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('.budget-list-item').count(),0);
   await page.locator('[data-action="budget-new"]').click();
   await page.locator('#budget-form [name="customer"]').fill('Cliente fictício');
+  await page.locator('#budget-form [name="paymentTerms"]').fill('40% na assinatura e 60% na entrega');
+  await page.locator('#budget-form [name="executionTerm"]').fill('Até 18 dias úteis após liberação');
+  await page.locator('#budget-form [name="warrantyTerms"]').fill('Conforme contrato');
   await page.locator('#budget-catalog').selectOption('DEMO-E01');
   await page.locator('[data-action="budget-add-item"]').click();
   await page.locator('.budget-item [name="quantity"]').fill('2');
@@ -71,42 +74,38 @@ const server=createServer((req,res)=>{
   await page.locator('[data-action="budget-open"]').first().click();
   assert.equal(await page.locator('.budget-item').count(),2);
   assert.match(await page.locator('.budget-print').innerText(),/DOCUMENTO DE TESTE/);
-  assert.match(await page.locator('.budget-pdf-model-label').innerText(),/Modelo comercial V4/);
+  assert.match(await page.locator('.budget-pdf-model-label').innerText(),/Signature/);
+  assert.equal(await page.locator('.proposal-page').count(),3);
+  assert.match(await page.locator('.proposal-conditions').innerText(),/40% na assinatura/);
+  assert.match(await page.locator('.proposal-conditions').innerText(),/18 dias úteis/);
+  assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
+  assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-pdf-v4-20261108/);
   assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-pdf-v4-20261108/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
-    v4:!!document.querySelector('.budget-print.budget-pdf-v4'),
-    logo:!!document.querySelector('.budget-pdf-brand'),
-    watermark:!!document.querySelector('.budget-pdf-watermark-icon')
+    v5:!!document.querySelector('.budget-print.budget-pdf-v5'),
+    pages:document.querySelectorAll('.proposal-page').length,
+    logo:!!document.querySelector('.proposal-wordmark'),
+    watermark:!!document.querySelector('.proposal-watermark')
    }};
   });
   await page.locator('[data-action="budget-print"]').click();
   assert.deepEqual(await page.evaluate(()=>window.__civoltenPrintTest),
-   {v4:true,logo:true,watermark:true},'O botão deve chamar o modelo V4 novo');
+   {v5:true,pages:3,logo:true,watermark:true},'O botão deve chamar o Signature novo');
   // Exportação PDF real (sem chamar impressão do Android), validando o modelo escolhido.
   await page.emulateMedia({media:'print'});
-  const marks=await page.locator('.budget-pdf-brand,.budget-pdf-symbol,.budget-pdf-watermark img')
+  const marks=await page.locator('.proposal-wordmark,.proposal-brand-icon,.proposal-watermark img')
    .evaluateAll(list=>list.map(img=>({ok:img.complete&&img.naturalWidth>0,src:img.getAttribute('src')})));
-  assert.equal(marks.length,4,'Duas logos do cabeçalho e duas marcas-d’água');
+  assert.equal(marks.length,12,'Logo e marca-d’água em cada uma das três páginas');
   assert.ok(marks.every(m=>m.ok),'O PDF não pode sair sem as imagens oficiais');
-  assert.equal(await page.locator('.budget-pdf-watermark').evaluate(el=>getComputedStyle(el).position),'fixed');
-  await page.screenshot({path:'test-artifacts/orcamento-pdf-v4.png',fullPage:true});
+  assert.equal(await page.locator('.proposal-watermark').first().evaluate(el=>getComputedStyle(el).position),'absolute');
+  assert.ok(await page.locator('.proposal-cover .proposal-page-content').evaluate(el=>getComputedStyle(el).backgroundImage.includes('proposal-construction.svg')));
+  await page.screenshot({path:'test-artifacts/proposta-signature-preview.png',fullPage:true});
   const pdf=await page.pdf({format:'A4',printBackground:true,preferCSSPageSize:true});
-  await fs.promises.writeFile('test-artifacts/orcamento-pdf-v4.pdf',pdf);
+  await fs.promises.writeFile('test-artifacts/proposta-signature-3-paginas.pdf',pdf);
   const pageCount=bytes=>(Buffer.from(bytes).toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;
-  assert.equal(pageCount(pdf),1,'Orçamento curto deve caber em uma única folha A4, sem folha vazia');
-  await page.evaluate(()=>{
-   const tbody=document.querySelector('.budget-pdf-table tbody');
-   const sample=tbody.firstElementChild.cloneNode(true);
-   for(let k=0;k<34;k++)tbody.appendChild(sample.cloneNode(true));
-  });
-  const longPdf=await page.pdf({format:'A4',printBackground:true,preferCSSPageSize:true});
-  assert.ok(pageCount(longPdf)>1,'Uma proposta com muitos serviços precisa paginar');
-  await page.evaluate(()=>{
-   const tbody=document.querySelector('.budget-pdf-table tbody');
-   Array.from(tbody.children).slice(2).forEach(row=>row.remove());
-  });
+  assert.equal(pageCount(pdf),3,'Proposta de dois serviços deve ter exatamente 3 páginas A4');
   await page.emulateMedia({media:'screen'});
   const pending=page.waitForEvent('download');
   await page.locator('[data-action="budget-export"]').click();
@@ -120,6 +119,7 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('.budget-list-item').count(),1);
   await page.locator('[data-action="budget-open"]').first().click();
   assert.equal(await page.locator('.budget-item').first().locator('[name="quantity"]').inputValue(),'3');
+  assert.equal(await page.locator('#budget-form [name="paymentTerms"]').inputValue(),'40% na assinatura e 60% na entrega');
   page.once('dialog',d=>d.accept());
   await page.locator('[data-action="budget-delete"]').click();
   await page.locator('.budget-list-item').first().waitFor({state:'detached'});
