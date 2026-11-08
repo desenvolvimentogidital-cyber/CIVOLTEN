@@ -56,10 +56,20 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('.budget-list-item').count(),0);
   await page.locator('[data-go="catalog"]').first().click();
   assert.equal(await page.locator('.catalog-screen').count(),1);
-  await page.locator('#catalog-category').selectOption('11');
-  assert.match(await page.locator('.catalog-list').innerText(),/Limpeza Fina Pós-Obra/);
-  await page.locator('#catalog-category').selectOption('05');
-  assert.match(await page.locator('.catalog-list').innerText(),/Fiação Pesada/);
+  assert.match(await page.locator('.fin-empty').last().innerText(),/Nenhum servico cadastrado/);
+  const content='Codigo;Descricao;Unidade;Profissional;Coeficiente HH;Preco de tabela\n'+
+   'A100;Quadro de distribuicao;un;Eletricista;5;999,99\n'+
+   'B200;Pintura de parede;m²;Pintor;0,4;12,50\n';
+  await page.locator('#catalog-import-file').setInputFiles({
+   name:'siurb-composicoes.csv',mimeType:'text/csv',buffer:Buffer.from(content)});
+  await page.locator('#catalog-import-month').fill('2026-07');
+  assert.equal(await page.locator('[data-catalog-map="hours"]').inputValue(),'4');
+  await page.locator('[data-action="catalog-import-save"]').click();
+  await page.locator('.catalog-row').first().waitFor();
+  assert.equal(await page.locator('.catalog-row').count(),2);
+  assert.match(await page.locator('.catalog-list').innerText(),/Quadro de distribuicao/);
+  assert.equal((await page.evaluate(()=>window.CIVOLTENPreview.data.catalog))[0].directCost,null);
+  assert.equal((await page.evaluate(()=>window.CIVOLTENPreview.data.catalog))[0].roles[0].hours,5);
   await page.locator('[data-go="budgets"]').last().click();
   await page.locator('[data-action="budget-new"]').click();
   await page.locator('#budget-form [name="customer"]').fill('Cliente fictício');
@@ -67,14 +77,14 @@ const server=createServer((req,res)=>{
   await page.locator('#budget-form [name="executionTerm"]').fill('Até 18 dias úteis após liberação');
   await page.locator('#budget-form [name="warrantyTerms"]').fill('Conforme contrato');
   await page.locator('#budget-form [name="project"]').fill('Reforma do Centro Comercial');
-  await page.locator('#budget-catalog').selectOption('CV-05-204');
+  await page.locator('#budget-catalog').selectOption('SIURB:A100');
   await page.locator('[data-action="budget-add-item"]').click();
   assert.equal(await page.locator('#budget-service-form').count(),1);
   assert.equal(await page.locator('.budget-item').count(),0,'Abrir o modal não deve adicionar o serviço');
   assert.equal(await page.locator('#budget-service-form [name="quantity"]').inputValue(),'1');
   assert.equal(await page.locator('#budget-service-form [name="laborHours"]').inputValue(),'5');
   assert.equal(await page.locator('#budget-service-form [name="directCost"]').inputValue(),'');
-  assert.match(await page.locator('.catalog-screen').count()?await page.locator('.catalog-screen').innerText():await page.locator('.budget-service-modal').innerText(),/Faixa inicial/);
+  assert.match(await page.locator('.budget-service-modal').innerText(),/Quadro de distribuicao/);
   await fs.promises.mkdir(path.join(__dirname,'../test-artifacts'),{recursive:true});
   await page.screenshot({path:'test-artifacts/orcamento-modal-servico.png',fullPage:true});
   await page.locator('#budget-service-form [data-action="close-modal"]').click();
@@ -98,7 +108,7 @@ const server=createServer((req,res)=>{
   await page.locator('#budget-service-form [name="quantity"]').fill('4');
   await page.locator('#budget-service-form [type="submit"]').click();
   assert.match(await page.locator('.budget-item').first().innerText(),/4 un/);
-  await page.locator('#budget-catalog').selectOption('CV-08-210');
+  await page.locator('#budget-catalog').selectOption('SIURB:B200');
   await page.locator('[data-action="budget-add-item"]').click();
   await page.locator('#budget-service-form [name="quantity"]').fill('1');
   await page.locator('#budget-service-form [name="directCost"]').fill('12');
@@ -146,8 +156,8 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.proposal-conditions').innerText(),/20 dias úteis estimados/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-catalogo-hh11-20261108/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-catalogo-hh11-20261108/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-import-sinapi-siurb-20261108/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-import-sinapi-siurb-20261108/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),
