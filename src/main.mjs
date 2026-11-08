@@ -1,5 +1,6 @@
 import {createClient} from '@supabase/supabase-js';
-import {fetchRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote} from './cloud.mjs';
+import {fetchRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote} from './cloud.mjs';
+import {prepareCostPresets} from './cost-presets.mjs';
 import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
 import {signupOutcome,authMessage,repeatedSignupMessage,pendingEmailMessage} from './auth-flow.mjs';
@@ -249,6 +250,41 @@ function toggleContractFields(){
  const type=form.elements.contractType?.value||'clt';
  for(const wrap of form.querySelectorAll('[data-contract]'))
   wrap.hidden=wrap.dataset.contract!==type;
+}
+async function importCostPresets(){
+ if(!state.user||state.cloudError||state.busy){
+  delayToast('Entre na conta com o banco sincronizado para salvar os custos.');
+  return;
+ }
+ const prepared=prepareCostPresets(state.data,()=>crypto.randomUUID());
+ const count=prepared.fixed.length+prepared.variable.length;
+ if(!count){delayToast('Todos os modelos já estão cadastrados.');return;}
+ const button=mount.querySelector('[data-action="import-cost-presets"]');
+ if(button){button.disabled=true;button.textContent='Salvando custos no Supabase...';}
+ state.busy=true;
+ try{
+  await putCostPresetsRemote(auth,state.user.id,'fixed',prepared.fixed);
+  await putCostPresetsRemote(auth,state.user.id,'variable',prepared.variable);
+  // Confirma o conteúdo persistido; preserva os outros cadastros e orçamentos.
+  state.data=await fetchRemote(auth,state.user.id);
+  try{safeSave(localStorage,state.user.id,state.data)}catch{/* cache opcional */}
+  render();
+  delayToast(count+' custos sugeridos salvos. Edite os valores reais e exclua o que não utilizar.');
+ }catch(err){
+  // Uma das duas importações pode ter sido confirmada no banco. A nova leitura
+  // preserva o que já foi salvo e permite retentar apenas o que faltou.
+  try{
+   state.data=await fetchRemote(auth,state.user.id);
+   safeSave(localStorage,state.user.id,state.data);
+  }catch(fetchError){
+   state.cloudError=String(fetchError.message||fetchError);
+  }
+  render();
+  delayToast('Importação parcial ou indisponível: '+String(err.message||err));
+ }finally{
+  state.busy=false;
+  if(button?.isConnected)button.disabled=false;
+ }
 }
 async function saveRecord(form){
  if(!state.editor||!state.user)return;
@@ -506,6 +542,7 @@ mount.addEventListener('click',async event=>{
  else if(action==='mark-paid'){await markPaid(b.dataset.id);}
  else if(action==='export-csv'){exportReport();}
  else if(action==='print-report'){window.print();}
+ else if(action==='import-cost-presets'){await importCostPresets();}
  else if(action==='new-cost'){openEditor(state.costTab);}
  else if(action==='new-employee'){openEditor('employees');}
  else if(action==='payroll-settings'){openEditor('payroll');}
@@ -518,6 +555,13 @@ mount.addEventListener('click',async event=>{
  }
 });
 mount.addEventListener('input',event=>{
+ if(event.target.id==='cost-search'){
+  const query=event.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+  mount.querySelectorAll('.cost-row[data-cost-search]').forEach(row=>{
+   row.hidden=!!query&&!row.dataset.costSearch.includes(query);
+  });
+  return;
+ }
  if(updateBudgetField(event.target))return;
  if(event.target.matches('[data-pricing-input]')){
   if(event.target.name==='quoteHours')state.quoteHours=event.target.value;
