@@ -1,5 +1,5 @@
-const CACHE='civolten-premium-ui-v30-20261109-os-pdf-v3';
-const PRECACHE=['/','/index.html','/styles.css?v=civolten-os-pdf-modelo3-20261109','/app.js?v=civolten-os-pdf-modelo3-20261109','/manifest.webmanifest',
+const CACHE='civolten-premium-ui-v31-20261109-field-schedule';
+const PRECACHE=['/','/index.html','/styles.css?v=civolten-cronograma-pdf-campo-20261109','/app.js?v=civolten-cronograma-pdf-campo-20261109','/manifest.webmanifest',
 '/assets/civolten-logo.png','/assets/civolten-simbolo.png','/assets/proposal-construction.svg','/assets/proposal-photo-atlas.webp','/assets/file_000000007df8820eb700b32dbfca9c55.png','/assets/skyline.svg',
 '/assets/icon-192.png','/assets/icon-512.png'];
 self.addEventListener('install',e=>{
