@@ -1496,3 +1496,8 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 .budget-item-totals span b{color:#fff3d8}
 .budget-item-totals>strong{display:block;padding:11px 9px;border-radius:8px;
  background:#46331a;color:#ffe0a0;font-size:15px;line-height:1.45}
+
+/* Auditoria: orientação sobre o custo da folha CLT, sem tratar aviso como erro. */
+.budget-audit-note{margin:12px 0;padding:13px;border-left:3px solid #c7a263;
+ border-radius:7px;background:#30291f;color:#f6e8d0;line-height:1.6}
+.budget-audit-note strong{color:#ffe09e}
