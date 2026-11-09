@@ -73,24 +73,23 @@ const checkId=userId=>{
 export async function fetchRemote(client,userId){
  checkId(userId);
  const out=fresh();
+ // Paginação consistente para TODAS as tabelas: evita a limitação padrão do Supabase
+ // (1.000 linhas por consulta) e ordena com chave exclusiva para páginas estáveis.
  await Promise.all(Object.keys(TABLES).map(async kind=>{
-  if(kind==='catalog'){
-   // Supabase limita a pagina de leitura. Uma importacao oficial pode ter milhares de itens.
-   const all=[];for(let from=0;from<100000;from+=500){
-    const {data,error}=await client.from(TABLES[kind])
-     .select('*').eq('user_id',userId).order('created_at',{ascending:true})
-     .range(from,from+499);
-    if(error)throw Error('Falha ao consultar catalog: '+error.message);
-    all.push(...(data||[]));
-    if((data||[]).length<500)break;
-   }
-   out[kind]=all.map(row=>normalize(kind,row));
-  }else{
+  const all=[],limit=500,maxRows=100000;
+  for(let from=0;from<maxRows;from+=limit){
    const {data,error}=await client.from(TABLES[kind])
-    .select('*').eq('user_id',userId).order('created_at',{ascending:true});
+    .select('*').eq('user_id',userId)
+    .order('created_at',{ascending:true}).order('id',{ascending:true})
+    .range(from,from+limit-1);
    if(error)throw Error('Falha ao consultar '+kind+': '+error.message);
-   out[kind]=(data||[]).map(row=>normalize(kind,row));
+   const page=data||[];
+   all.push(...page);
+   if(page.length<limit)break;
+   if(from+limit>=maxRows)throw Error(
+    'O cadastro de '+kind+' ultrapassa o limite de sincronização. Solicite uma exportação assistida.');
   }
+  out[kind]=all.map(row=>normalize(kind,row));
  }));
  const {data:rates,error:ratesError}=await client.from('cv_payroll_settings_v1')
   .select('*').eq('user_id',userId).order('created_at',{ascending:true});
