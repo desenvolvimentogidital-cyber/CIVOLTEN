@@ -346,3 +346,21 @@ A regra antiga de homologação que exigia `demo=true` em
 `cv_budget_drafts_v1` foi removida no Supabase de produção, e seu
 padrão passou para `demo=false`. Orçamentos e demais registros
 anteriores foram preservados. Veja `supabase/budget_drafts_producao_v2.sql`.
+
+## Serviços do orçamento — consulta rápida ao catálogo importado
+
+Na tela **Orçamentos > Montar orçamento > Serviços**, todos os serviços
+sincronizados da conta são pesquisáveis por nome, código SIURB/SINAPI,
+grupo ou unidade. A lista mostra até 60 resultados por vez para não
+sobrecarregar o celular; **a busca percorre todos os registros**,
+inclusive aqueles que não aparecem inicialmente.
+
+As linhas alternam fundo **branco, escuro, branco, escuro**, com textos
+contrastantes para facilitar a leitura. Toque em uma linha para abrir o
+formulário com descrição, unidade e HH importados, mantendo a precificação
+automática com os custos internos da empresa. A opção de serviço manual
+continua disponível. O catálogo na tela de importação segue a mesma
+alternância e mantém sua pesquisa independente.
+
+Esta melhoria altera somente a interface do aplicativo, não exclui nem
+reescreve registros no Supabase.
