@@ -142,21 +142,35 @@ export function validateBudgetSnapshot(raw){
   companyName:safeText(raw.companyName,160,'Nome da empresa'),
   capturedOn:validDate(raw.capturedOn)?raw.capturedOn:localToday()};
 }
-// Estimativa unitaria: mesma divisao HH e mesmos tributos/margem do orcamento.
-export function budgetUnitEstimate(snapshot,hours,extraDirect=0){
+// Fonte unica de calculo para a linha completa: quantidade × HH/un × custo de HH.
+// Arredonda apenas os totais em centavos, nao multiplica um preco unitario ja arredondado.
+export function budgetQuantityEstimate(snapshot,hours,quantity,extraDirect=0){
  if(!snapshot)return null;
  const p=validateBudgetSnapshot(snapshot);
- const hh=decimal(hours),extra=extraDirect==null||String(extraDirect).trim()===''?0:decimal(extraDirect);
- if(hh===null||hh<=0||hh>10000||extra===null||extra<0||extra>999999999)return null;
- const rate=p.monthlyCostCents/p.productiveHours;
- const labor=Math.ceil(p.monthlyCostCents*hh/p.productiveHours);
- const materials=cents(extra);
- const quote=quoteFromCost(labor+materials,{reviewed:true,taxPct:p.taxPct,marginPct:p.marginPct});
- if(!quote)return null;
+ const hh=decimal(hours),qty=decimal(quantity);
+ const extra=extraDirect==null||String(extraDirect).trim()===''?0:decimal(extraDirect);
+ if(hh===null||hh<=0||hh>10000||qty===null||qty<=0||qty>100000||
+    extra===null||extra<0||extra>999999999||
+    Math.abs(hh*1000-Math.round(hh*1000))>1e-6||
+    Math.abs(qty*1000-Math.round(qty*1000))>1e-6||
+    Math.abs(extra*100-Math.round(extra*100))>1e-6)return null;
+ const totalHours=Math.round(hh*qty*1000000)/1000000;
+ const labor=Math.ceil(p.monthlyCostCents*totalHours/p.productiveHours);
+ const materials=Math.round(cents(extra)*qty);
+ const cost=labor+materials;
+ if(!Number.isSafeInteger(labor)||!Number.isSafeInteger(materials)||
+    !Number.isSafeInteger(cost)||cost<0)return null;
+ const quote=quoteFromCost(cost,{reviewed:true,taxPct:p.taxPct,marginPct:p.marginPct});
+ if(!quote||!Number.isSafeInteger(quote.selling)||quote.selling>99999999999999)return null;
  return {monthly:p.monthlyCostCents,days:p.productiveDays||22,
   hoursDay:p.hoursPerDay||8,people:p.productivePeople||1,
-  hourly:rate,labor,materials,hours:hh,
-  ...quote};
+  hourly:p.monthlyCostCents/p.productiveHours,
+  quantity:qty,hours:hh,totalHours,labor,materials,...quote,
+  perUnitSelling:quote.selling/qty,perUnitLabor:labor/qty};
+}
+// Compatibilidade com calculos unitarios ja existentes; a proposta sempre usa a quantidade completa.
+export function budgetUnitEstimate(snapshot,hours,extraDirect=0){
+ return budgetQuantityEstimate(snapshot,hours,1,extraDirect);
 }
 export function priceBudget(raw){
  const snapshot=raw?.pricing;
@@ -207,16 +221,13 @@ export function priceBudget(raw){
  }
  let totalCost=0,totalSale=0,totalHours=0,totalTax=0;
  const rows=raw.items.map(item=>{
-  const r=validateBudgetItem(item),hours=r.laborHours*r.quantity;
-  const labor=Math.ceil(p.monthlyCostCents*hours/p.productiveHours);
-  const materials=Math.round(cents(r.directCost)*r.quantity);
-  const cost=materials+labor;
-  if(!Number.isSafeInteger(cost)||cost<0)throw Error('Valor do orçamento excede o limite.');
-  const price=quoteFromCost(cost,config);
-  if(!price)throw Error('Imposto e margem inválidos.');
+  const r=validateBudgetItem(item);
+  const price=budgetQuantityEstimate(p,r.laborHours,r.quantity,r.directCost);
+  if(!price)throw Error('Não foi possível calcular o total deste serviço; confira HH, quantidade e custos.');
+  const hours=price.totalHours,labor=price.labor,materials=price.materials,cost=price.cost;
   totalCost+=cost;totalSale+=price.selling;totalHours+=hours;totalTax+=price.taxes;
   return {...r,hours,labor,materials,cost,selling:price.selling,
-   tax:price.taxes,unitSelling:price.selling/r.quantity};
+   tax:price.taxes,unitSelling:price.perUnitSelling};
  });
  if(!Number.isSafeInteger(totalCost)||!Number.isSafeInteger(totalSale)||
    totalSale>99999999999999)throw Error('Valor final excedeu o limite.');
