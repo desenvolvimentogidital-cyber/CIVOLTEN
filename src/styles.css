@@ -1911,3 +1911,66 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 
 /* A opção PDF ocupa a largura total; o CSV continua disponível separado. */
 .budget-schedule-actions .budget-schedule-pdf{grid-column:1/-1;font-weight:820}
+
+/* Diário de campo CIVOLTEN: fiscalização física sem dados financeiros. */
+.work-field-summary{display:grid;gap:8px;margin:15px 0;padding:15px;border:1px solid #ad8751;
+ background:linear-gradient(130deg,#30261d,#211e22);border-radius:13px;color:#ffdfaa}
+.work-field-summary strong{font-size:16px}
+.work-field-summary p,.work-field-summary small{font-size:12px;line-height:1.5;color:#e7d2b8;margin:0}
+.field-progress-screen{padding-bottom:36px}
+.field-progress-heading{margin:8px 0 15px;padding:15px;border:1px solid #ad8a52;border-radius:12px;
+ background:linear-gradient(120deg,#302621,#211e21)}
+.field-progress-heading small{color:#ddc09a;font-size:11px}
+.field-progress-heading h2{color:#ffe5b5;font-size:19px;line-height:1.3;margin:8px 0}
+.field-progress-heading p{font-size:12px;color:#e2d1bb;margin:0}
+.field-progress-stat{margin:14px 0;padding:16px;border:1px solid #e0ad58;border-radius:13px;
+ display:grid;gap:9px;background:#282220}
+.field-progress-stat strong{font-size:28px;color:#ffdf9b}
+.field-progress-stat>span{font-size:12px;color:#dbc5a9}
+.field-progress-bar{height:12px;border-radius:99px;border:1px solid #8f7e6b;background:#3a3839;overflow:hidden}
+.field-progress-bar>span{height:100%;display:block;background:linear-gradient(90deg,#d48923,#ffd66e);border-radius:99px}
+.field-progress-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0}
+.field-progress-kpis>div{display:grid;gap:5px;padding:12px 7px;text-align:center;border-radius:10px;
+ background:#302a27;border:1px solid #806b4c}
+.field-progress-kpis b{font-size:19px;color:#ffe6b9}
+.field-progress-kpis span{font-size:10px;color:#e9d6bd}
+.field-progress-search-label{font-size:12px;font-weight:750;color:#f5d69b}
+#field-search{width:100%;padding:12px 14px;margin-top:6px;border-radius:11px;min-height:45px;
+ background:#211e21;border:1px solid #ac8850;color:#ffefda;font:inherit}
+#field-search:focus-visible{outline:2px solid #e9b34e}
+.field-progress-tabs{display:flex;gap:7px;overflow-x:auto;scrollbar-width:thin;
+ padding:14px 0 10px;-webkit-overflow-scrolling:touch}
+.field-progress-tab{white-space:nowrap;border:1px solid #99744a;border-radius:999px;
+ background:#282325;color:#ebd5b8;min-height:38px;padding:8px 12px;font-size:12px;font-weight:700}
+.field-progress-tab.active{background:#e7b34c;color:#211912;border-color:#ffd680}
+#field-result-list{display:grid;gap:10px;margin:8px 0 19px}
+.field-progress-card{padding:14px 13px;display:grid;gap:9px;border:1px solid #806d56;
+ border-radius:12px;background:#242125;min-width:0}
+.field-progress-card:nth-child(even){background:#362d28;border-color:#aa8a59}
+.field-progress-card.done{border-left:4px solid #68ae85}
+.field-progress-card.blocked{border-left:4px solid #ed987b}
+.field-progress-card.in_progress{border-left:4px solid #efc363}
+.field-progress-top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.field-progress-top b{font-size:17px;color:#ffdf9c}
+.field-progress-state{font-size:11px;font-weight:750;color:#e4d5c2}
+.field-progress-card.done .field-progress-state{color:#aee5c1}
+.field-progress-card.blocked .field-progress-state{color:#f3b29e}
+.field-progress-card h3{font-size:15px;line-height:1.4;margin:0;color:#fff0d9;overflow-wrap:anywhere}
+.field-progress-card p{font-size:12px;color:#dfceb7;margin:0}
+.field-progress-card small{font-size:11px;line-height:1.5;color:#d6c4aa}
+.field-progress-card .field-progress-bar{height:8px}
+.field-progress-card .field-progress-note{background:#1d1b1f;padding:10px;
+ white-space:pre-wrap;overflow-wrap:anywhere;border-radius:7px}
+.field-progress-photos{display:flex;align-items:center;gap:6px;color:#eccb96;font-size:11px}
+.field-progress-edit{width:100%;display:flex;gap:7px;align-items:center;justify-content:center;
+ min-height:43px;margin-top:3px}
+.field-progress-warning{border-left:3px solid #bf914f;padding-left:11px}
+.field-editor .field-target{font-size:13px;color:#f8d69a;font-weight:700;margin:12px 0}
+.field-editor .modal-fields{display:grid;gap:12px}
+.field-editor .modal-field small{font-size:11px;line-height:1.4;color:#cdbba5}
+.field-editor input[type=file]{max-width:100%;font-size:12px}
+.field-existing-photos{display:grid;gap:9px;margin:10px 0 15px}
+.field-existing-photos strong{font-size:12px;color:#edcf9c}
+.field-existing-photos p{font-size:12px;color:#e9d4b5}
+.field-photo-link{display:block;border:1px solid #a4834b;border-radius:8px;
+ padding:9px 12px;font-size:12px;color:#f7dbac;text-decoration:underline;overflow-wrap:anywhere}
