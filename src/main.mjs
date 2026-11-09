@@ -13,6 +13,9 @@ import {createService,createPricingSnapshot,validateBudget,validateBudgetItem,bu
 import {budgetsView,budgetEditorView,budgetPreview,budgetServiceDialog,budgetServiceEstimate,budgetCatalogResults,budgetSchedulePreview,getBudgetSchedule} from './budget-ui.mjs';
 import {scheduleCsv,suggestExecutionTerm} from './budget-schedule.mjs';
 import {workSchedulePlan,printableFieldSchedule} from './schedule-print.mjs';
+import {fieldProgressView,fieldListHtml,fieldEditDialog} from './field-progress-ui.mjs';
+import {validateFieldUpdate,fieldRecord} from './field-progress.mjs';
+import {uploadFieldPhotos,rollbackFieldPhotos,showFieldPhotos} from './field-evidence.mjs';
 import {catalogByCode,catalogToBudgetItem,validateCatalogRecord} from './service-catalog.mjs';
 import {readCatalogFile,suggestColumns,buildCatalogImport} from './catalog-import.mjs';
 import {catalogView,catalogEditorDialog} from './catalog-ui.mjs';
@@ -38,7 +41,7 @@ const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
- cloudError:null,budgetDraft:null,budgetError:'',workId:null,replyId:null,replyFilter:'all',replySearch:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
+ cloudError:null,budgetDraft:null,budgetError:'',workId:null,replyId:null,replyFilter:'all',replySearch:'',fieldFilter:'all',fieldSearch:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
 };
@@ -66,6 +69,7 @@ function render(){
  else if(state.view==='inbox-detail')html=responseDetailView(state.data,state.replyId);
  else if(state.view==='works')html=worksView(state.data);
  else if(state.view==='work-detail')html=workDetailView(state.data,state.workId);
+ else if(state.view==='field-progress')html=fieldProgressView(state.data,state.workId,state.fieldFilter,state.fieldSearch);
  else if(state.view==='catalog')html=catalogView(state.data,state.catalogCategory,state.catalogBack,state.catalogImport,state.catalogSearch);
  else if(state.view==='budget-edit')html=budgetEditorView(state.data,state.budgetDraft,state.budgetError,state.budgetCatalogSearch);
  else html=moreView(state.user,state.data);
@@ -192,7 +196,7 @@ async function signOut(){
 }
 function go(view){
  if(view==='soon'){delayToast('Este recurso será construído na próxima etapa.');return;}
- if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail','inbox','inbox-detail'].includes(view))return;
+ if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail','field-progress','inbox','inbox-detail'].includes(view))return;
  if(view==='catalog')state.catalogBack=state.view==='budget-edit'?'budget-edit':'budgets';
  if(view==='budgets'){state.budgetDraft=null;state.budgetError='';}
  if(view==='works')state.workId=null;
@@ -922,6 +926,53 @@ function openWorkForm(kind,id=null){
  }else return;
  modal.showModal();
 }
+function openFieldTracking(){
+ const work=workCurrent();
+ if(!work)return delayToast('Abra uma obra para acompanhar o cronograma.');
+ state.fieldFilter='all';state.fieldSearch='';
+ go('field-progress');
+}
+function openFieldEdit(itemId){
+ if(state.cloudError||state.busy)return delayToast('Sincronize o banco antes de editar o campo.');
+ const work=workCurrent();
+ if(!work||work.status!=='in_progress')
+  return delayToast('É necessário iniciar a execução para atualizar o cronograma digital.');
+ try{
+  const old=fieldRecord(state.data,work.id,itemId);
+  state.editor={kind:'field-progress',workId:work.id,itemId};
+  modal.innerHTML=fieldEditDialog(work,state.data,itemId);
+  modal.showModal();
+  if(old?.photoPaths?.length){
+   void showFieldPhotos(auth,old.photoPaths,modal.querySelector('#field-existing-photos'));
+  }
+ }catch(err){delayToast(String(err.message||err));}
+}
+async function saveFieldEdit(form){
+ if(state.busy||state.cloudError||!state.user||state.editor?.kind!=='field-progress')return;
+ const work=workCurrent(),itemId=state.editor.itemId;
+ const previous=work?fieldRecord(state.data,work.id,itemId):null;
+ const button=form.querySelector('[type="submit"]'),error=form.querySelector('#field-form-error');
+ let uploaded=[];
+ state.busy=true;if(button)button.disabled=true;
+ try{
+  const input=Object.fromEntries(new FormData(form));
+  input.itemId=itemId;input.photoPaths=previous?.photoPaths||[];
+  const row=validateFieldUpdate(work,state.data,input,previous?.id||crypto.randomUUID());
+  const files=form.elements.photos?.files;
+  if(files?.length){
+   const result=await uploadFieldPhotos(auth,state.user.id,work.id,itemId,files,row.photoPaths);
+   row.photoPaths=result.paths;uploaded=result.uploaded;
+  }
+  await putRemote(auth,state.user.id,'fieldProgress',row);
+  closeEditor();
+  await refreshWorkData();
+  delayToast('Andamento do serviço salvo no banco. Nenhuma medição ou cobrança foi criada.');
+ }catch(err){
+  if(uploaded.length)await rollbackFieldPhotos(auth,uploaded);
+  if(error?.isConnected){error.textContent=String(err.message||err);error.hidden=false;}
+  else delayToast(String(err.message||err));
+ }finally{state.busy=false;if(button?.isConnected)button.disabled=false;}
+}
 async function refreshWorkData(){
  state.data=await fetchOperationsRemote(auth,state.user.id,state.data);
  try{safeSave(localStorage,state.user.id,state.data)}catch{}
@@ -1091,11 +1142,12 @@ mount.addEventListener('change',event=>{
  }
 });
 mount.addEventListener('click',async event=>{
- const b=event.target.closest('[data-go],[data-action],[data-tab],[data-fin-filter],[data-theme-choice],[data-reply-filter]');
+ const b=event.target.closest('[data-go],[data-action],[data-tab],[data-fin-filter],[data-theme-choice],[data-reply-filter],[data-field-filter]');
  if(!b)return;
  if(b.dataset.go){go(b.dataset.go);return;}
  if(b.dataset.tab){state.costTab=b.dataset.tab;render();return;}
  if(b.dataset.replyFilter){state.replyFilter=b.dataset.replyFilter;render();return;}
+ if(b.dataset.fieldFilter){state.fieldFilter=b.dataset.fieldFilter;render();return;}
  if(b.dataset.finFilter){state.finFilter=b.dataset.finFilter;render();return;}
  if(b.dataset.themeChoice){await chooseTheme(b.dataset.themeChoice);return;}
  const action=b.dataset.action;
@@ -1114,6 +1166,8 @@ mount.addEventListener('click',async event=>{
   delayToast('Exibindo os valores mensais cadastrados. Histórico por mês virá depois.');
  }else if(action==='soon'){delayToast('Esta função será construída após aprovarmos a base.');}
  else if(action==='work-open'){openWork(b.dataset.id);}
+  else if(action==='work-field-open'){openFieldTracking();}
+  else if(action==='field-edit'){openFieldEdit(b.dataset.id);}
  else if(action==='work-approve-budget'){openWorkApproval(b.dataset.id);}
  else if(action==='work-start'){await updateWorkStatus('in_progress');}
  else if(action==='work-cancel'){await updateWorkStatus('cancelled');}
@@ -1173,6 +1227,13 @@ mount.addEventListener('click',async event=>{
  }
 });
 mount.addEventListener('input',event=>{
+ if(event.target.id==='field-search'){
+  state.fieldSearch=event.target.value;
+  const target=mount.querySelector('#field-result-list');
+  const work=workCurrent();
+  if(target&&work)target.innerHTML=fieldListHtml(work,state.data,state.fieldFilter,state.fieldSearch);
+  return;
+ }
  if(event.target.id==='inbox-search'){
   state.replySearch=event.target.value;
   const target=mount.querySelector('#inbox-results');
@@ -1241,6 +1302,9 @@ modal.addEventListener('input',event=>{
    refreshBudgetServiceEstimate();
 });
 modal.addEventListener('submit',event=>{
+ if(event.target.id==='field-progress-form'){
+  event.preventDefault();void saveFieldEdit(event.target);return;
+ }
  if(event.target.id==='work-form'){event.preventDefault();void saveWorkForm(event.target);return;}
  if(event.target.id==='catalog-form'){event.preventDefault();void saveCatalogItem(event.target);return;}
  if(event.target.id==='budget-service-form'){
@@ -1251,6 +1315,13 @@ modal.addEventListener('submit',event=>{
  }
  if(event.target.id!=='record-form')return;
  event.preventDefault();void saveRecord(event.target);
+});
+modal.addEventListener('change',event=>{
+ const form=event.target.form;
+ if(form?.id!=='field-progress-form'||event.target.name!=='status')return;
+ const qty=form.elements.executedQuantity;
+ if(event.target.value==='done')qty.value=qty.max;
+ if(event.target.value==='pending')qty.value='0';
 });
 modal.addEventListener('click',event=>{if(event.target===modal)closeEditor();});
 modal.addEventListener('cancel',event=>{event.preventDefault();closeEditor();});

@@ -14,9 +14,15 @@ export const TABLES={
  workLogs:'cv_work_logs_v1',
  measurements:'cv_measurements_v1',
  invites:'cv_proposal_invites_v1',
- reads:'cv_proposal_receipt_reads_v1'
+ reads:'cv_proposal_receipt_reads_v1',
+ fieldProgress:'cv_field_progress_v1'
 };
 const normalize=(k,row)=>{
+ if(k==='fieldProgress')return {id:row.id,workOrderId:row.work_order_id,itemId:row.item_id,
+  status:row.status,executedQuantity:Number(row.executed_quantity),
+  employeeId:row.employee_id||null,observedOn:row.observed_on,
+  notes:row.notes||'',photoPaths:row.photo_paths||[],
+  updatedAt:row.updated_at,createdAt:row.created_at};
  if(k==='reads')return {id:row.id,inviteId:row.invite_id,seenAt:row.seen_at};
  if(k==='invites')return {id:row.id,budgetId:row.budget_id,token:row.token,
   budgetSnapshot:row.budget_snapshot,totalCents:Number(row.total_cents),
@@ -67,6 +73,10 @@ const normalize=(k,row)=>{
 };
 const payload=(k,item,userId)=>{
  if(k==='reads')throw Error('Marcações de leitura só podem ser criadas pelo fluxo de resposta.');
+ if(k==='fieldProgress')return {id:item.id,user_id:userId,work_order_id:item.workOrderId,
+  item_id:item.itemId,status:item.status,executed_quantity:item.executedQuantity,
+  employee_id:item.employeeId||null,observed_on:item.observedOn,
+  notes:item.notes||'',photo_paths:item.photoPaths||[]};
  const base={id:item.id,user_id:userId,updated_at:new Date().toISOString()};
  if(k==='invites')return {...base,budget_id:item.budgetId,token:item.token,
   budget_snapshot:item.budgetSnapshot,total_cents:item.totalCents,
@@ -133,7 +143,7 @@ async function fetchKind(client,userId,kind){
 export async function fetchOperationsRemote(client,userId,current){
  checkId(userId);
  const out={...current};
- await Promise.all(['works','workLogs','measurements','ledger','invites','reads'].map(async kind=>{
+ await Promise.all(['works','workLogs','measurements','fieldProgress','ledger','invites','reads'].map(async kind=>{
   out[kind]=await fetchKind(client,userId,kind);
  }));
  return out;

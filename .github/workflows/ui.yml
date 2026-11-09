@@ -58,6 +58,9 @@ jobs:
           node --check src/operations-ui.mjs
           node --check src/work-order-print.mjs
           node --check src/schedule-print.mjs
+          node --check src/field-progress.mjs
+          node --check src/field-progress-ui.mjs
+          node --check src/field-evidence.mjs
           node --check src/proposal-link.mjs
           node --check src/public-aceite.mjs
           node --check src/proposal-inbox.mjs
