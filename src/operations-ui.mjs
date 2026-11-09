@@ -67,7 +67,8 @@ export function workDetailView(data,id){
  '<div class="work-progress"><div style="width:'+Math.max(0,Math.min(100,progress.percent))+'%"></div></div>'+
  '<p class="fin-helper">'+numberBR(progress.percent)+'% do valor contratado aprovado em medições. Medições em conferência não são faturadas.</p>'+
  '<div class="work-actions">'+
- (w.status==='approved'?button('work-start','Iniciar execução','check'):'')+
+ (w.status==='approved'?button('work-start','Iniciar execução','check')+
+ button('work-cancel','Cancelar OS não iniciada','trash'):'')+
  (w.status==='in_progress'?button('work-log-new','Apontar horas trabalhadas','clock')+
   button('work-measure-new','Registrar medição','clipboard')+
   button('work-complete','Concluir obra','check',
