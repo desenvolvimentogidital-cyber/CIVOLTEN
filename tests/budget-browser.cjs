@@ -377,11 +377,12 @@ const server=createServer((req,res)=>{
   await page.locator('[data-action="work-contract-print"]').click();
   const osHtml=await page.evaluate(()=>window.__civoltenOSPrintHtml);
   assert.match(osHtml,/work-pdf-header/);
-  assert.match(osHtml,/civolten-logo\\.png/);
-  assert.match(osHtml,/civolten-simbolo\\.png/);
+  assert.ok(osHtml.includes('/assets/civolten-logo.png'));
+  assert.ok(osHtml.includes('/assets/civolten-simbolo.png'));
   assert.match(osHtml,/SERVIÇO/);
   assert.match(osHtml,/Representante da CIVOLTEN/);
-  assert.doesNotMatch(osHtml,/Valor contratado|R\\$|selling/,'A ordem de serviço é operacional, sem valores');
+  assert.ok(!osHtml.includes('Valor contratado')&&!osHtml.includes('R$')&&!osHtml.includes('selling'),
+   'A OS não deve conter valores administrativos');
   assert.equal(await page.locator('#work-print-root').count(),0,'Impressão limpa após fechar prévia');
   page.once('dialog',d=>d.accept());
   await page.locator('[data-action="work-start"]').click();
