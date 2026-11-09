@@ -420,6 +420,45 @@ const server=createServer((req,res)=>{
   page.once('dialog',d=>d.accept());
   await page.locator('[data-action="work-start"]').click();
   await page.locator('[data-action="work-log-new"]').waitFor();
+  // Diário digital de campo: quantidade, situação, responsável e fotografia.
+  await page.locator('[data-action="work-field-open"]').click();
+  assert.match(await page.locator('.page-heading').innerText(),/Diário de campo/);
+  assert.equal(await page.locator('.field-progress-card').count(),2);
+  await page.locator('[data-action="field-edit"]').first().click();
+  await page.locator('#field-progress-form [name="status"]').selectOption('in_progress');
+  await page.locator('#field-progress-form [name="executedQuantity"]').fill('2');
+  await page.locator('#field-progress-form [name="employeeId"]').selectOption({index:1});
+  await page.locator('#field-progress-form [name="notes"]').fill('Bloco A liberado, 2 unidades executadas');
+  const picture=await page.screenshot({type:'png'});
+  await page.locator('#field-progress-form [name="photos"]').setInputFiles({
+   name:'evidencia.png',mimeType:'image/png',buffer:picture
+  });
+  await page.locator('#field-progress-form [type="submit"]').click();
+  await page.locator('.field-progress-card.in_progress').waitFor();
+  let field=await page.evaluate(()=>window.CIVOLTENPreview.data.fieldProgress);
+  assert.equal(field.length,1);
+  assert.equal(field[0].executedQuantity,2);
+  assert.equal(field[0].photoPaths.length,1);
+  assert.equal((await page.evaluate(()=>window.CIVOLTENPreview.data.measurements)).length,0,
+   'Diário não pode criar medição financeira');
+  assert.equal((await page.evaluate(()=>window.CIVOLTENPreview.data.workLogs)).length,0,
+   'Diário não pode gerar HH reais automaticamente');
+  await page.locator('[data-action="field-edit"]').first().click();
+  await page.locator('#field-existing-photos .field-photo-link').waitFor();
+  assert.match(await page.locator('#field-existing-photos .field-photo-link').getAttribute('href'),/^https:\/\//);
+  await page.locator('#field-progress-form [data-action="close-modal"]').click();
+  await page.locator('[data-action="field-edit"]').last().click();
+  await page.locator('#field-progress-form [name="status"]').selectOption('blocked');
+  await page.locator('#field-progress-form [name="notes"]').fill('Aguardando liberação do acesso');
+  await page.locator('#field-progress-form [type="submit"]').click();
+  await page.locator('.field-progress-card.blocked').waitFor();
+  await page.locator('#field-search').fill('eletrodutos');
+  assert.equal(await page.locator('.field-progress-card').count(),1);
+  await page.locator('#field-search').fill('');
+  await page.locator('[data-field-filter="blocked"]').click();
+  assert.equal(await page.locator('.field-progress-card').count(),1);
+  await page.locator('[data-go="work-detail"]').first().click();
+  assert.match(await page.locator('.work-field-summary').innerText(),/Avanço físico/);
   await page.locator('[data-action="work-log-new"]').click();
   await page.locator('#work-form [name="hours"]').fill('8');
   await page.locator('#work-form [type="submit"]').click();
