@@ -452,7 +452,7 @@ const server=createServer((req,res)=>{
   await page.locator('#field-progress-form [name="notes"]').fill('Aguardando liberação do acesso');
   await page.locator('#field-progress-form [type="submit"]').click();
   await page.locator('.field-progress-card.blocked').waitFor();
-  await page.locator('#field-search').fill('eletrodutos');
+  await page.locator('#field-search').fill('pintura');
   assert.equal(await page.locator('.field-progress-card').count(),1);
   await page.locator('#field-search').fill('');
   await page.locator('[data-field-filter="blocked"]').click();
