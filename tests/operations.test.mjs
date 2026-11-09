@@ -49,7 +49,7 @@ test('HH realizadas por profissional e qualificação, sem confundir com HH prev
   hours:8,notes:'Pintura executada'},[employee],randomUUID());
  assert.equal(log.hours,8);
  assert.throws(()=>createWorkLog(order,{itemId:id2,employeeId,workDate:'2026-11-10',hours:8},
-  [employee],randomUUID()),/qualificação/);
+  [employee],randomUUID()),/habilitação/);
  const overridden=createWorkLog(order,{itemId:id2,employeeId,workDate:'2026-11-10',hours:2,
   qualificationConfirmed:'on'},[employee],randomUUID());
  assert.equal(overridden.qualificationConfirmed,true);
