@@ -22,7 +22,7 @@ export function fmt(value){
  return value==null?'':String(value).replace('.',',');
 }
 export function fresh(){
- return {version:1,fixed:[],variable:[],employees:[],ledger:[],budgets:[],catalog:[],works:[],workLogs:[],measurements:[],invites:[],payroll:{...DEFAULT_PAYROLL},company:{...DEFAULT_COMPANY},updatedAt:null};
+ return {version:1,fixed:[],variable:[],employees:[],ledger:[],budgets:[],catalog:[],works:[],workLogs:[],measurements:[],invites:[],reads:[],payroll:{...DEFAULT_PAYROLL},company:{...DEFAULT_COMPANY},updatedAt:null};
 }
 export function fixedMonthly(item){
  const val=cents(item.amount);
@@ -141,6 +141,7 @@ export function safeLoad(storage,userId){
    workLogs:Array.isArray(raw.workLogs)?raw.workLogs:[],
    measurements:Array.isArray(raw.measurements)?raw.measurements:[],
    invites:Array.isArray(raw.invites)?raw.invites:[],
+   reads:Array.isArray(raw.reads)?raw.reads:[],
    payroll:payrollConfig(raw.payroll),company:companyConfig(raw.company)};
  }catch{return fresh();}
 }
