@@ -188,7 +188,7 @@ create trigger cv_measurement_guard_trigger_v1 before insert or update on public
 for each row execute function public.cv_measurement_guard_v1();
 
 create or replace function public.cv_protect_med_receivable_v1()
-returns trigger language plpgsql set search_path=public as $
+returns trigger language plpgsql set search_path=public as $$
 declare measurement public.cv_measurements_v1%rowtype;
 begin
  if tg_op='DELETE' then
@@ -212,7 +212,7 @@ begin
   end if;
  end if;
  return new;
-end $;
+end $$;
 drop trigger if exists cv_protect_med_receivable_trigger_v1 on public.cv_financial_entries_v1;
 create trigger cv_protect_med_receivable_trigger_v1
 before insert or update or delete on public.cv_financial_entries_v1
