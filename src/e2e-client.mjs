@@ -59,7 +59,59 @@ export function createE2EClient(){
      return query;
     }};
    },
-   insert(value){return this.upsert(value);},
+   insert(value){
+    if(table!=='cv_work_orders_v1')return this.upsert(value);
+    const rows=Array.isArray(value)?value:[value];
+    const apply=async()=>{
+     if(!user||rows.some(x=>x.user_id!==user.id))
+      return {data:null,error:{message:'RLS: usuário não autorizado'}};
+     const db=read(),all=db[table]||[];
+     for(const row of rows){
+      if(row.status!=='approved')
+       return {data:null,error:{message:'Ordem de servico inicia com aceite aprovado'}};
+      if(all.some(x=>x.id===row.id))
+       return {data:null,error:{code:'23505',message:'Ordem de serviço já cadastrada'}};
+     }
+     all.push(...rows);db[table]=all;save(db);
+     const data=rows.map(x=>({id:x.id}));
+     return {data:Array.isArray(value)?data:data[0],error:null};
+    };
+    return {select:()=>({single:apply,then:(resolve,reject)=>apply().then(resolve,reject)})};
+   },
+   update(changes){
+    const where={};
+    const query={
+     eq:(key,value)=>{where[key]=value;return query},
+     select:()=>({single:async()=>{
+      if(!user||where.user_id!==user.id)
+       return {data:null,error:{code:'PGRST116',message:'Nenhum registro acessível'}};
+      const db=read(),all=db[table]||[];
+      const index=all.findIndex(row=>row.id===where.id&&row.user_id===user.id&&
+       (!where.status||row.status===where.status));
+      if(index<0)return {data:null,error:{code:'PGRST116',message:'Estado anterior não encontrado'}};
+      if(table==='cv_work_orders_v1'){
+       const current=all[index],allowed={approved:['in_progress','cancelled'],in_progress:['completed']};
+       if(Object.keys(changes).some(k=>!['status','start_on','finish_on'].includes(k))||
+        !allowed[current.status]?.includes(changes.status))
+        return {data:null,error:{message:'Transicao de estado invalida'}};
+       if(changes.status==='completed'){
+        const logged=(db.cv_work_logs_v1||[]).some(x=>x.work_order_id===current.id);
+        const measured=(current.budget_snapshot?.items||[]).every(item=>
+         (db.cv_measurements_v1||[]).filter(m=>m.work_order_id===current.id&&
+          m.item_id===item.id&&m.status==='approved')
+          .reduce((sum,m)=>sum+Number(m.quantity),0)>=Number(item.quantity));
+        if(!logged||!measured)
+         return {data:null,error:{message:'Registre horas e aprove todas as medições antes de concluir'}};
+       }
+      }
+      const updated={...all[index],...changes,updated_at:new Date().toISOString()};
+      all[index]=updated;db[table]=all;save(db);
+      return {data:{id:updated.id,status:updated.status,
+       start_on:updated.start_on||null,finish_on:updated.finish_on||null},error:null};
+     }})
+    };
+    return query;
+   },
    upsert(value){
     const rows=Array.isArray(value)?value:[value];
     const apply=async()=>{
