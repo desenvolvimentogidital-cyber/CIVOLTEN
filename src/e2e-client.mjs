@@ -118,6 +118,27 @@ export function createE2EClient(){
      if(!user||rows.some(row=>row.user_id!==user.id))
       return {data:null,error:{message:'RLS: usuário não autorizado'}};
      const db=read(),all=db[table]||[];
+     if(table==='cv_field_progress_v1'){
+      for(const row of rows){
+       const work=(db.cv_work_orders_v1||[]).find(x=>x.id===row.work_order_id&&x.user_id===user.id);
+       const item=work?.budget_snapshot?.items?.find(x=>x.id===row.item_id);
+       if(!item||work.status!=='in_progress')
+        return {data:null,error:{message:'Inicie a obra e selecione um serviço válido'}};
+       const qty=Number(row.executed_quantity),target=Number(item.quantity);
+       if(!Number.isFinite(qty)||qty<0||qty>target||
+          (row.status==='done'&&qty!==target)||
+          (row.status==='pending'&&qty!==0)||
+          !['pending','in_progress','blocked','done'].includes(row.status)||
+          (row.photo_paths||[]).length>3)
+        return {data:null,error:{message:'Andamento físico inválido'}};
+       if(row.employee_id&&!(db.cv_employees_v1||[]).some(
+         x=>x.id===row.employee_id&&x.user_id===user.id&&x.active))
+        return {data:null,error:{message:'Responsável deve pertencer à equipe'}};
+       if(all.some(x=>x.work_order_id===row.work_order_id&&
+         x.item_id===row.item_id&&x.id!==row.id))
+        return {data:null,error:{message:'Serviço já possui acompanhamento'}};
+      }
+     }
      for(const row of rows){
       const i=all.findIndex(x=>x.id===row.id);
       if(i>=0)all[i]=row;else all.push(row);
@@ -214,5 +235,33 @@ export function createE2EClient(){
   save(db);
   return {data:id,error:null};
  };
- return {auth,from,rpc};
+ const storage={from(bucket){
+  const validBucket=bucket==='cv-field-evidence-v1';
+  return {
+   async upload(path,blob){
+    if(!user||!validBucket||!path.startsWith(user.id+'/')||blob.size>4*1024*1024)
+     return {data:null,error:{message:'Foto sem autorização ou muito grande'}};
+    const db=read(),workId=path.split('/')[1];
+    if(!(db.cv_work_orders_v1||[]).some(x=>x.id===workId&&x.user_id===user.id&&x.status==='in_progress'))
+     return {data:null,error:{message:'A obra deve estar em execução'}};
+    db.cv_e2e_photos_v1=db.cv_e2e_photos_v1||[];
+    if(db.cv_e2e_photos_v1.includes(path))
+     return {data:null,error:{message:'Foto já cadastrada'}};
+    db.cv_e2e_photos_v1.push(path);save(db);
+    return {data:{path},error:null};
+   },
+   async remove(paths){
+    const db=read(),all=db.cv_e2e_photos_v1||[];
+    db.cv_e2e_photos_v1=all.filter(p=>!paths.includes(p)||!p.startsWith(user?.id+'/'));
+    save(db);return {data:paths,error:null};
+   },
+   async createSignedUrl(path){
+    if(!user||!validBucket||!(read().cv_e2e_photos_v1||[]).includes(path)||
+      !path.startsWith(user.id+'/'))
+     return {data:null,error:{message:'Foto não acessível'}};
+    return {data:{signedUrl:'https://example.invalid/private-photo/'+encodeURIComponent(path)},error:null};
+   }
+  };
+ }};
+ return {auth,from,rpc,storage};
 }
