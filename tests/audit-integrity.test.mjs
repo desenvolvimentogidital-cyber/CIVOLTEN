@@ -30,7 +30,9 @@ test('auditoria financeira: 100 combinacoes de HH, quantidade, custos, tributo e
   const independentLabor=Math.ceil(pricing.monthlyCostCents*independentHours/pricing.productiveHours);
   const independentMaterials=Math.round(Math.round(extra*100)*q);
   const independentCost=independentLabor+independentMaterials;
-  const independentSale=Math.ceil(independentCost/(1-(tax+margin)/100));
+  const remainingBps=10000-(tax+margin)*100;
+  const independentSale=Number(
+   (BigInt(independentCost)*10000n+BigInt(remainingBps)-1n)/BigInt(remainingBps));
   assert.equal(estimate.totalHours,Math.round(independentHours*1e6)/1e6,'HH no caso '+i);
   assert.equal(estimate.labor,independentLabor,'custo da HH no caso '+i);
   assert.equal(estimate.materials,independentMaterials,'custo adicional no caso '+i);
@@ -148,17 +150,16 @@ test('sincronizacao inclui mais de mil linhas em cada tabela, sem perda silencio
  assert.equal(loaded.ledger.at(-1).title,'Fatura 1202');
 });
 
-test('simulador por hora é idêntico ao motor da proposta, sem arredondamento duplo',()=>{
+test('simulador por hora é idêntico ao motor da proposta no centavo',()=>{
  const data=fresh();
  data.company={...DEFAULT_COMPANY,companyName:'CIVOLTEN',taxPct:6,marginPct:30,
   productivePeople:2,reviewed:true};
  data.fixed=[{name:'Custo pequeno para testar centavos',amount:1.01,frequency:'monthly'}];
  const correct=quoteForHours(101,data.company,1,0);
- assert.equal(correct.selling,1);
- assert.equal(quoteFromCost(1,data.company).selling,2,
-  'A cotação não deve usar o centavo por hora já arredondado');
+ assert.equal(correct.selling,2,'Mão de obra arredondada para 1 centavo, venda com tributos');
+ assert.equal(quoteFromCost(1,data.company).selling,2);
  const preview=pricingPreview(data,1,0).replace(/\s/g,' ');
- assert.match(preview,/Venda sugerida \/ hora<\/span><strong>R\$ 0,01/);
+ assert.match(preview,/Venda sugerida \/ hora<\/span><strong>R\$ 0,02/);
  const draftPrice=budgetQuantityEstimate(createPricingSnapshot(data),1,1,0);
  assert.equal(draftPrice.selling,correct.selling);
 });
