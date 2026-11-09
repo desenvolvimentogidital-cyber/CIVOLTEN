@@ -100,7 +100,7 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('.budget-demo-flag').count(),0,'Novo orçamento não deve ser marcado como fictício');
   assert.equal(await page.locator('.budget-list-item').count(),0);
   await page.locator('[data-go="catalog"]').first().click();
-  assert.match(await page.locator('#catalog-import-file').getAttribute('accept'),/\\.xls/);
+  assert.ok((await page.locator('#catalog-import-file').getAttribute('accept')).includes('.xls'));
 
   assert.equal(await page.locator('.catalog-screen').count(),1);
   assert.match(await page.locator('.fin-empty').last().innerText(),/Nenhum servico cadastrado/);
