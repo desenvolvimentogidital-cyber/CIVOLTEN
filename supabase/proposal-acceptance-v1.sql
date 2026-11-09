@@ -208,4 +208,24 @@ begin
  end if;
  return new;
 end $$;
+create or replace function public.cv_require_customer_response_v1()
+returns trigger language plpgsql set search_path='' as $$
+declare i public.cv_proposal_invites_v1%rowtype;
+begin
+ select * into i from public.cv_proposal_invites_v1 where budget_id=new.budget_id;
+ if i.id is null then return new;end if;
+ if i.status<>'accepted' then
+  raise exception 'Aguarde o aceite do cliente ou faça uma nova proposta';
+ end if;
+ if new.acceptance_ref not like '%'||i.id::text||'%'
+    or new.contract_value*100<>i.total_cents then
+  raise exception 'A ordem de serviço deve preservar o aceite e valor da proposta respondida';
+ end if;
+ return new;
+end $$;
+drop trigger if exists cv_require_customer_response_trigger_v1 on public.cv_work_orders_v1;
+create trigger cv_require_customer_response_trigger_v1
+before insert on public.cv_work_orders_v1
+for each row execute function public.cv_require_customer_response_v1();
+
 commit;
