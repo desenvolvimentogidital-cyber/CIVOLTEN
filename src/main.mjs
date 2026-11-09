@@ -10,7 +10,7 @@ import {companyView,appearanceView,pricingPreview} from './settings-ui.mjs';
 import {validateEntry,reportCsv,localToday,currentMonth} from './finance.mjs';
 import {financeView,reportsView,ledgerEditorView} from './finance-ui.mjs';
 import {createService,createPricingSnapshot,validateBudget,validateBudgetItem,budgetCsv,priceBudget} from './budget.mjs';
-import {budgetsView,budgetEditorView,budgetPreview,budgetServiceDialog,budgetSchedulePreview,getBudgetSchedule} from './budget-ui.mjs';
+import {budgetsView,budgetEditorView,budgetPreview,budgetServiceDialog,budgetServiceEstimate,budgetSchedulePreview,getBudgetSchedule} from './budget-ui.mjs';
 import {scheduleCsv,suggestExecutionTerm} from './budget-schedule.mjs';
 import {catalogByCode,catalogToBudgetItem,validateCatalogRecord} from './service-catalog.mjs';
 import {readCatalogFile,suggestColumns,buildCatalogImport} from './catalog-import.mjs';
@@ -366,7 +366,12 @@ function newBudget(){
 function openBudget(id){
  const found=state.data.budgets.find(x=>x.id===id);
  if(!found)return;
- state.budgetDraft=structuredClone(found);state.budgetError='';go('budget-edit');
+ state.budgetDraft=structuredClone(found);
+ // Rascunhos anteriores sem fotografia de custos recebem a base atual no formulario.
+ // O registro salvo so muda quando o usuario clicar em Salvar.
+ if(state.budgetDraft.demo===false&&!state.budgetDraft.pricing)
+  state.budgetDraft.pricing=createPricingSnapshot(state.data);
+ state.budgetError='';go('budget-edit');
 }
 function updateBudgetField(element){
  const draft=state.budgetDraft;
@@ -403,7 +408,8 @@ function updateBudgetField(element){
 function openBudgetService(service,editing=false){
  if(!state.budgetDraft)return;
  state.editor={kind:'budget-service',id:editing?service.id:null,service:structuredClone(service)};
- modal.innerHTML=budgetServiceDialog(service,editing);
+ modal.innerHTML=budgetServiceDialog(service,editing,
+  state.budgetDraft.pricing||createPricingSnapshot(state.data));
  modal.showModal();
  modal.querySelector('[name="description"]')?.focus();
 }
@@ -510,6 +516,14 @@ function editBudgetItem(id){
  const service=state.budgetDraft?.items.find(item=>item.id===id);
  if(service)openBudgetService(service,true);
 }
+function refreshBudgetServiceEstimate(){
+ const form=modal.querySelector('#budget-service-form');
+ const container=modal.querySelector('#budget-service-estimate');
+ if(!form||!container||!state.budgetDraft)return;
+ const fields=Object.fromEntries(new FormData(form));
+ container.innerHTML=budgetServiceEstimate(fields,
+  state.budgetDraft.pricing||createPricingSnapshot(state.data));
+}
 function saveBudgetService(form){
  if(state.editor?.kind!=='budget-service'||!state.budgetDraft)return;
  if(!form.reportValidity())return;
@@ -549,7 +563,7 @@ function regularizeBudget(){
   laborHours:'',directCost:''
  }:item);
  draft.demo=false;
- draft.pricing=null;
+ draft.pricing=createPricingSnapshot(state.data);
  state.budgetError='';
  render();
  delayToast('Revise cada serviço, preencha os custos e atualize a precificação antes de salvar ou emitir a proposta.');
@@ -799,6 +813,9 @@ modal.addEventListener('change',event=>{
 modal.addEventListener('input',event=>{
  if(['salary','benefits','extras'].includes(event.target.name))refreshCltPreview();
  if(['unitCost','monthQty'].includes(event.target.name))refreshVariableCostPreview();
+ if(event.target.form?.id==='budget-service-form'&&
+    ['laborHours','directCost','quantity','unit'].includes(event.target.name))
+   refreshBudgetServiceEstimate();
 });
 modal.addEventListener('submit',event=>{
  if(event.target.id==='catalog-form'){event.preventDefault();void saveCatalogItem(event.target);return;}
