@@ -61,7 +61,8 @@ const server=createServer((req,res)=>{
   assert.equal(invites[0].status,'pending');
   assert.match(invites[0].token,/^[0-9a-f]{64}$/);
   await owner.locator('[data-action="budget-open"]').first().click();
-  await owner.locator('.proposal-online-action a').waitFor();
+  // Proposta PDF é ocultada na tela normal; o hyperlink existe no DOM de impressão.
+  await owner.locator('.proposal-online-action a').waitFor({state:'attached'});
   assert.match(await owner.locator('.proposal-online-action a').getAttribute('href'),/aceite\.html#t=[0-9a-f]{64}/);
   await owner.emulateMedia({media:'print'});
   const printed=await owner.pdf({format:'A4',printBackground:true,preferCSSPageSize:true});
