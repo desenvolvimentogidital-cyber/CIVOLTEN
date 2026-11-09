@@ -1501,3 +1501,11 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 .budget-audit-note{margin:12px 0;padding:13px;border-left:3px solid #c7a263;
  border-radius:7px;background:#30291f;color:#f6e8d0;line-height:1.6}
 .budget-audit-note strong{color:#ffe09e}
+
+/* Proposta exclusiva de mão de obra — escopo evidente no orçamento e PDF. */
+.budget-labor-scope{padding:12px 13px;border:1px solid #d8b269;border-radius:10px;background:#302719;color:#f8e8c8}
+.budget-labor-scope b{color:#ffdc8b}
+.proposal-labor-scope{margin:10px 0;padding:13px 15px;border:1px solid #bba781;border-radius:10px;
+ background:#faf5eb;color:#2d2923;font-size:12px;line-height:1.5}
+.proposal-labor-scope strong{display:block;font-size:13px;letter-spacing:.4px}
+.proposal-labor-scope p{margin:5px 0 0}
