@@ -35,7 +35,7 @@ test('imagem do cliente: 150 m² × 1,78 HH/m² = 267 HH, sem confundir unitári
  assert.equal(full.rows[0].selling,estimate.selling);
  assert.equal(full.totalSale,2507079);
  assert.equal(full.totalCost+full.totalTax+full.profit,full.totalSale);
- const html=budgetServiceEstimate(row,snap);
+ const html=budgetServiceEstimate(row,snap).replace(/\s/g,' ');
  assert.match(html,/150 M2 × 1,78 HH\/M2 = 267 HH/);
  assert.match(html,/R\$ 16\.045,30/);
  assert.match(html,/R\$ 25\.070,79/);
