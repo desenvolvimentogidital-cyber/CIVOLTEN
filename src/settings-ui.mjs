@@ -29,8 +29,8 @@ export function pricingPreview(data,hours='8',extra='0'){
   if(sum.total<=0)return '<div class="fin-empty">Cadastre ao menos uma despesa mensal real para formar o preço por hora.</div>';
  const warning=(sum.missing?'<p class="fin-helper cost-pending-note">Atenção: '+sum.missing+' despesa(s) ainda estão a preencher. O preço considera somente os custos reais informados; revise os demais antes de usar em uma proposta definitiva.</p>':'')+
   (sum.assumedQuantities?'<p class="fin-helper cost-pending-note">'+sum.assumedQuantities+' custo(s) variável(is) sem quantidade foram calculados como 1 unidade/mês. Revise em Custos → Variáveis antes de emitir proposta definitiva.</p>':'');
- // Cotação exata: não aplicar imposto/margem sobre HH ou dia já arredondados.
- // Arredondar apenas o preço final para evitar diferença entre simulador e orçamento.
+ // Usar o mesmo motor da precificação do orçamento para HH e dia:
+ // mão de obra arredondada a centavos, tributos e margem calculados depois.
  const pHour=quoteForHours(sum.total,cfg,1,0),
   pDay=quoteForHours(sum.total,cfg,cfg.hoursPerDay,0);
  const extraMoney=cents(extra),q=extraMoney===null?null:quoteForHours(sum.total,cfg,hours,extraMoney);
