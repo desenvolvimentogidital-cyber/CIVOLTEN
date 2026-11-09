@@ -70,7 +70,7 @@ begin
  ) then raise exception 'Responsável deve ser um profissional ativo da empresa';end if;
  foreach p in array new.photo_paths loop
   if p not like new.user_id::text||'/'||new.work_order_id::text||'/'||new.item_id||'/%'
-     or p !~ '\\.(jpg|jpeg|png|webp)$' then
+     or right(p,4)<>'.jpg' then
     raise exception 'Foto deve pertencer a esta obra e serviço';end if;
  end loop;
  new.updated_at=now();
