@@ -1,5 +1,6 @@
 import {brl,employeeCost,fixedMonthly,variableMonthly,variableQuantity,summary,fmt} from './calc.mjs';
 import {costPresetsMissing} from './cost-presets.mjs';
+import {unreadReplies} from './proposal-inbox.mjs';
 import {payrollConfig,payrollPreset} from './payroll.mjs';
 const SHAPES={
  zap:'<path d="m13 2-9 11h7l-1 9 10-12h-7l1-8z"/>',
@@ -94,22 +95,31 @@ export function homeView(data,user){
  const replies=(data.invites||[]).filter(x=>x.status==='accepted'||x.status==='declined');
  const accepted=replies.filter(x=>x.status==='accepted').length;
  const declined=replies.length-accepted;
+ const unseen=unreadReplies(data);
+ const newest=unseen.slice().sort((a,b)=>(b.respondedAt||'').localeCompare(a.respondedAt||''))[0];
+ const newestCustomer=newest?((data.budgets||[]).find(b=>b.id===newest.budgetId)?.customer||
+   newest.budgetSnapshot?.customer||newest.respondentName||'Cliente'):'';
  return '<div class="dashboard">'+
   '<div class="welcome-row"><div class="avatar-outline">'+icon('user',25)+'</div><div class="welcome-text"><h1>Olá, '+e(first)+'</h1>'+
-  '<span>Bem-vindo ao seu painel</span></div><button class="small-square" type="button" data-action="notifications" aria-label="Notificações">'+icon('bell',23)+'</button></div>'+
+  '<span>Bem-vindo ao seu painel</span></div><button class="small-square" type="button" data-action="notifications" aria-label="Notificações">'+icon('bell',23)+(unseen.length?'<span class="reply-bell-count">'+unseen.length+'</span>':'')+'</button></div>'+
   '<div class="horizontal-glow"></div><section class="metric-grid" aria-label="Resumo da empresa">'+
   metric('Custos fixos','coins',brl(s.fixed))+metric('Custos variáveis','chart',brl(s.variable))+
   metric('Funcionários','users',String(count))+metric('Custo mensal','calendar',brl(s.total),true)+
   '</section>'+heading('wrench','Acesso rápido')+
   '<div class="shortcut-grid">'+[
-   ['Orçamentos','clipboard','budgets'],['Obras e execução','building','works'],['Equipe','users','team'],['Relatórios','file','reports'],['Financeiro','coins','finance']
+   ['Orçamentos','clipboard','budgets'],['Central de Respostas','mail','inbox'],['Obras e execução','building','works'],['Equipe','users','team'],['Relatórios','file','reports'],['Financeiro','coins','finance']
   ].map(([title,ic,go])=>'<button type="button" class="shortcut" data-go="'+go+'">'+icon(ic,27)+'<span>'+title+'</span></button>').join('')+
   '</div>'+
-  (replies.length?'<button type="button" class="budget-reply-dashboard" data-go="budgets">'+
-   icon('mail',21)+' <span><strong>Respostas dos clientes:</strong> '+
-   accepted+' proposta(s) aceita(s) e '+declined+' recusada(s). Abrir orçamentos</span>'+
-   icon('chevron',17)+'</button>':'')+
-  heading('chart','Horas de mão de obra nas obras')+
+  (replies.length?'<button type="button" class="budget-reply-dashboard" '+(newest?
+    'data-action="inbox-open" data-id="'+e(newest.id)+'"':'data-go="inbox"')+'>'+
+    icon('mail',21)+' <span><strong>'+(
+     unseen.length?unseen.length+' nova(s) resposta(s) de clientes':
+     'Respostas dos clientes')+'</strong>'+
+    (newest?'<small>'+e(newestCustomer)+' '+(newest.status==='accepted'?'aceitou':'recusou')+
+     ' a proposta. Toque para abrir o registro.</small>':
+     '<small>'+accepted+' aceita(s) · '+declined+' recusada(s). Abrir Central de Respostas.</small>')+
+    '</span>'+icon('chevron',17)+'</button>':'')+
+   heading('chart','Horas de mão de obra nas obras')+
   '<div class="monthly-row"><div class="month-progress"><div class="progress-line"><span>HH previstas (obras cadastradas)</span><b>'+hh(plannedHH)+'</b></div>'+
   '<div class="bar-track"><div class="bar-fill" style="width:'+(plannedHH?100:0)+'%"></div></div>'+
   '<div class="progress-line"><span>HH realmente apontadas</span><b>'+hh(actualHH)+'</b></div>'+
@@ -205,6 +215,9 @@ export function moreView(user,data){
  '<button data-go="team" class="settings-row">'+icon('users',21)+' Funcionários '+icon('chevron',17)+'</button>'+ 
   '<button data-go="finance" class="settings-row">'+icon('chart',21)+' Financeiro e faturamento '+icon('chevron',17)+'</button>'+
  '<button data-go="budgets" class="settings-row">'+icon('clipboard',21)+' Orçamentos '+icon('chevron',17)+'</button>'+
+ '<button data-go="inbox" class="settings-row">'+icon('mail',21)+' Central de Respostas'+
+ (unreadReplies(data).length?' ('+unreadReplies(data).length+' novas)':'')+
+ ' '+icon('chevron',17)+'</button>'+
  '<button data-go="works" class="settings-row">'+icon('building',21)+' Obras, medições e execução '+icon('chevron',17)+'</button>'+ 
  '<button data-go="company" class="settings-row">'+icon('building',21)+' Empresa e precificação '+icon('chevron',17)+'</button>'+
  '<button data-go="appearance" class="settings-row">'+icon('chart',21)+' Cores do aplicativo '+icon('chevron',17)+'</button>'+
