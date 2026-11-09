@@ -1,4 +1,5 @@
 // Importacao local de planilhas oficiais. Nenhum preco de referencia e utilizado.
+import {readLegacyXls,extractSiurbCompositions} from './catalog-xls.mjs';
 const utf=new TextDecoder();
 const norm=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 export function parseDecimal(value){
@@ -92,12 +93,17 @@ function worksheetRows(xml,strings){
  return result;
 }
 export async function readCatalogFile(file){
- if(!file||file.size>65_000_000)throw Error('Selecione um arquivo XLSX/CSV de ate 65 MB.');
+ if(!file||file.size>65_000_000)throw Error('Selecione um arquivo XLS, XLSX ou CSV de ate 65 MB.');
  if(/\.(csv|tsv|txt)$/i.test(file.name)){
   const rows=parseDelimited(await file.text());
   return [{name:file.name,rows}];
  }
- if(!/\.xlsx$/i.test(file.name))throw Error('Use um arquivo .xlsx, .csv ou .tsv (nao PDF ou ZIP).');
+ if(/\.xls$/i.test(file.name)){
+  // XLS binario (Excel 97-2003) usado nas planilhas oficiais da SIURB.
+  const sheets=readLegacyXls(await file.arrayBuffer());
+  return sheets.map(sheet=>extractSiurbCompositions(sheet)||sheet);
+ }
+ if(!/\.xlsx$/i.test(file.name))throw Error('Use um arquivo .xls, .xlsx, .csv ou .tsv (nao PDF ou ZIP).');
  const zip=await unzipEntries(await file.arrayBuffer());
  const workbook=await zip.read('xl/workbook.xml');
  if(!workbook)throw Error('Arquivo nao contem uma pasta de trabalho XLSX.');
@@ -121,7 +127,7 @@ export async function readCatalogFile(file){
   sheets.push({name:node.getAttribute('name')||'Aba '+(i+1),rows:worksheetRows(raw,strings)});
  }
  if(!sheets.length)throw Error('Nenhuma aba XLSX legivel encontrada.');
- return sheets;
+ return sheets.map(sheet=>extractSiurbCompositions(sheet)||sheet);
 }
 export const FIELD_NAMES=[
  ['code','Codigo do servico/composicao',/c[oó]d|cod|composi[cç][aã]o.*n[uú]m/i],
