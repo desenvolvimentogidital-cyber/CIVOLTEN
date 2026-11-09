@@ -1,5 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
-import {fetchRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote} from './cloud.mjs';
+import {fetchRemote,fetchOperationsRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote} from './cloud.mjs';
 import {prepareCostPresets} from './cost-presets.mjs';
 import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
@@ -760,7 +760,7 @@ function openWorkForm(kind,id=null){
  modal.showModal();
 }
 async function refreshWorkData(){
- state.data=await fetchRemote(auth,state.user.id);
+ state.data=await fetchOperationsRemote(auth,state.user.id,state.data);
  try{safeSave(localStorage,state.user.id,state.data)}catch{}
  render();
 }
