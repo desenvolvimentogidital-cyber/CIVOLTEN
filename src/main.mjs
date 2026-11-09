@@ -1,5 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
-import {fetchRemote,fetchOperationsRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote} from './cloud.mjs';
+import {fetchRemote,fetchOperationsRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote,fetchInvitesRemote,revokeProposalRemote} from './cloud.mjs';
 import {prepareCostPresets} from './cost-presets.mjs';
 import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
@@ -15,6 +15,7 @@ import {scheduleCsv,suggestExecutionTerm} from './budget-schedule.mjs';
 import {catalogByCode,catalogToBudgetItem,validateCatalogRecord} from './service-catalog.mjs';
 import {readCatalogFile,suggestColumns,buildCatalogImport} from './catalog-import.mjs';
 import {catalogView,catalogEditorDialog} from './catalog-ui.mjs';
+import {createProposalToken,proposalResponseUrl,proposalValidUntil} from './proposal-link.mjs';
 import {createWorkOrder,createWorkLog,createMeasurement,
  workProgress,workCsv,canComplete} from './operations.mjs';
 import {worksView,workDetailView,workApprovalDialog,workLogDialog,
@@ -64,6 +65,17 @@ function render(){
  else if(state.view==='budget-edit')html=budgetEditorView(state.data,state.budgetDraft,state.budgetError,state.budgetCatalogSearch);
  else html=moreView(state.user,state.data);
  mount.innerHTML=shell(state.view,html);
+ // Orçamentos com link já enviado ou obra aprovada são somente leitura.
+ // O PDF mantém o mesmo conteúdo que foi apresentado ao cliente.
+ if(state.view==='budget-edit'&&state.budgetDraft?.id&&
+  ((state.data.invites||[]).some(i=>i.budgetId===state.budgetDraft.id)||
+   (state.data.works||[]).some(w=>w.budgetId===state.budgetDraft.id))){
+  mount.querySelectorAll('#budget-form input,#budget-form textarea,#budget-form select,#budget-form button, '+
+   '[data-action="budget-add-item"],[data-action="budget-remove-item"],'+
+   '[data-action="budget-edit-item"],[data-action="budget-choose-service"],'+
+   '[data-action="budget-refresh-pricing"],[data-action="budget-schedule-term"]')
+   .forEach(el=>{el.disabled=true;});
+ }
 }
 async function loadForUser(user){
  state.cloudError=null;
@@ -622,8 +634,9 @@ async function saveBudget(form){
  try{
   const f=Object.fromEntries(new FormData(form));
   const draft={...state.budgetDraft};
-  if(draft.id&&state.data.works?.some(w=>w.budgetId===draft.id))
-   throw Error('Proposta já aprovada e congelada. Use Duplicar para criar uma nova versão.');
+  if(draft.id&&(state.data.works?.some(w=>w.budgetId===draft.id)||
+   state.data.invites?.some(i=>i.budgetId===draft.id)))
+   throw Error('Proposta já enviada ou aprovada. Use Duplicar para criar uma nova versão.');
   for(const key of ['title','customer','project','location','notes','expiresOn'])
    if(key in f)draft[key]=f[key];
   draft.commercial={...(draft.commercial||{})};
@@ -650,8 +663,9 @@ async function saveBudget(form){
 async function removeBudget(){
  const item=state.budgetDraft;
  if(!item?.id||!state.user||state.busy||state.cloudError)return;
- if(state.data.works?.some(w=>w.budgetId===item.id)){
-  delayToast('Esta proposta já possui obra aprovada. O contrato não pode ser excluído.');return;
+ if(state.data.works?.some(w=>w.budgetId===item.id)||
+    state.data.invites?.some(i=>i.budgetId===item.id)){
+  delayToast('Proposta enviada ou aprovada não pode ser excluída. Duplique para criar outra versão.');return;
  }
  if(!confirm('Excluir o orçamento "'+item.title+'"? A ação é irreversível.'))return;
  state.busy=true;
@@ -727,10 +741,96 @@ function openWork(id){
 function workCurrent(){
  return state.data.works?.find(w=>w.id===state.workId)||null;
 }
+
+async function createInviteForBudget(budgetId){
+ if(state.busy||state.cloudError||!state.user)return;
+ const budget=state.data.budgets.find(x=>x.id===budgetId);
+ if(!budget)return delayToast('Salve primeiro a proposta no banco.');
+ if(state.data.invites.some(x=>x.budgetId===budgetId))
+  return delayToast('Esta proposta já possui um link. Use copiar link ou duplique a proposta.');
+ if(state.data.works.some(x=>x.budgetId===budgetId))
+  return delayToast('A obra já foi formalizada. Não é possível criar novo convite.');
+ if(budget.demo!==false||budget.commercial?.laborOnly!==true)
+  return delayToast('Somente propostas reais e exclusivas de mão de obra podem ser enviadas.');
+ let priced,validUntil;
+ try{
+  priced=priceBudget(budget);
+  validUntil=proposalValidUntil(budget);
+  if(!priced?.totalSale||!priced.rows?.length)throw Error('Preço e serviços indisponíveis.');
+ }catch(err){delayToast(String(err.message||err));return;}
+ if(!confirm('Habilitar aceite/recusa online desta proposta? Valor, serviços e condições ficarão congelados. Depois, gere o PDF atualizado e envie ao cliente.'))return;
+ state.busy=true;
+ try{
+  const invitation={
+   id:crypto.randomUUID(),budgetId,token:createProposalToken(),
+   budgetSnapshot:structuredClone(budget),totalCents:priced.totalSale,
+   validUntil,status:'pending'
+  };
+  await putRemote(auth,state.user.id,'invites',invitation);
+  const invitations=await fetchInvitesRemote(auth,state.user.id);
+  state.data={...state.data,invites:invitations};
+  try{safeSave(localStorage,state.user.id,state.data)}catch{}
+  render();
+  delayToast('Link de aceite ativado. Abra o orçamento, gere o PDF e envie ao cliente.');
+ }catch(err){delayToast('Não foi possível ativar o link: '+String(err.message||err));}
+ finally{state.busy=false;}
+}
+async function copyInviteForBudget(budgetId){
+ const i=(state.data.invites||[]).find(x=>x.budgetId===budgetId);
+ if(!i||i.status==='revoked')return delayToast('Link indisponível.');
+ const url=proposalResponseUrl(i.token);
+ try{
+  if(!navigator.clipboard?.writeText)throw Error('Copiar manualmente');
+  await navigator.clipboard.writeText(url);
+  delayToast('Link copiado. Envie ao cliente com a proposta PDF.');
+ }catch{
+  window.prompt('Copie este link e envie ao cliente:',url);
+ }
+}
+async function revokeInviteForBudget(budgetId){
+ const i=(state.data.invites||[]).find(x=>x.budgetId===budgetId);
+ if(!i||i.status!=='pending'||state.cloudError||state.busy)return;
+ if(!confirm('Revogar o acesso do cliente a este link de proposta? Esta ação não apaga seu histórico.'))return;
+ state.busy=true;
+ try{
+  await revokeProposalRemote(auth,state.user.id,budgetId);
+  state.data={...state.data,invites:await fetchInvitesRemote(auth,state.user.id)};
+  try{safeSave(localStorage,state.user.id,state.data)}catch{}
+  render();delayToast('Link revogado. Para alterar a proposta, crie uma nova versão.');
+ }catch(err){delayToast(String(err.message||err));}
+ finally{state.busy=false;}
+}
+async function refreshInviteReplies(){
+ if(!state.user||state.authBusy||state.busy||state.cloudError||document.hidden)return;
+ try{
+  const previous=state.data.invites||[];
+  const current=await fetchInvitesRemote(auth,state.user.id);
+  const answered=current.filter(x=>['accepted','declined'].includes(x.status)&&
+    previous.some(p=>p.id===x.id&&p.status==='pending'));
+  const changed=JSON.stringify(current.map(x=>[x.id,x.status,x.respondedAt]))!==
+   JSON.stringify(previous.map(x=>[x.id,x.status,x.respondedAt]));
+  if(changed){
+   state.data={...state.data,invites:current};
+   try{safeSave(localStorage,state.user.id,state.data)}catch{}
+   if(state.view==='home'||state.view==='budgets'||(state.view==='budget-edit'&&
+    state.data.invites.some(x=>x.budgetId===state.budgetDraft?.id)))
+    render();
+  }
+  if(answered.length){
+   const last=answered.at(-1);
+   delayToast(last.status==='accepted'?'Cliente ACEITOU a proposta: '+last.respondentName:
+    'Cliente RECUSOU a proposta: '+last.respondentName);
+  }
+ }catch{/* A sincronização normal informa erros de conexão. */}
+}
 function openWorkApproval(budgetId){
  if(state.busy||state.cloudError)return;
  const b=state.data.budgets.find(x=>x.id===budgetId);
  if(!b)return delayToast('Salve o orçamento no Supabase antes de criar a obra.');
+ const invitation=state.data.invites.find(x=>x.budgetId===budgetId);
+ if(invitation&&invitation.status!=='accepted'&&invitation.status!=='revoked')
+  return delayToast(invitation.status==='pending'?'Aguarde a resposta do cliente ao PDF.':
+   'A proposta foi recusada. Duplique e envie uma nova versão.');
  if(state.data.works.some(x=>x.budgetId===budgetId)){
   openWork(state.data.works.find(x=>x.budgetId===budgetId).id);return;
  }
@@ -740,7 +840,7 @@ function openWorkApproval(budgetId){
  try{
   if(!priceBudget(b))throw Error('Revise o custo e os serviços antes de aprovar.');
   state.editor={kind:'work-approve',budgetId};
-  modal.innerHTML=workApprovalDialog(b);
+  modal.innerHTML=workApprovalDialog(b,invitation?.status==='accepted'?invitation:null);
   modal.showModal();
  }catch(err){delayToast(String(err.message||err));}
 }
@@ -935,8 +1035,13 @@ mount.addEventListener('click',async event=>{
    b.innerHTML=icon(i.type==='text'?'eye-off':'eye',22);
   }
  }else if(action==='notifications'){
-  delayToast(summary(state.data).missing?
-   'Você tem cadastros pendentes. Confira custos e funcionários.':'Nenhuma pendência no momento.');
+  const accepted=(state.data.invites||[]).filter(i=>i.status==='accepted');
+  const declined=(state.data.invites||[]).filter(i=>i.status==='declined');
+  delayToast(accepted.length||declined.length?
+   accepted.length+' proposta(s) aceita(s) e '+declined.length+
+    ' recusada(s). Veja os detalhes em Orçamentos.':
+   summary(state.data).missing?'Você tem cadastros pendentes de custos e equipe.':
+   'Nenhuma resposta nova no momento.');
  }else if(action==='month-info'){
   delayToast('Exibindo os valores mensais cadastrados. Histórico por mês virá depois.');
  }else if(action==='soon'){delayToast('Esta função será construída após aprovarmos a base.');}
@@ -950,6 +1055,9 @@ mount.addEventListener('click',async event=>{
  else if(action==='work-measure-delete'){await deleteWorkRecord('measurements',b.dataset.id);}
  else if(action==='work-log-delete'){await deleteWorkRecord('workLogs',b.dataset.id);}
  else if(action==='budget-clone'){cloneBudget(b.dataset.id);}
+ else if(action==='budget-invite-create'){await createInviteForBudget(b.dataset.id);}
+ else if(action==='budget-invite-copy'){await copyInviteForBudget(b.dataset.id);}
+ else if(action==='budget-invite-revoke'){await revokeInviteForBudget(b.dataset.id);}
  else if(action==='work-measure-bill'){openWorkForm('work-bill',b.dataset.id);}
  else if(action==='work-complete'){await updateWorkStatus('completed');}
  else if(action==='work-export'){exportWork();}
@@ -1097,6 +1205,10 @@ if(auth?.auth?.onAuthStateChange){
 }
 render();
 session();
+setInterval(()=>{void refreshInviteReplies();},45000);
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden)void refreshInviteReplies();
+});
 window.CIVOLTENPreview={get view(){return state.view},get data(){return structuredClone(state.data)},
  get user(){return state.user},go,openEditor,summary:()=>summary(state.data),
  get company(){return structuredClone(state.data.company)},
