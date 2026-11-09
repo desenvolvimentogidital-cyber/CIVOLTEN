@@ -147,7 +147,14 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('.budget-item').count(),0,'Abrir o modal não deve adicionar o serviço');
   assert.equal(await page.locator('#budget-service-form [name="quantity"]').inputValue(),'1');
   assert.equal(await page.locator('#budget-service-form [name="laborHours"]').inputValue(),'5');
-  assert.equal(await page.locator('#budget-service-form [name="directCost"]').inputValue(),'');
+  assert.equal(await page.locator('#budget-service-form [name="directCost"]').inputValue(),'0');
+  assert.equal(await page.locator('#budget-service-form [name="directCost"]').getAttribute('required'),null);
+  assert.match(await page.locator('#budget-service-estimate').innerText(),/Custo mensal/);
+  assert.match(await page.locator('#budget-service-estimate').innerText(),/Por hora produtiva/);
+  assert.match(await page.locator('#budget-service-estimate').innerText(),/Preço de venda sugerido por un/);
+  await page.locator('#budget-service-form [name="laborHours"]').fill('6');
+  assert.match(await page.locator('#budget-service-estimate').innerText(),/\(6 HH\)/);
+  await page.locator('#budget-service-form [name="laborHours"]').fill('5');
   assert.equal(await page.locator('#budget-service-form [name="description"]').inputValue(),'Quadro de distribuicao');
   await fs.promises.mkdir(path.join(__dirname,'../test-artifacts'),{recursive:true});
   await page.screenshot({path:'test-artifacts/orcamento-modal-servico.png',fullPage:true});
@@ -175,9 +182,10 @@ const server=createServer((req,res)=>{
   await page.locator('#budget-catalog').selectOption('SIURB:B200');
   await page.locator('[data-action="budget-add-item"]').click();
   await page.locator('#budget-service-form [name="quantity"]').fill('1');
-  await page.locator('#budget-service-form [name="directCost"]').fill('12');
+  await page.locator('#budget-service-form [name="directCost"]').fill('');
   await page.locator('#budget-service-form [type="submit"]').click();
   assert.equal(await page.locator('.budget-item').count(),2);
+  assert.match(await page.locator('.budget-item').last().innerText(),/adicionais\/un\. R\$ 0,00/);
   assert.match(await page.locator('#budget-schedule-preview').innerText(),/Duração estimada/);
   assert.match(await page.locator('#budget-schedule-preview').innerText(),/Profissionais necessários/);
   await page.locator('[data-schedule-field="goal"]').selectOption('days');
@@ -220,8 +228,8 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.proposal-conditions').innerText(),/20 dias úteis estimados/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-importacao-xls-siurb-20261108/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-importacao-xls-siurb-20261108/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-custo-automatico-20261108/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-custo-automatico-20261108/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),
