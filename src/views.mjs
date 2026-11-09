@@ -85,6 +85,12 @@ function heading(iconName,title){
 export function homeView(data,user){
  const s=summary(data);const first=String(user?.user_metadata?.name||user?.name||user?.email?.split('@')[0]||'').trim().split(/\s+/)[0]||'usuário';
  const count=s.employees;
+ const works=(data.works||[]).filter(w=>w.status!=='cancelled');
+ const plannedHH=works.reduce((sum,w)=>sum+(w.pricedRows||[]).reduce((a,r)=>a+Number(r.hours||0),0),0);
+ const actualHH=(data.workLogs||[]).filter(l=>works.some(w=>w.id===l.workOrderId))
+  .reduce((sum,l)=>sum+Number(l.hours||0),0);
+ const hh=n=>n.toLocaleString('pt-BR',{maximumFractionDigits:2})+' HH';
+ const progress=plannedHH?Math.min(100,Math.round(actualHH*100/plannedHH)):0;
  return '<div class="dashboard">'+
   '<div class="welcome-row"><div class="avatar-outline">'+icon('user',25)+'</div><div class="welcome-text"><h1>Olá, '+e(first)+'</h1>'+
   '<span>Bem-vindo ao seu painel</span></div><button class="small-square" type="button" data-action="notifications" aria-label="Notificações">'+icon('bell',23)+'</button></div>'+
@@ -95,12 +101,13 @@ export function homeView(data,user){
   '<div class="shortcut-grid">'+[
    ['Orçamentos','clipboard','budgets'],['Obras e execução','building','works'],['Equipe','users','team'],['Relatórios','file','reports'],['Financeiro','coins','finance']
   ].map(([title,ic,go])=>'<button type="button" class="shortcut" data-go="'+go+'">'+icon(ic,27)+'<span>'+title+'</span></button>').join('')+
-  '</div>'+heading('chart','Resumo do mês')+
-  '<div class="monthly-row"><div class="month-progress"><div class="progress-line"><span>Previsto</span><b>'+brl(s.total)+'</b></div>'+
-  '<div class="bar-track"><div class="bar-fill" style="width:'+(s.total?100:0)+'%"></div></div>'+
-  '<div class="progress-line"><span>Realizado</span><b>A registrar</b></div>'+
-  '<div class="bar-track light"><div class="bar-fill" style="width:0%"></div></div>'+
-  '<span class="small-muted">O realizado será desenvolvido na próxima etapa.</span></div>'+
+  '</div>'+heading('chart','Horas de mão de obra nas obras')+
+  '<div class="monthly-row"><div class="month-progress"><div class="progress-line"><span>HH previstas (obras cadastradas)</span><b>'+hh(plannedHH)+'</b></div>'+
+  '<div class="bar-track"><div class="bar-fill" style="width:'+(plannedHH?100:0)+'%"></div></div>'+
+  '<div class="progress-line"><span>HH realmente apontadas</span><b>'+hh(actualHH)+'</b></div>'+
+  '<div class="bar-track light"><div class="bar-fill" style="width:'+progress+'%"></div></div>'+
+  '<span class="small-muted">'+(works.length?'Registros acumulados das ordens de serviço, não despesas pagas.':
+   'Abra uma ordem de serviço aprovada para começar a registrar horas reais.')+'</span></div>'+
   '<button class="pending-card" type="button" data-go="more">'+icon('clipboard',28)+
   '<b>'+s.missing+' pendência'+(s.missing===1?'':'s')+'</b><span>para revisar</span>'+
   icon('chevron',20)+'</button></div>'+
