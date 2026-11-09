@@ -360,7 +360,7 @@ function newBudget(){
  if(state.cloudError){delayToast('Banco indisponível: não será criado rascunho offline.');return;}
  state.budgetDraft={id:null,title:'Proposta CIVOLTEN',customer:'',
   project:'',location:'',expiresOn:'',notes:'',items:[],
-  commercial:{schedule:{goal:'crew',startDate:localToday(),pricingMode:'hours'}},
+  commercial:{laborOnly:true,schedule:{goal:'crew',startDate:localToday(),pricingMode:'hours'}},
   pricing:createPricingSnapshot(state.data),status:'draft',demo:false,createdAt:null};
  state.budgetError='';go('budget-edit');
 }
@@ -414,7 +414,8 @@ function openBudgetService(service,editing=false){
  state.editor={kind:'budget-service',id:editing?service.id:null,service:structuredClone(service)};
  modal.innerHTML=budgetServiceDialog(service,editing,
   state.budgetDraft.pricing||createPricingSnapshot(state.data),
-  state.budgetDraft.commercial?.schedule?.pricingMode||'hours');
+  state.budgetDraft.commercial?.schedule?.pricingMode||'hours',
+  state.budgetDraft.commercial?.laborOnly===true);
  modal.showModal();
  modal.querySelector('[name="description"]')?.focus();
 }
@@ -433,7 +434,8 @@ async function saveCatalogItem(form){
  try{
   const base=catalogByCode(state.data.catalog,state.editor.code);
   const previous=(state.data.catalog||[]).find(x=>x.code===state.editor.code);
-  const value=validateCatalogRecord(Object.fromEntries(new FormData(form)),base,previous?.id);
+  const value=validateCatalogRecord({...Object.fromEntries(new FormData(form)),
+   directCost:previous?.directCost??null},base,previous?.id);
   value.id=value.id||crypto.randomUUID();
   state.busy=true;if(submit)submit.disabled=true;
   await putRemote(auth,state.user.id,'catalog',value);
@@ -517,7 +519,9 @@ function addBudgetItem(code='manual'){
   if(code==='manual'){openBudgetService(createService('manual',id));return;}
   const record=catalogByCode(state.data.catalog,code);
   if(!record)throw Error('Serviço não encontrado na sua conta. Sincronize o catálogo.');
-  openBudgetService(catalogToBudgetItem(record,id));
+  const item=catalogToBudgetItem(record,id);
+  if(state.budgetDraft.commercial?.laborOnly===true)item.directCost=0;
+  openBudgetService(item);
  }catch(err){delayToast(String(err.message||err));}
 }
 function editBudgetItem(id){
@@ -531,7 +535,8 @@ function refreshBudgetServiceEstimate(){
  const fields=Object.fromEntries(new FormData(form));
  container.innerHTML=budgetServiceEstimate(fields,
   state.budgetDraft.pricing||createPricingSnapshot(state.data),
-  state.budgetDraft.commercial?.schedule?.pricingMode||'hours');
+  state.budgetDraft.commercial?.schedule?.pricingMode||'hours',
+  state.budgetDraft.commercial?.laborOnly===true);
 }
 function saveBudgetService(form){
  if(state.editor?.kind!=='budget-service'||!state.budgetDraft)return;
@@ -539,7 +544,8 @@ function saveBudgetService(form){
  const errorNode=form.querySelector('#budget-service-error');
  try{
   const input=Object.fromEntries(new FormData(form));
-  const service=validateBudgetItem({...state.editor.service,...input});
+  const service=validateBudgetItem({...state.editor.service,...input,
+   ...(state.budgetDraft.commercial?.laborOnly===true?{directCost:0}:{})});
   const index=state.budgetDraft.items.findIndex(item=>item.id===service.id);
   if(state.editor.id){
    if(index<0)throw Error('Serviço não encontrado no orçamento.');
