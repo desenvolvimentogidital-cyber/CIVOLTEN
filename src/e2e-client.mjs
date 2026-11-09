@@ -93,6 +93,19 @@ export function createE2EClient(){
   };
  }
  const rpc=async(name,args)=>{
+  if(name==='cv_proposal_mark_read_v1'){
+   if(!user)return {data:null,error:{message:'Faça login'}};
+   const db=read(),inv=(db.cv_proposal_invites_v1||[]).find(x=>
+    x.id===args.p_invite_id&&x.user_id===user.id);
+   if(!inv||!['accepted','declined'].includes(inv.status))
+    return {data:null,error:{message:'Resposta ainda pendente ou indisponível'}};
+   db.cv_proposal_receipt_reads_v1=db.cv_proposal_receipt_reads_v1||[];
+   if(!db.cv_proposal_receipt_reads_v1.some(x=>x.invite_id===inv.id&&x.user_id===user.id))
+    db.cv_proposal_receipt_reads_v1.push({
+     id:crypto.randomUUID(),user_id:user.id,invite_id:inv.id,
+     seen_at:new Date().toISOString(),created_at:new Date().toISOString()});
+   save(db);return {data:true,error:null};
+  }
   if(name==='cv_proposal_lookup_v1'){
    const invite=(read().cv_proposal_invites_v1||[]).find(x=>x.token===args.p_token);
    if(!invite||invite.status==='revoked')return {data:{available:false},error:null};
