@@ -100,6 +100,8 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('.budget-demo-flag').count(),0,'Novo orçamento não deve ser marcado como fictício');
   assert.equal(await page.locator('.budget-list-item').count(),0);
   await page.locator('[data-go="catalog"]').first().click();
+  assert.ok((await page.locator('#catalog-import-file').getAttribute('accept')).includes('.xls'));
+
   assert.equal(await page.locator('.catalog-screen').count(),1);
   assert.match(await page.locator('.fin-empty').last().innerText(),/Nenhum servico cadastrado/);
   const content='Codigo;Descricao;Unidade;Profissional;Coeficiente HH;Preco de tabela\n'+
@@ -218,8 +220,8 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.proposal-conditions').innerText(),/20 dias úteis estimados/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-orcamentos-producao-20261108/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-orcamentos-producao-20261108/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-importacao-xls-siurb-20261108/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-importacao-xls-siurb-20261108/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),
