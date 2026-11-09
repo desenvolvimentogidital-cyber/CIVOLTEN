@@ -1509,3 +1509,59 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
  background:#faf5eb;color:#2d2923;font-size:12px;line-height:1.5}
 .proposal-labor-scope strong{display:block;font-size:13px;letter-spacing:.4px}
 .proposal-labor-scope p{margin:5px 0 0}
+
+/* CIVOLTEN | Execução real da mão de obra e medição da obra no celular. */
+.work-screen{padding-bottom:35px}
+.work-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:16px 0}
+.work-kpi{padding:13px 12px;border-radius:13px;border:1px solid #9d7f58;
+ background:linear-gradient(155deg,#292327,#1c1a1d);display:grid;gap:7px;min-width:0}
+.work-kpi small{color:#e0c8a2;font-size:11px;line-height:1.4}
+.work-kpi strong{font-size:clamp(15px,4vw,22px);line-height:1.4;color:#ffe0a0;
+ overflow-wrap:anywhere}
+.work-order-list,.work-lines{display:grid;gap:10px;margin:15px 0}
+.work-order-row,.work-line{display:grid;gap:7px;text-align:left;width:100%;
+ padding:15px;border-radius:13px;border:1px solid #9d866a;background:#252124;
+ color:#f6ebe0}
+.work-order-row{cursor:pointer;font:inherit}
+.work-order-row:nth-child(2n),.work-line:nth-child(2n){background:#362b24}
+.work-order-row strong,.work-line strong{font-size:15px;line-height:1.45;color:#fff3df}
+.work-order-row span,.work-line span,.work-order-row small,.work-line small{font-size:12px;line-height:1.4;
+ color:#e8d5b6;overflow-wrap:anywhere}
+.work-order-row:focus-visible{outline:3px solid #ffc65a}
+.work-header{border:1px solid #9a7645;border-radius:15px;padding:18px;
+ background:linear-gradient(130deg,#36271c,#201c20);margin:8px 0}
+.work-header span{font-size:12px;color:#f5ca88;font-weight:700}
+.work-header h2{font-size:19px;line-height:1.4;margin:8px 0;color:#fff1d4}
+.work-header p{margin:4px 0;font-size:14px}
+.work-header small{font-size:12px;color:#d2b990;line-height:1.55}
+.work-progress{height:13px;border-radius:20px;background:#3a3439;
+ border:1px solid #8b7048;overflow:hidden}
+.work-progress>div{height:100%;background:linear-gradient(90deg,#d88b21,#ffd16b);
+ transition:width .2s}
+.work-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}
+.work-button,.budget-work-launch{font:inherit;font-size:12px!important;min-height:48px;
+ line-height:1.4;white-space:normal!important;padding:11px 9px!important;
+ display:flex;align-items:center;justify-content:center;gap:7px;text-align:center}
+.work-button:disabled{opacity:.45;cursor:not-allowed}
+.budget-entry{display:grid;gap:5px;margin:0 0 10px}
+.budget-entry .budget-list-item{width:100%}
+.budget-work-launch{margin:0 8px 5px}
+.work-editor .modal-fields{display:grid;gap:14px}
+.work-editor .work-check{display:flex;align-items:flex-start;gap:10px;line-height:1.5;font-size:13px;
+ padding:13px;border:1px solid #ac8c56;background:#30271e;border-radius:10px;color:#f0dbc0}
+.work-editor .work-check input{width:21px;height:21px;flex:none;accent-color:#f4b83d}
+.work-editor textarea{min-height:68px}
+#work-print-root{display:none}
+.work-print-document{font-family:Arial,sans-serif;color:#111;background:#fff;line-height:1.6;padding:26px}
+.work-print-document h1{font-size:20px}
+.work-print-document table{width:100%;border-collapse:collapse;margin:18px 0}
+.work-print-document th,.work-print-document td{border:1px solid #aaa;padding:9px;text-align:left;font-size:12px}
+.work-print-signatures{display:flex;gap:30px;justify-content:space-between;margin:70px 0 35px}
+.work-print-signatures span{flex:1;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:12px}
+@media(max-width:380px){.work-actions{grid-template-columns:1fr}.work-kpis{gap:6px}}
+@media print{
+ body:has(#work-print-root) .app-screen,body:has(#work-print-root) #editor-dialog,
+ body:has(#work-print-root) #toast{display:none!important}
+ body:has(#work-print-root) #work-print-root{display:block!important}
+ body:has(#work-print-root) .work-print-document{display:block!important}
+}
