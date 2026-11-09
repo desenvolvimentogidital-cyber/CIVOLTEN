@@ -252,10 +252,15 @@ export function budgetCsv(budget){
  ['Dias úteis estimados',p.schedule?.days??''],['Profissionais estimados',p.schedule?.crew??''],
  ['Total do orçamento (R$)',(p.totalSale/100).toFixed(2)],
  [],
- ['Código de serviço','Serviço','Unidade','Quantidade','Horas-homem/un','Custo direto interno/un (R$)',
-  'Valor de venda total (R$)']
+ ['Código de serviço','Serviço','Unidade','Quantidade','Horas-homem/un','Horas-homem totais',
+  'Materiais/equipamentos adicionais por unidade (R$)',
+  'Mão de obra total (R$)','Materiais/equipamentos totais (R$)','Custo total (R$)',
+  'Preço médio por unidade (R$; 4 casas)','Valor de venda total (R$)']
  ];
  for(const item of p.rows)cells.push([item.sourceCode||'MANUAL',item.description,item.unit,
-  item.quantity,item.laborHours,item.directCost,(item.selling/100).toFixed(2)]);
+  item.quantity,item.laborHours,item.hours,item.directCost,
+  (item.labor/100).toFixed(2),(item.materials/100).toFixed(2),
+  (item.cost/100).toFixed(2),(item.unitSelling/100).toFixed(4),
+  (item.selling/100).toFixed(2)]);
  return '\uFEFF'+cells.map(row=>row.map(csvSafe).join(';')).join('\r\n');
 }
