@@ -28,6 +28,7 @@ export function budgetsView(data){
  '<p class="fin-intro">Elabore propostas comerciais com produtividade por HH/un, composições importadas da SIURB/SINAPI e custos reais da CIVOLTEN.</p>'+
  '<button type="button" class="outlined-button" data-go="catalog">'+icon('clipboard',18)+' Catálogo de serviços SIURB/SINAPI</button>'+
  '<button class="gold-button budget-new-button" type="button" data-action="budget-new">'+icon('plus',22)+' Novo orçamento CIVOLTEN</button>'+
+ '<button type="button" class="outlined-button" data-go="inbox">'+icon('mail',18)+' Central de Respostas · Aceites e recusas</button>'+
  '<button type="button" class="outlined-button" data-go="works">'+icon('building',18)+' Acompanhar obras e medições</button>'+
  (rows.length?'<div class="budget-list">'+rows.map(b=>{
   let price=null;try{price=priceBudget(b)}catch{/* registros antigos devem continuar acessíveis */}
@@ -44,7 +45,10 @@ export function budgetsView(data){
     needsReview(b)?'Revisão pendente':'Proposta comercial')+'</small></span></button>'+
   (invitation?'<p class="budget-invite-status '+e(invitation.status)+'">'+icon('check',16)+' '+
     e(replyLabel)+(invitation.respondentName?' · '+e(invitation.respondentName):'')+
-    (invitation.respondedAt?' · '+dateBR(invitation.respondedAt.slice(0,10)):'')+'</p>':'')+
+    (invitation.respondedAt?' · '+dateBR(invitation.respondedAt.slice(0,10)):'')+'</p>'+
+    (['accepted','declined'].includes(invitation.status)?
+     '<button type="button" class="outlined-button budget-work-launch" data-action="inbox-open" data-id="'+e(invitation.id)+'">'+
+      icon('mail',18)+' Ver resposta do cliente na Central</button>':''):'')+
   (linked?'<button type="button" class="outlined-button budget-work-launch" data-action="work-open" data-id="'+e(linked.id)+'">'+icon('building',18)+' Abrir obra · '+e(linked.contractRef)+'</button>':
   (b.demo===false&&b.commercial?.laborOnly===true&&price&&
    (!invitation||invitation.status==='accepted')?
