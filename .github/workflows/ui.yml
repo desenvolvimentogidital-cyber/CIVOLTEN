@@ -51,6 +51,8 @@ jobs:
           node --check src/views.mjs
           node --check src/calc.mjs
           node --check src/cloud.mjs
+          node --check src/operations.mjs
+          node --check src/operations-ui.mjs
           node --check src/e2e-client.mjs
           node --check src/finance.mjs
           node --check src/finance-ui.mjs
