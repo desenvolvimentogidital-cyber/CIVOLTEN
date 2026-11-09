@@ -375,6 +375,7 @@ const server=createServer((req,res)=>{
    };
   });
   await page.locator('[data-action="work-contract-print"]').click();
+  await page.waitForFunction(()=>Boolean(window.__civoltenOSPrintHtml));
   const osHtml=await page.evaluate(()=>window.__civoltenOSPrintHtml);
   assert.match(osHtml,/work-pdf-header/);
   assert.ok(osHtml.includes('/assets/civolten-logo.png'));
