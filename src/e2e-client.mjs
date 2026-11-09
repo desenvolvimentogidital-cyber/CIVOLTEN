@@ -59,6 +59,7 @@ export function createE2EClient(){
      return query;
     }};
    },
+   insert(value){return this.upsert(value);},
    upsert(value){
     const rows=Array.isArray(value)?value:[value];
     const apply=async()=>{
