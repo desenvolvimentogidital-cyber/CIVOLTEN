@@ -49,7 +49,7 @@ export function catalogView(data,category='all',back='budgets',importData=null,s
  '<div class="page-heading"><button class="small-square" data-go="'+e(back)+'" aria-label="Voltar">'+icon('back',23)+'</button>'+
  '<h1>Catalogo tecnico CIVOLTEN</h1><span class="small-square is-empty"></span></div>'+
  '<p class="fin-intro">Catalogo vazio por padrao. Somente os servicos importados por voce entram aqui. O custo da proposta continua sendo calculado com os dados da CIVOLTEN.</p>'+
- '<div class="catalog-status"><b>'+stats.total+' servicos</b><b>'+stats.ready+' completos</b><span>'+stats.pending+' aguardando HH/custo</span></div>'+
+ '<div class="catalog-status"><b>'+stats.total+' servicos</b><b>'+stats.ready+' com produtividade</b><span>'+stats.pending+' sem HH</span></div>'+
  importer(importData)+
  (entries.length?
  '<label class="modal-field catalog-category"><span>Grupo ou fonte</span><select id="catalog-category">'+opt('all','Todos os importados ('+entries.length+')',category)+
@@ -64,7 +64,7 @@ export function catalogView(data,category='all',back='budgets',importData=null,s
    '<span class="catalog-row-head"><b>'+e(x.description)+'</b><small>'+e(x.source.toUpperCase())+' '+e(x.sinapiCode||x.code)+' · unidade '+e(x.unit)+'</small></span>'+
    '<span class="catalog-row-coeff">'+(hh===null?'HH nao configurado':e(String(hh))+' HH/'+e(x.unit))+'</span>'+
    '<span class="'+(ready?'catalog-row-ready':'catalog-row-pending')+'">'+
-   (x.directCost===null?'Custo direto a informar':'Custo direto interno '+brl(Math.round(x.directCost*100)))+'</span></button>';
+   (ready?'Produtividade disponível':'Revise produtividade HH/un')+'</span></button>';
  }).join('')+'</div>':
  '<div class="fin-empty">Nenhum servico cadastrado. Importe o XLS, XLSX ou CSV SIURB ou SINAPI acima para iniciar.</div>')+
  '<p class="fin-helper">A importacao nao altera funcionarios, contratos, custos mensais nem orcamentos ja salvos. Servicos antigos permanecem somente dentro dos orcamentos historicos.</p>'+
@@ -81,7 +81,7 @@ export function catalogEditorDialog(item){
  '<label class="modal-field"><span>Coeficientes da equipe: Funcao; HH/un (uma por linha)</span>'+
  '<textarea name="coefficients" rows="6" placeholder="Eletricista; 0,30&#10;Ajudante; 0,20">'+e(roles)+'</textarea></label>'+
  '<p class="helper-text">Confirme se os coeficientes vieram da composicao analitica. Servicos auxiliares podem exigir calculo adicional. Ajustes proprios ficam salvos somente na sua conta.</p>'+
- field('Custo direto proprio por '+e(item.unit)+' (R$)','directCost',item.directCost??'','number','min="0" step="0.01" max="999999999" placeholder="Materiais/equipamentos: 0 se nenhum"')+
+ '<p class="helper-text">Esta etapa utiliza somente a produtividade da mão de obra. Nenhum preço de material é solicitado ou importado.</p>'+
  '<p class="helper-text">Nao inclua salarios e encargos ja considerados no custo mensal da empresa. Nenhum preco oficial e copiado.</p>'+
  '<p class="form-error" id="catalog-form-error" role="alert" hidden></p>'+
  '<div class="modal-buttons"><button class="outlined-button" type="button" data-action="close-modal">Cancelar</button>'+
