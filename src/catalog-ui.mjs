@@ -8,15 +8,15 @@ const field=(label,name,value='',type='text',extra='')=>
  '<label class="modal-field"><span>'+label+'</span><input type="'+type+'" name="'+name+'" value="'+e(value??'')+'" '+extra+'></label>';
 function importer(importData){
  let html='<section class="catalog-import"><h2>Importar tabela SIURB ou SINAPI</h2>'+
- '<p class="fin-helper">Selecione o arquivo oficial XLSX ou CSV. O processamento e feito no seu aparelho. Nao importamos precos: somente codigos, servicos, unidades e coeficientes HH quando existirem e forem mapeados.</p>'+
+ '<p class="fin-helper">Selecione o arquivo oficial XLS, XLSX ou CSV. O processamento e feito no seu aparelho. Nao importamos precos: somente codigos, servicos, unidades e coeficientes HH quando existirem e forem mapeados.</p>'+
  '<div class="catalog-import-fields">'+
  '<label class="modal-field"><span>Fonte oficial</span><select id="catalog-import-source">'+
  opt('siurb','SIURB · Prefeitura de Sao Paulo',importData?.source||'siurb')+
  opt('sinapi','SINAPI · CAIXA',importData?.source||'siurb')+'</select></label>'+
  '<label class="modal-field"><span>Competencia da planilha</span><input type="month" id="catalog-import-month" value="'+e(importData?.month||'')+'" required></label>'+
- '<label class="modal-field"><span>Arquivo XLSX, CSV ou TSV</span><input type="file" id="catalog-import-file" accept=".xlsx,.csv,.tsv,.txt"></label></div>';
+ '<label class="modal-field"><span>Arquivo XLS, XLSX, CSV ou TSV</span><input type="file" id="catalog-import-file" accept=".xls,.xlsx,.csv,.tsv,.txt,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label></div>';
  if(!importData?.sheets?.length)return html+
- '<p class="fin-helper">Use o arquivo de composicoes para obter coeficientes de mao de obra. Em planilhas so de custos unitarios, a produtividade pode nao estar presente.</p></section>';
+ '<p class="fin-helper">Use a planilha de composicoes para obter coeficientes de mao de obra. Arquivos Excel .xls da SIURB sao identificados e organizados automaticamente. Em planilhas so de custos unitarios, a produtividade pode nao estar presente.</p></section>';
  const sheet=importData.sheets[importData.selectedSheet]||importData.sheets[0];
  const header=sheet.rows[importData.headerIndex]||[];
  const columns=Math.min(45,Math.max(header.length,...sheet.rows.slice(0,15).map(row=>row.length),0));
@@ -66,7 +66,7 @@ export function catalogView(data,category='all',back='budgets',importData=null,s
    '<span class="'+(ready?'catalog-row-ready':'catalog-row-pending')+'">'+
    (x.directCost===null?'Custo direto a informar':'Custo direto interno '+brl(Math.round(x.directCost*100)))+'</span></button>';
  }).join('')+'</div>':
- '<div class="fin-empty">Nenhum servico cadastrado. Importe o XLSX/CSV SIURB ou SINAPI acima para iniciar.</div>')+
+ '<div class="fin-empty">Nenhum servico cadastrado. Importe o XLS, XLSX ou CSV SIURB ou SINAPI acima para iniciar.</div>')+
  '<p class="fin-helper">A importacao nao altera funcionarios, contratos, custos mensais nem orcamentos ja salvos. Servicos antigos permanecem somente dentro dos orcamentos historicos.</p>'+
  '<button class="outlined-button" type="button" data-go="'+e(back)+'">Voltar</button></section>';
 }
