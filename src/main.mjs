@@ -12,6 +12,7 @@ import {financeView,reportsView,ledgerEditorView} from './finance-ui.mjs';
 import {createService,createPricingSnapshot,validateBudget,validateBudgetItem,budgetCsv,priceBudget} from './budget.mjs';
 import {budgetsView,budgetEditorView,budgetPreview,budgetServiceDialog,budgetServiceEstimate,budgetCatalogResults,budgetSchedulePreview,getBudgetSchedule} from './budget-ui.mjs';
 import {scheduleCsv,suggestExecutionTerm} from './budget-schedule.mjs';
+import {workSchedulePlan,printableFieldSchedule} from './schedule-print.mjs';
 import {catalogByCode,catalogToBudgetItem,validateCatalogRecord} from './service-catalog.mjs';
 import {readCatalogFile,suggestColumns,buildCatalogImport} from './catalog-import.mjs';
 import {catalogView,catalogEditorDialog} from './catalog-ui.mjs';
@@ -708,6 +709,42 @@ function exportSchedule(){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
  }catch(err){delayToast(String(err.message||err));}
 }
+async function printScheduleForField(fromWork=false){
+ const old=document.getElementById('field-schedule-print-root');
+ if(old)old.remove();
+ const div=document.createElement('div');
+ div.id='field-schedule-print-root';
+ try{
+  let plan,context;
+  if(fromWork){
+   const work=workCurrent();
+   if(!work)throw Error('Abra primeiro a obra para gerar seu cronograma.');
+   plan=workSchedulePlan(work);
+   context={ref:work.contractRef,customer:work.customer,project:work.project,
+    items:work.budgetSnapshot.items};
+  }else{
+   const draft=state.budgetDraft;
+   if(!draft)throw Error('Abra um orçamento para gerar seu cronograma.');
+   plan=getBudgetSchedule(state.data,draft);
+   context={ref:draft.id?'Orçamento '+String(draft.id).slice(0,8).toUpperCase():
+     'Orçamento ainda não salvo',customer:draft.customer,project:draft.project||draft.title,
+    title:draft.title,items:draft.items};
+  }
+  div.innerHTML=printableFieldSchedule(plan,context);
+  document.body.appendChild(div);
+  const photos=[...div.querySelectorAll('img')];
+  await Promise.all(photos.map(img=>typeof img.decode==='function'?
+   img.decode().catch(()=>{}):Promise.resolve()));
+  if(photos.some(img=>!img.complete||!img.naturalWidth))
+   throw Error('Não foi possível carregar o logotipo da CIVOLTEN. Confira a conexão.');
+  if(document.fonts?.ready)await document.fonts.ready;
+  window.addEventListener('afterprint',()=>div.remove(),{once:true});
+  window.print();
+ }catch(err){
+  div.remove();
+  delayToast('Cronograma PDF indisponível: '+String(err.message||err));
+ }
+}
 function exportBudget(){
  if(!state.budgetDraft)return;
  try{
@@ -1094,7 +1131,8 @@ mount.addEventListener('click',async event=>{
  else if(action==='work-measure-bill'){openWorkForm('work-bill',b.dataset.id);}
  else if(action==='work-complete'){await updateWorkStatus('completed');}
  else if(action==='work-export'){exportWork();}
- else if(action==='work-contract-print'){printWorkOrder();}
+ else if(action==='work-contract-print'){await printWorkOrder();}
+  else if(action==='work-schedule-print'){await printScheduleForField(true);}
  else if(action==='budget-new'){newBudget();}
  else if(action==='budget-open'){openBudget(b.dataset.id);}
  else if(action==='budget-add-item'){addBudgetItem();}
@@ -1113,6 +1151,7 @@ mount.addEventListener('click',async event=>{
  else if(action==='budget-refresh-pricing'){refreshBudgetPricing();}
  else if(action==='budget-schedule-term'){applyScheduleTerm();}
  else if(action==='budget-schedule-export'){exportSchedule();}
+  else if(action==='budget-schedule-pdf'){await printScheduleForField(false);}
  else if(action==='budget-export'){exportBudget();}
  else if(action==='budget-print'){await printBudget();}
  else if(action==='budget-delete'){await removeBudget();}
