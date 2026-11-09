@@ -3,6 +3,7 @@ import {e,icon} from './views.mjs';
 import {brl} from './calc.mjs';
 import {localToday} from './finance.mjs';
 import {workProgress,statusLabel,measuredStatus,numberBR,billingReference,canComplete,roleMatch} from './operations.mjs';
+import {fieldSummary} from './field-progress.mjs';
 const money=n=>brl(Number(n)||0);
 const date=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'')?v.slice(8)+'/'+v.slice(5,7)+'/'+v.slice(0,4):'—';
 const head=(title,back='works')=>'<div class="page-heading"><button class="small-square" data-go="'+back+'" type="button" aria-label="Voltar">'+
@@ -30,10 +31,13 @@ export function worksView(data){
  metric('Concluídas',counts.completed)+'</div>'+
  (orders.length?'<div class="work-order-list">'+orders.map(w=>{
  const p=workProgress(w,data.workLogs,data.measurements);
+ const physical=fieldSummary(w,data);
  return '<button type="button" class="work-order-row" data-action="work-open" data-id="'+e(w.id)+'">'+
  '<small>'+e(w.contractRef)+' · '+(statusLabel[w.status]||w.status)+'</small><strong>'+e(w.project||w.customer)+'</strong>'+
  '<span>'+e(w.customer)+' · Contrato '+money(Math.round(w.contractValue*100))+'</span>'+
  '<span>Medido '+money(p.approvedCents)+' · '+numberBR(p.percent)+'% do valor contratado</span>'+
+ '<span>Campo digital: '+numberBR(physical.percentage)+'% de avanço físico · '+
+  physical.done+'/'+physical.total+' serviços concluídos</span>'+
  '</button>';
  }).join('')+'</div>':
  '<p class="fin-empty">Nenhuma obra aprovada. Abra um orçamento comercial salvo e registre o aceite real do cliente para criar a ordem de serviço.</p>')+
@@ -47,6 +51,7 @@ export function workDetailView(data,id){
  const measures=(data.measurements||[]).filter(x=>x.workOrderId===id)
   .sort((a,b)=>b.measuredOn.localeCompare(a.measuredOn));
  const progress=workProgress(w,logs,measures);
+ const physical=fieldSummary(w,data);
  const due=measures.filter(m=>m.status==='approved'&&!data.ledger.some(x=>x.reference===billingReference(m)));
  const income=measures.reduce((n,m)=>{
   const e=data.ledger.find(x=>x.reference===billingReference(m));
@@ -75,7 +80,13 @@ export function workDetailView(data,id){
    (canComplete(w,logs,measures)?'':'disabled title="Conclua as medições e registre as horas reais"')):'')+
  button('work-export','Exportar relatório CSV','file')+
  button('work-contract-print','Visualizar / PDF da OS','file')+
- button('work-schedule-print','Cronograma para campo / PDF','calendar')+'</div>'+
+ button('work-schedule-print','Cronograma para campo / PDF','calendar')+
+ button('work-field-open','Acompanhamento digital do cronograma','clipboard')+'</div>'+
+ '<div class="work-field-summary"><strong>Avanço físico no campo: '+numberBR(physical.percentage)+'%</strong>'+
+ '<p>'+physical.done+' de '+physical.total+' serviço(s) concluído(s), '+
+  physical.active+' em execução e '+physical.blocked+' paralisado(s).</p>'+
+ '<div class="field-progress-bar"><span style="width:'+Math.min(100,Math.max(0,physical.percentage))+'%"></span></div>'+
+ '<small>Separado dos '+numberBR(progress.percent)+'% aprovados em medições.</small></div>'+
  (w.status==='approved'?'<p class="fin-helper">Após conferir o aceite, inicie a obra para registrar a equipe, horas e medições.</p>':'')+
  '<div class="fin-section-title"><h2>Serviços contratados</h2></div>'+
  '<div class="work-lines">'+progress.items.map(x=>{
