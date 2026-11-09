@@ -40,11 +40,11 @@ const server=createServer((req,res)=>{
   async function render(order){
    const content=workPrintable(order);
    await page.setContent('<!doctype html><html lang="pt-BR"><head>'+
-    '<meta charset="utf-8"><link rel="stylesheet" href="'+origin+'/styles.css"></head>'+
+    '<meta charset="utf-8"><base href="'+origin+'/"><link rel="stylesheet" href="'+origin+'/styles.css"></head>'+
     '<body><div id="work-print-root">'+content+'</div></body></html>',{waitUntil:'networkidle'});
    await page.emulateMedia({media:'print'});
    await page.waitForFunction(()=>[...document.querySelectorAll('.work-pdf-symbol,.work-pdf-wordmark')]
-    .every(x=>x.complete&&x.naturalWidth>0),{timeout:12000});
+    .every(x=>x.complete&&x.naturalWidth>0),null,{timeout:12000});
    await page.evaluate(()=>document.fonts.ready);
    const images=await page.locator('.work-pdf-symbol,.work-pdf-wordmark').evaluateAll(xs=>
     xs.map(x=>({ok:x.complete&&x.naturalWidth>0,src:x.getAttribute('src')})));
