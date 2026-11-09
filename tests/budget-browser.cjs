@@ -202,8 +202,19 @@ const server=createServer((req,res)=>{
   await page.locator('#budget-service-form [type="submit"]').click();
   assert.equal(await page.locator('.budget-item').count(),2);
   assert.match((await page.locator('.budget-item').last().innerText()).replace(/\s/g,' '),/adicionais\/un\. R\$ 0,00/);
+  // Equipe atual = 2; uma obra longa precisa retornar dias e equipe, sem erro vermelho.
+  await page.locator('[data-action="budget-edit-item"]').first().click();
+  await page.locator('#budget-service-form [name="quantity"]').fill('2500');
+  await page.locator('#budget-service-form [type="submit"]').click();
+  const longText=await page.locator('#budget-schedule-preview').innerText();
+  assert.match(longText,/Prazo com a equipe atual/);
+  assert.match(longText,/Como reduzir o prazo/);
+  assert.doesNotMatch(longText,/Prazo estimado excede 730/);
+  await page.locator('[data-action="budget-edit-item"]').first().click();
+  await page.locator('#budget-service-form [name="quantity"]').fill('4');
+  await page.locator('#budget-service-form [type="submit"]').click();
   assert.match(await page.locator('#budget-schedule-preview').innerText(),/Duração estimada/);
-  assert.match(await page.locator('#budget-schedule-preview').innerText(),/Profissionais necessários/);
+  assert.match(await page.locator('#budget-schedule-preview').innerText(),/Profissionais usados no cálculo/);
   await page.locator('[data-schedule-field="goal"]').selectOption('days');
   await page.locator('[data-schedule-field="days"]').fill('20');
   assert.match(await page.locator('#budget-schedule-preview').innerText(),/20 dias úteis/);
@@ -244,8 +255,8 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.proposal-conditions').innerText(),/20 dias úteis estimados/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-busca-servicos-zebra-20261108/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-busca-servicos-zebra-20261108/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-cronograma-longo-20261108/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-cronograma-longo-20261108/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),
