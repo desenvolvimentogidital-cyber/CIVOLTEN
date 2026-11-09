@@ -5,7 +5,7 @@ import {createWorkOrder,createWorkLog,createMeasurement,roleMatch,
  workProgress,workCsv,canComplete,billingReference} from '../src/operations.mjs';
 import {priceBudget} from '../src/budget.mjs';
 import {createE2EClient} from '../src/e2e-client.mjs';
-import {fetchRemote,fetchOperationsRemote,putRemote,billMeasurementRemote} from '../src/cloud.mjs';
+import {fetchRemote,fetchOperationsRemote,putRemote,billMeasurementRemote,transitionWorkStatusRemote} from '../src/cloud.mjs';
 import {fresh} from '../src/calc.mjs';
 
 const uid='00000000-0000-4000-8000-000000000001';
@@ -106,12 +106,14 @@ test('simulador Supabase salva obra, horas e medição e emite uma única conta 
  try{
   const client=createE2EClient();
   await client.auth.signInWithPassword({email:'obra@teste.local',password:'senha'});
-  const data=fresh(),b=budget(),w={...makeOrder(),status:'in_progress'};
+  const data=fresh(),b=budget(),initial=makeOrder();
+  await putRemote(client,uid,'works',initial);
+  const w=await transitionWorkStatusRemote(client,uid,initial,'in_progress',{startOn:'2026-11-10'});
   const log=createWorkLog(w,{itemId:id1,employeeId,workDate:'2026-11-10',
    hours:8},[employee],randomUUID());
   const m=createMeasurement(w,[],{itemId:id1,quantity:50,measuredOn:'2026-11-10'},randomUUID());
   m.status='approved';
-  await putRemote(client,uid,'works',w);
+
   await putRemote(client,uid,'workLogs',log);
   await putRemote(client,uid,'measurements',m);
   const a=await billMeasurementRemote(client,uid,m.id,'2026-12-05');
