@@ -380,3 +380,26 @@ mobilização, equipamentos e dependências precisam ser revisados. Caso o prazo
 ultrapasse o intervalo de datas suportado, a quantidade de dias continua
 visível, mas a data final fica sem previsão. A exportação CSV inclui equipe
 atual e seu prazo. Valores já salvos no banco permanecem inalterados.
+
+## Auditoria: preço total por quantidade × HH (08/11/2026)
+
+Para cada serviço, o CIVOLTEN calcula **quantidade × produtividade HH/un = HH totais**.
+A mão de obra da linha é `arredondar para cima em centavos
+(custo mensal em centavos × HH totais ÷ capacidade mensal em HH)`.
+O custo de materiais/equipamentos por unidade, quando houver, é
+**multiplicado pela quantidade**. Depois o orçamento aplica imposto e margem
+**uma única vez**: `preço da linha = teto em centavos(custo total /
+(1 - imposto% - margem%))`.
+
+O valor médio por unidade é mostrado com até quatro casas decimais e não
+deve ser multiplicado antes do cálculo: **o preço total da linha e da proposta
+é a referência**, evitando divergências de arredondamento em grandes quantidades.
+
+Exemplo da tela: custo mensal R$ 21.153,35, 22 dias, 8 horas, 2 profissionais,
+150 m² × 1,78 HH/m² = 267 HH totais. Mão de obra R$ 16.045,30 e preço
+total R$ 25.070,79 com imposto 6%, margem 30%, materiais adicionais R$ 0,00.
+
+Na modalidade alternativa **por dias de execução**, o valor final continua
+derivado do custo diário × dias calculados no cronograma; o modal sinaliza
+que o orçamento por dias pode ter preço diferente da estimativa por HH.
+Os orçamentos salvos permanecem preservados.
