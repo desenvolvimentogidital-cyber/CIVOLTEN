@@ -14,7 +14,8 @@ Projeto Supabase: `CIVOLTEN-Orcamentos`, sem exclusão ou alteração de registr
    - Capacidade mensal em HH = dias produtivos × horas/dia × profissionais produtivos.
    - Rateio da despesa mensal pela capacidade; sem incluir salários já presentes como custos diretos novamente.
    - Preço = custo ÷ (1 − alíquota tributária efetiva% − margem sobre a venda%).
-   - Simulador unitário passa a usar a fórmula exata antes de arredondar para centavos, como o orçamento.
+   - Valores monetários de venda e impostos utilizam centavos inteiros e pontos-base de 0,01% (BigInt), sem diferenças de arredondamento de ponto flutuante.
+   - O simulador unitário compartilha o motor de cotações com o orçamento.
 3. **Orçamentos:** `src/budget.mjs`, `src/budget-ui.mjs`, `src/budget-print.mjs`.
    - HH totais da linha = quantidade × coeficiente HH por unidade.
    - Materiais/equipamentos adicionais são multiplicados pela quantidade, quando informados.
