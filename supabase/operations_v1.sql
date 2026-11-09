@@ -55,11 +55,30 @@ create index if not exists cv_measurements_order_v1 on public.cv_measurements_v1
 
 create or replace function public.cv_work_order_guard_v1()
 returns trigger language plpgsql set search_path=public as $$
-declare owner uuid;
+declare owner uuid;original public.cv_budget_drafts_v1%rowtype;priced_total numeric;
 begin
- select b.user_id into owner from public.cv_budget_drafts_v1 b where b.id=new.budget_id;
+ select * into original from public.cv_budget_drafts_v1 b where b.id=new.budget_id;
+ owner=original.user_id;
  if owner is distinct from new.user_id then
   raise exception 'Orcamento nao pertence a esta conta';
+ end if;
+ if tg_op='INSERT' then
+  if new.status<>'approved' then
+   raise exception 'Ordem de servico inicia com aceite aprovado';
+  end if;
+  if original.demo<>false or original.commercial->>'laborOnly'<>'true' then
+   raise exception 'Contrato exige proposta comercial exclusiva de mao de obra';
+  end if;
+  if new.budget_snapshot->'items' is distinct from original.items or
+   new.budget_snapshot->'pricing' is distinct from original.pricing or
+   new.budget_snapshot->'commercial' is distinct from original.commercial then
+   raise exception 'Contrato deve congelar exatamente a proposta aceita';
+  end if;
+  select coalesce(sum((r->>'selling')::numeric),0) into priced_total
+   from jsonb_array_elements(new.priced_rows) r;
+  if priced_total<>new.contract_value*100 or priced_total<=0 then
+   raise exception 'O valor do contrato nao fecha com o preco congelado';
+  end if;
  end if;
  if tg_op='UPDATE' then
   if new.user_id is distinct from old.user_id
@@ -68,7 +87,10 @@ begin
    or new.priced_rows is distinct from old.priced_rows
    or new.contract_value is distinct from old.contract_value
    or new.approved_on is distinct from old.approved_on
-   or new.acceptance_ref is distinct from old.acceptance_ref then
+   or new.acceptance_ref is distinct from old.acceptance_ref
+   or new.contract_ref is distinct from old.contract_ref
+   or new.customer is distinct from old.customer
+   or new.project is distinct from old.project then
    raise exception 'Contrato aprovado e valores congelados; abra aditivo para alterar';
   end if;
   if new.status<>old.status and not (
@@ -164,6 +186,37 @@ end $$;
 drop trigger if exists cv_measurement_guard_trigger_v1 on public.cv_measurements_v1;
 create trigger cv_measurement_guard_trigger_v1 before insert or update on public.cv_measurements_v1
 for each row execute function public.cv_measurement_guard_v1();
+
+create or replace function public.cv_protect_med_receivable_v1()
+returns trigger language plpgsql set search_path=public as $
+declare measurement public.cv_measurements_v1%rowtype;
+begin
+ if tg_op='DELETE' then
+  if old.reference like 'MED:%' then raise exception 'Cobrança de medição aprovada não pode ser apagada';end if;
+  return old;
+ end if;
+ if tg_op='UPDATE' and old.reference like 'MED:%' then
+  if new.reference is distinct from old.reference
+   or new.amount is distinct from old.amount
+   or new.kind is distinct from old.kind
+   or new.user_id is distinct from old.user_id then
+   raise exception 'Valor de medição faturada é imutável. Altere só vencimento ou data recebida';
+  end if;
+ end if;
+ if tg_op='INSERT' and new.reference like 'MED:%' then
+  select * into measurement from public.cv_measurements_v1
+  where id=substring(new.reference from 5)::uuid and user_id=new.user_id;
+  if measurement.id is null or measurement.status<>'approved'
+   or measurement.amount<>new.amount or new.kind<>'income' then
+   raise exception 'Cobrança deve corresponder a medição aprovada';
+  end if;
+ end if;
+ return new;
+end $;
+drop trigger if exists cv_protect_med_receivable_trigger_v1 on public.cv_financial_entries_v1;
+create trigger cv_protect_med_receivable_trigger_v1
+before insert or update or delete on public.cv_financial_entries_v1
+for each row execute function public.cv_protect_med_receivable_v1();
 
 create unique index if not exists cv_med_billing_reference_unique_v1
 on public.cv_financial_entries_v1(user_id,reference)
