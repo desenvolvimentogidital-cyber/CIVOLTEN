@@ -445,6 +445,12 @@ function bestHeader(rows){
  }
  return best;
 }
+function inferImportMonth(filename){
+ const names={JAN:'01',FEV:'02',MAR:'03',ABR:'04',MAI:'05',JUN:'06',
+  JUL:'07',AGO:'08',SET:'09',OUT:'10',NOV:'11',DEZ:'12'};
+ const m=String(filename||'').toUpperCase().match(/(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[_\s.-]*(20)?(\d{2})/);
+ return m?(m[2]?'20':'20')+m[3]+'-'+names[m[1]]:'';
+}
 async function loadCatalogImportFile(file){
  if(!file||!state.user||state.cloudError||state.busy)return;
  try{
@@ -453,7 +459,7 @@ async function loadCatalogImportFile(file){
   const headerIndex=bestHeader(sheets[selectedSheet].rows);
   state.catalogImport={fileName:file.name,sheets,selectedSheet,headerIndex,
    mapping:suggestColumns(sheets[selectedSheet].rows,headerIndex),
-   source:state.catalogImport?.source||'siurb',month:state.catalogImport?.month||''};
+   source:state.catalogImport?.source||'siurb',month:state.catalogImport?.month||inferImportMonth(file.name)};
   render();delayToast('Planilha aberta. Confira aba, colunas e competencia antes de importar.');
  }catch(err){delayToast('Erro ao abrir planilha: '+String(err.message||err));}
 }
