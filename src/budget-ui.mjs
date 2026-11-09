@@ -243,6 +243,8 @@ export function budgetCatalogResults(records,search=''){
 }
 export function budgetEditorView(data,draft,err='',pickerSearch=''){
  if(!draft)return budgetsView(data);
+ const payrollUnreviewed=(data.employees||[]).some(e=>e.active!==false&&e.contractType==='clt')&&
+  data.payroll?.reviewed!==true;
  let calculated=null;try{calculated=!needsReview(draft)?priceBudget(draft):null}catch{/* mostrar erro no preview */}
  const priced=!!calculated;
  return '<section class="fin-screen budget-screen budget-editor">'+header('Montar orçamento','budgets')+
@@ -280,6 +282,7 @@ export function budgetEditorView(data,draft,err='',pickerSearch=''){
  '<div class="fin-empty">Inclua ao menos um serviço para salvar o orçamento.</div>')+
  scheduleControls(data,draft)+
  '<div class="budget-section-heading"><h2>Formação do preço</h2></div>'+
+ (payrollUnreviewed?'<p class="fin-helper budget-audit-note"><strong>Conferência da folha CLT pendente:</strong> a empresa ainda utiliza percentuais iniciais para FGTS, INSS patronal, RAT e outros encargos. O preço calculado pode mudar após a conferência com a contabilidade. Antes de enviar a proposta, revise em <b>Mais → Encargos CLT da empresa</b>.</p>':'')+
  (summary(data).missing?'<p class="fin-helper">O cálculo inclui os custos já cadastrados. Modelos de despesas ainda sem valor ficam fora da conta até serem preenchidos.</p>':'')+
  (summary(data).assumedQuantities?'<p class="fin-helper">'+summary(data).assumedQuantities+' custo(s) variáveis utilizam 1 unidade/mês porque a quantidade não foi informada. Revise se necessário.</p>':'')+
  '<p class="fin-helper">O custo mensal é dividido pelos dias produtivos, horas por dia e profissionais. Cada serviço recebe seu valor pela produtividade HH/un; imposto e margem são aplicados automaticamente.</p>'+
