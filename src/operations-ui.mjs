@@ -92,6 +92,7 @@ export function workDetailView(data,id){
  '<small>'+date(m.measuredOn)+' · '+numberBR(m.quantity)+' '+e(x?.unit||'')+' · '+money(Math.round(m.amount*100))+'</small>'+
  '<span>'+e(measuredStatus[m.status]||m.status)+(billed?' · Cobrança registrada'+(billed.paidDate?' e recebida':' e aberta'):'')+'</span>'+
  (m.status==='draft'&&w.status==='in_progress'?button('work-measure-approve','Aprovar medição','check','data-id="'+e(m.id)+'"'):'')+
+ (m.status==='draft'&&w.status==='in_progress'?button('work-measure-delete','Excluir medição incorreta','trash','data-id="'+e(m.id)+'"'):'')+
  (m.status==='approved'&&!billed?button('work-measure-bill','Lançar a receber','coins','data-id="'+e(m.id)+'"'):'')+
  '</div>';
  }).join('')+'</div>':'<p class="fin-empty">Nenhuma medição registrada.</p>')+
@@ -102,7 +103,9 @@ export function workDetailView(data,id){
  const item=progress.items.find(x=>x.id===l.itemId);
  return '<div class="work-line"><strong>'+e(employee?.name||'Funcionário cadastrado')+'</strong>'+
  '<small>'+date(l.workDate)+' · '+numberBR(l.hours)+' HH · '+e(item?.description||'Serviço')+'</small>'+
- (l.notes?'<span>'+e(l.notes)+'</span>':'')+'</div>';
+ (l.notes?'<span>'+e(l.notes)+'</span>':'')+
+ (w.status==='in_progress'?button('work-log-delete','Excluir apontamento incorreto','trash',
+  'data-id="'+e(l.id)+'"'):'')+'</div>';
  }).join('')+'</div>':'<p class="fin-empty">Nenhuma hora real apontada.</p>')+
  '<div class="fin-link-row"><button type="button" data-go="finance">Abrir Financeiro '+icon('chevron',17)+'</button></div>'+
  '<p class="fin-helper">Medição e contas a receber são controles gerenciais. A nota fiscal oficial, os documentos assinados e as obrigações legais continuam externos ao sistema.</p></section>';
