@@ -2,6 +2,7 @@
 import {e,icon} from './views.mjs';
 import {numberBR} from './operations.mjs';
 import {dateBR} from './budget-schedule.mjs';
+import {localToday} from './finance.mjs';
 import {fieldRows,fieldSummary,FIELD_STATES} from './field-progress.mjs';
 import {workSchedulePlan} from './schedule-print.mjs';
 const date=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'')?dateBR(v):'A definir';
@@ -83,7 +84,7 @@ export function fieldEditDialog(work,data,itemId){
  if(!item)throw Error('Serviço não encontrado.');
  const old=(data.fieldProgress||[]).find(x=>x.workOrderId===work.id&&x.itemId===item.id);
  const quantity=old?.executedQuantity??0;
- const on=old?.observedOn||new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
+ const on=old?.observedOn||localToday();
  const status=old?.status||'pending';
  const employees=(data.employees||[]).filter(x=>x.active!==false).map(x=>
   '<option value="'+e(x.id)+'"'+(old?.employeeId===x.id?' selected':'')+'>'+e(x.name)+' · '+e(x.role||'Equipe')+'</option>').join('');
