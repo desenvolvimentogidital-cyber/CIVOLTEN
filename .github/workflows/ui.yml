@@ -76,6 +76,8 @@ jobs:
         run: npm run test:browser
       - name: Testar catálogo importado no orçamento pelo celular
         run: node tests/budget-browser.cjs
+      - name: Validar aceite de cliente no PDF e criação de OS
+        run: node tests/proposal-browser.cjs
       - name: Guardar capturas do aplicativo e módulos financeiros
         if: always()
         uses: actions/upload-artifact@v4
