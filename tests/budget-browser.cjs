@@ -164,12 +164,19 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('#budget-service-form [name="laborHours"]').inputValue(),'5');
   assert.equal(await page.locator('#budget-service-form [name="directCost"]').inputValue(),'0');
   assert.equal(await page.locator('#budget-service-form [name="directCost"]').getAttribute('required'),null);
-  assert.match(await page.locator('#budget-service-estimate').innerText(),/Custo mensal/);
-  assert.match(await page.locator('#budget-service-estimate').innerText(),/Por hora produtiva/);
-  assert.match(await page.locator('#budget-service-estimate').innerText(),/Preço de venda sugerido por un/);
+  assert.match(await page.locator('#budget-service-estimate').innerText(),/Despesa mensal da empresa/);
+  assert.match(await page.locator('#budget-service-estimate').innerText(),/Custo por HH/);
+  assert.match(await page.locator('#budget-service-estimate').innerText(),/PREÇO TOTAL DOS 1 un/);
   await page.locator('#budget-service-form [name="laborHours"]').fill('6');
-  assert.match(await page.locator('#budget-service-estimate').innerText(),/\(6 HH\)/);
+  assert.match(await page.locator('#budget-service-estimate').innerText(),/6 HH\/un = 6 HH/);
   await page.locator('#budget-service-form [name="laborHours"]').fill('5');
+   await page.locator('#budget-service-form [name="quantity"]').fill('150');
+   const totalBox=await page.locator('#budget-service-estimate').innerText();
+   assert.match(totalBox,/150 un × 5 HH\/un = 750 HH/);
+   assert.match(totalBox,/PREÇO TOTAL DOS 150 un/);
+   const advertisedTotal=await page.locator('.budget-full-quote strong').innerText();
+   assert.notEqual(advertisedTotal,'R$ 0,00');
+   await page.locator('#budget-service-form [name="quantity"]').fill('1');
   assert.equal(await page.locator('#budget-service-form [name="description"]').inputValue(),'Quadro de distribuicao');
   await fs.promises.mkdir(path.join(__dirname,'../test-artifacts'),{recursive:true});
   await page.screenshot({path:'test-artifacts/orcamento-modal-servico.png',fullPage:true});
@@ -255,8 +262,8 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.proposal-conditions').innerText(),/20 dias úteis estimados/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-cronograma-longo-20261108/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-cronograma-longo-20261108/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-total-quantidade-hh-20261108/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-total-quantidade-hh-20261108/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),
