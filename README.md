@@ -403,3 +403,18 @@ Na modalidade alternativa **por dias de execução**, o valor final continua
 derivado do custo diário × dias calculados no cronograma; o modal sinaliza
 que o orçamento por dias pode ter preço diferente da estimativa por HH.
 Os orçamentos salvos permanecem preservados.
+
+## Fluxo de execução de mão de obra
+
+O CIVOLTEN agora conecta proposta comercial de mão de obra, aceite do cliente
+registrado, ordem de serviço, HH reais por funcionário, medições parciais,
+faturamento gerencial e recebimentos. Os registros novos usam Supabase com
+RLS por usuário e preservam preço/HH/escopo do orçamento aprovado.
+Obras concluídas conservam históricos e medições aprovadas não podem ser
+reprecificadas nem apagadas.
+
+Manual e verificações: [Operação de obras e medições](docs/operacao-obras-mao-de-obra-2026-11-09.md).
+
+As configurações efetivas de encargos CLT, impostos e o aceite real do cliente
+precisam ser confirmados pelo usuário/contador. O sistema não substitui
+contrato assinado nem emite nota fiscal.
