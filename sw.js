@@ -1,5 +1,5 @@
-const CACHE='civolten-premium-ui-v23-20261108-total-hh';
-const PRECACHE=['/','/index.html','/styles.css?v=civolten-total-quantidade-hh-20261108','/app.js?v=civolten-total-quantidade-hh-20261108','/manifest.webmanifest',
+const CACHE='civolten-premium-ui-v24-20261109-integridade';
+const PRECACHE=['/','/index.html','/styles.css?v=civolten-auditoria-integridade-20261109','/app.js?v=civolten-auditoria-integridade-20261109','/manifest.webmanifest',
 '/assets/civolten-logo.png','/assets/civolten-simbolo.png','/assets/proposal-construction.svg','/assets/proposal-photo-atlas.webp','/assets/file_000000007df8820eb700b32dbfca9c55.png','/assets/skyline.svg',
 '/assets/icon-192.png','/assets/icon-512.png'];
 self.addEventListener('install',e=>{
