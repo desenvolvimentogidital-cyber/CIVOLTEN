@@ -113,17 +113,30 @@ export function budgetSchedulePreview(data,draft){
  if(!plan)return '<div class="fin-empty">Configure a capacidade produtiva em Mais → Empresa para estimar a obra.</div>';
  if(!plan.totalHours)return '<div class="fin-empty">Adicione serviços com horas de trabalho para gerar o cronograma.</div>';
  const cost=plan.dailyCompanyCost===null?'A calcular':money(plan.dailyCompanyCost);
+ const num=n=>n.toLocaleString('pt-BR');
  const summary='<div class="budget-schedule-kpis">'+
-  m(['Duração estimada',plan.days+' dias úteis'])+
-  m(['Profissionais necessários',String(plan.crew)])+
-  m(['Esforço dos serviços',plan.totalHours.toLocaleString('pt-BR')+' h-h'])+
-  m(['Custo diário da empresa',cost])+'</div>';
+  m(['Duração estimada',num(plan.days)+' dias úteis'])+
+  m(['Profissionais usados no cálculo',num(plan.crew)])+
+  m(['Equipe atual da empresa',num(plan.companyPeople)+' profissionais'])+
+  m(['Prazo com a equipe atual',num(plan.daysWithCompany)+' dias úteis'])+
+  m(['Esforço dos serviços',num(plan.totalHours)+' h-h'])+
+  m(['Custo diário da empresa',cost])+'</div>'+
+  '<div class="budget-schedule-staffing"><strong>Como reduzir o prazo</strong>'+
+  '<p>Com '+num(plan.companyPeople)+' profissionais, a estimativa é de <b>'+num(plan.daysWithCompany)+
+   ' dias úteis</b>, trabalhando '+num(plan.hoursPerDay)+' horas por dia.</p>'+
+  (plan.daysWithCompany>1?'<p>Para executar em cerca de <b>'+num(plan.halfDays)+
+   ' dias úteis</b>, seriam necessários <b>'+num(plan.crewForHalfTime)+' profissionais</b>.</p>':'')+
+  '<p>Para concluir em <b>'+num(plan.productiveDays)+' dias úteis</b> (um mês produtivo), seriam necessários <b>'+
+   num(plan.crewForMonth)+' profissionais</b> — estimativa de dimensionamento, não contratação automática.</p></div>';
  const note=plan.available?
   '<p class="budget-schedule-ok">'+icon('check',15)+' Estimativa compatível com a equipe cadastrada ('+plan.companyPeople+').</p>':
   '<p class="cost-pending-note">Prazo exige '+plan.crew+' profissionais e sua empresa tem '+plan.companyPeople+
   '. Faltam '+plan.extraPeople+'. Revise o prazo ou inclua o custo da equipe adicional antes da proposta.</p>';
- const dates=plan.startDate?'<p class="fin-helper">Início: '+dateBR(plan.startDate)+' · Término: '+dateBR(plan.endDate)+
-  ' · sábados e domingos não contados.</p>':'<p class="fin-helper">Informe a data de início para ver as datas do cronograma.</p>';
+ const dates=plan.startDate?'<p class="fin-helper">Início: '+dateBR(plan.startDate)+
+  (plan.endDate?' · Término estimado: '+dateBR(plan.endDate):
+   ' · prazo calculado em dias úteis; término além do intervalo de datas do calendário')+
+  ' · sábados e domingos não contados.</p>':
+  '<p class="fin-helper">Informe a data de início para ver as datas do cronograma.</p>';
  const days=plan.rows.map(row=>'<div class="budget-schedule-row">'+
   '<div class="budget-schedule-row-head"><b>'+e(row.description)+'</b><span>'+row.hours.toLocaleString('pt-BR')+' h-h</span></div>'+
   '<div class="budget-schedule-track"><span style="left:'+
@@ -132,7 +145,11 @@ export function budgetSchedulePreview(data,draft){
   '<small>'+(row.startDay?'Dia '+row.startDay+' até '+row.endDay+
    (row.startDate?' · '+dateBR(row.startDate)+' a '+dateBR(row.endDate):''):
    'Sem horas estimadas')+'</small></div>').join('');
- return summary+note+dates+'<div class="budget-schedule-list">'+days+'</div>'+
+ const guidance=plan.days>plan.productiveDays*12?
+  '<p class="budget-schedule-guidance">Prazo longo para a equipe informada: <b>'+
+  num(plan.days)+' dias úteis</b>. O cálculo continua válido como estimativa. '+
+  'Para reduzir o prazo, aumente os profissionais destinados à obra ou reveja as HH por unidade dos serviços.</p>':'';
+ return summary+note+guidance+dates+'<div class="budget-schedule-list">'+days+'</div>'+
   '<p class="fin-helper">Estimativa gerencial por horas-homem, com compartilhamento de dias entre atividades. Dependências, serviços paralelos, feriados, clima e produtividade real precisam ser conferidos pelo responsável técnico.</p>';
 }
 const scheduleControls=(data,draft)=>{
@@ -145,7 +162,7 @@ const scheduleControls=(data,draft)=>{
   '<label class="modal-field"><span>Calcular a partir de</span><select name="goal" data-schedule-field="goal">'+
   '<option value="crew"'+(goal==='crew'?' selected':'')+'>Equipe disponível → dias</option>'+
   '<option value="days"'+(goal==='days'?' selected':'')+'>Prazo desejado → profissionais</option></select></label>'+
-  (goal==='days'?scheduleField('Prazo desejado (dias úteis)','days',sc.days??'', 'number','max="730" placeholder="Ex.: 20"'):
+  (goal==='days'?scheduleField('Prazo desejado (dias úteis)','days',sc.days??'', 'number','placeholder="Ex.: 20"'):
    scheduleField('Profissionais destinados à obra','crew',sc.crew??current.productivePeople??1,'number','max="1000"'))+
   scheduleField('Data prevista de início','startDate',sc.startDate||'','date','')+
   '<label class="modal-field"><span>Formação do preço da proposta</span><select name="pricingMode" data-schedule-field="pricingMode">'+
