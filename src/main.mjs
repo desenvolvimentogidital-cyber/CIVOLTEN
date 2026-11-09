@@ -1,5 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
-import {fetchRemote,fetchOperationsRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote,fetchInvitesRemote,revokeProposalRemote,fetchProposalRepliesRemote,markResponseReadRemote} from './cloud.mjs';
+import {fetchRemote,fetchOperationsRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote,fetchInvitesRemote,revokeProposalRemote,fetchProposalRepliesRemote,markResponseReadRemote,transitionWorkStatusRemote} from './cloud.mjs';
 import {prepareCostPresets} from './cost-presets.mjs';
 import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
@@ -953,9 +953,9 @@ async function updateWorkStatus(status){
  if(!confirm(question))return;
  state.busy=true;
  try{
-  await putRemote(auth,state.user.id,'works',{...work,status,
-   ...(status==='in_progress'?{startOn:work.startOn||localToday()}:
-    {finishOn:localToday()})});
+  await transitionWorkStatusRemote(auth,state.user.id,work,status,
+   status==='in_progress'?{startOn:work.startOn||localToday()}:
+   status==='completed'?{finishOn:localToday()}:{});
   await refreshWorkData();
   delayToast(status==='in_progress'?'Obra iniciada: registre HH reais e medições.':
   status==='cancelled'?'OS cancelada. Histórico preservado.':'Obra concluída.');
