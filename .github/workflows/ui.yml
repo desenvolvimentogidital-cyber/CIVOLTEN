@@ -37,6 +37,9 @@ jobs:
       - name: Conferir o build e ativos da marca
         run: |
           test -s dist/index.html
+          test -s dist/aceite.html
+          test -s dist/aceite.js
+          test -s dist/aceite.css
           test -s dist/app.js
           test -s dist/styles.css
           test -s dist/assets/civolten-logo.png
@@ -53,6 +56,8 @@ jobs:
           node --check src/cloud.mjs
           node --check src/operations.mjs
           node --check src/operations-ui.mjs
+          node --check src/proposal-link.mjs
+          node --check src/public-aceite.mjs
           node --check src/e2e-client.mjs
           node --check src/finance.mjs
           node --check src/finance-ui.mjs
