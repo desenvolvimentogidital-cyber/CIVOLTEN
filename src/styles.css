@@ -1908,3 +1908,6 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
  body:has(#field-schedule-print-root) .field-schedule-page:last-child{
   break-after:auto!important;page-break-after:auto!important}
 }
+
+/* A opção PDF ocupa a largura total; o CSV continua disponível separado. */
+.budget-schedule-actions .budget-schedule-pdf{grid-column:1/-1;font-weight:820}
