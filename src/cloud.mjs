@@ -9,9 +9,26 @@ export const TABLES={
  employees:'cv_employees_v1',
  ledger:'cv_financial_entries_v1',
  budgets:'cv_budget_drafts_v1',
- catalog:'cv_service_catalog_v1'
+ catalog:'cv_service_catalog_v1',
+ works:'cv_work_orders_v1',
+ workLogs:'cv_work_logs_v1',
+ measurements:'cv_measurements_v1'
 };
 const normalize=(k,row)=>{
+ if(k==='works')return {id:row.id,budgetId:row.budget_id,customer:row.customer,
+  project:row.project,contractRef:row.contract_ref,acceptanceRef:row.acceptance_ref,
+  budgetSnapshot:row.budget_snapshot,pricedRows:row.priced_rows,
+  contractValue:Number(row.contract_value),status:row.status,
+  approvedOn:row.approved_on,startOn:row.start_on,finishOn:row.finish_on,
+  createdAt:row.created_at};
+ if(k==='workLogs')return {id:row.id,workOrderId:row.work_order_id,
+  employeeId:row.employee_id,itemId:row.item_id,workDate:row.work_date,
+  hours:Number(row.hours),qualificationConfirmed:row.qualification_confirmed,
+  notes:row.notes||'',createdAt:row.created_at};
+ if(k==='measurements')return {id:row.id,workOrderId:row.work_order_id,
+  itemId:row.item_id,measuredOn:row.measured_on,quantity:Number(row.quantity),
+  amount:Number(row.amount),status:row.status,approvedAt:row.approved_at,
+  notes:row.notes||'',createdAt:row.created_at};
  if(k==='catalog')return {id:row.id,code:row.code,category:row.category,
   description:row.description,unit:row.unit,source:row.source,
   roles:Array.isArray(row.roles)?row.roles:[],directCost:row.direct_cost===null?null:Number(row.direct_cost),
@@ -41,6 +58,19 @@ const normalize=(k,row)=>{
 };
 const payload=(k,item,userId)=>{
  const base={id:item.id,user_id:userId,updated_at:new Date().toISOString()};
+ if(k==='works')return {...base,budget_id:item.budgetId,customer:item.customer,
+  project:item.project,contract_ref:item.contractRef,acceptance_ref:item.acceptanceRef,
+  budget_snapshot:item.budgetSnapshot,priced_rows:item.pricedRows,
+  contract_value:item.contractValue,status:item.status,approved_on:item.approvedOn,
+  start_on:item.startOn||null,finish_on:item.finishOn||null};
+ if(k==='workLogs')return {...base,work_order_id:item.workOrderId,
+  item_id:item.itemId,employee_id:item.employeeId,work_date:item.workDate,
+  hours:item.hours,qualification_confirmed:item.qualificationConfirmed===true,
+  notes:item.notes||''};
+ if(k==='measurements')return {...base,work_order_id:item.workOrderId,
+  item_id:item.itemId,measured_on:item.measuredOn,
+  quantity:item.quantity,amount:item.amount,status:item.status,
+  approved_at:item.approvedAt||null,notes:item.notes||''};
  if(k==='catalog')return {...base,code:item.code,category:item.category,
   description:item.description,unit:item.unit,source:item.source,
   roles:item.roles||[],direct_cost:item.directCost,
@@ -121,6 +151,17 @@ export async function putRemote(client,userId,kind,item){
  if(error)throw Error('Falha ao salvar no banco: '+error.message);
  if(!data?.id||data.id!==item.id)throw Error('Banco não confirmou o salvamento.');
  return item;
+}
+// Operação de medição -> contas a receber em transação atômica no Supabase.
+// Nunca duplica receita ao tocar duas vezes em emitir cobrança.
+export async function billMeasurementRemote(client,userId,measurementId,dueDate){
+ checkId(userId);
+ const {data,error}=await client.rpc('cv_bill_measurement_v1',{
+  p_measurement_id:measurementId,p_due_date:dueDate
+ });
+ if(error)throw Error('Não foi possível gerar recebível: '+error.message);
+ if(!data||typeof data!=='string')throw Error('Banco não confirmou o recebível.');
+ return data;
 }
 // Importação em lote, sob a identidade autenticada do usuário (RLS).
 // A lista é limitada aos custos; não altera funcionário, orçamento ou Financeiro.
