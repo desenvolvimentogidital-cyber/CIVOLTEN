@@ -237,6 +237,23 @@ const server=createServer((req,res)=>{
   const downloadPlan=page.waitForEvent('download');
   await page.locator('[data-action="budget-schedule-export"]').click();
   assert.match((await downloadPlan).suggestedFilename(),/cronograma-preliminar.csv/);
+  // O cronograma A4 tem um botão separado do CSV para a equipe marcar em campo.
+  await page.evaluate(()=>{
+   window.__fieldScheduleHtml='';
+   window.print=()=>{
+    window.__fieldScheduleHtml=document.querySelector('#field-schedule-print-root')?.innerHTML||'';
+    window.dispatchEvent(new Event('afterprint'));
+   };
+  });
+  await page.locator('[data-action="budget-schedule-pdf"]').click();
+  await page.waitForFunction(()=>Boolean(window.__fieldScheduleHtml));
+  const fieldHtml=await page.evaluate(()=>window.__fieldScheduleHtml);
+  assert.match(fieldHtml,/CRONOGRAMA DE CAMPO/);
+  assert.match(fieldHtml,/field-schedule-check/);
+  assert.match(fieldHtml,/20 dias úteis/);
+  assert.match(fieldHtml,/civolten-logo.png/);
+  assert.doesNotMatch(fieldHtml,/Valor contratado|R\\$/);
+  assert.equal(await page.locator('#field-schedule-print-root').count(),0);
   assert.match(await page.locator('#budget-price-preview').innerText(),/Preço final para o cliente/);
   await fs.promises.mkdir(path.join(__dirname,'../test-artifacts'),{recursive:true});
   await page.screenshot({path:'test-artifacts/orcamento-editor.png',fullPage:true});
@@ -385,6 +402,21 @@ const server=createServer((req,res)=>{
   assert.ok(!osHtml.includes('Valor contratado')&&!osHtml.includes('R$')&&!osHtml.includes('selling'),
    'A OS não deve conter valores administrativos');
   assert.equal(await page.locator('#work-print-root').count(),0,'Impressão limpa após fechar prévia');
+  // O cronograma da obra deve usar a proposta congelada e as datas da OS.
+  await page.evaluate(()=>{
+   window.__workScheduleHtml='';
+   window.print=()=>{
+    window.__workScheduleHtml=document.querySelector('#field-schedule-print-root')?.innerHTML||'';
+    window.dispatchEvent(new Event('afterprint'));
+   };
+  });
+  await page.locator('[data-action="work-schedule-print"]').click();
+  await page.waitForFunction(()=>Boolean(window.__workScheduleHtml));
+  const workSchedule=await page.evaluate(()=>window.__workScheduleHtml);
+  assert.match(workSchedule,/CRONOGRAMA DE CAMPO/);
+  assert.match(workSchedule,/field-schedule-checkout/);
+  assert.match(workSchedule,/civolten-simbolo.png/);
+  assert.doesNotMatch(workSchedule,/Valor contratado|R\\$/);
   page.once('dialog',d=>d.accept());
   await page.locator('[data-action="work-start"]').click();
   await page.locator('[data-action="work-log-new"]').waitFor();
