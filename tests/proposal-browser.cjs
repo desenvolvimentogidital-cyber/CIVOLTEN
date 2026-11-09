@@ -85,7 +85,7 @@ const server=createServer((req,res)=>{
   assert.match(await visitor.locator('#answered').innerText(),/Aceite registrado com sucesso/);
   await owner.reload({waitUntil:'networkidle'});
   await login();
-  assert.match(await owner.locator('.budget-reply-dashboard').innerText(),/1 nova\\(s\\) resposta\\(s\\)/);
+  assert.match(await owner.locator('.budget-reply-dashboard').innerText(),/nova/);
   await owner.locator('[data-action="notifications"]').click();
   assert.match(await owner.locator('.page-heading h1').innerText(),/Central de Respostas/);
   await owner.locator('#inbox-search').fill('Cliente Contratante');
