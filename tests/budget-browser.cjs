@@ -261,8 +261,8 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.proposal-conditions').innerText(),/20 dias úteis estimados/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-somente-mao-de-obra-20261109/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-somente-mao-de-obra-20261109/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-obras-medicoes-v1-20261109/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-obras-medicoes-v1-20261109/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),
@@ -347,10 +347,79 @@ const server=createServer((req,res)=>{
   await page.locator('#budget-service-form [data-action="close-modal"]').click();
   assert.equal(await page.locator('#budget-form [name="paymentTerms"]').inputValue(),'40% na assinatura e 60% na entrega');
   assert.match(await page.locator('#budget-form [name="executionTerm"]').inputValue(),/20 dias úteis estimados/);
+  // Fluxo completo da prestação de mão de obra: aceite -> OS -> execução -> HH -> medição -> recebível.
+  await page.locator('.bottom-nav [data-go="team"]').click();
+  await page.locator('[data-action="new-employee"]').click();
+  await page.locator('#record-form [name="name"]').fill('Profissional eletricista');
+  await page.locator('#record-form [name="role"]').fill('Eletricista');
+  await page.locator('#record-form [name="salary"]').fill('2800');
+  await page.locator('#record-form [type="submit"]').click();
+  await page.locator('.employee-card').first().waitFor();
+  await page.locator('.bottom-nav [data-go="home"]').click();
+  await page.locator('[data-go="budgets"]').first().click();
+  await page.locator('[data-action="work-approve-budget"]').first().click();
+  assert.equal(await page.locator('#work-form [name="acceptanceRef"]').count(),1);
+  await page.locator('#work-form [name="acceptanceRef"]').fill('Aceite registrado por e-mail do cliente');
+  await page.locator('#work-form [name="acceptanceConfirmed"]').check();
+  await page.locator('#work-form [type="submit"]').click();
+  await page.locator('.work-header').waitFor();
+  assert.equal(await page.locator('[data-action="work-start"]').count(),1);
+  assert.equal(await page.locator('.work-line').count(),2);
+  assert.equal((await page.evaluate(()=>window.CIVOLTENPreview.data.works)).length,1);
   page.once('dialog',d=>d.accept());
+  await page.locator('[data-action="work-start"]').click();
+  await page.locator('[data-action="work-log-new"]').waitFor();
+  await page.locator('[data-action="work-log-new"]').click();
+  await page.locator('#work-form [name="hours"]').fill('8');
+  await page.locator('#work-form [type="submit"]').click();
+  await page.locator('.work-lines').last().getByText('Profissional eletricista').waitFor();
+  assert.equal((await page.evaluate(()=>window.CIVOLTENPreview.data.workLogs)).length,1);
+  await page.locator('[data-action="work-measure-new"]').click();
+  await page.locator('#work-form [name="quantity"]').fill('3');
+  await page.locator('#work-form [type="submit"]').click();
+  await page.locator('[data-action="work-measure-approve"]').first().waitFor();
+  page.once('dialog',d=>d.accept());
+  await page.locator('[data-action="work-measure-approve"]').first().click();
+  await page.locator('[data-action="work-measure-bill"]').first().waitFor();
+  await page.locator('[data-action="work-measure-bill"]').first().click();
+  await page.locator('#work-form [name="dueDate"]').fill('2026-12-05');
+  await page.locator('#work-form [type="submit"]').click();
+  await page.locator('.work-header').waitFor();
+  const billed=await page.evaluate(()=>window.CIVOLTENPreview.data.ledger);
+  assert.equal(billed.length,1,'Gerou só uma conta a receber gerencial');
+  assert.equal(billed[0].paidDate,null,'Cobrança não equivale a recebimento');
+  assert.match(billed[0].reference,/^MED:/);
+  await page.locator('[data-action="work-measure-new"]').click();
+  await page.locator('#work-form [name="itemId"]').selectOption({index:1});
+  await page.locator('#work-form [name="quantity"]').fill('1');
+  await page.locator('#work-form [type="submit"]').click();
+  await page.locator('[data-action="work-measure-approve"]').first().waitFor();
+  page.once('dialog',d=>d.accept());
+  await page.locator('[data-action="work-measure-approve"]').first().click();
+  await page.locator('[data-action="work-complete"]').waitFor();
+  assert.equal(await page.locator('[data-action="work-complete"]').isDisabled(),false);
+  page.once('dialog',d=>d.accept());
+  await page.locator('[data-action="work-complete"]').click();
+  assert.match(await page.locator('.work-header').innerText(),/Concluída/);
+  const downloadWork=page.waitForEvent('download');
+  await page.locator('[data-action="work-export"]').click();
+  assert.match((await downloadWork).suggestedFilename(),/civolten-obra-/);
+  await page.reload({waitUntil:'networkidle'});
+  await login();
+  await page.locator('[data-go="works"]').first().click();
+  await page.locator('[data-action="work-open"]').first().click();
+  assert.match(await page.locator('.work-header').innerText(),/Concluída/);
+  assert.equal(await page.locator('.work-line').count(),5,
+   'Duas linhas de serviço, duas medições e um apontamento reais persistidos');
+  await page.locator('.bottom-nav [data-go="home"]').click();
+  await page.locator('[data-go="budgets"]').first().click();
+  await page.locator('[data-action="budget-open"]').first().click();
   await page.locator('[data-action="budget-delete"]').click();
-  await page.locator('.budget-list-item').first().waitFor({state:'detached'});
-  assert.equal(await page.locator('.budget-list-item').count(),0);
+  assert.equal(await page.locator('.budget-item').count(),2,
+   'O orçamento vinculado ao contrato não pode ser apagado');
+  assert.equal(await page.locator('.budget-list-item').count(),0,
+   'O orçamento continua aberto para leitura');
+
   assert.deepEqual(errors,[],'Não pode haver erros no navegador');
   console.log('PASSOU: serviços CIVOLTEN, HH por unidade, orçamento, PDF, cronograma, banco simulado e CSV.');
  }finally{await browser.close();await new Promise(done=>server.close(done));}
