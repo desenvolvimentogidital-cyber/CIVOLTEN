@@ -185,7 +185,7 @@ const server=createServer((req,res)=>{
   await page.locator('#budget-service-form [name="directCost"]').fill('');
   await page.locator('#budget-service-form [type="submit"]').click();
   assert.equal(await page.locator('.budget-item').count(),2);
-  assert.match(await page.locator('.budget-item').last().innerText(),/adicionais\/un\. R\$ 0,00/);
+  assert.match((await page.locator('.budget-item').last().innerText()).replace(/\s/g,' '),/adicionais\/un\. R\$ 0,00/);
   assert.match(await page.locator('#budget-schedule-preview').innerText(),/Duração estimada/);
   assert.match(await page.locator('#budget-schedule-preview').innerText(),/Profissionais necessários/);
   await page.locator('[data-schedule-field="goal"]').selectOption('days');
