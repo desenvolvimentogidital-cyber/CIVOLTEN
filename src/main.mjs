@@ -1,5 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
-import {fetchRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote} from './cloud.mjs';
+import {fetchRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote} from './cloud.mjs';
 import {prepareCostPresets} from './cost-presets.mjs';
 import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
@@ -15,6 +15,10 @@ import {scheduleCsv,suggestExecutionTerm} from './budget-schedule.mjs';
 import {catalogByCode,catalogToBudgetItem,validateCatalogRecord} from './service-catalog.mjs';
 import {readCatalogFile,suggestColumns,buildCatalogImport} from './catalog-import.mjs';
 import {catalogView,catalogEditorDialog} from './catalog-ui.mjs';
+import {createWorkOrder,createWorkLog,createMeasurement,
+ workProgress,workCsv,canComplete} from './operations.mjs';
+import {worksView,workDetailView,workApprovalDialog,workLogDialog,
+ workMeasurementDialog,workBillingDialog,workPrintable} from './operations-ui.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,payrollSettingsView,cltBreakdownHtml,e,icon} from './views.mjs';
 const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
 const SUPABASE_PUBLIC_KEY=__CIVOLTEN_SUPABASE_PUBLISHABLE_KEY__;
@@ -30,7 +34,7 @@ const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
- cloudError:null,budgetDraft:null,budgetError:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
+ cloudError:null,budgetDraft:null,budgetError:'',workId:null,catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
 };
@@ -54,6 +58,8 @@ function render(){
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
  else if(state.view==='appearance')html=appearanceView(state.data.company);
  else if(state.view==='budgets')html=budgetsView(state.data);
+ else if(state.view==='works')html=worksView(state.data);
+ else if(state.view==='work-detail')html=workDetailView(state.data,state.workId);
  else if(state.view==='catalog')html=catalogView(state.data,state.catalogCategory,state.catalogBack,state.catalogImport,state.catalogSearch);
  else if(state.view==='budget-edit')html=budgetEditorView(state.data,state.budgetDraft,state.budgetError,state.budgetCatalogSearch);
  else html=moreView(state.user,state.data);
@@ -169,9 +175,10 @@ async function signOut(){
 }
 function go(view){
  if(view==='soon'){delayToast('Este recurso será construído na próxima etapa.');return;}
- if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog'].includes(view))return;
+ if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail'].includes(view))return;
  if(view==='catalog')state.catalogBack=state.view==='budget-edit'?'budget-edit':'budgets';
  if(view==='budgets'){state.budgetDraft=null;state.budgetError='';}
+ if(view==='works')state.workId=null;
  state.view=view;render();
  if(window.scrollY)window.scrollTo({top:0,behavior:'instant'});
 }
@@ -623,6 +630,9 @@ async function saveBudget(form){
 async function removeBudget(){
  const item=state.budgetDraft;
  if(!item?.id||!state.user||state.busy||state.cloudError)return;
+ if(state.data.works?.some(w=>w.budgetId===item.id)){
+  delayToast('Esta proposta já possui obra aprovada. O contrato não pode ser excluído.');return;
+ }
  if(!confirm('Excluir o orçamento "'+item.title+'"? A ação é irreversível.'))return;
  state.busy=true;
  try{
@@ -688,6 +698,140 @@ async function printBudget(){
  }catch(err){delayToast(String(err.message||err));}
 }
 
+
+function openWork(id){
+ const work=state.data.works?.find(w=>w.id===id);
+ if(!work)return delayToast('Ordem de serviço não encontrada. Sincronize a conta.');
+ state.workId=id;go('work-detail');
+}
+function workCurrent(){
+ return state.data.works?.find(w=>w.id===state.workId)||null;
+}
+function openWorkApproval(budgetId){
+ if(state.busy||state.cloudError)return;
+ const b=state.data.budgets.find(x=>x.id===budgetId);
+ if(!b)return delayToast('Salve o orçamento no Supabase antes de criar a obra.');
+ if(state.data.works.some(x=>x.budgetId===budgetId)){
+  openWork(state.data.works.find(x=>x.budgetId===budgetId).id);return;
+ }
+ if(b.commercial?.laborOnly!==true){
+  delayToast('Esta proposta é anterior ao escopo somente mão de obra. Crie uma nova proposta sem materiais antes de aprovar.');return;
+ }
+ try{
+  if(!priceBudget(b))throw Error('Revise o custo e os serviços antes de aprovar.');
+  state.editor={kind:'work-approve',budgetId};
+  modal.innerHTML=workApprovalDialog(b);
+  modal.showModal();
+ }catch(err){delayToast(String(err.message||err));}
+}
+function openWorkForm(kind,id=null){
+ if(state.busy||state.cloudError)return;
+ const work=workCurrent();
+ if(!work)return;
+ state.editor={kind,id,workId:work.id};
+ if(kind==='work-log')modal.innerHTML=workLogDialog(work,state.data.employees);
+ else if(kind==='work-measure')modal.innerHTML=workMeasurementDialog(work,state.data.measurements);
+ else if(kind==='work-bill'){
+  const measure=state.data.measurements.find(x=>x.id===id&&x.workOrderId===work.id);
+  if(!measure||measure.status!=='approved')return delayToast('Aprove a medição antes de cobrar.');
+  if(state.data.ledger.some(x=>x.reference==='MED:'+id))return delayToast('Medição já lançada no Financeiro.');
+  modal.innerHTML=workBillingDialog(measure);
+ }else return;
+ modal.showModal();
+}
+async function refreshWorkData(){
+ state.data=await fetchRemote(auth,state.user.id);
+ try{safeSave(localStorage,state.user.id,state.data)}catch{}
+ render();
+}
+async function saveWorkForm(form){
+ if(state.busy||state.cloudError||!state.user||!state.editor)return;
+ const {kind,budgetId,workId,id}=state.editor;
+ if(!['work-approve','work-log','work-measure','work-bill'].includes(kind))return;
+ const submit=form.querySelector('[type="submit"]'),error=form.querySelector('#work-form-error');
+ if(submit)submit.disabled=true;state.busy=true;
+ try{
+  const input=Object.fromEntries(new FormData(form));
+  const work=state.data.works.find(x=>x.id===workId);
+  if(kind==='work-approve'){
+   if(input.acceptanceConfirmed!=='on')throw Error('Confirme o aceite efetivo do cliente.');
+   const budget=state.data.budgets.find(x=>x.id===budgetId);
+   if(!budget)throw Error('Orçamento original não encontrado.');
+   const order=createWorkOrder(budget,input,crypto.randomUUID());
+   await putRemote(auth,state.user.id,'works',order);
+   state.workId=order.id;state.view='work-detail';
+  }else if(kind==='work-log'){
+   if(!work)throw Error('Obra não encontrada.');
+   const log=createWorkLog(work,input,state.data.employees,crypto.randomUUID());
+   await putRemote(auth,state.user.id,'workLogs',log);
+  }else if(kind==='work-measure'){
+   if(!work)throw Error('Obra não encontrada.');
+   const measurement=createMeasurement(work,state.data.measurements,input,crypto.randomUUID());
+   await putRemote(auth,state.user.id,'measurements',measurement);
+  }else if(kind==='work-bill'){
+   if(!work||!id)throw Error('Medição não encontrada.');
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(input.dueDate||''))throw Error('Vencimento inválido.');
+   await billMeasurementRemote(auth,state.user.id,id,input.dueDate);
+  }
+  closeEditor();await refreshWorkData();
+  delayToast(kind==='work-approve'?'Ordem de serviço criada a partir do aceite do cliente.':
+   kind==='work-log'?'Horas reais salvas na obra.':
+   kind==='work-measure'?'Medição salva para sua aprovação.':
+   'Medição registrada no Financeiro. Ainda não foi marcada como recebida.');
+ }catch(err){
+  if(error){error.textContent=String(err.message||err);error.hidden=false;}
+  else delayToast(String(err.message||err));
+ }finally{state.busy=false;if(submit?.isConnected)submit.disabled=false;}
+}
+async function updateWorkStatus(status){
+ const work=workCurrent();
+ if(!work||state.busy||state.cloudError)return;
+ if(status==='completed'&&!canComplete(work,state.data.workLogs,state.data.measurements)){
+  delayToast('Registre horas e aprove a medição de todos os serviços antes de concluir.');return;
+ }
+ const question=status==='in_progress'?'Confirmar início da execução real desta obra?':
+  'Concluir esta obra? Todas as medições devem estar aprovadas.';
+ if(!confirm(question))return;
+ state.busy=true;
+ try{
+  await putRemote(auth,state.user.id,'works',{...work,status,
+   ...(status==='in_progress'?{startOn:work.startOn||localToday()}:
+    {finishOn:localToday()})});
+  await refreshWorkData();
+  delayToast(status==='in_progress'?'Obra iniciada: registre HH reais e medições.':'Obra concluída.');
+ }catch(err){delayToast('Falha ao atualizar obra: '+String(err.message||err));}
+ finally{state.busy=false;}
+}
+async function approveWorkMeasurement(id){
+ const work=workCurrent(),m=state.data.measurements.find(x=>x.id===id&&x.workOrderId===work?.id);
+ if(!m||m.status!=='draft'||state.busy||state.cloudError)return;
+ if(!confirm('Aprovar esta medição? Quantidade e valor ficarão bloqueados para alterações.'))return;
+ state.busy=true;
+ try{
+  await putRemote(auth,state.user.id,'measurements',{...m,status:'approved',approvedAt:new Date().toISOString()});
+  await refreshWorkData();delayToast('Medição aprovada. Você já pode gerar o valor a receber.');
+ }catch(err){delayToast('Não foi possível aprovar a medição: '+String(err.message||err));}
+ finally{state.busy=false;}
+}
+function exportWork(){
+ const work=workCurrent();if(!work)return;
+ try{
+  const csv=workCsv(work,state.data.workLogs,state.data.measurements,state.data.employees);
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=url;link.download='civolten-obra-'+work.contractRef.replace(/[^a-z0-9-]/gi,'_')+'.csv';
+  document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }catch(err){delayToast(String(err.message||err));}
+}
+function printWorkOrder(){
+ const work=workCurrent();if(!work)return;
+ const old=document.getElementById('work-print-root');
+ if(old)old.remove();
+ const div=document.createElement('div');div.id='work-print-root';
+ div.innerHTML=workPrintable(work);document.body.appendChild(div);
+ window.print();
+}
 function exportReport(){
  const csv=reportCsv(state.data,state.finMonth);
  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
@@ -744,6 +888,16 @@ mount.addEventListener('click',async event=>{
  }else if(action==='month-info'){
   delayToast('Exibindo os valores mensais cadastrados. Histórico por mês virá depois.');
  }else if(action==='soon'){delayToast('Esta função será construída após aprovarmos a base.');}
+ else if(action==='work-open'){openWork(b.dataset.id);}
+ else if(action==='work-approve-budget'){openWorkApproval(b.dataset.id);}
+ else if(action==='work-start'){await updateWorkStatus('in_progress');}
+ else if(action==='work-log-new'){openWorkForm('work-log');}
+ else if(action==='work-measure-new'){openWorkForm('work-measure');}
+ else if(action==='work-measure-approve'){await approveWorkMeasurement(b.dataset.id);}
+ else if(action==='work-measure-bill'){openWorkForm('work-bill',b.dataset.id);}
+ else if(action==='work-complete'){await updateWorkStatus('completed');}
+ else if(action==='work-export'){exportWork();}
+ else if(action==='work-contract-print'){printWorkOrder();}
  else if(action==='budget-new'){newBudget();}
  else if(action==='budget-open'){openBudget(b.dataset.id);}
  else if(action==='budget-add-item'){addBudgetItem();}
@@ -845,6 +999,7 @@ modal.addEventListener('input',event=>{
    refreshBudgetServiceEstimate();
 });
 modal.addEventListener('submit',event=>{
+ if(event.target.id==='work-form'){event.preventDefault();void saveWorkForm(event.target);return;}
  if(event.target.id==='catalog-form'){event.preventDefault();void saveCatalogItem(event.target);return;}
  if(event.target.id==='budget-service-form'){
   event.preventDefault();saveBudgetService(event.target);return;
@@ -868,7 +1023,7 @@ if('serviceWorker' in navigator&&!E2E)
    bar.innerHTML='<span>Nova versão disponível, incluindo o PDF comercial.</span>'+
     '<button type="button">Atualizar aplicativo</button>';
    bar.querySelector('button').addEventListener('click',()=>{
-    if(state.view==='budget-edit'&&!confirm('Atualizar agora? Edições ainda não salvas podem ser perdidas.'))return;
+    if((state.view==='budget-edit'||modal.open)&&!confirm('Atualizar agora? Edições ainda não salvas podem ser perdidas.'))return;
     location.reload();
    });
    document.body.appendChild(bar);
@@ -889,4 +1044,5 @@ session();
 window.CIVOLTENPreview={get view(){return state.view},get data(){return structuredClone(state.data)},
  get user(){return state.user},go,openEditor,summary:()=>summary(state.data),
  get company(){return structuredClone(state.data.company)},
- get budgets(){return structuredClone(state.data.budgets)}};
+ get budgets(){return structuredClone(state.data.budgets)},
+ get works(){return structuredClone(state.data.works)}};
