@@ -10,7 +10,7 @@ import {companyView,appearanceView,pricingPreview} from './settings-ui.mjs';
 import {validateEntry,reportCsv,localToday,currentMonth} from './finance.mjs';
 import {financeView,reportsView,ledgerEditorView} from './finance-ui.mjs';
 import {createService,createPricingSnapshot,validateBudget,validateBudgetItem,budgetCsv,priceBudget} from './budget.mjs';
-import {budgetsView,budgetEditorView,budgetPreview,budgetServiceDialog,budgetServiceEstimate,budgetSchedulePreview,getBudgetSchedule} from './budget-ui.mjs';
+import {budgetsView,budgetEditorView,budgetPreview,budgetServiceDialog,budgetServiceEstimate,budgetCatalogResults,budgetSchedulePreview,getBudgetSchedule} from './budget-ui.mjs';
 import {scheduleCsv,suggestExecutionTerm} from './budget-schedule.mjs';
 import {catalogByCode,catalogToBudgetItem,validateCatalogRecord} from './service-catalog.mjs';
 import {readCatalogFile,suggestColumns,buildCatalogImport} from './catalog-import.mjs';
@@ -30,7 +30,7 @@ const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
- cloudError:null,budgetDraft:null,budgetError:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',
+ cloudError:null,budgetDraft:null,budgetError:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
 };
@@ -55,7 +55,7 @@ function render(){
  else if(state.view==='appearance')html=appearanceView(state.data.company);
  else if(state.view==='budgets')html=budgetsView(state.data);
  else if(state.view==='catalog')html=catalogView(state.data,state.catalogCategory,state.catalogBack,state.catalogImport,state.catalogSearch);
- else if(state.view==='budget-edit')html=budgetEditorView(state.data,state.budgetDraft,state.budgetError);
+ else if(state.view==='budget-edit')html=budgetEditorView(state.data,state.budgetDraft,state.budgetError,state.budgetCatalogSearch);
  else html=moreView(state.user,state.data);
  mount.innerHTML=shell(state.view,html);
 }
@@ -356,6 +356,7 @@ async function markPaid(id){
 }
 
 function newBudget(){
+ state.budgetCatalogSearch='';
  if(state.cloudError){delayToast('Banco indisponível: não será criado rascunho offline.');return;}
  state.budgetDraft={id:null,title:'Proposta CIVOLTEN',customer:'',
   project:'',location:'',expiresOn:'',notes:'',items:[],
@@ -364,6 +365,7 @@ function newBudget(){
  state.budgetError='';go('budget-edit');
 }
 function openBudget(id){
+ state.budgetCatalogSearch='';
  const found=state.data.budgets.find(x=>x.id===id);
  if(!found)return;
  state.budgetDraft=structuredClone(found);
@@ -500,15 +502,18 @@ async function saveCatalogImport(){
   delayToast('Importacao interrompida: '+String(err.message||err));
  }finally{state.busy=false;}
 }
-function addBudgetItem(){
+function refreshBudgetCatalogResults(){
+ const area=mount.querySelector('#budget-catalog-results');
+ if(area)area.innerHTML=budgetCatalogResults(state.data.catalog,state.budgetCatalogSearch);
+}
+function addBudgetItem(code='manual'){
  if(!state.budgetDraft)return;
- if(state.budgetDraft.items.length>=100){delayToast('Maximo de 100 servicos por orcamento.');return;}
- const code=mount.querySelector('#budget-catalog')?.value;
+ if(state.budgetDraft.items.length>=100){delayToast('Máximo de 100 serviços por orçamento.');return;}
  try{
   const id=crypto.randomUUID();
-  if(!code||code==='manual'){openBudgetService(createService('manual',id));return;}
+  if(code==='manual'){openBudgetService(createService('manual',id));return;}
   const record=catalogByCode(state.data.catalog,code);
-  if(!record)throw Error('Importe esse servico novamente no catalogo.');
+  if(!record)throw Error('Serviço não encontrado na sua conta. Sincronize o catálogo.');
   openBudgetService(catalogToBudgetItem(record,id));
  }catch(err){delayToast(String(err.message||err));}
 }
@@ -732,6 +737,13 @@ mount.addEventListener('click',async event=>{
  else if(action==='budget-new'){newBudget();}
  else if(action==='budget-open'){openBudget(b.dataset.id);}
  else if(action==='budget-add-item'){addBudgetItem();}
+ else if(action==='budget-choose-service'){addBudgetItem(b.dataset.code);}
+ else if(action==='budget-catalog-clear'){
+  state.budgetCatalogSearch='';
+  const input=mount.querySelector('#budget-catalog-search');
+  if(input){input.value='';input.focus();}
+  refreshBudgetCatalogResults();
+ }
  else if(action==='catalog-edit'){openCatalogItem(b.dataset.code);}
  else if(action==='catalog-import-save'){await saveCatalogImport();}
  else if(action==='budget-edit-item'){editBudgetItem(b.dataset.id);}
@@ -761,6 +773,11 @@ mount.addEventListener('click',async event=>{
  }
 });
 mount.addEventListener('input',event=>{
+ if(event.target.id==='budget-catalog-search'){
+  state.budgetCatalogSearch=event.target.value;
+  refreshBudgetCatalogResults();
+  return;
+ }
  if(event.target.id==='catalog-search'){
   state.catalogSearch=event.target.value;
   const cursor=event.target.selectionStart??state.catalogSearch.length;

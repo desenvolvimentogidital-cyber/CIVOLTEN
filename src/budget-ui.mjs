@@ -177,7 +177,34 @@ const preview=(draft)=>{
  '<strong>'+money(row.selling)+'</strong></div>').join('')+'</div>';
 };
 export function budgetPreview(draft){return preview(draft);}
-export function budgetEditorView(data,draft,err=''){
+// Pesquisa em todos os serviços sincronizados com o Supabase, não apenas nos visíveis.
+const normalizeCatalogTerm=value=>String(value??'').normalize('NFD')
+ .replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+export function filterBudgetCatalog(records,search=''){
+ const term=normalizeCatalogTerm(search);
+ return catalogRows(records).filter(item=>!term||normalizeCatalogTerm([
+  item.description,item.code,item.sinapiCode,item.unit,item.source,item.category
+ ].join(' ')).includes(term))
+ .sort((a,b)=>String(a.description).localeCompare(String(b.description),'pt-BR',{sensitivity:'base'}));
+}
+export function budgetCatalogResults(records,search=''){
+ const matches=filterBudgetCatalog(records,search);
+ const shown=matches.slice(0,60);
+ return '<p class="budget-catalog-meta" role="status" aria-live="polite">'+
+  (matches.length?
+   'Exibindo '+shown.length+' de '+matches.length+' serviço(s) encontrado(s). '+
+    (matches.length>shown.length?'Digite mais letras para localizar os demais.':'Toque em um serviço para adicionar ao orçamento.'):
+   'Nenhum serviço encontrado. Tente outro nome ou código.')+'</p>'+
+  '<div id="budget-catalog-list" class="budget-catalog-list" role="group" aria-label="Serviços disponíveis no catálogo">'+
+  shown.map((item,index)=>'<button type="button" class="budget-catalog-row" data-action="budget-choose-service" data-code="'+e(item.code)+'" '+
+   'aria-label="Adicionar '+e(item.description)+' ao orçamento">'+
+   '<span class="budget-catalog-row-index">'+(index+1)+'</span>'+
+   '<span class="budget-catalog-row-content"><strong>'+e(item.description)+'</strong>'+
+   '<small>'+e((item.source||'').toUpperCase())+' · '+e(item.sinapiCode||item.code)+' · '+e(item.unit)+'</small></span>'+
+   '<span class="budget-catalog-row-plus" aria-hidden="true">'+icon('plus',19)+'</span>'+
+  '</button>').join('')+'</div>';
+}
+export function budgetEditorView(data,draft,err='',pickerSearch=''){
  if(!draft)return budgetsView(data);
  let priced=false;try{priced=!needsReview(draft)&&!!priceBudget(draft)}catch{/* mostrar erro no preview */}
  return '<section class="fin-screen budget-screen budget-editor">'+header('Montar orçamento','budgets')+
@@ -200,13 +227,15 @@ export function budgetEditorView(data,draft,err=''){
  field('Contato comercial da empresa (opcional)','companyContact',draft.commercial?.companyContact||'','text','maxlength="200"')+
  field('CNPJ ou identificação da empresa (opcional)','companyDocument',draft.commercial?.companyDocument||'','text','maxlength="40"')+
  '<div class="budget-section-heading"><h2>Serviços</h2><span>'+draft.items.length+' item(ns)</span></div>'+
- '<div class="budget-picker"><label class="modal-field"><span>Servico importado (SIURB/SINAPI)</span>'+
- '<select id="budget-catalog" aria-label="Servicos importados">'+
- '<option value="manual">Servico personalizado</option>'+
- catalogRows(data.catalog).map(item=>'<option value="'+e(item.code)+'">'+
- e(item.source.toUpperCase())+' '+e(item.sinapiCode||item.code)+' · '+e(item.description)+' · '+e(item.unit)+'</option>').join('')+
- '</select></label>'+
- '<button type="button" class="outlined-button" data-action="budget-add-item">'+icon('plus',19)+' Abrir formulario</button></div>'+
+ '<div class="budget-service-picker">'+
+  '<label class="budget-catalog-search-label" for="budget-catalog-search">Procurar serviços do catálogo</label>'+
+  '<div class="budget-catalog-search-tools">'+
+  '<input id="budget-catalog-search" type="search" autocomplete="off" inputmode="search" '+
+  'aria-controls="budget-catalog-list" placeholder="Pesquisar nome, código ou unidade" value="'+e(pickerSearch)+'">'+
+  '<button type="button" class="budget-catalog-clear" data-action="budget-catalog-clear">Limpar</button></div>'+
+  '<div id="budget-catalog-results">'+budgetCatalogResults(data.catalog,pickerSearch)+'</div>'+
+  '<button type="button" class="outlined-button budget-manual-add" data-action="budget-add-item">'+icon('plus',19)+
+  ' Adicionar serviço manual</button></div>'+
  '<p class="fin-helper">A produtividade SIURB/SINAPI preenche as HH/un. O custo por unidade é calculado automaticamente com as despesas da sua empresa, imposto e margem, sem usar preços da tabela oficial.</p>'+
  '<button class="outlined-button" type="button" data-go="catalog">'+icon('clipboard',18)+' Importar catalogo SIURB/SINAPI</button>'+
  (draft.items.length?'<div class="budget-items">'+draft.items.map((item,index)=>itemRow(item,index,draft.pricing)).join('')+'</div>':

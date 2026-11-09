@@ -1415,3 +1415,55 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 .budget-unit-summary .budget-unit-sale{border-top:2px solid #dfad50!important;padding-top:12px!important}
 .budget-unit-sale strong{font-size:21px!important;color:#ffd269!important}
 .budget-unit-summary small{line-height:1.5;color:#bfae98}
+
+
+/* Lista de serviços da conta: zebra visível no Android, com pesquisa instantânea. */
+.budget-service-picker{display:grid;gap:9px;min-width:0}
+.budget-catalog-search-label{font-size:13px;font-weight:800;color:#f6d9a6}
+.budget-catalog-search-tools{display:flex;gap:8px;align-items:center}
+#budget-catalog-search{flex:1;min-width:0;width:100%;font:inherit;font-size:16px;
+ background:#fff;color:#1c1b1b;border:2px solid #c7a46a;border-radius:12px;
+ padding:12px 13px;min-height:49px;outline-offset:2px}
+#budget-catalog-search::placeholder{color:#5c5752}
+#budget-catalog-search:focus{outline:2px solid #ffcf63;border-color:#bc8a36}
+.budget-catalog-clear{flex:none;min-height:48px;padding:8px 12px;font-size:12px;font-weight:750;
+ color:#fce8c4;background:#282428;border:1px solid #a98b5f;border-radius:10px}
+#budget-catalog-results{min-width:0}
+.budget-catalog-meta{margin:3px 0 8px;font-size:12px;line-height:1.45;color:#f2d8ac}
+.budget-catalog-list{display:grid;gap:0;max-height:min(420px,49vh);overflow-y:auto;
+ overscroll-behavior:contain;border:1px solid #b89b73;border-radius:12px;
+ box-shadow:0 7px 16px #0003}
+.budget-catalog-row{display:flex;align-items:center;gap:12px;min-width:0;width:100%;
+ min-height:66px;padding:12px 11px;border:0;border-bottom:1px solid #8d7a63;
+ text-align:left;font:inherit;cursor:pointer;white-space:normal}
+.budget-catalog-row:last-child{border-bottom:0}
+.budget-catalog-row:nth-child(odd){background:#fff;color:#161616}
+.budget-catalog-row:nth-child(even){background:#252226;color:#faf5e9}
+.budget-catalog-row-index{display:flex;justify-content:center;align-items:center;
+ flex:none;width:24px;height:24px;border:1px solid currentColor;border-radius:7px;
+ font-size:11px;font-weight:800;opacity:.80}
+.budget-catalog-row-content{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0;
+ overflow-wrap:anywhere}
+.budget-catalog-row-content strong{font-size:13px;font-weight:790;line-height:1.4;color:inherit}
+.budget-catalog-row-content small{font-size:11px;line-height:1.35;color:inherit;opacity:.75}
+.budget-catalog-row-plus{flex:none;display:flex;align-items:center;color:inherit}
+.budget-catalog-row:focus-visible{outline:3px solid #e6a324;outline-offset:-3px;position:relative;z-index:1}
+.budget-catalog-row:active{box-shadow:inset 4px 0 #e6a324}
+.budget-manual-add{min-height:47px;display:flex;justify-content:center;align-items:center;gap:8px}
+@media(max-width:380px){
+ .budget-catalog-row{padding:11px 8px;gap:9px}
+ .budget-catalog-search-tools{gap:5px}
+ .budget-catalog-clear{padding:8px}
+}
+/* A mesma alternância no catálogo de serviços importados. */
+.catalog-list{gap:0;border:1px solid #a58d67;border-radius:12px;overflow:hidden}
+.catalog-row{border-radius:0;border:0;border-bottom:1px solid #88745c}
+.catalog-row:last-child{border-bottom:0}
+.catalog-row:nth-child(odd){background:#fff;color:#171717}
+.catalog-row:nth-child(odd) .catalog-row-head b{color:#171717}
+.catalog-row:nth-child(odd) .catalog-row-head small,
+.catalog-row:nth-child(odd) .catalog-row-coeff{color:#393939}
+.catalog-row:nth-child(odd) .catalog-row-ready{color:#245c27}
+.catalog-row:nth-child(odd) .catalog-row-pending{color:#765111}
+.catalog-row:nth-child(even){background:#252226;color:#f6ecdf}
+.catalog-row:focus-visible{outline:3px solid #e6a324;outline-offset:-3px}
