@@ -5,7 +5,7 @@ import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
 import {signupOutcome,authMessage,repeatedSignupMessage,pendingEmailMessage} from './auth-flow.mjs';
 import {fresh,safeLoad,safeSave,validate,summary,employeeCost,variableMonthly,variableQuantity,brl} from './calc.mjs';
-import {validateCompany,THEMES} from './pricing.mjs';
+import {validateCompany,companyConfig,THEMES} from './pricing.mjs';
 import {companyView,appearanceView,pricingPreview} from './settings-ui.mjs';
 import {validateEntry,reportCsv,localToday,currentMonth} from './finance.mjs';
 import {financeView,reportsView,ledgerEditorView} from './finance-ui.mjs';
