@@ -262,8 +262,8 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.proposal-conditions').innerText(),/20 dias úteis estimados/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-total-quantidade-hh-20261108/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-total-quantidade-hh-20261108/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-auditoria-integridade-20261109/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-auditoria-integridade-20261109/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),

@@ -75,10 +75,19 @@ export function laborRates(monthlyCents,cfgRaw){
 export function quoteFromCost(costCents,cfgRaw){
  const cfg=companyConfig(cfgRaw);
  if(!cfg.reviewed||!Number.isSafeInteger(costCents)||costCents<0)return null;
- const fraction=(100-cfg.taxPct-cfg.marginPct)/100;
- if(!Number.isFinite(fraction)||fraction<=0)return null;
- const selling=Math.ceil(costCents/fraction);
- const taxes=Math.round(selling*cfg.taxPct/100);
+ // Percentuais com duas casas: base de 10.000 pontos (0,01% cada).
+ // BigInt elimina diferencas de R$ 0,01 por 0,68 vs 0,6799999999999999.
+ const taxBps=Math.round(cfg.taxPct*100),marginBps=Math.round(cfg.marginPct*100);
+ if(!Number.isFinite(cfg.taxPct)||!Number.isFinite(cfg.marginPct)||
+   cfg.taxPct<0||cfg.marginPct<0||cfg.taxPct>80||cfg.marginPct>80||
+   Math.abs(cfg.taxPct*100-taxBps)>1e-6||
+   Math.abs(cfg.marginPct*100-marginBps)>1e-6)return null;
+ const remainder=10000-taxBps-marginBps;
+ if(remainder<=0)return null;
+ const saleBig=(BigInt(costCents)*10000n+BigInt(remainder)-1n)/BigInt(remainder);
+ if(saleBig>BigInt(Number.MAX_SAFE_INTEGER))return null;
+ const selling=Number(saleBig);
+ const taxes=Number((saleBig*BigInt(taxBps)+5000n)/10000n);
  const grossProfit=selling-costCents-taxes;
  return {cost:costCents,selling,taxes,grossProfit,
   effectiveMargin:selling?grossProfit/selling*100:0,taxPct:cfg.taxPct,marginPct:cfg.marginPct};
