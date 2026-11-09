@@ -1467,3 +1467,13 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 .catalog-row:nth-child(odd) .catalog-row-pending{color:#765111}
 .catalog-row:nth-child(even){background:#252226;color:#f6ecdf}
 .catalog-row:focus-visible{outline:3px solid #e6a324;outline-offset:-3px}
+
+/* Planejamento de obras longas: mostrar o resultado sem alertas de erro. */
+.budget-schedule-staffing{margin:12px 0;padding:15px;border:1px solid #a48b5e;border-radius:13px;
+ background:linear-gradient(130deg,#2c271d,#211f20);color:#f6eadb;font-size:12px;line-height:1.55}
+.budget-schedule-staffing>strong{display:block;font-size:15px;color:#ffd783;margin-bottom:7px}
+.budget-schedule-staffing p{margin:7px 0}
+.budget-schedule-staffing b{color:#ffe3a2}
+.budget-schedule-guidance{margin:12px 0;padding:13px;border-radius:12px;
+ background:#2a271e;border:1px solid #a08b5b;color:#f0dfc0;line-height:1.5;font-size:12px}
+.budget-schedule-guidance b{color:#ffde91}

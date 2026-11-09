@@ -364,3 +364,19 @@ alternância e mantém sua pesquisa independente.
 
 Esta melhoria altera somente a interface do aplicativo, não exclui nem
 reescreve registros no Supabase.
+
+## Cronograma com prazo superior a 730 dias úteis
+
+A estimativa do cronograma não fica limitada a 730 dias. Para a equipe
+informada, o sistema calcula `teto(total de HH / (profissionais × horas/dia))`,
+apresenta a duração mesmo quando extensa e mostra também o prazo para a equipe
+produtiva cadastrada. A tela sugere o dimensionamento para metade do prazo
+e para um mês produtivo (dias configurados pela empresa), sem contratar nem
+alterar a equipe ou a precificação automaticamente.
+
+O cálculo de datas úteis usa acesso direto ao dia útil de cada marco, sem
+criar uma lista de milhares de datas na memória. Feriados, produtividade real,
+mobilização, equipamentos e dependências precisam ser revisados. Caso o prazo
+ultrapasse o intervalo de datas suportado, a quantidade de dias continua
+visível, mas a data final fica sem previsão. A exportação CSV inclui equipe
+atual e seu prazo. Valores já salvos no banco permanecem inalterados.

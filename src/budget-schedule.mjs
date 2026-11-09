@@ -12,7 +12,8 @@ export function validateSchedule(raw={}){
  const data=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
  const goal=data.goal==='days'?'days':'crew';
  const pricingMode=data.pricingMode==='days'?'days':'hours';
- const days=integer(data.days,'Prazo de execução',730,true);
+ // Não limitar o prazo a dois anos: obras longas precisam de resultado, não de erro.
+ const days=integer(data.days,'Prazo de execução',Number.MAX_SAFE_INTEGER,true);
  const crew=integer(data.crew,'Número de profissionais',1000,true);
  const startDate=String(data.startDate??'').trim();
  if(startDate&&!validDate(startDate))throw Error('Data de início do cronograma inválida.');
@@ -23,20 +24,21 @@ const parseDate=str=>{
  return new Date(Date.UTC(y,m-1,d,12));
 };
 const dateString=date=>date.toISOString().slice(0,10);
-const nextWorkingDay=date=>{
- const next=new Date(date.getTime());
- do{next.setUTCDate(next.getUTCDate()+1)}while([0,6].includes(next.getUTCDay()));
- return next;
-};
-const workingDays=(start,number)=>{
- let date=parseDate(start);
- while([0,6].includes(date.getUTCDay()))date.setUTCDate(date.getUTCDate()+1);
- const result=[];
- for(let i=0;i<number;i++){
-  result.push(dateString(date));
-  date=nextWorkingDay(date);
- }
- return result;
+// Cálculo direto do N-ésimo dia útil: não criar milhões de datas na memória.
+const workingDayAt=(start,index)=>{
+ if(!Number.isSafeInteger(index)||index<0)return null;
+ const date=parseDate(start);
+ const weekDay=date.getUTCDay();
+ if(weekDay===6)date.setUTCDate(date.getUTCDate()+2);
+ else if(weekDay===0)date.setUTCDate(date.getUTCDate()+1);
+ const fromMonday=(date.getUTCDay()+6)%7;
+ const delta=index+2*Math.floor((fromMonday+index)/5);
+ const time=date.getTime()+delta*86400000;
+ if(!Number.isFinite(time)||Math.abs(time)>8640000000000000)return null;
+ const future=new Date(time);
+ // A interface de datas e os campos ISO seguem a faixa de quatro dígitos.
+ if(!Number.isFinite(future.getTime())||future.getUTCFullYear()>9999)return null;
+ return dateString(future);
 };
 const safeHours=(item)=>{
  const quantity=decimal(item.quantity),hours=decimal(item.laborHours);
@@ -66,10 +68,13 @@ export function schedulePlan(items,raw={},capacity={}){
   crewDefault;
  const days=usingDays?settings.days:totalHours>0?
   Math.max(1,Math.ceil(totalHours/(crew*hoursPerDay))):0;
- if(days>730)throw Error('Prazo estimado excede 730 dias úteis. Revise a equipe ou os serviços.');
  const neededPeople=usingDays?crew:totalHours>0?Math.ceil(totalHours/(Math.max(1,days)*hoursPerDay)):0;
+ const daysWithCompany=totalHours>0?Math.ceil(totalHours/(people*hoursPerDay)):0;
+ const crewForMonth=totalHours>0?Math.ceil(totalHours/(monthlyDays*hoursPerDay)):0;
+ const halfDays=daysWithCompany>1?Math.ceil(daysWithCompany/2):daysWithCompany;
+ const crewForHalfTime=halfDays?Math.ceil(totalHours/(halfDays*hoursPerDay)):0;
  const available=people>=crew;
- const daySlots=settings.startDate&&days?workingDays(settings.startDate,days):[];
+ const dateAt=index=>settings.startDate&&days?workingDayAt(settings.startDate,index):null;
  let cumulative=0;
  const timeline=rows.map(row=>{
   if(row.hours===0||totalHours===0||days===0)return {...row,startDay:null,endDay:null,startDate:null,endDate:null,days:0};
@@ -79,13 +84,14 @@ export function schedulePlan(items,raw={},capacity={}){
   cumulative+=row.hours;
   const end=Math.min(days,Math.max(start,Math.ceil(cumulative/totalHours*days-1e-9)));
   return {...row,startDay:start,endDay:end,days:end-start+1,
-   startDate:daySlots[start-1]||null,endDate:daySlots[end-1]||null};
+   startDate:dateAt(start-1),endDate:dateAt(end-1)};
  });
  return {
   settings,totalHours,days,crew,requiredPeople:neededPeople,
   companyPeople:people,hoursPerDay,productiveDays:monthlyDays,
+  daysWithCompany,crewForMonth,crewForHalfTime,halfDays,
   available,extraPeople:Math.max(0,crew-people),rows:timeline,
-  startDate:daySlots[0]||null,endDate:daySlots.at(-1)||null,
+  startDate:dateAt(0),endDate:dateAt(days-1),
   dailyCompanyCost:capacity.monthlyCostCents>0?
    Math.ceil(capacity.monthlyCostCents/monthlyDays):null,
   dayBasedCost:capacity.monthlyCostCents>0&&days>0?
@@ -106,6 +112,10 @@ export function scheduleCsv(plan){
  const entries=[
   ['Cronograma preliminar da CIVOLTEN',''],
   ['Prazo (dias úteis)',plan.days],['Profissionais estimados',plan.crew],
+  ['Equipe atual da empresa',plan.companyPeople],
+  ['Dias úteis com a equipe atual',plan.daysWithCompany],
+  ['Profissionais para concluir em um mês produtivo',plan.crewForMonth],
+  ['Dias produtivos por mês',plan.productiveDays],
   ['Horas-homem totais',plan.totalHours],
   ['Data inicial',plan.startDate||''],['Data final',plan.endDate||''],[],
   ['Serviço','Horas-homem','Dia inicial','Dia final','Data inicial','Data final','Profissionais da obra']

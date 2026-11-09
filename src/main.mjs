@@ -5,7 +5,7 @@ import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
 import {signupOutcome,authMessage,repeatedSignupMessage,pendingEmailMessage} from './auth-flow.mjs';
 import {fresh,safeLoad,safeSave,validate,summary,employeeCost,variableMonthly,variableQuantity,brl} from './calc.mjs';
-import {validateCompany,THEMES} from './pricing.mjs';
+import {validateCompany,companyConfig,THEMES} from './pricing.mjs';
 import {companyView,appearanceView,pricingPreview} from './settings-ui.mjs';
 import {validateEntry,reportCsv,localToday,currentMonth} from './finance.mjs';
 import {financeView,reportsView,ledgerEditorView} from './finance-ui.mjs';
@@ -382,6 +382,8 @@ function updateBudgetField(element){
  if(scheduleKey){
   draft.commercial={...(draft.commercial||{}),
    schedule:{...(draft.commercial?.schedule||{}),[scheduleKey]:element.value}};
+  if(scheduleKey==='goal'&&element.value==='days'&&!draft.commercial.schedule.days)
+   draft.commercial.schedule.days=companyConfig(state.data.company).productiveDays||22;
   if(scheduleKey==='goal'||scheduleKey==='pricingMode'){render();return true;}
   const timeline=mount.querySelector('#budget-schedule-preview');
   if(timeline)timeline.innerHTML=budgetSchedulePreview(state.data,draft);

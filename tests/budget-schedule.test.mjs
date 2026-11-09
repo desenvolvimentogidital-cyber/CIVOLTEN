@@ -97,3 +97,46 @@ test('snapshot incorpora capacidade para precificação fixa sem reabrir configu
  assert.equal(snap.hoursPerDay,8);
  assert.equal(snap.productivePeople,2);
 });
+
+test('equipes de 2 profissionais recebem prazo real acima de 730 dias, sem erro',()=>{
+ const items=[service('obra-longa',1462,8,0)]; // 11.696 HH / 16 HH por dia = 731 dias
+ const plan=schedulePlan(items,{goal:'crew',crew:2,startDate:'2026-11-09'},capacity);
+ assert.equal(plan.days,731);
+ assert.equal(plan.crew,2);
+ assert.equal(plan.daysWithCompany,731);
+ assert.equal(plan.companyPeople,2);
+ assert.equal(plan.crewForHalfTime,4);
+ assert.equal(plan.halfDays,366);
+ assert.equal(plan.crewForMonth,74);
+ assert.equal(plan.rows[0].startDay,1);
+ assert.equal(plan.rows[0].endDay,731);
+ assert.ok(plan.endDate&&plan.endDate>plan.startDate);
+ assert.match(suggestExecutionTerm(plan),/731 dias úteis estimados/);
+ const csv=scheduleCsv(plan);
+ assert.match(csv,/Dias úteis com a equipe atual/);
+ assert.match(csv,/731/);
+ const priced=priceBudget(validateBudget(raw(items,{goal:'crew',crew:2,pricingMode:'days',
+  startDate:'2026-11-09'})));
+ assert.equal(priced.schedule.days,731);
+ assert.equal(priced.totalHours,11696);
+});
+test('prazos desejados maiores que dois anos também dimensionam profissionais',()=>{
+ assert.equal(validateSchedule({goal:'days',days:900}).days,900);
+ const plan=schedulePlan([service('obra-longa',1462,8,0)],
+  {goal:'days',days:900,startDate:'2026-11-09'},capacity);
+ assert.equal(plan.days,900);
+ assert.equal(plan.crew,2);
+ assert.equal(plan.available,true);
+ assert.equal(plan.daysWithCompany,731);
+});
+test('cronogramas extremos calculam dias sem criar milhões de datas',()=>{
+ const one={productiveDays:22,hoursPerDay:8,productivePeople:1,monthlyCostCents:100000};
+ const items=[service('obra-gigante',100000,10000,0)];
+ const plan=schedulePlan(items,{goal:'crew',crew:1,startDate:'2026-11-09'},one);
+ assert.equal(plan.totalHours,1000000000);
+ assert.equal(plan.days,125000000);
+ assert.equal(plan.rows[0].endDay,125000000);
+ assert.equal(plan.startDate,'2026-11-09');
+ assert.equal(plan.endDate,null,'datas fora do calendário não invalidam o prazo');
+ assert.match(scheduleCsv(plan),/125000000/);
+});
