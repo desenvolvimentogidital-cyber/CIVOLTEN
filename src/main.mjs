@@ -783,6 +783,18 @@ async function saveWorkForm(form){
   }else if(kind==='work-log'){
    if(!work)throw Error('Obra não encontrada.');
    const log=createWorkLog(work,input,state.data.employees,crypto.randomUUID());
+   const already=(state.data.workLogs||[]).filter(x=>
+    x.employeeId===log.employeeId&&x.workDate===log.workDate)
+    .reduce((sum,x)=>sum+Number(x.hours),0);
+   const standard=Number(state.data.company?.hoursPerDay)||8;
+   if(already+log.hours>standard){
+    if(!confirm('Este profissional terá '+(already+log.hours).toLocaleString('pt-BR')+
+     ' HH registradas neste dia, acima da jornada da empresa ('+standard+
+     'h), incluindo outras obras. Confirmar horas extras efetivamente realizadas?'))
+     throw Error('Apontamento cancelado para conferir a equipe ou a jornada.');
+    log.notes=(log.notes?'[Horas extras confirmadas] '+log.notes:
+     '[Horas extras confirmadas]').slice(0,900);
+   }
    await putRemote(auth,state.user.id,'workLogs',log);
   }else if(kind==='work-measure'){
    if(!work)throw Error('Obra não encontrada.');
@@ -810,6 +822,7 @@ async function updateWorkStatus(status){
   delayToast('Registre horas e aprove a medição de todos os serviços antes de concluir.');return;
  }
  const question=status==='in_progress'?'Confirmar início da execução real desta obra?':
+  status==='cancelled'?'Cancelar esta OS ainda não iniciada? O registro histórico será preservado.':
   'Concluir esta obra? Todas as medições devem estar aprovadas.';
  if(!confirm(question))return;
  state.busy=true;
@@ -818,7 +831,8 @@ async function updateWorkStatus(status){
    ...(status==='in_progress'?{startOn:work.startOn||localToday()}:
     {finishOn:localToday()})});
   await refreshWorkData();
-  delayToast(status==='in_progress'?'Obra iniciada: registre HH reais e medições.':'Obra concluída.');
+  delayToast(status==='in_progress'?'Obra iniciada: registre HH reais e medições.':
+  status==='cancelled'?'OS cancelada. Histórico preservado.':'Obra concluída.');
  }catch(err){delayToast('Falha ao atualizar obra: '+String(err.message||err));}
  finally{state.busy=false;}
 }
@@ -929,6 +943,7 @@ mount.addEventListener('click',async event=>{
  else if(action==='work-open'){openWork(b.dataset.id);}
  else if(action==='work-approve-budget'){openWorkApproval(b.dataset.id);}
  else if(action==='work-start'){await updateWorkStatus('in_progress');}
+ else if(action==='work-cancel'){await updateWorkStatus('cancelled');}
  else if(action==='work-log-new'){openWorkForm('work-log');}
  else if(action==='work-measure-new'){openWorkForm('work-measure');}
  else if(action==='work-measure-approve'){await approveWorkMeasurement(b.dataset.id);}
