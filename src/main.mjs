@@ -413,7 +413,8 @@ function openBudgetService(service,editing=false){
  if(!state.budgetDraft)return;
  state.editor={kind:'budget-service',id:editing?service.id:null,service:structuredClone(service)};
  modal.innerHTML=budgetServiceDialog(service,editing,
-  state.budgetDraft.pricing||createPricingSnapshot(state.data));
+  state.budgetDraft.pricing||createPricingSnapshot(state.data),
+  state.budgetDraft.commercial?.schedule?.pricingMode||'hours');
  modal.showModal();
  modal.querySelector('[name="description"]')?.focus();
 }
@@ -529,7 +530,8 @@ function refreshBudgetServiceEstimate(){
  if(!form||!container||!state.budgetDraft)return;
  const fields=Object.fromEntries(new FormData(form));
  container.innerHTML=budgetServiceEstimate(fields,
-  state.budgetDraft.pricing||createPricingSnapshot(state.data));
+  state.budgetDraft.pricing||createPricingSnapshot(state.data),
+  state.budgetDraft.commercial?.schedule?.pricingMode||'hours');
 }
 function saveBudgetService(form){
  if(state.editor?.kind!=='budget-service'||!state.budgetDraft)return;

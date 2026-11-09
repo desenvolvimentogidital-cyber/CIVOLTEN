@@ -1477,3 +1477,22 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 .budget-schedule-guidance{margin:12px 0;padding:13px;border-radius:12px;
  background:#2a271e;border:1px solid #a08b5b;color:#f0dfc0;line-height:1.5;font-size:12px}
 .budget-schedule-guidance b{color:#ffde91}
+
+/* Orçamento: mostrar o valor de TODA a quantidade, não apenas o valor unitário. */
+.budget-unit-summary .budget-quantity-math{display:grid!important;gap:6px}
+.budget-unit-summary .budget-quantity-math strong{white-space:normal;text-align:left;font-size:15px;color:#ffe1a1}
+.budget-unit-summary .budget-full-quote{display:grid!important;gap:7px;
+ margin-top:7px;padding:17px 13px!important;border:2px solid #ffd16b!important;
+ background:#382818;border-radius:13px}
+.budget-unit-summary .budget-full-quote span{color:#fff2d4;font-size:12px;
+ font-weight:850;letter-spacing:.2px}
+.budget-unit-summary .budget-full-quote strong{color:#ffd16b!important;font-size:clamp(24px,7vw,32px)!important;
+ text-align:left;white-space:normal;overflow-wrap:anywhere}
+.budget-unit-summary .budget-mode-notice{padding:12px;border:1px solid #9f854b;border-radius:9px;
+ color:#f2dfb8;background:#302b22;font-size:12px;line-height:1.5}
+.budget-item-totals{display:grid;gap:7px;padding:10px;border:1px solid #9e8c71;
+ border-radius:11px;background:#211d1e;font-size:12px;color:#eadbca}
+.budget-item-totals span{line-height:1.4}
+.budget-item-totals span b{color:#fff3d8}
+.budget-item-totals>strong{display:block;padding:11px 9px;border-radius:8px;
+ background:#46331a;color:#ffe0a0;font-size:15px;line-height:1.45}
