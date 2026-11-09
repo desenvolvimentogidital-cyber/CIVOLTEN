@@ -111,15 +111,24 @@ export function workDetailView(data,id){
  '<div class="fin-link-row"><button type="button" data-go="finance">Abrir Financeiro '+icon('chevron',17)+'</button></div>'+
  '<p class="fin-helper">Medição e contas a receber são controles gerenciais. A nota fiscal oficial, os documentos assinados e as obrigações legais continuam externos ao sistema.</p></section>';
 }
-export function workApprovalDialog(budget){
+export function workApprovalDialog(budget,invitation=null){
+ const accepted=invitation?.status==='accepted';
+ const electronicEvidence=accepted?
+  ('Aceite eletrônico CIVOLTEN nº '+invitation.id+' por '+
+   invitation.respondentName+' ('+invitation.respondentEmail+')').slice(0,240):'';
  const number='OS-'+new Date().getFullYear()+'-'+String(budget.id||'').slice(0,8).toUpperCase();
  const inputs=fld('Número da ordem de serviço','contractRef',number,'text','maxlength="80" required')+
- fld('Referência do aceite real do cliente','acceptanceRef','','text',
-  'maxlength="240" required placeholder="Ex.: contrato assinado, e-mail ou WhatsApp"')+
- fld('Data do aceite','approvedOn',localToday(),'date','required')+
+ fld('Referência do aceite real do cliente','acceptanceRef',electronicEvidence,'text',
+  'maxlength="240" required '+(accepted?'readonly':
+   'placeholder="Ex.: contrato assinado, e-mail ou WhatsApp"'))+
+ fld('Data do aceite','approvedOn',accepted?invitation.respondedAt.slice(0,10):localToday(),
+   'date','required '+(accepted?'readonly':''))+
  fld('Início planejado (opcional)','startOn','','date')+
+ (accepted?'<p class="fin-helper">Aceite recebido diretamente no link do PDF, declarado por '+
+ e(invitation.respondentName)+' · '+e(invitation.respondentEmail)+
+ '. Confira a identificação do responsável antes de abrir a obra.</p>':'')+
  '<label class="work-check"><input type="checkbox" name="acceptanceConfirmed" required>'+
- 'Confirmo que o cliente aprovou esta proposta de mão de obra e que possuo evidência do aceite.</label>'+
+ 'Confirmo que conferi a autorização do cliente, o escopo e as condições antes de abrir a obra.</label>'+
  '<p class="fin-helper">O preço, itens, HH e condições da proposta ficam congelados nesta OS. A referência não substitui o documento assinado.</p>';
  return editor('Abrir obra a partir da proposta',inputs,'Registrar aceite e criar obra');
 }
