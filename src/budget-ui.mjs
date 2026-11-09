@@ -6,6 +6,7 @@ import {icon,e} from './views.mjs';
 import {printableBudget} from './budget-print.mjs';
 import {companyConfig} from './pricing.mjs';
 import {schedulePlan} from './budget-schedule.mjs';
+import {proposalResponseLabel} from './proposal-link.mjs';
 const money=brl;
 const dateBR=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'')?v.slice(8,10)+'/'+v.slice(5,7)+'/'+v.slice(0,4):'Não definida';
 const header=(text,back)=>'<div class="page-heading"><button type="button" class="small-square" data-go="'+back+'" aria-label="Voltar">'+
@@ -31,16 +32,28 @@ export function budgetsView(data){
  (rows.length?'<div class="budget-list">'+rows.map(b=>{
   let price=null;try{price=priceBudget(b)}catch{/* registros antigos devem continuar acessíveis */}
   const linked=(data.works||[]).find(w=>w.budgetId===b.id);
+  const invitation=(data.invites||[]).find(i=>i.budgetId===b.id);
+  const replyLabel=invitation?proposalResponseLabel(invitation.status):'';
   return '<div class="budget-entry">'+
   '<button class="budget-list-item" type="button" data-action="budget-open" data-id="'+e(b.id)+'">'+
    '<span class="budget-list-icon">'+icon('clipboard',22)+'</span>'+
    '<span class="budget-list-copy"><b>'+e(b.title)+'</b><small>'+e(b.customer||'Cliente não informado')+
    '</small><em>'+b.items.length+' serviço(s) · '+dateBR(b.createdAt?.slice(0,10))+'</em></span>'+
    '<span class="budget-list-total"><strong>'+(needsReview(b)?'A revisar':price?money(price.totalSale):'Sem preço')+'</strong>'+
-   '<small>'+(linked?'Ordem de serviço vinculada':needsReview(b)?'Revisão pendente':'Proposta comercial')+'</small></span></button>'+
+   '<small>'+(linked?'Ordem de serviço vinculada':invitation?replyLabel:
+    needsReview(b)?'Revisão pendente':'Proposta comercial')+'</small></span></button>'+
+  (invitation?'<p class="budget-invite-status '+e(invitation.status)+'">'+icon('check',16)+' '+
+    e(replyLabel)+(invitation.respondentName?' · '+e(invitation.respondentName):'')+
+    (invitation.respondedAt?' · '+dateBR(invitation.respondedAt.slice(0,10)):'')+'</p>':'')+
   (linked?'<button type="button" class="outlined-button budget-work-launch" data-action="work-open" data-id="'+e(linked.id)+'">'+icon('building',18)+' Abrir obra · '+e(linked.contractRef)+'</button>':
-  (b.demo===false&&b.commercial?.laborOnly===true&&price?
-   '<button type="button" class="outlined-button budget-work-launch" data-action="work-approve-budget" data-id="'+e(b.id)+'">'+icon('check',18)+' Registrar aceite e abrir obra</button>':''))+
+  (b.demo===false&&b.commercial?.laborOnly===true&&price&&
+   (!invitation||invitation.status==='accepted')?
+   '<button type="button" class="outlined-button budget-work-launch" data-action="work-approve-budget" data-id="'+e(b.id)+'">'+icon('check',18)+
+    (invitation?.status==='accepted'?' Formalizar aceite recebido e abrir obra':' Registrar aceite e abrir obra')+'</button>':''))+
+ (b.demo===false&&b.commercial?.laborOnly===true&&price&&!linked?
+  (!invitation?'<button type="button" class="gold-button budget-work-launch" data-action="budget-invite-create" data-id="'+e(b.id)+'">'+icon('mail',18)+' Gerar botão de aceite no PDF</button>':
+   invitation.status!=='revoked'?
+   '<button type="button" class="outlined-button budget-work-launch" data-action="budget-invite-copy" data-id="'+e(b.id)+'">'+icon('file',18)+' Copiar link para enviar ao cliente</button>':''):'')+
  '<button type="button" class="outlined-button budget-work-launch" data-action="budget-clone" data-id="'+e(b.id)+'">'+
  icon('file',17)+' Duplicar para nova proposta de mão de obra</button>'+
  '</div>';
@@ -253,14 +266,15 @@ export function budgetCatalogResults(records,search=''){
 export function budgetEditorView(data,draft,err='',pickerSearch=''){
  if(!draft)return budgetsView(data);
  const laborOnly=draft.commercial?.laborOnly===true;
- const locked=!!(data.works||[]).find(w=>w.budgetId===draft.id);
+ const invitation=(data.invites||[]).find(i=>i.budgetId===draft.id);
+ const locked=!!(data.works||[]).find(w=>w.budgetId===draft.id)||!!invitation;
  const payrollUnreviewed=(data.employees||[]).some(e=>e.active!==false&&e.contractType==='clt')&&
   data.payroll?.reviewed!==true;
  let calculated=null;try{calculated=!needsReview(draft)?priceBudget(draft):null}catch{/* mostrar erro no preview */}
  const priced=!!calculated;
  return '<section class="fin-screen budget-screen budget-editor">'+header('Montar orçamento','budgets')+
  status(draft)+
-(locked?'<p class="fin-helper budget-labor-scope"><b>Proposta aprovada e congelada.</b> A ordem de serviço mantém a versão aceita. Para qualquer alteração, use <b>Duplicar para nova proposta</b> na lista de orçamentos.</p>':'')+
+(locked?'<p class="fin-helper budget-labor-scope"><b>Proposta enviada ou aprovada e congelada.</b> Os valores e condições não podem ser alterados. Para corrigir ou negociar uma nova versão, use <b>Duplicar para nova proposta</b> na lista.</p>':'')+
  '<form id="budget-form" class="budget-form" novalidate>'+
  '<div class="budget-editor-head"><span>Rascunho · '+(draft.id?'edição':'novo')+'</span>'+
  '<p>Ao salvar, o orçamento fica privado na sua conta. Os itens e custos não alteram Financeiro, contratos ou estoque.</p></div>'+
@@ -301,11 +315,27 @@ export function budgetEditorView(data,draft,err='',pickerSearch=''){
  '<button type="button" data-action="budget-refresh-pricing" class="budget-refresh">'+icon('chart',18)+' Recalcular com os custos atuais (opcional)</button>'+
  '<div id="budget-price-preview" aria-live="polite">'+preview(draft)+'</div>'+
  (err?error(err):'')+
- '<button class="gold-button budget-save-button" type="submit"'+(needsReview(draft)||locked?' disabled':'')+'>'+icon('check',19)+(locked?' Proposta aprovada':' Salvar rascunho')+'</button></form>'+
+ '<button class="gold-button budget-save-button" type="submit"'+(needsReview(draft)||locked?' disabled':'')+'>'+icon('check',19)+(locked?' Proposta enviada / aprovada':' Salvar rascunho')+'</button></form>'+
+ '<section class="budget-invite-panel"><h2>'+icon('mail',19)+' Aceite ou recusa do cliente</h2>'+
+ (invitation?
+ '<p class="budget-invite-status '+e(invitation.status)+'">'+
+ e(proposalResponseLabel(invitation.status))+
+ (invitation.respondentName?' · '+e(invitation.respondentName):'')+
+ (invitation.respondentEmail?' · '+e(invitation.respondentEmail):'')+
+ (invitation.respondedAt?' · '+dateBR(invitation.respondedAt.slice(0,10)):'')+'</p>'+
+ (invitation.declineReason?'<p class="fin-helper">Motivo informado: '+e(invitation.declineReason)+'</p>':'')+
+ (invitation.status!=='revoked'?'<button type="button" class="outlined-button" data-action="budget-invite-copy" data-id="'+e(draft.id)+'">'+icon('file',18)+' Copiar link da proposta</button>':'')+
+ (invitation.status==='pending'?'<button type="button" class="outlined-button" data-action="budget-invite-revoke" data-id="'+e(draft.id)+'">Revogar link ainda não respondido</button>':'')+
+ '<p class="fin-helper">A proposta enviada não pode ser editada. O cliente não precisa de conta para responder.</p>':
+ draft.id&&priced&&laborOnly?
+ '<button type="button" class="gold-button" data-action="budget-invite-create" data-id="'+e(draft.id)+'">'+icon('mail',18)+' Habilitar aceite e recusa no PDF</button>'+
+ '<p class="fin-helper">O link exclusivo será incluído no PDF e poderá ser copiado para WhatsApp ou e-mail.</p>':
+ '<p class="fin-helper">Salve primeiro um orçamento real somente de mão de obra para gerar um link de resposta.</p>')+
+ '</section>'+
  '<div class="budget-secondary-actions"><button type="button" class="outlined-button" data-action="budget-print"'+(priced?'':' disabled')+'>'+icon('file',18)+' Visualizar / PDF</button>'+
  '<button type="button" class="outlined-button" data-action="budget-export"'+(priced?'':' disabled')+'>'+icon('file',18)+' Exportar CSV</button></div>'+ 
  '<p class="budget-pdf-model-label">'+icon('check',15)+' Proposta Signature · 3 páginas · CIVOLTEN</p>'+
  (draft.id?'<button type="button" class="fin-delete" data-action="budget-delete">'+icon('trash',18)+' Excluir orçamento</button>':'')+
  '<div class="fin-link-row"><button type="button" data-go="company">Configurar custo, imposto e margem '+icon('chevron',17)+'</button></div>'+
- printableBudget(draft)+'</section>';
+ printableBudget(draft,invitation)+'</section>';
 }

@@ -1565,3 +1565,34 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
  body:has(#work-print-root) #work-print-root{display:block!important}
  body:has(#work-print-root) .work-print-document{display:block!important}
 }
+
+/* Propostas comerciais: link de aceite e status enviados ao cliente. */
+.budget-invite-panel{margin:19px 0;padding:16px 14px;border:1px solid #bda071;
+ border-radius:13px;background:linear-gradient(145deg,#2b231f,#1d1a1e);display:grid;gap:10px}
+.budget-invite-panel h2{display:flex;align-items:center;gap:9px;color:#ffe0a6;
+ font-size:17px;line-height:1.45;margin:0}
+.budget-invite-panel button{margin:0}
+.budget-invite-status{font-size:12px;line-height:1.5;color:#edd7b6;
+ margin:8px 10px;padding:8px 10px;border-left:3px solid #a9814e;
+ overflow-wrap:anywhere;background:#2e292a;border-radius:5px}
+.budget-invite-status.accepted{border-left-color:#83c79c;color:#d8ffdb}
+.budget-invite-status.declined{border-left-color:#f09182;color:#ffd5cb}
+.budget-invite-status.revoked{border-left-color:#85858a;color:#e2e1df}
+.budget-reply-dashboard{margin:12px 0 0;width:100%;display:flex;gap:9px;align-items:center;
+ font:inherit;text-align:left;padding:12px 15px;background:#2d2723;
+ color:#ffdc9b;border:1px solid #ac8550;border-radius:12px;line-height:1.45}
+.budget-reply-dashboard strong{color:#fff2d6}
+/* Os visualizadores PDF normalmente preservam hiperlinks HTML impressos. */
+.budget-pdf-v5 .proposal-online-action{margin:3mm auto 0;display:grid;gap:1.2mm;
+ justify-items:center;max-width:100%;text-align:center}
+.budget-pdf-v5 .proposal-online-action a{display:block;width:80%;padding:2mm 4mm;
+ background:#e2b451;color:#151410!important;border:1px solid #b58a33;
+ text-decoration:none!important;font-size:9pt;font-weight:900;letter-spacing:.06em;
+ border-radius:2.5mm;cursor:pointer}
+.budget-pdf-v5 .proposal-online-action small{font-size:6.6pt;color:#565452!important;line-height:1.3}
+@media print{
+ .budget-pdf-v5:has(.proposal-online-action) .proposal-accept{margin-top:2mm!important;
+  padding-bottom:1mm!important}
+ .budget-pdf-v5:has(.proposal-online-action) .proposal-signatures{margin-top:3mm!important}
+ .budget-pdf-v5 .proposal-online-action a{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}

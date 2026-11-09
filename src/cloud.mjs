@@ -12,9 +12,16 @@ export const TABLES={
  catalog:'cv_service_catalog_v1',
  works:'cv_work_orders_v1',
  workLogs:'cv_work_logs_v1',
- measurements:'cv_measurements_v1'
+ measurements:'cv_measurements_v1',
+ invites:'cv_proposal_invites_v1'
 };
 const normalize=(k,row)=>{
+ if(k==='invites')return {id:row.id,budgetId:row.budget_id,token:row.token,
+  budgetSnapshot:row.budget_snapshot,totalCents:Number(row.total_cents),
+  validUntil:row.valid_until,status:row.status,
+  respondentName:row.respondent_name||'',respondentEmail:row.respondent_email||'',
+  declineReason:row.decline_reason||'',respondedAt:row.responded_at||null,
+  createdAt:row.created_at};
  if(k==='works')return {id:row.id,budgetId:row.budget_id,customer:row.customer,
   project:row.project,contractRef:row.contract_ref,acceptanceRef:row.acceptance_ref,
   budgetSnapshot:row.budget_snapshot,pricedRows:row.priced_rows,
@@ -58,6 +65,9 @@ const normalize=(k,row)=>{
 };
 const payload=(k,item,userId)=>{
  const base={id:item.id,user_id:userId,updated_at:new Date().toISOString()};
+ if(k==='invites')return {...base,budget_id:item.budgetId,token:item.token,
+  budget_snapshot:item.budgetSnapshot,total_cents:item.totalCents,
+  valid_until:item.validUntil,status:'pending'};
  if(k==='works')return {...base,budget_id:item.budgetId,customer:item.customer,
   project:item.project,contract_ref:item.contractRef,acceptance_ref:item.acceptanceRef,
   budget_snapshot:item.budgetSnapshot,priced_rows:item.pricedRows,
@@ -120,10 +130,21 @@ async function fetchKind(client,userId,kind){
 export async function fetchOperationsRemote(client,userId,current){
  checkId(userId);
  const out={...current};
- await Promise.all(['works','workLogs','measurements','ledger'].map(async kind=>{
+ await Promise.all(['works','workLogs','measurements','ledger','invites'].map(async kind=>{
   out[kind]=await fetchKind(client,userId,kind);
  }));
  return out;
+}
+export async function fetchInvitesRemote(client,userId){
+ checkId(userId);
+ return fetchKind(client,userId,'invites');
+}
+export async function revokeProposalRemote(client,userId,budgetId){
+ checkId(userId);
+ const {data,error}=await client.rpc('cv_proposal_revoke_v1',{p_budget_id:budgetId});
+ if(error)throw Error('Não foi possível revogar o link: '+error.message);
+ if(data!==true)throw Error('O banco não confirmou a revogação.');
+ return true;
 }
 export async function fetchRemote(client,userId){
  checkId(userId);
@@ -156,8 +177,10 @@ export async function putRemote(client,userId,kind,item){
  checkId(userId);
  if(!TABLES[kind])throw Error('Tipo de cadastro inválido.');
  const row=payload(kind,item,userId);
- const {data,error}=await client.from(TABLES[kind]).upsert(row,{onConflict:'id'})
-  .select('id').single();
+ // Convites são apenas INSERT: impedir reaproveitamento do mesmo segredo ou edição de resposta.
+ const query=kind==='invites'?client.from(TABLES[kind]).insert(row):
+  client.from(TABLES[kind]).upsert(row,{onConflict:'id'});
+ const {data,error}=await query.select('id').single();
  if(error)throw Error('Falha ao salvar no banco: '+error.message);
  if(!data?.id||data.id!==item.id)throw Error('Banco não confirmou o salvamento.');
  return item;

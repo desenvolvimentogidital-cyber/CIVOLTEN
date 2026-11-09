@@ -91,6 +91,9 @@ export function homeView(data,user){
   .reduce((sum,l)=>sum+Number(l.hours||0),0);
  const hh=n=>n.toLocaleString('pt-BR',{maximumFractionDigits:2})+' HH';
  const progress=plannedHH?Math.min(100,Math.round(actualHH*100/plannedHH)):0;
+ const replies=(data.invites||[]).filter(x=>x.status==='accepted'||x.status==='declined');
+ const accepted=replies.filter(x=>x.status==='accepted').length;
+ const declined=replies.length-accepted;
  return '<div class="dashboard">'+
   '<div class="welcome-row"><div class="avatar-outline">'+icon('user',25)+'</div><div class="welcome-text"><h1>Olá, '+e(first)+'</h1>'+
   '<span>Bem-vindo ao seu painel</span></div><button class="small-square" type="button" data-action="notifications" aria-label="Notificações">'+icon('bell',23)+'</button></div>'+
@@ -101,7 +104,12 @@ export function homeView(data,user){
   '<div class="shortcut-grid">'+[
    ['Orçamentos','clipboard','budgets'],['Obras e execução','building','works'],['Equipe','users','team'],['Relatórios','file','reports'],['Financeiro','coins','finance']
   ].map(([title,ic,go])=>'<button type="button" class="shortcut" data-go="'+go+'">'+icon(ic,27)+'<span>'+title+'</span></button>').join('')+
-  '</div>'+heading('chart','Horas de mão de obra nas obras')+
+  '</div>'+
+  (replies.length?'<button type="button" class="budget-reply-dashboard" data-go="budgets">'+
+   icon('mail',21)+' <span><strong>Respostas dos clientes:</strong> '+
+   accepted+' proposta(s) aceita(s) e '+declined+' recusada(s). Abrir orçamentos</span>'+
+   icon('chevron',17)+'</button>':'')+
+  heading('chart','Horas de mão de obra nas obras')+
   '<div class="monthly-row"><div class="month-progress"><div class="progress-line"><span>HH previstas (obras cadastradas)</span><b>'+hh(plannedHH)+'</b></div>'+
   '<div class="bar-track"><div class="bar-fill" style="width:'+(plannedHH?100:0)+'%"></div></div>'+
   '<div class="progress-line"><span>HH realmente apontadas</span><b>'+hh(actualHH)+'</b></div>'+

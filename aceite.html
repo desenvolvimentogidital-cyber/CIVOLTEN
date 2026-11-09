@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="theme-color" content="#111113">
+<title>Responder à proposta | CIVOLTEN</title>
+<link rel="icon" href="/assets/icon-192.png">
+<link rel="stylesheet" href="/aceite.css">
+</head>
+<body>
+<main class="offer-app">
+ <header class="brand"><img src="/assets/civolten-logo.png" alt="CIVOLTEN"></header>
+ <section class="offer" aria-live="polite">
+  <div id="loading" role="status">Abrindo a proposta recebida...</div>
+  <div id="error" class="error" role="alert" hidden></div>
+  <div id="content" hidden>
+   <div class="eyebrow">RESPOSTA À PROPOSTA COMERCIAL</div>
+   <h1 id="heading">Proposta de mão de obra</h1>
+   <p id="reference" class="meta"></p>
+   <div class="grid">
+    <div><small>Contratante</small><strong id="customer"></strong></div>
+    <div><small>Obra / serviço</small><strong id="project"></strong></div>
+    <div><small>Validade</small><strong id="validUntil"></strong></div>
+   </div>
+   <div class="amount"><small>VALOR TOTAL DA PROPOSTA</small><strong id="total"></strong></div>
+   <p class="scope">Execução exclusivamente de mão de obra. Materiais e insumos de aplicação são fornecidos pelo contratante.</p>
+   <h2>Serviços incluídos</h2>
+   <div id="services" class="services"></div>
+   <h2>Condições da proposta</h2>
+   <div class="terms"><p><b>Pagamento:</b> <span id="payment"></span></p>
+   <p><b>Prazo de execução:</b> <span id="deadline"></span></p>
+   <p><b>Garantia:</b> <span id="warranty"></span></p>
+   <p><b>Escopo e exclusões:</b> <span id="scopeNotes"></span></p></div>
+   <div id="answered" class="answered" hidden></div>
+   <form id="respond-form" novalidate hidden>
+    <h2>Qual é sua decisão?</h2>
+    <fieldset class="choices"><legend>Escolha uma opção</legend>
+     <label><input type="radio" name="decision" value="accepted" required> <span>✔ Aceitar a proposta</span></label>
+     <label><input type="radio" name="decision" value="declined" required> <span>✕ Recusar a proposta</span></label></fieldset>
+    <label class="field">Nome completo de quem está respondendo
+     <input type="text" name="name" autocomplete="name" maxlength="150" minlength="3" required placeholder="Seu nome"></label>
+    <label class="field">E-mail para identificação da resposta
+     <input type="email" name="email" autocomplete="email" maxlength="200" required placeholder="nome@exemplo.com"></label>
+    <label class="field" id="reason-wrap" hidden>Motivo da recusa (opcional)
+     <textarea name="reason" maxlength="800" rows="3" placeholder="O que precisa ser ajustado?"></textarea></label>
+    <label class="check"><input type="checkbox" name="confirmed" required>
+     <span>Confirmo que li o escopo, o valor e as condições desta proposta, que estou respondendo por minha própria vontade e que esta decisão será registrada eletronicamente.</span></label>
+    <p class="warning">Aceite eletrônico simples: este processo não verifica automaticamente a identidade por documento, e-mail ou certificado digital.</p>
+    <button id="send" type="submit">Registrar minha resposta</button>
+    <p id="form-error" class="error" role="alert" hidden></p>
+   </form>
+  </div>
+ </section>
+ <footer>Protegido por link exclusivo · CIVOLTEN · Gestão de mão de obra</footer>
+</main>
+<script src="/aceite.js" defer></script>
+</body>
+</html>

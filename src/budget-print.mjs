@@ -4,6 +4,7 @@
 import {brl} from './calc.mjs';
 import {priceBudget,validateCommercial} from './budget.mjs';
 import {e,icon} from './views.mjs';
+import {proposalResponseUrl} from './proposal-link.mjs';
 
 const logo='/assets/civolten-logo.png';
 const mark='/assets/civolten-simbolo.png';
@@ -110,7 +111,7 @@ const services=(rows,index,count,ref)=>
 const card=(symbol,label,value)=>'<div class="proposal-term">'+
  '<span class="proposal-term-icon">'+icon(symbol,21)+'</span>'+
  '<div><h2>'+label+'</h2><p>'+show(value,'A definir entre as partes')+'</p></div></div>';
-const conditions=(b,p,c)=>
+const conditions=(b,p,c,invite=null)=>
  '<div class="proposal-conditions-heading"><h1>Investimento e<br><strong>Condições Comerciais</strong></h1></div>'+
  '<div class="proposal-investment"><div><span>'+icon('coins',29)+'</span>'+
  '<b>INVESTIMENTO TOTAL<br>DA PROPOSTA</b></div>'+
@@ -127,6 +128,10 @@ const conditions=(b,p,c)=>
  '<p>'+show(b.notes,'Sem observações adicionais.')+'</p></div>'+
  '<div class="proposal-accept"><h2>'+icon('check',19)+' Aceite da Proposta</h2>'+
  '<p>Declaro ciência do escopo, valor e condições descritos nesta proposta.</p>'+
+ (invite&&invite.status!=='revoked'?
+  '<div class="proposal-online-action"><a href="'+e(proposalResponseUrl(invite.token))+
+  '" target="_blank" rel="noopener noreferrer">RESPONDER À PROPOSTA ONLINE</a>'+
+  '<small>Abra o botão ou link do PDF e escolha Aceitar ou Recusar. A resposta ficará registrada na CIVOLTEN.</small></div>':'')+
  '<div class="proposal-signatures"><div><span></span><b>'+show(p.snapshot.companyName||'CIVOLTEN')+
  '</b><small>Responsável pela proposta</small></div><div><span></span><b>Cliente / Contratante</b>'+
  '<small>Nome e assinatura</small></div></div></div>'+
@@ -134,7 +139,7 @@ const conditions=(b,p,c)=>
  (c.companyContact?'<span>Contato: '+e(c.companyContact)+'</span>':'')+
  (c.companyDocument?'<span>Documento: '+e(c.companyDocument)+'</span>':'')+
  '</div>':'');
-export function printableBudget(b){
+export function printableBudget(b,invite=null){
  // Documentos anteriores precisam ser convertidos e revisados antes de virar proposta real.
  if(b?.demo!==false||b?.items?.some(item=>item.source==='demo'))return '';
  let priced;
@@ -145,7 +150,7 @@ export function printableBudget(b){
  const pages=[page('proposal-cover',1,total,ref,demo,cover(b,1,total,ref,demo))];
  groups.forEach((chunk,i)=>pages.push(page('proposal-services',i+2,total,ref,demo,
   services(chunk,i+1,groups.length,ref),'PROPOSTA COMERCIAL · SERVIÇOS')));
- pages.push(page('proposal-conditions',total,total,ref,demo,conditions(b,priced,c),
+ pages.push(page('proposal-conditions',total,total,ref,demo,conditions(b,priced,c,invite),
   'INVESTIMENTO E CONDIÇÕES COMERCIAIS'));
  return '<div class="budget-print budget-pdf-v5" role="document" aria-label="Proposta CIVOLTEN Signature para impressão">'+
  pages.join('')+'</div>';
