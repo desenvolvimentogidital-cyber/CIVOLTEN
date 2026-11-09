@@ -382,6 +382,8 @@ function updateBudgetField(element){
  if(scheduleKey){
   draft.commercial={...(draft.commercial||{}),
    schedule:{...(draft.commercial?.schedule||{}),[scheduleKey]:element.value}};
+  if(scheduleKey==='goal'&&element.value==='days'&&!draft.commercial.schedule.days)
+   draft.commercial.schedule.days=companyConfig(state.data.company).productiveDays||22;
   if(scheduleKey==='goal'||scheduleKey==='pricingMode'){render();return true;}
   const timeline=mount.querySelector('#budget-schedule-preview');
   if(timeline)timeline.innerHTML=budgetSchedulePreview(state.data,draft);
