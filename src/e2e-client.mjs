@@ -92,6 +92,44 @@ export function createE2EClient(){
   };
  }
  const rpc=async(name,args)=>{
+  if(name==='cv_proposal_lookup_v1'){
+   const invite=(read().cv_proposal_invites_v1||[]).find(x=>x.token===args.p_token);
+   if(!invite||invite.status==='revoked')return {data:{available:false},error:null};
+   const b=invite.budget_snapshot;
+   const today=new Date().toISOString().slice(0,10);
+   return {error:null,data:{available:true,
+    status:invite.status==='pending'&&today>invite.valid_until?'expired':invite.status,
+    reference:'PC-'+invite.budget_id.slice(0,8),title:b.title,customer:b.customer,
+    project:b.project,location:b.location,totalCents:invite.total_cents,
+    validUntil:invite.valid_until,companyName:b.pricing?.companyName||'CIVOLTEN',
+    paymentTerms:b.commercial?.paymentTerms,executionTerm:b.commercial?.executionTerm,
+    warrantyTerms:b.commercial?.warrantyTerms,scopeNotes:b.commercial?.scopeNotes,
+    laborOnly:true,services:(b.items||[]).map(x=>({description:x.description,unit:x.unit,quantity:x.quantity})),
+    respondedAt:invite.responded_at||null}};
+  }
+  if(name==='cv_proposal_respond_v1'){
+   const db=read(),invite=(db.cv_proposal_invites_v1||[]).find(x=>x.token===args.p_token);
+   if(!invite||invite.status!=='pending')
+    return {data:null,error:{message:'Link indisponível ou já respondido'}};
+   if(new Date().toISOString().slice(0,10)>invite.valid_until)
+    return {data:null,error:{message:'Prazo expirado'}};
+   if(!['accepted','declined'].includes(args.p_decision)||args.p_confirmed!==true||
+    String(args.p_name||'').trim().length<3||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(args.p_email||'')))
+    return {data:null,error:{message:'Informe a decisão, nome, e-mail e confirmação'}};
+   invite.status=args.p_decision;invite.respondent_name=String(args.p_name).trim();
+   invite.respondent_email=String(args.p_email).trim().toLowerCase();
+   invite.decline_reason=args.p_decision==='declined'?String(args.p_reason||''):'';
+   invite.responded_at=new Date().toISOString();
+   save(db);
+   return {data:{ok:true,status:invite.status},error:null};
+  }
+  if(name==='cv_proposal_revoke_v1'){
+   const db=read(),invite=(db.cv_proposal_invites_v1||[]).find(x=>
+    x.budget_id===args.p_budget_id&&x.user_id===user?.id&&x.status==='pending');
+   if(!invite)return {data:null,error:{message:'Convite não encontrado ou já respondido'}};
+   invite.status='revoked';save(db);return {data:true,error:null};
+  }
   if(name!=='cv_bill_measurement_v1')
    return {data:null,error:{message:'Função não disponível no simulador'}};
   const db=read(),m=(db.cv_measurements_v1||[]).find(x=>x.id===args.p_measurement_id&&x.user_id===user?.id);
