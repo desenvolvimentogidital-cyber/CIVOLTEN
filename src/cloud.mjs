@@ -100,26 +100,36 @@ const checkId=userId=>{
  if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(userId||''))
   throw Error('Sessão inválida: identificador do usuário ausente.');
 };
+// Buscas em lotes por usuário, com ordenação estável e sem truncar 1000 registros.
+async function fetchKind(client,userId,kind){
+ const all=[],limit=500,maxRows=100000;
+ for(let from=0;from<maxRows;from+=limit){
+  const {data,error}=await client.from(TABLES[kind])
+   .select('*').eq('user_id',userId)
+   .order('created_at',{ascending:true}).order('id',{ascending:true})
+   .range(from,from+limit-1);
+  if(error)throw Error('Falha ao consultar '+kind+': '+error.message);
+  const page=data||[];all.push(...page);
+  if(page.length<limit)break;
+  if(from+limit>=maxRows)throw Error('O cadastro de '+kind+' ultrapassa o limite de sincronização.');
+ }
+ return all.map(row=>normalize(kind,row));
+}
+// Após apontar HH, aprovar medição ou gerar recebível, não recarregar as 2617
+// composições do catálogo nem as tabelas de custo para atualizar a tela.
+export async function fetchOperationsRemote(client,userId,current){
+ checkId(userId);
+ const out={...current};
+ await Promise.all(['works','workLogs','measurements','ledger'].map(async kind=>{
+  out[kind]=await fetchKind(client,userId,kind);
+ }));
+ return out;
+}
 export async function fetchRemote(client,userId){
  checkId(userId);
  const out=fresh();
- // Paginação consistente para TODAS as tabelas: evita a limitação padrão do Supabase
- // (1.000 linhas por consulta) e ordena com chave exclusiva para páginas estáveis.
  await Promise.all(Object.keys(TABLES).map(async kind=>{
-  const all=[],limit=500,maxRows=100000;
-  for(let from=0;from<maxRows;from+=limit){
-   const {data,error}=await client.from(TABLES[kind])
-    .select('*').eq('user_id',userId)
-    .order('created_at',{ascending:true}).order('id',{ascending:true})
-    .range(from,from+limit-1);
-   if(error)throw Error('Falha ao consultar '+kind+': '+error.message);
-   const page=data||[];
-   all.push(...page);
-   if(page.length<limit)break;
-   if(from+limit>=maxRows)throw Error(
-    'O cadastro de '+kind+' ultrapassa o limite de sincronização. Solicite uma exportação assistida.');
-  }
-  out[kind]=all.map(row=>normalize(kind,row));
+  out[kind]=await fetchKind(client,userId,kind);
  }));
  const {data:rates,error:ratesError}=await client.from('cv_payroll_settings_v1')
   .select('*').eq('user_id',userId).order('created_at',{ascending:true});
