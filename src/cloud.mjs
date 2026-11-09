@@ -177,8 +177,10 @@ export async function putRemote(client,userId,kind,item){
  checkId(userId);
  if(!TABLES[kind])throw Error('Tipo de cadastro inválido.');
  const row=payload(kind,item,userId);
- const {data,error}=await client.from(TABLES[kind]).upsert(row,{onConflict:'id'})
-  .select('id').single();
+ // Convites são apenas INSERT: impedir reaproveitamento do mesmo segredo ou edição de resposta.
+ const query=kind==='invites'?client.from(TABLES[kind]).insert(row):
+  client.from(TABLES[kind]).upsert(row,{onConflict:'id'});
+ const {data,error}=await query.select('id').single();
  if(error)throw Error('Falha ao salvar no banco: '+error.message);
  if(!data?.id||data.id!==item.id)throw Error('Banco não confirmou o salvamento.');
  return item;
