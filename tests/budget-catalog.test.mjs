@@ -22,7 +22,8 @@ test('busca atinge todos os 2617 servicos salvos, mesmo fora dos 60 exibidos',()
  const html=budgetCatalogResults(catalog);
  assert.match(html,/Exibindo 60 de 2617/);
  assert.equal((html.match(/data-action="budget-choose-service"/g)||[]).length,60);
- assert.doesNotMatch(html,/DEMOLIÇÃO MECANIZADA/,'fora da primeira pagina, mas deve estar pesquisavel');
+ assert.doesNotMatch(html,/Servico de edificacoes 2616/,'resultado distante fica fora da lista inicial');
+ assert.equal(filterBudgetCatalog(catalog,'SIURB:102616').length,1);
  const results=budgetCatalogResults(catalog,'demolicao');
  assert.equal((results.match(/data-action="budget-choose-service"/g)||[]).length,1);
  assert.match(results,/DEMOLIÇÃO MECANIZADA DE CONCRETO/);
