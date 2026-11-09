@@ -366,6 +366,23 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('[data-action="work-start"]').count(),1);
   assert.equal(await page.locator('.work-line').count(),2);
   assert.equal((await page.evaluate(()=>window.CIVOLTENPreview.data.works)).length,1);
+  // Conferir o botão real do Android antes de iniciar a obra.
+  await page.evaluate(()=>{
+   window.__civoltenOSPrintHtml='';
+   window.print=()=>{
+    window.__civoltenOSPrintHtml=document.querySelector('#work-print-root')?.innerHTML||'';
+    window.dispatchEvent(new Event('afterprint'));
+   };
+  });
+  await page.locator('[data-action="work-contract-print"]').click();
+  const osHtml=await page.evaluate(()=>window.__civoltenOSPrintHtml);
+  assert.match(osHtml,/work-pdf-header/);
+  assert.match(osHtml,/civolten-logo\\.png/);
+  assert.match(osHtml,/civolten-simbolo\\.png/);
+  assert.match(osHtml,/SERVIÇO/);
+  assert.match(osHtml,/Representante da CIVOLTEN/);
+  assert.doesNotMatch(osHtml,/Valor contratado|R\\$|selling/,'A ordem de serviço é operacional, sem valores');
+  assert.equal(await page.locator('#work-print-root').count(),0,'Impressão limpa após fechar prévia');
   page.once('dialog',d=>d.accept());
   await page.locator('[data-action="work-start"]').click();
   await page.locator('[data-action="work-log-new"]').waitFor();
