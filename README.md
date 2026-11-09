@@ -305,3 +305,18 @@ e [SINAPI CAIXA](https://www.caixa.gov.br/poder-publico/modernizacao-gestao/sina
 
 A tabela Supabase `cv_service_catalog_v1` foi preservada. Restricoes ampliadas
 para fonte SIURB e ate 30 funcoes por servico. Nenhuma outra tabela foi apagada.
+
+### Planilhas SIURB Excel .xls (edição de julho/2026)
+
+O seletor de arquivos do catálogo agora aceita Excel 97-2003 **.xls**, Excel
+**.xlsx** e CSV/TSV no Android e desktop. O leitor BIFF8 funciona localmente,
+sem CDN ou conversão paga. Ao identificar a estrutura de composições SIURB,
+organiza automaticamente código/descrição/unidade e as linhas de insumos da
+composição. Coeficientes HH são retirados somente das funções de mão de obra
+(códigos de insumo 1000 a 2999 e unidade H). Coeficientes de equipamento,
+materiais e os preços públicos são descartados.
+
+Na planilha `DESONERADA__COM_Des__Comp_Custos_Unit_EDIF__JUL26.xls`, a
+competência é 2026-07; serviços sem coeficiente de mão de obra permanecem
+com HH em aberto para conferência antes do orçamento. A importação mantém
+funcionários, custos mensais, orçamentos e contratos existentes.
