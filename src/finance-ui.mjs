@@ -47,7 +47,8 @@ export function financeView(data,month=currentMonth(),filter='all'){
   '</div><div class="fin-actions"><button type="button" class="gold-button" data-action="new-income">'+icon('plus',20)+' Faturar / Receber</button>'+
   '<button type="button" class="outlined-button" data-action="new-expense">'+icon('plus',20)+' Nova despesa</button></div>'+
   '<div class="fin-link-row"><button type="button" data-go="costs">Custos previstos '+icon('chevron',17)+'</button>'+
-  '<button type="button" data-go="reports">Relatórios '+icon('chevron',17)+'</button></div>'+
+  '<button type="button" data-go="reports">Relatórios '+icon('chevron',17)+'</button>'+
+  '<button type="button" data-go="works">Obras e medições '+icon('chevron',17)+'</button></div>'+
   '<div class="fin-section-title"><h2>Lançamentos de '+e(labelMonth(month))+'</h2></div>'+
   '<div class="fin-filters">'+[
    ['all','Todos'],['income','Receitas'],['expense','Despesas']

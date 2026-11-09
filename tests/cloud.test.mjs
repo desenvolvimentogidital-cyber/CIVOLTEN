@@ -55,7 +55,7 @@ test('outro usuário não consegue salvar, excluir ou ler registros alheios',asy
  assert.deepEqual((await fetchRemote(c,someone)).fixed,[]);
 });
 test('não existe tabela pública sem mapeamento',()=>{
- assert.deepEqual(Object.keys(TABLES),['fixed','variable','employees','ledger','budgets','catalog']);
+ assert.deepEqual(Object.keys(TABLES),['fixed','variable','employees','ledger','budgets','catalog','works','workLogs','measurements']);
 });
 
 test('lançamentos de faturamento são persistidos e isolados por usuário',async()=>{

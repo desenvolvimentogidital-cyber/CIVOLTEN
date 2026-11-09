@@ -9,9 +9,26 @@ export const TABLES={
  employees:'cv_employees_v1',
  ledger:'cv_financial_entries_v1',
  budgets:'cv_budget_drafts_v1',
- catalog:'cv_service_catalog_v1'
+ catalog:'cv_service_catalog_v1',
+ works:'cv_work_orders_v1',
+ workLogs:'cv_work_logs_v1',
+ measurements:'cv_measurements_v1'
 };
 const normalize=(k,row)=>{
+ if(k==='works')return {id:row.id,budgetId:row.budget_id,customer:row.customer,
+  project:row.project,contractRef:row.contract_ref,acceptanceRef:row.acceptance_ref,
+  budgetSnapshot:row.budget_snapshot,pricedRows:row.priced_rows,
+  contractValue:Number(row.contract_value),status:row.status,
+  approvedOn:row.approved_on,startOn:row.start_on,finishOn:row.finish_on,
+  createdAt:row.created_at};
+ if(k==='workLogs')return {id:row.id,workOrderId:row.work_order_id,
+  employeeId:row.employee_id,itemId:row.item_id,workDate:row.work_date,
+  hours:Number(row.hours),qualificationConfirmed:row.qualification_confirmed,
+  notes:row.notes||'',createdAt:row.created_at};
+ if(k==='measurements')return {id:row.id,workOrderId:row.work_order_id,
+  itemId:row.item_id,measuredOn:row.measured_on,quantity:Number(row.quantity),
+  amount:Number(row.amount),status:row.status,approvedAt:row.approved_at,
+  notes:row.notes||'',createdAt:row.created_at};
  if(k==='catalog')return {id:row.id,code:row.code,category:row.category,
   description:row.description,unit:row.unit,source:row.source,
   roles:Array.isArray(row.roles)?row.roles:[],directCost:row.direct_cost===null?null:Number(row.direct_cost),
@@ -41,6 +58,19 @@ const normalize=(k,row)=>{
 };
 const payload=(k,item,userId)=>{
  const base={id:item.id,user_id:userId,updated_at:new Date().toISOString()};
+ if(k==='works')return {...base,budget_id:item.budgetId,customer:item.customer,
+  project:item.project,contract_ref:item.contractRef,acceptance_ref:item.acceptanceRef,
+  budget_snapshot:item.budgetSnapshot,priced_rows:item.pricedRows,
+  contract_value:item.contractValue,status:item.status,approved_on:item.approvedOn,
+  start_on:item.startOn||null,finish_on:item.finishOn||null};
+ if(k==='workLogs')return {...base,work_order_id:item.workOrderId,
+  item_id:item.itemId,employee_id:item.employeeId,work_date:item.workDate,
+  hours:item.hours,qualification_confirmed:item.qualificationConfirmed===true,
+  notes:item.notes||''};
+ if(k==='measurements')return {...base,work_order_id:item.workOrderId,
+  item_id:item.itemId,measured_on:item.measuredOn,
+  quantity:item.quantity,amount:item.amount,status:item.status,
+  approved_at:item.approvedAt||null,notes:item.notes||''};
  if(k==='catalog')return {...base,code:item.code,category:item.category,
   description:item.description,unit:item.unit,source:item.source,
   roles:item.roles||[],direct_cost:item.directCost,
@@ -70,26 +100,36 @@ const checkId=userId=>{
  if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(userId||''))
   throw Error('Sessão inválida: identificador do usuário ausente.');
 };
+// Buscas em lotes por usuário, com ordenação estável e sem truncar 1000 registros.
+async function fetchKind(client,userId,kind){
+ const all=[],limit=500,maxRows=100000;
+ for(let from=0;from<maxRows;from+=limit){
+  const {data,error}=await client.from(TABLES[kind])
+   .select('*').eq('user_id',userId)
+   .order('created_at',{ascending:true}).order('id',{ascending:true})
+   .range(from,from+limit-1);
+  if(error)throw Error('Falha ao consultar '+kind+': '+error.message);
+  const page=data||[];all.push(...page);
+  if(page.length<limit)break;
+  if(from+limit>=maxRows)throw Error('O cadastro de '+kind+' ultrapassa o limite de sincronização.');
+ }
+ return all.map(row=>normalize(kind,row));
+}
+// Após apontar HH, aprovar medição ou gerar recebível, não recarregar as 2617
+// composições do catálogo nem as tabelas de custo para atualizar a tela.
+export async function fetchOperationsRemote(client,userId,current){
+ checkId(userId);
+ const out={...current};
+ await Promise.all(['works','workLogs','measurements','ledger'].map(async kind=>{
+  out[kind]=await fetchKind(client,userId,kind);
+ }));
+ return out;
+}
 export async function fetchRemote(client,userId){
  checkId(userId);
  const out=fresh();
- // Paginação consistente para TODAS as tabelas: evita a limitação padrão do Supabase
- // (1.000 linhas por consulta) e ordena com chave exclusiva para páginas estáveis.
  await Promise.all(Object.keys(TABLES).map(async kind=>{
-  const all=[],limit=500,maxRows=100000;
-  for(let from=0;from<maxRows;from+=limit){
-   const {data,error}=await client.from(TABLES[kind])
-    .select('*').eq('user_id',userId)
-    .order('created_at',{ascending:true}).order('id',{ascending:true})
-    .range(from,from+limit-1);
-   if(error)throw Error('Falha ao consultar '+kind+': '+error.message);
-   const page=data||[];
-   all.push(...page);
-   if(page.length<limit)break;
-   if(from+limit>=maxRows)throw Error(
-    'O cadastro de '+kind+' ultrapassa o limite de sincronização. Solicite uma exportação assistida.');
-  }
-  out[kind]=all.map(row=>normalize(kind,row));
+  out[kind]=await fetchKind(client,userId,kind);
  }));
  const {data:rates,error:ratesError}=await client.from('cv_payroll_settings_v1')
   .select('*').eq('user_id',userId).order('created_at',{ascending:true});
@@ -121,6 +161,17 @@ export async function putRemote(client,userId,kind,item){
  if(error)throw Error('Falha ao salvar no banco: '+error.message);
  if(!data?.id||data.id!==item.id)throw Error('Banco não confirmou o salvamento.');
  return item;
+}
+// Operação de medição -> contas a receber em transação atômica no Supabase.
+// Nunca duplica receita ao tocar duas vezes em emitir cobrança.
+export async function billMeasurementRemote(client,userId,measurementId,dueDate){
+ checkId(userId);
+ const {data,error}=await client.rpc('cv_bill_measurement_v1',{
+  p_measurement_id:measurementId,p_due_date:dueDate
+ });
+ if(error)throw Error('Não foi possível gerar recebível: '+error.message);
+ if(!data||typeof data!=='string')throw Error('Banco não confirmou o recebível.');
+ return data;
 }
 // Importação em lote, sob a identidade autenticada do usuário (RLS).
 // A lista é limitada aos custos; não altera funcionário, orçamento ou Financeiro.

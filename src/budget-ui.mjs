@@ -27,14 +27,23 @@ export function budgetsView(data){
  '<p class="fin-intro">Elabore propostas comerciais com produtividade por HH/un, composições importadas da SIURB/SINAPI e custos reais da CIVOLTEN.</p>'+
  '<button type="button" class="outlined-button" data-go="catalog">'+icon('clipboard',18)+' Catálogo de serviços SIURB/SINAPI</button>'+
  '<button class="gold-button budget-new-button" type="button" data-action="budget-new">'+icon('plus',22)+' Novo orçamento CIVOLTEN</button>'+
+ '<button type="button" class="outlined-button" data-go="works">'+icon('building',18)+' Acompanhar obras e medições</button>'+
  (rows.length?'<div class="budget-list">'+rows.map(b=>{
   let price=null;try{price=priceBudget(b)}catch{/* registros antigos devem continuar acessíveis */}
-  return '<button class="budget-list-item" type="button" data-action="budget-open" data-id="'+e(b.id)+'">'+
+  const linked=(data.works||[]).find(w=>w.budgetId===b.id);
+  return '<div class="budget-entry">'+
+  '<button class="budget-list-item" type="button" data-action="budget-open" data-id="'+e(b.id)+'">'+
    '<span class="budget-list-icon">'+icon('clipboard',22)+'</span>'+
    '<span class="budget-list-copy"><b>'+e(b.title)+'</b><small>'+e(b.customer||'Cliente não informado')+
    '</small><em>'+b.items.length+' serviço(s) · '+dateBR(b.createdAt?.slice(0,10))+'</em></span>'+
    '<span class="budget-list-total"><strong>'+(needsReview(b)?'A revisar':price?money(price.totalSale):'Sem preço')+'</strong>'+
-   '<small>'+(needsReview(b)?'Revisão pendente':'Rascunho')+'</small></span></button>';
+   '<small>'+(linked?'Ordem de serviço vinculada':needsReview(b)?'Revisão pendente':'Proposta comercial')+'</small></span></button>'+
+  (linked?'<button type="button" class="outlined-button budget-work-launch" data-action="work-open" data-id="'+e(linked.id)+'">'+icon('building',18)+' Abrir obra · '+e(linked.contractRef)+'</button>':
+  (b.demo===false&&b.commercial?.laborOnly===true&&price?
+   '<button type="button" class="outlined-button budget-work-launch" data-action="work-approve-budget" data-id="'+e(b.id)+'">'+icon('check',18)+' Registrar aceite e abrir obra</button>':''))+
+ '<button type="button" class="outlined-button budget-work-launch" data-action="budget-clone" data-id="'+e(b.id)+'">'+
+ icon('file',17)+' Duplicar para nova proposta de mão de obra</button>'+
+ '</div>';
  }).join('')+'</div>':
  '<div class="fin-empty">Nenhum orçamento salvo. Crie seu primeiro orçamento com os serviços do catálogo interno.</div>')+
  '<div class="fin-link-row"><button type="button" data-go="company">Ajustar precificação '+icon('chevron',17)+'</button></div></section>';
@@ -244,12 +253,14 @@ export function budgetCatalogResults(records,search=''){
 export function budgetEditorView(data,draft,err='',pickerSearch=''){
  if(!draft)return budgetsView(data);
  const laborOnly=draft.commercial?.laborOnly===true;
+ const locked=!!(data.works||[]).find(w=>w.budgetId===draft.id);
  const payrollUnreviewed=(data.employees||[]).some(e=>e.active!==false&&e.contractType==='clt')&&
   data.payroll?.reviewed!==true;
  let calculated=null;try{calculated=!needsReview(draft)?priceBudget(draft):null}catch{/* mostrar erro no preview */}
  const priced=!!calculated;
  return '<section class="fin-screen budget-screen budget-editor">'+header('Montar orçamento','budgets')+
  status(draft)+
+(locked?'<p class="fin-helper budget-labor-scope"><b>Proposta aprovada e congelada.</b> A ordem de serviço mantém a versão aceita. Para qualquer alteração, use <b>Duplicar para nova proposta</b> na lista de orçamentos.</p>':'')+
  '<form id="budget-form" class="budget-form" novalidate>'+
  '<div class="budget-editor-head"><span>Rascunho · '+(draft.id?'edição':'novo')+'</span>'+
  '<p>Ao salvar, o orçamento fica privado na sua conta. Os itens e custos não alteram Financeiro, contratos ou estoque.</p></div>'+
@@ -290,7 +301,7 @@ export function budgetEditorView(data,draft,err='',pickerSearch=''){
  '<button type="button" data-action="budget-refresh-pricing" class="budget-refresh">'+icon('chart',18)+' Recalcular com os custos atuais (opcional)</button>'+
  '<div id="budget-price-preview" aria-live="polite">'+preview(draft)+'</div>'+
  (err?error(err):'')+
- '<button class="gold-button budget-save-button" type="submit"'+(needsReview(draft)?' disabled':'')+'>'+icon('check',19)+' Salvar rascunho</button></form>'+
+ '<button class="gold-button budget-save-button" type="submit"'+(needsReview(draft)||locked?' disabled':'')+'>'+icon('check',19)+(locked?' Proposta aprovada':' Salvar rascunho')+'</button></form>'+
  '<div class="budget-secondary-actions"><button type="button" class="outlined-button" data-action="budget-print"'+(priced?'':' disabled')+'>'+icon('file',18)+' Visualizar / PDF</button>'+
  '<button type="button" class="outlined-button" data-action="budget-export"'+(priced?'':' disabled')+'>'+icon('file',18)+' Exportar CSV</button></div>'+ 
  '<p class="budget-pdf-model-label">'+icon('check',15)+' Proposta Signature · 3 páginas · CIVOLTEN</p>'+

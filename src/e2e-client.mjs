@@ -91,5 +91,24 @@ export function createE2EClient(){
    }
   };
  }
- return {auth,from};
+ const rpc=async(name,args)=>{
+  if(name!=='cv_bill_measurement_v1')
+   return {data:null,error:{message:'Função não disponível no simulador'}};
+  const db=read(),m=(db.cv_measurements_v1||[]).find(x=>x.id===args.p_measurement_id&&x.user_id===user?.id);
+  if(!m||m.status!=='approved')return {data:null,error:{message:'Medição não aprovada'}};
+  const w=(db.cv_work_orders_v1||[]).find(x=>x.id===m.work_order_id&&x.user_id===user?.id);
+  if(!w)return {data:null,error:{message:'Obra não encontrada'}};
+  const ref='MED:'+m.id,existing=(db.cv_financial_entries_v1||[]).find(x=>x.reference===ref&&x.user_id===user.id);
+  if(existing)return {data:existing.id,error:null};
+  const id=crypto.randomUUID();
+  db.cv_financial_entries_v1=db.cv_financial_entries_v1||[];
+  db.cv_financial_entries_v1.push({id,user_id:user.id,kind:'income',
+   title:'Medicao da obra '+w.contract_ref,party:w.customer,project:w.project,
+   category:'Mao de obra',amount:m.amount,due_date:args.p_due_date,
+   paid_date:null,reference:ref,notes:'Recebivel gerencial vinculado a medicao aprovada.',
+   created_at:new Date().toISOString()});
+  save(db);
+  return {data:id,error:null};
+ };
+ return {auth,from,rpc};
 }
