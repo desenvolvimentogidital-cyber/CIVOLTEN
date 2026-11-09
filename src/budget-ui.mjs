@@ -1,6 +1,6 @@
 // Interface responsiva de orçamento com catálogo interno e histórico compatível.
 import {summary,brl} from './calc.mjs';
-import {priceBudget} from './budget.mjs';
+import {priceBudget,budgetUnitEstimate} from './budget.mjs';
 import {catalogRows} from './service-catalog.mjs';
 import {icon,e} from './views.mjs';
 import {printableBudget} from './budget-print.mjs';
@@ -39,22 +39,44 @@ export function budgetsView(data){
  '<div class="fin-empty">Nenhum orçamento salvo. Crie seu primeiro orçamento com os serviços do catálogo interno.</div>')+
  '<div class="fin-link-row"><button type="button" data-go="company">Ajustar precificação '+icon('chevron',17)+'</button></div></section>';
 }
-function itemRow(item,index){
+function itemRow(item,index,snapshot){
  const quantity=Number(item.quantity).toLocaleString('pt-BR',{maximumFractionDigits:3});
  const hours=Number(item.laborHours).toLocaleString('pt-BR',{maximumFractionDigits:3});
- const cost=item.directCost==null?'A informar':money(Math.round(Number(item.directCost)*100));
+ const cost=money(Math.round(Number(item.directCost??0)*100));
+ let estimate=null;try{estimate=budgetUnitEstimate(snapshot,item.laborHours,item.directCost)}catch{};
  return '<article class="budget-item budget-item-compact" data-budget-item="'+e(item.id)+'">'+
   '<div class="budget-item-top"><span>'+(item.source==='demo'?'Serviço a revisar':item.source==='internal'?'Serviço CIVOLTEN':'Personalizado')+' · item '+(index+1)+'</span>'+
   '<button type="button" class="budget-remove" data-action="budget-remove-item" data-id="'+e(item.id)+'" aria-label="Remover serviço">'+icon('trash',16)+' Remover</button></div>'+
   '<h3>'+e(item.description)+'</h3>'+
-  '<p class="budget-item-summary">'+quantity+' '+e(item.unit)+' · '+hours+' HH/un. · custo direto/un. '+cost+'</p>'+ 
+  '<p class="budget-item-summary">'+quantity+' '+e(item.unit)+' · '+hours+' HH/un. · adicionais/un. '+cost+'</p>'+
+ (estimate?'<p class="budget-item-summary">Mão de obra/un. '+money(estimate.labor)+' · venda estimada/un. <strong>'+money(estimate.selling)+'</strong></p>':'')+ 
   '<button type="button" class="budget-item-edit" data-action="budget-edit-item" data-id="'+e(item.id)+'">'+icon('edit',16)+' Editar serviço</button>'+
   '</article>';
 }
 const serviceField=(label,name,value,type='text',params='')=>
  '<label class="modal-field"><span>'+label+'</span><input name="'+name+'" type="'+type+'" value="'+e(value??'')+'" '+
  (type==='number'?'inputmode="decimal" min="0" step="any" ':'')+params+'></label>';
-export function budgetServiceDialog(service,editing=false){
+// Exibe automaticamente os valores atuais sem exigir preenchimento de campo calculado.
+export function budgetServiceEstimate(fields,snapshot){
+ if(!snapshot)return '<p class="fin-helper">O custo por hora será calculado assim que os custos mensais e a capacidade da empresa estiverem disponíveis.</p>';
+ let quote=null;
+ try{quote=budgetUnitEstimate(snapshot,fields?.laborHours,fields?.directCost)}catch{}
+ if(!quote)return '<p class="fin-helper">Informe uma produtividade HH/un maior que zero para calcular o valor por unidade.</p>';
+ const daily=Math.ceil(quote.monthly/quote.days);
+ const hour=Math.ceil(quote.hourly);
+ return '<div class="budget-unit-summary" role="status">'+
+  '<div class="budget-unit-summary-head">Cálculo automático pelo custo da CIVOLTEN</div>'+
+  '<div><span>Custo mensal</span><strong>'+money(quote.monthly)+'</strong></div>'+
+  '<div><span>Por dia ('+quote.days+' dias)</span><strong>'+money(daily)+'</strong></div>'+
+  '<div><span>Por hora produtiva ('+quote.hoursDay+'h × '+quote.people+' profissionais)</span><strong>'+money(hour)+'/HH</strong></div>'+
+  '<div><span>Mão de obra por '+e(fields?.unit||'un')+' ('+quote.hours+' HH)</span><strong>'+money(quote.labor)+'</strong></div>'+
+  '<div><span>Materiais e equipamentos adicionais</span><strong>'+money(quote.materials)+'</strong></div>'+
+  '<div class="budget-unit-sale"><span>Preço de venda sugerido por '+e(fields?.unit||'un')+'</span><strong>'+
+   money(quote.selling)+'</strong></div>'+
+  '<small>Preço com imposto e margem já cadastrados. O orçamento final usa quantidade e modalidade de precificação escolhida.</small>'+
+ '</div>';
+}
+export function budgetServiceDialog(service,editing=false,snapshot=null){
  return '<div class="modal-inner budget-service-modal">'+
  '<div class="modal-heading"><h2 id="budget-service-title">'+(editing?'Editar serviço':'Adicionar serviço')+'</h2>'+
  '<button type="button" class="small-square" data-action="close-modal" aria-label="Fechar formulário">×</button></div>'+
@@ -66,10 +88,11 @@ export function budgetServiceDialog(service,editing=false){
  serviceField('Unidade','unit',service.unit,'text','maxlength="20" required')+
  serviceField('Quantidade','quantity',service.quantity,'number','max="100000" required')+
  serviceField('Produtividade adotada (HH por unidade)','laborHours',service.laborHours,'number','max="10000" required')+
- serviceField('Custo direto interno por unidade (R$)','directCost',service.directCost??'','number','max="999999999" required')+
+ serviceField('Materiais e equipamentos adicionais por unidade (R$) — opcional','directCost',service.directCost??0,'number','max="999999999" placeholder="0,00"')+
  '</div></div>'+
  (service.crewComposition?'<p class="fin-helper">Equipe sugerida: '+e(service.crewComposition)+'. Faixa inicial: '+e(service.hhMin)+' a '+e(service.hhMax)+' HH/'+e(service.unit)+'. O ponto médio é pré-selecionado e pode ser ajustado.</p>':'')+
- '<p class="fin-helper">Preencha o custo direto de materiais/equipamentos. Não repita salários já incluídos nos custos mensais da empresa.</p>'+
+ '<p class="fin-helper">A mão de obra é calculada automaticamente: custo mensal ÷ dias ÷ horas ÷ profissionais × HH/un. Deixe adicionais em R$ 0,00 quando já estiverem nos custos mensais. Em serviços mecanizados, confira o custo real da máquina/equipamento.</p>'+
+ '<div id="budget-service-estimate" aria-live="polite">'+budgetServiceEstimate(service,snapshot)+'</div>'+
  '<p id="budget-service-error" class="form-error" role="alert" hidden></p>'+
  '<div class="modal-buttons">'+
  '<button type="button" class="outlined-button" data-action="close-modal">Cancelar</button>'+
@@ -184,16 +207,16 @@ export function budgetEditorView(data,draft,err=''){
  e(item.source.toUpperCase())+' '+e(item.sinapiCode||item.code)+' · '+e(item.description)+' · '+e(item.unit)+'</option>').join('')+
  '</select></label>'+
  '<button type="button" class="outlined-button" data-action="budget-add-item">'+icon('plus',19)+' Abrir formulario</button></div>'+
- '<p class="fin-helper">Importe primeiro a tabela oficial no catalogo. Horas e custos proprios podem ser completados ou ajustados no formulario do orcamento; nenhum preco SIURB/SINAPI e utilizado.</p>'+
+ '<p class="fin-helper">A produtividade SIURB/SINAPI preenche as HH/un. O custo por unidade é calculado automaticamente com as despesas da sua empresa, imposto e margem, sem usar preços da tabela oficial.</p>'+
  '<button class="outlined-button" type="button" data-go="catalog">'+icon('clipboard',18)+' Importar catalogo SIURB/SINAPI</button>'+
- (draft.items.length?'<div class="budget-items">'+draft.items.map(itemRow).join('')+'</div>':
+ (draft.items.length?'<div class="budget-items">'+draft.items.map((item,index)=>itemRow(item,index,draft.pricing)).join('')+'</div>':
  '<div class="fin-empty">Inclua ao menos um serviço para salvar o orçamento.</div>')+
  scheduleControls(data,draft)+
  '<div class="budget-section-heading"><h2>Formação do preço</h2></div>'+
- (summary(data).missing?'<p class="fin-helper cost-pending-note">Atenção: '+summary(data).missing+' custo(s) da empresa ainda estão a preencher. O cálculo usa somente os valores cadastrados; revise antes de enviar proposta definitiva.</p>':'')+
- (summary(data).assumedQuantities?'<p class="fin-helper cost-pending-note">'+summary(data).assumedQuantities+' custo(s) variáveis estão incluídos com 1 unidade/mês como padrão. Revise as quantidades antes de enviar a proposta.</p>':'')+
- '<p class="fin-helper">O preço utiliza a fotografia do custo mensal, capacidade produtiva, alíquota e margem salvos no rascunho. Mudanças na configuração geral não modificam os orçamentos antigos automaticamente.</p>'+
- '<button type="button" data-action="budget-refresh-pricing" class="budget-refresh">'+icon('chart',18)+' Atualizar base de preços</button>'+
+ (summary(data).missing?'<p class="fin-helper">O cálculo inclui os custos já cadastrados. Modelos de despesas ainda sem valor ficam fora da conta até serem preenchidos.</p>':'')+
+ (summary(data).assumedQuantities?'<p class="fin-helper">'+summary(data).assumedQuantities+' custo(s) variáveis utilizam 1 unidade/mês porque a quantidade não foi informada. Revise se necessário.</p>':'')+
+ '<p class="fin-helper">O custo mensal é dividido pelos dias produtivos, horas por dia e profissionais. Cada serviço recebe seu valor pela produtividade HH/un; imposto e margem são aplicados automaticamente.</p>'+
+ '<button type="button" data-action="budget-refresh-pricing" class="budget-refresh">'+icon('chart',18)+' Recalcular com os custos atuais (opcional)</button>'+
  '<div id="budget-price-preview" aria-live="polite">'+preview(draft)+'</div>'+
  (err?error(err):'')+
  '<button class="gold-button budget-save-button" type="submit"'+(needsReview(draft)?' disabled':'')+'>'+icon('check',19)+' Salvar rascunho</button></form>'+

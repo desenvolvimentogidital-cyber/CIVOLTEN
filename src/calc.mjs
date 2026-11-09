@@ -81,7 +81,7 @@ export function summary(data){
   va.filter((x,i)=>x===null&&cents((data.variable||[])[i].unitCost)!==0).length+
   workforceMissing;
  return {fixed,variable,team,total:fixed+variable+team,employees:ep.length,
-  missing,assumedQuantities,complete:missing===0,readyForPricing:blocking===0,blocking,
+  missing,workforceMissing,assumedQuantities,complete:missing===0,readyForPricing:blocking===0,blocking,
   knownItems:fixedReady.length+variableReady.length+ep.filter(x=>x.monthly!==null).length};
 }
 export function validate(kind,fields){

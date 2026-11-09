@@ -1402,3 +1402,16 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 .budget-legacy-note{margin:12px 0;padding:14px;border:1px solid #997335;border-radius:12px;background:#271f16}
 .budget-legacy-note .fin-helper{margin:0 0 12px;color:#ead8bd}
 .budget-legacy-note .outlined-button{width:100%;margin:0}
+
+/* Custo automatico de mao de obra por HH/un na composicao comercial. */
+.budget-unit-summary{display:grid;gap:9px;margin:14px 0;padding:15px;
+ border:1px solid #95703c;border-radius:16px;background:rgba(105,80,39,.13);
+ font-size:13px;line-height:1.45}
+.budget-unit-summary-head{font-weight:800;font-size:14px;color:#ffd889;padding-bottom:7px}
+.budget-unit-summary>div:not(.budget-unit-summary-head){display:flex;align-items:center;
+ justify-content:space-between;gap:12px;border-top:1px solid #ab8a5233;padding-top:7px}
+.budget-unit-summary span{flex:1;min-width:0;color:#e0d5c4}
+.budget-unit-summary strong{text-align:right;font-size:14px;white-space:nowrap;color:#fff5df}
+.budget-unit-summary .budget-unit-sale{border-top:2px solid #dfad50!important;padding-top:12px!important}
+.budget-unit-sale strong{font-size:21px!important;color:#ffd269!important}
+.budget-unit-summary small{line-height:1.5;color:#bfae98}

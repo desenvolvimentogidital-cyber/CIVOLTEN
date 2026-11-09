@@ -53,7 +53,8 @@ export function validateBudgetItem(row){
  const laborHours=positive(row.laborHours,'horas de trabalho',{allowZero:true,max:10000});
  if(Math.abs(laborHours*1000-Math.round(laborHours*1000))>1e-6)
   throw Error('Horas devem ter até três casas decimais.');
- const directCost=moneyCheck(row.directCost,'Custo direto');
+ // Apenas materiais/equipamentos adicionais; mao de obra vem automaticamente dos custos mensais.
+ const directCost=moneyCheck(row.directCost==null||String(row.directCost).trim()===''?0:row.directCost,'Custo direto');
  const unit=safeText(row.unit,20,'Unidade');
  if(!unit)throw Error('Informe a unidade do serviço.');
  const source=row.source==='demo'?'demo':row.source==='internal'?'internal':'manual';
@@ -115,7 +116,9 @@ export function validateBudget(raw){
 }
 export function createPricingSnapshot(data){
  const cost=summary(data),cfg=companyConfig(data.company),cap=capacity(cfg);
- if(!cfg.reviewed||!cost.readyForPricing||!cap||!Number.isSafeInteger(cost.total)||cost.total<=0)return null;
+ // Modelos de despesas vazios nao devem impedir usar os custos reais ja cadastrados.
+ // Custos da equipe sem informacao suficiente continuam bloqueando o calculo.
+ if(!cfg.reviewed||cost.workforceMissing>0||!cap||!Number.isSafeInteger(cost.total)||cost.total<=0)return null;
  return {monthlyCostCents:cost.total,productiveHours:cap.productiveHours,
   productiveDays:cfg.productiveDays,hoursPerDay:cfg.hoursPerDay,productivePeople:cfg.productivePeople,
   taxPct:cfg.taxPct,marginPct:cfg.marginPct,companyName:cfg.companyName||'CIVOLTEN',
@@ -138,6 +141,22 @@ export function validateBudgetSnapshot(raw){
   productiveDays:days,hoursPerDay:perDay,productivePeople:people,
   companyName:safeText(raw.companyName,160,'Nome da empresa'),
   capturedOn:validDate(raw.capturedOn)?raw.capturedOn:localToday()};
+}
+// Estimativa unitaria: mesma divisao HH e mesmos tributos/margem do orcamento.
+export function budgetUnitEstimate(snapshot,hours,extraDirect=0){
+ if(!snapshot)return null;
+ const p=validateBudgetSnapshot(snapshot);
+ const hh=decimal(hours),extra=extraDirect==null||String(extraDirect).trim()===''?0:decimal(extraDirect);
+ if(hh===null||hh<=0||hh>10000||extra===null||extra<0||extra>999999999)return null;
+ const rate=p.monthlyCostCents/p.productiveHours;
+ const labor=Math.ceil(p.monthlyCostCents*hh/p.productiveHours);
+ const materials=cents(extra);
+ const quote=quoteFromCost(labor+materials,{reviewed:true,taxPct:p.taxPct,marginPct:p.marginPct});
+ if(!quote)return null;
+ return {monthly:p.monthlyCostCents,days:p.productiveDays||22,
+  hoursDay:p.hoursPerDay||8,people:p.productivePeople||1,
+  hourly:rate,labor,materials,hours:hh,
+  ...quote};
 }
 export function priceBudget(raw){
  const snapshot=raw?.pricing;

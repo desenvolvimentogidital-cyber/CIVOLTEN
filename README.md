@@ -320,3 +320,29 @@ Na planilha `DESONERADA__COM_Des__Comp_Custos_Unit_EDIF__JUL26.xls`, a
 competência é 2026-07; serviços sem coeficiente de mão de obra permanecem
 com HH em aberto para conferência antes do orçamento. A importação mantém
 funcionários, custos mensais, orçamentos e contratos existentes.
+
+### Precificação automática por HH e orçamento comercial (08/11/2026)
+
+O total mensal da CIVOLTEN reúne custos fixos, variáveis e profissionais
+ativos, considerando apenas despesas com valores cadastrados. A capacidade
+produtiva é calculada por `dias produtivos × horas/dia × profissionais`.
+A configuração atualmente usada como padrão é 22 dias × 8h/dia; o número
+de profissionais vem das configurações já salvas na empresa.
+
+O orçamento calcula automaticamente:
+- **Custo da hora-homem** = despesa mensal ÷ horas produtivas mensais.
+- **Mão de obra por unidade** = custo da HH × coeficiente HH/un do serviço.
+- **Custo total** = mão de obra × quantidade + materiais/equipamentos adicionais.
+- **Preço de venda** = custo total ÷ (1 − imposto% − margem%).
+  Imposto e margem não devem ser somados novamente ao custo/hora.
+
+O campo de adicionais do formulário é opcional e assume zero, mas materiais
+e máquinas **não são grátis**: valores não contidos nas despesas mensais
+precisam ser informados separadamente, para evitar subprecificação.
+O resumo visual exibe hora e preço por unidade, recalculados ao alterar HH.
+Preços antigos salvos não são alterados sem revisão.
+
+A regra antiga de homologação que exigia `demo=true` em
+`cv_budget_drafts_v1` foi removida no Supabase de produção, e seu
+padrão passou para `demo=false`. Orçamentos e demais registros
+anteriores foram preservados. Veja `supabase/budget_drafts_producao_v2.sql`.

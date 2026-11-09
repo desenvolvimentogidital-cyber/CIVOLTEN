@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DEMO_SERVICES,createService,validateBudget,validateCommercial,priceBudget,createPricingSnapshot,budgetCsv} from '../src/budget.mjs';
+import {DEMO_SERVICES,createService,validateBudget,validateCommercial,priceBudget,createPricingSnapshot,budgetUnitEstimate,validateBudgetItem,budgetCsv} from '../src/budget.mjs';
 const company={companyName:'Construtora Teste',taxRegime:'simples',annex:'IV',taxPct:10,marginPct:20,
  productiveDays:20,hoursPerDay:8,productivePeople:2,reviewed:true};
 const priced={monthlyCostCents:1600000,productiveHours:320,
@@ -76,4 +76,35 @@ test('condições comerciais opcionais validadas, sem presumir prazo ou garantia
 
 test('CSV comercial exige regularizacao de orcamentos anteriores',()=>{
  assert.throws(()=>budgetCsv(validateBudget(raw())),/Revise os servicos/);
+});
+
+test('CIVOLTEN divide custo mensal em 22 dias 8 horas e 2 profissionais e precifica cada HH',()=>{
+ const monthly=35200;
+ const data={fixed:[{name:'Modelo pendente',amount:null,frequency:'monthly'},
+  {name:'Despesa real',amount:monthly,frequency:'monthly'}],
+  variable:[],employees:[],company:{
+    companyName:'CIVOLTEN',reviewed:true,productiveDays:22,hoursPerDay:8,
+    productivePeople:2,taxPct:6,marginPct:30
+  }};
+ const snap=createPricingSnapshot(data);
+ assert.ok(snap,'modelos vazios nao devem impedir precificacao real');
+ assert.equal(snap.productiveHours,22*8*2);
+ assert.equal(snap.monthlyCostCents,monthly*100);
+ const est=budgetUnitEstimate(snap,4,'');
+ assert.equal(est.hourly,10000);
+ assert.equal(est.labor,40000,'4 horas a R$ 100/HH = R$ 400');
+ assert.equal(est.materials,0);
+ assert.equal(est.selling,62500,'Imposto 6% e margem 30% sobre venda: R$ 625/un');
+ const item=validateBudgetItem({id:'serv-1',source:'manual',description:'Demolicao',
+  unit:'m3',quantity:150,laborHours:4,directCost:''});
+ assert.equal(item.directCost,0,'adicionais em branco valem zero');
+ const quote=priceBudget({demo:false,pricing:snap,items:[item],commercial:{}});
+ assert.equal(quote.totalHours,600);
+ assert.equal(quote.totalCost,6000000);
+ assert.equal(quote.totalSale,9375000);
+});
+test('custos de funcionarios realmente incompletos nao sao assumidos como zero',()=>{
+ const data={fixed:[{name:'Aluguel',amount:1000,frequency:'monthly'}],variable:[],
+  employees:[{active:true,contractType:'clt',salary:null}],company:{...company}};
+ assert.equal(createPricingSnapshot(data),null);
 });
