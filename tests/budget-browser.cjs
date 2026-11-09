@@ -390,7 +390,8 @@ const server=createServer((req,res)=>{
   assert.equal(billed[0].paidDate,null,'Cobrança não equivale a recebimento');
   assert.match(billed[0].reference,/^MED:/);
   await page.locator('[data-action="work-measure-new"]').click();
-  await page.locator('#work-form [name="itemId"]').selectOption({index:1});
+  assert.equal(await page.locator('#work-form [name="itemId"] option').count(),1,
+   'Serviços com quantidade totalmente medida deixam de estar disponíveis');
   await page.locator('#work-form [name="quantity"]').fill('1');
   await page.locator('#work-form [type="submit"]').click();
   await page.locator('[data-action="work-measure-approve"]').first().waitFor();
