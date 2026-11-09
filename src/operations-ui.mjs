@@ -74,7 +74,8 @@ export function workDetailView(data,id){
   button('work-complete','Concluir obra','check',
    (canComplete(w,logs,measures)?'':'disabled title="Conclua as medições e registre as horas reais"')):'')+
  button('work-export','Exportar relatório CSV','file')+
- button('work-contract-print','Visualizar / PDF da OS','file')+'</div>'+
+ button('work-contract-print','Visualizar / PDF da OS','file')+
+ button('work-schedule-print','Cronograma para campo / PDF','calendar')+'</div>'+
  (w.status==='approved'?'<p class="fin-helper">Após conferir o aceite, inicie a obra para registrar a equipe, horas e medições.</p>':'')+
  '<div class="fin-section-title"><h2>Serviços contratados</h2></div>'+
  '<div class="work-lines">'+progress.items.map(x=>{

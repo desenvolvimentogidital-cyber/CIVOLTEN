@@ -1795,3 +1795,119 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
  body:has(#work-print-root) .work-print-page:last-child{
   break-after:auto!important;page-break-after:auto!important}
 }
+
+/* CIVOLTEN · Cronograma de Campo, arquivo A4 para impressão manual e uso em prancheta. */
+#field-schedule-print-root{display:none}
+.field-schedule-document,.field-schedule-document *{box-sizing:border-box}
+.field-schedule-document{margin:0!important;padding:0!important;color:#1b1d20!important;
+ background:#fff!important;font-family:Arial,Helvetica,sans-serif!important}
+.field-schedule-page{height:296.6mm;max-height:296.6mm;width:210mm;max-width:210mm;
+ position:relative;display:flex;flex-direction:column;background:#fff;
+ break-inside:avoid;page-break-inside:avoid;overflow:hidden}
+.field-schedule-page:not(:last-child){break-after:page;page-break-after:always}
+.field-schedule-header{height:31mm;flex:0 0 31mm;position:relative;
+ background:linear-gradient(112deg,#101317 0%,#25272c 72%,#3e3020 100%);
+ border-bottom:1.1mm solid #cc9632;overflow:hidden}
+.field-schedule-brand{height:100%;display:flex;align-items:center;gap:4mm;
+ padding:2mm 10mm;position:relative;z-index:2}
+.field-schedule-icon{width:22mm;height:26mm;object-fit:contain}
+.field-schedule-brand-divider{height:21mm;width:.35mm;flex:none;background:#ecc05c}
+.field-schedule-logo{width:98mm;height:26mm;object-fit:contain;object-position:left center}
+.field-schedule-header-accent{position:absolute;right:-10mm;bottom:0;width:70mm;height:25mm;
+ background:linear-gradient(120deg,transparent 20%,#6a49275c 50%,#e3ae464f 85%);
+ transform:skewX(-28deg);border-left:1mm solid #ad7733}
+.field-schedule-body{padding:7mm 10mm 0;display:flex;flex-direction:column;
+ flex:1;min-height:0}
+.field-schedule-title{display:flex;justify-content:space-between;align-items:center;
+ gap:5mm;border-bottom:.65mm solid #c49436;padding:1mm 0 4mm}
+.field-schedule-eyebrow{display:block;font-size:7.2pt;letter-spacing:.6pt;
+ color:#a87823;font-weight:800}
+.field-schedule-title h1{font-size:18pt!important;font-weight:850;letter-spacing:-.45pt;
+ color:#1b1d21!important;margin:1.3mm 0!important;line-height:1.18}
+.field-schedule-title p{font-size:8.6pt;color:#55575c;margin:0}
+.field-schedule-stamp{font-size:7pt;color:#865d1c;text-align:center;
+ border:.4mm solid #b88f4c;padding:3mm 2mm;max-width:37mm;min-width:30mm}
+.field-schedule-context{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2.3mm;
+ background:#eeeef0;border:.25mm solid #dcd6cc;padding:3mm;margin-top:4mm;
+ border-radius:1.5mm}
+.field-schedule-context span{font-size:8pt;line-height:1.35;min-width:0;
+ overflow-wrap:anywhere;display:flex;flex-direction:column;gap:1mm}
+.field-schedule-context b{font-size:7pt;letter-spacing:.15pt;color:#92621c}
+.field-schedule-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:2.2mm;margin-top:4mm}
+.field-schedule-summary>div{background:#22242a;color:#fff;padding:3mm 3.1mm;
+ min-height:16mm;display:flex;flex-direction:column;gap:1.7mm}
+.field-schedule-summary span{font-size:7.2pt;color:#f0d79e;font-weight:700}
+.field-schedule-summary strong{font-size:11pt;color:#fff;line-height:1.2}
+.field-schedule-dates{font-size:8.3pt;margin:3mm 0 4mm;padding-left:2mm;
+ border-left:.7mm solid #c18a24}
+.field-schedule-dates b{color:#242529}
+.field-schedule-list{margin-top:4mm}
+.field-schedule-list table{border-collapse:collapse!important;border-spacing:0!important;
+ table-layout:fixed;width:100%;border:.4mm solid #c79a43;color:#25262a;margin:0!important}
+.field-schedule-list thead{display:table-header-group}
+.field-schedule-list tr{break-inside:avoid;page-break-inside:avoid}
+.field-schedule-list th{font-size:7.7pt!important;font-weight:800!important;
+ text-align:left;background:#28292e!important;color:#fff!important;
+ padding:3mm 2mm!important;border:none!important}
+.field-schedule-list th:first-child{width:43%}
+.field-schedule-list th:nth-child(2){width:14%;text-align:center}
+.field-schedule-list th:nth-child(3){width:20%;text-align:center}
+.field-schedule-list th:nth-child(4){width:23%;text-align:center}
+.field-schedule-list td{vertical-align:middle;text-align:left!important;
+ padding:3.1mm 2.4mm!important;border:.23mm solid #d7bd86!important;
+ color:#212328!important;background:#fff;font-size:8pt!important;
+ line-height:1.4!important;overflow-wrap:anywhere;min-height:0}
+.field-schedule-list tbody tr:nth-child(even) td{background:#faf8f3!important}
+.field-schedule-list td:first-child strong{display:block;font-size:8.7pt;
+ line-height:1.35;word-break:normal}
+.field-schedule-list td small{display:block;font-size:7.2pt;color:#626369;
+ line-height:1.3;padding-top:1.4mm;overflow-wrap:anywhere}
+.field-schedule-qty,.field-schedule-period{text-align:center!important}
+.field-schedule-qty b,.field-schedule-period b{font-size:8.1pt;color:#2e2d2e}
+.field-schedule-check{display:flex;align-items:center;gap:1.4mm;
+ font-size:7.1pt;line-height:1.1;margin:1.5mm 0;white-space:nowrap}
+.field-schedule-check i{width:3.5mm;height:3.5mm;min-width:3.5mm;
+ border:.38mm solid #363536;border-radius:.2mm;background:#fff!important}
+.field-schedule-mark small{font-size:6.9pt!important}
+.field-schedule-checkout{margin-top:auto;padding:8mm 0 5mm}
+.field-schedule-notes{border:.35mm solid #cda75f;padding:3mm 4mm}
+.field-schedule-notes b{display:block;font-size:7.6pt;color:#30291e}
+.field-schedule-writing-line{height:9mm;border-bottom:.24mm solid #a9a49c}
+.field-schedule-validation{margin-top:6mm;display:flex;flex-direction:column;
+ gap:2.3mm;font-size:8.3pt;color:#37373a}
+.field-schedule-footer{position:relative;flex:0 0 16mm;height:16mm;
+ display:flex;gap:4mm;align-items:flex-start;justify-content:space-between;
+ padding:1mm 10mm 0}
+.field-schedule-footer p{margin:0;max-width:145mm;font-size:6.4pt;color:#66676a;line-height:1.3}
+.field-schedule-footer span{font-size:7pt;white-space:nowrap;color:#785527}
+.field-schedule-footer>i{height:5mm;position:absolute;bottom:0;left:0;right:0;
+ background:linear-gradient(115deg,#17191d 0 27%,#c59031 27.2% 28%,transparent 28.1% 70%,#dca33e 70.1% 100%)}
+@media print{
+ @page{size:A4;margin:0}
+ html:has(#field-schedule-print-root),body:has(#field-schedule-print-root){
+  width:210mm!important;margin:0!important;padding:0!important;
+  height:auto!important;overflow:visible!important;background:#fff!important}
+ body:has(#field-schedule-print-root) #app,
+ body:has(#field-schedule-print-root) #editor-dialog,
+ body:has(#field-schedule-print-root) #toast,
+ body:has(#field-schedule-print-root) #civolten-update-prompt{display:none!important}
+ body:has(#field-schedule-print-root) #field-schedule-print-root{
+  display:block!important;position:static!important;padding:0!important;margin:0!important}
+ body:has(#field-schedule-print-root) .field-schedule-document{
+  display:block!important;background:#fff!important;width:210mm!important;
+  padding:0!important;margin:0!important}
+ body:has(#field-schedule-print-root) .field-schedule-page{
+  height:296.6mm!important;min-height:296.6mm!important;
+  width:210mm!important;max-width:210mm!important;margin:0!important;
+  -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ body:has(#field-schedule-print-root) .field-schedule-page *,
+ body:has(#field-schedule-print-root) .field-schedule-page *:before,
+ body:has(#field-schedule-print-root) .field-schedule-page *:after{
+  -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ body:has(#field-schedule-print-root) .field-schedule-page:last-child{
+  break-after:auto!important;page-break-after:auto!important}
+}
+
+/* A opção PDF ocupa a largura total; o CSV continua disponível separado. */
+.budget-schedule-actions .budget-schedule-pdf{grid-column:1/-1;font-weight:820}

@@ -57,6 +57,7 @@ jobs:
           node --check src/operations.mjs
           node --check src/operations-ui.mjs
           node --check src/work-order-print.mjs
+          node --check src/schedule-print.mjs
           node --check src/proposal-link.mjs
           node --check src/public-aceite.mjs
           node --check src/proposal-inbox.mjs
@@ -83,6 +84,8 @@ jobs:
         run: node tests/proposal-browser.cjs
       - name: Conferir PDF A4 da ordem de serviço modelo 3
         run: node tests/work-order-print-browser.cjs
+      - name: Conferir impressão A4 do cronograma para campo
+        run: node tests/schedule-print-browser.cjs
       - name: Guardar capturas do aplicativo e módulos financeiros
         if: always()
         uses: actions/upload-artifact@v4

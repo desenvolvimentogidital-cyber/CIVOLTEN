@@ -218,7 +218,10 @@ const scheduleControls=(data,draft)=>{
   '<div id="budget-schedule-preview" aria-live="polite">'+budgetSchedulePreview(data,draft)+'</div>'+
   '<div class="budget-schedule-actions">'+
   '<button type="button" class="outlined-button" data-action="budget-schedule-term">'+icon('calendar',17)+' Usar prazo na proposta</button>'+
-  '<button type="button" class="outlined-button" data-action="budget-schedule-export">'+icon('file',17)+' Exportar cronograma</button></div>'+
+  '<button type="button" class="outlined-button" data-action="budget-schedule-export">'+icon('file',17)+' Exportar CSV</button>'+
+  '<button type="button" class="gold-button budget-schedule-pdf" data-action="budget-schedule-pdf">'+
+  icon('file',17)+' Visualizar / PDF para campo</button></div>'+
+  '<p class="fin-helper">O PDF é para conferência e marcação manual na obra. Não inclui preços nem substitui o registro de horas e medições no sistema.</p>'+
   '<p class="fin-helper">Preço por dias: (custo mensal da empresa ÷ dias produtivos/mês) × dias da obra + custos diretos; aplica depois imposto e margem. O custo mensal já inclui a equipe cadastrada, sem duplicá-la.</p>';
 };
 const preview=(draft)=>{
