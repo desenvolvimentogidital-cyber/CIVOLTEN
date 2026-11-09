@@ -74,7 +74,7 @@ export function workDetailView(data,id){
   button('work-complete','Concluir obra','check',
    (canComplete(w,logs,measures)?'':'disabled title="Conclua as medições e registre as horas reais"')):'')+
  button('work-export','Exportar relatório CSV','file')+
- button('work-contract-print','Imprimir ordem de serviço','file')+'</div>'+
+ button('work-contract-print','Visualizar / PDF da OS','file')+'</div>'+
  (w.status==='approved'?'<p class="fin-helper">Após conferir o aceite, inicie a obra para registrar a equipe, horas e medições.</p>':'')+
  '<div class="fin-section-title"><h2>Serviços contratados</h2></div>'+
  '<div class="work-lines">'+progress.items.map(x=>{
@@ -164,18 +164,5 @@ export function workBillingDialog(measurement){
  '<p class="fin-helper">Cria uma conta a receber no Financeiro, sem registrar pagamento e sem emitir nota fiscal. Operação idempotente: não gera duplicidade.</p>';
  return editor('Lançar medição no Financeiro',inputs,'Registrar a receber');
 }
-export function workPrintable(order){
- const p=workProgress(order,[],[]);
- return '<section class="work-print-document" aria-label="Ordem de serviço para impressão">'+
- '<h1>CIVOLTEN — ORDEM DE SERVIÇO</h1><p>Prestação exclusivamente de mão de obra</p>'+
- '<p><b>OS:</b> '+e(order.contractRef)+' · <b>Cliente:</b> '+e(order.customer)+'</p>'+
- '<p><b>Obra:</b> '+e(order.project)+' · <b>Aceite informado:</b> '+e(order.acceptanceRef)+'</p>'+
- '<p><b>Aprovação registrada:</b> '+date(order.approvedOn)+' · <b>Início previsto:</b> '+date(order.startOn)+'</p>'+
- '<table><thead><tr><th>Serviço</th><th>Unidade</th><th>Quantidade</th></tr></thead><tbody>'+
- p.items.map(i=>'<tr><td>'+e(i.description)+'</td><td>'+e(i.unit)+'</td><td>'+numberBR(i.target)+'</td></tr>').join('')+
- '</tbody></table><h2>Valor contratado: '+money(p.contractCents)+'</h2>'+
- '<p>Materiais e insumos de aplicação são fornecidos pelo contratante. Máquinas especiais, autorizações e alterações de escopo exigem acordo específico.</p>'+
- '<p>As condições comerciais e prazo são os registrados na proposta aprovada, que integra esta ordem de serviço.</p>'+
- '<div class="work-print-signatures"><span>Representante da CIVOLTEN</span><span>Cliente / Contratante</span></div>'+
- '<p><small>Documento gerencial para conferência. Aceite eletrônico ou assinatura não foi verificado automaticamente.</small></p></section>';
-}
+// Mantém a interface pública utilizada pelo app e pelos testes.
+export {workPrintable} from './work-order-print.mjs';

@@ -261,8 +261,8 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.proposal-conditions').innerText(),/20 dias úteis estimados/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-fix-status-obra-20261109/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-fix-status-obra-20261109/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-os-pdf-modelo3-20261109/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-os-pdf-modelo3-20261109/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),
@@ -366,6 +366,25 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('[data-action="work-start"]').count(),1);
   assert.equal(await page.locator('.work-line').count(),2);
   assert.equal((await page.evaluate(()=>window.CIVOLTENPreview.data.works)).length,1);
+  // Conferir o botão real do Android antes de iniciar a obra.
+  await page.evaluate(()=>{
+   window.__civoltenOSPrintHtml='';
+   window.print=()=>{
+    window.__civoltenOSPrintHtml=document.querySelector('#work-print-root')?.innerHTML||'';
+    window.dispatchEvent(new Event('afterprint'));
+   };
+  });
+  await page.locator('[data-action="work-contract-print"]').click();
+  await page.waitForFunction(()=>Boolean(window.__civoltenOSPrintHtml));
+  const osHtml=await page.evaluate(()=>window.__civoltenOSPrintHtml);
+  assert.match(osHtml,/work-pdf-header/);
+  assert.ok(osHtml.includes('/assets/civolten-logo.png'));
+  assert.ok(osHtml.includes('/assets/civolten-simbolo.png'));
+  assert.match(osHtml,/SERVIÇO/);
+  assert.match(osHtml,/Representante da CIVOLTEN/);
+  assert.ok(!osHtml.includes('Valor contratado')&&!osHtml.includes('R$')&&!osHtml.includes('selling'),
+   'A OS não deve conter valores administrativos');
+  assert.equal(await page.locator('#work-print-root').count(),0,'Impressão limpa após fechar prévia');
   page.once('dialog',d=>d.accept());
   await page.locator('[data-action="work-start"]').click();
   await page.locator('[data-action="work-log-new"]').waitFor();

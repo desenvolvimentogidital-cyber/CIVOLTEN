@@ -1001,14 +1001,22 @@ function exportWork(){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
  }catch(err){delayToast(String(err.message||err));}
 }
-function printWorkOrder(){
+async function printWorkOrder(){
  const work=workCurrent();if(!work)return;
  const old=document.getElementById('work-print-root');
  if(old)old.remove();
  const div=document.createElement('div');div.id='work-print-root';
- div.innerHTML=workPrintable(work);document.body.appendChild(div);
- window.addEventListener('afterprint',()=>div.remove(),{once:true});
- window.print();
+ try{
+  div.innerHTML=workPrintable(work);document.body.appendChild(div);
+  // No Android o diálogo de PDF pode capturar a página antes das marcas carregarem.
+  await Promise.all([...div.querySelectorAll('img')].map(img=>
+   typeof img.decode==='function'?img.decode().catch(()=>{}):Promise.resolve()));
+  if(document.fonts?.ready)await document.fonts.ready;
+  window.addEventListener('afterprint',()=>div.remove(),{once:true});
+  window.print();
+ }catch(err){
+  div.remove();delayToast('Não foi possível preparar a OS: '+String(err.message||err));
+ }
 }
 function exportReport(){
  const csv=reportCsv(state.data,state.finMonth);
