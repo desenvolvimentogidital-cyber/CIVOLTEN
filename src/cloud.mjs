@@ -194,12 +194,46 @@ export async function putRemote(client,userId,kind,item){
  if(!TABLES[kind])throw Error('Tipo de cadastro inválido.');
  const row=payload(kind,item,userId);
  // Convites são apenas INSERT: impedir reaproveitamento do mesmo segredo ou edição de resposta.
- const query=kind==='invites'?client.from(TABLES[kind]).insert(row):
+ // Uma ordem de serviço nova é INSERT, nunca UPSERT. O gatilho de INSERT
+ // exige status "approved"; atualizações de status usam UPDATE específico abaixo.
+ const query=['invites','works'].includes(kind)?client.from(TABLES[kind]).insert(row):
   client.from(TABLES[kind]).upsert(row,{onConflict:'id'});
  const {data,error}=await query.select('id').single();
  if(error)throw Error('Falha ao salvar no banco: '+error.message);
  if(!data?.id||data.id!==item.id)throw Error('Banco não confirmou o salvamento.');
  return item;
+}
+// Aprovada -> Em execução / Cancelada; Em execução -> Concluída.
+// Nunca usar UPSERT aqui: PostgreSQL executa gatilhos BEFORE INSERT mesmo
+// quando ON CONFLICT segue para UPDATE, o que bloqueava o botão "Iniciar".
+export async function transitionWorkStatusRemote(client,userId,work,status,fields={}){
+ checkId(userId);
+ const allowed={approved:['in_progress','cancelled'],in_progress:['completed']};
+ if(!work?.id||!allowed[work.status]?.includes(status))
+  throw Error('Mudança de estado inválida. Atualize a obra antes de continuar.');
+ const changes={status};
+ if(status==='in_progress'){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(fields.startOn||''))
+   throw Error('Data de início da obra inválida.');
+  changes.start_on=fields.startOn;
+ }
+ if(status==='completed'){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(fields.finishOn||''))
+   throw Error('Data de conclusão inválida.');
+  changes.finish_on=fields.finishOn;
+ }
+ // Atualização pontual, condicionada ao estado anterior e ao dono da obra.
+ // O gatilho do Supabase confere valor/escopo imutáveis e conclusão medidos.
+ const {data,error}=await client.from(TABLES.works).update(changes)
+  .eq('id',work.id).eq('user_id',userId).eq('status',work.status)
+  .select('id,status,start_on,finish_on').single();
+ if(error){
+  if(error.code==='PGRST116')throw Error('A situação da obra mudou. Atualize a tela e tente novamente.');
+  throw Error('Falha ao atualizar no banco: '+error.message);
+ }
+ if(data?.id!==work.id||data.status!==status)
+  throw Error('O banco não confirmou a mudança de estado da obra.');
+ return {...work,status,startOn:data.start_on||null,finishOn:data.finish_on||null};
 }
 // Operação de medição -> contas a receber em transação atômica no Supabase.
 // Nunca duplica receita ao tocar duas vezes em emitir cobrança.
