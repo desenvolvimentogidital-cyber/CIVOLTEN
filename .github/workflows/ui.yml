@@ -58,6 +58,8 @@ jobs:
           node --check src/operations-ui.mjs
           node --check src/proposal-link.mjs
           node --check src/public-aceite.mjs
+          node --check src/proposal-inbox.mjs
+          node --check src/proposal-inbox-ui.mjs
           node --check src/e2e-client.mjs
           node --check src/finance.mjs
           node --check src/finance-ui.mjs
