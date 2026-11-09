@@ -13,9 +13,11 @@ export const TABLES={
  works:'cv_work_orders_v1',
  workLogs:'cv_work_logs_v1',
  measurements:'cv_measurements_v1',
- invites:'cv_proposal_invites_v1'
+ invites:'cv_proposal_invites_v1',
+ reads:'cv_proposal_receipt_reads_v1'
 };
 const normalize=(k,row)=>{
+ if(k==='reads')return {id:row.id,inviteId:row.invite_id,seenAt:row.seen_at};
  if(k==='invites')return {id:row.id,budgetId:row.budget_id,token:row.token,
   budgetSnapshot:row.budget_snapshot,totalCents:Number(row.total_cents),
   validUntil:row.valid_until,status:row.status,
@@ -64,6 +66,7 @@ const normalize=(k,row)=>{
   quantity:row.quantity===null?null:Number(row.quantity)};
 };
 const payload=(k,item,userId)=>{
+ if(k==='reads')throw Error('Marcações de leitura só podem ser criadas pelo fluxo de resposta.');
  const base={id:item.id,user_id:userId,updated_at:new Date().toISOString()};
  if(k==='invites')return {...base,budget_id:item.budgetId,token:item.token,
   budget_snapshot:item.budgetSnapshot,total_cents:item.totalCents,
@@ -130,10 +133,23 @@ async function fetchKind(client,userId,kind){
 export async function fetchOperationsRemote(client,userId,current){
  checkId(userId);
  const out={...current};
- await Promise.all(['works','workLogs','measurements','ledger','invites'].map(async kind=>{
+ await Promise.all(['works','workLogs','measurements','ledger','invites','reads'].map(async kind=>{
   out[kind]=await fetchKind(client,userId,kind);
  }));
  return out;
+}
+export async function fetchProposalRepliesRemote(client,userId){
+ checkId(userId);
+ const [invites,reads]=await Promise.all([
+  fetchKind(client,userId,'invites'),fetchKind(client,userId,'reads')]);
+ return {invites,reads};
+}
+export async function markResponseReadRemote(client,userId,inviteId){
+ checkId(userId);
+ const {data,error}=await client.rpc('cv_proposal_mark_read_v1',{p_invite_id:inviteId});
+ if(error)throw Error('Não foi possível marcar a resposta como lida: '+error.message);
+ if(data!==true)throw Error('O banco não confirmou a leitura.');
+ return true;
 }
 export async function fetchInvitesRemote(client,userId){
  checkId(userId);

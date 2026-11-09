@@ -1,5 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
-import {fetchRemote,fetchOperationsRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote,fetchInvitesRemote,revokeProposalRemote} from './cloud.mjs';
+import {fetchRemote,fetchOperationsRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote,fetchInvitesRemote,revokeProposalRemote,fetchProposalRepliesRemote,markResponseReadRemote} from './cloud.mjs';
 import {prepareCostPresets} from './cost-presets.mjs';
 import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
@@ -16,6 +16,8 @@ import {catalogByCode,catalogToBudgetItem,validateCatalogRecord} from './service
 import {readCatalogFile,suggestColumns,buildCatalogImport} from './catalog-import.mjs';
 import {catalogView,catalogEditorDialog} from './catalog-ui.mjs';
 import {createProposalToken,proposalResponseUrl,proposalValidUntil} from './proposal-link.mjs';
+import {unreadReplies,responseSeen} from './proposal-inbox.mjs';
+import {responseInboxView,responseDetailView,responseResultHtml} from './proposal-inbox-ui.mjs';
 import {createWorkOrder,createWorkLog,createMeasurement,
  workProgress,workCsv,canComplete} from './operations.mjs';
 import {worksView,workDetailView,workApprovalDialog,workLogDialog,
@@ -35,7 +37,7 @@ const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
- cloudError:null,budgetDraft:null,budgetError:'',workId:null,catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
+ cloudError:null,budgetDraft:null,budgetError:'',workId:null,replyId:null,replyFilter:'all',replySearch:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
 };
@@ -59,6 +61,8 @@ function render(){
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
  else if(state.view==='appearance')html=appearanceView(state.data.company);
  else if(state.view==='budgets')html=budgetsView(state.data);
+ else if(state.view==='inbox')html=responseInboxView(state.data,state.replyFilter,state.replySearch);
+ else if(state.view==='inbox-detail')html=responseDetailView(state.data,state.replyId);
  else if(state.view==='works')html=worksView(state.data);
  else if(state.view==='work-detail')html=workDetailView(state.data,state.workId);
  else if(state.view==='catalog')html=catalogView(state.data,state.catalogCategory,state.catalogBack,state.catalogImport,state.catalogSearch);
@@ -187,10 +191,11 @@ async function signOut(){
 }
 function go(view){
  if(view==='soon'){delayToast('Este recurso será construído na próxima etapa.');return;}
- if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail'].includes(view))return;
+ if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail','inbox','inbox-detail'].includes(view))return;
  if(view==='catalog')state.catalogBack=state.view==='budget-edit'?'budget-edit':'budgets';
  if(view==='budgets'){state.budgetDraft=null;state.budgetError='';}
  if(view==='works')state.workId=null;
+ if(view==='inbox')state.replyId=null;
  state.view=view;render();
  if(window.scrollY)window.scrollTo({top:0,behavior:'instant'});
 }
@@ -804,24 +809,45 @@ async function refreshInviteReplies(){
  if(!state.user||state.authBusy||state.busy||state.cloudError||document.hidden)return;
  try{
   const previous=state.data.invites||[];
-  const current=await fetchInvitesRemote(auth,state.user.id);
+  const {invites:current,reads}=await fetchProposalRepliesRemote(auth,state.user.id);
   const answered=current.filter(x=>['accepted','declined'].includes(x.status)&&
     previous.some(p=>p.id===x.id&&p.status==='pending'));
   const changed=JSON.stringify(current.map(x=>[x.id,x.status,x.respondedAt]))!==
-   JSON.stringify(previous.map(x=>[x.id,x.status,x.respondedAt]));
+   JSON.stringify(previous.map(x=>[x.id,x.status,x.respondedAt]))||
+   JSON.stringify(reads.map(x=>x.inviteId))!==
+   JSON.stringify((state.data.reads||[]).map(x=>x.inviteId));
   if(changed){
-   state.data={...state.data,invites:current};
+   state.data={...state.data,invites:current,reads};
    try{safeSave(localStorage,state.user.id,state.data)}catch{}
-   if(state.view==='home'||state.view==='budgets'||(state.view==='budget-edit'&&
-    state.data.invites.some(x=>x.budgetId===state.budgetDraft?.id)))
+   if(['home','budgets','budget-edit','inbox','inbox-detail','more'].includes(state.view))
     render();
   }
   if(answered.length){
    const last=answered.at(-1);
-   delayToast(last.status==='accepted'?'Cliente ACEITOU a proposta: '+last.respondentName:
-    'Cliente RECUSOU a proposta: '+last.respondentName);
+   const budget=state.data.budgets.find(b=>b.id===last.budgetId);
+   const name=budget?.customer||last.respondentName||'Cliente';
+   delayToast((last.status==='accepted'?'ACEITE':'RECUSA')+' de '+name+
+    ' recebido! Abra a Central de Respostas.');
   }
  }catch{/* A sincronização normal informa erros de conexão. */}
+}
+async function openInboxReply(id){
+ const invite=(state.data.invites||[]).find(i=>i.id===id);
+ if(!invite)return delayToast('Resposta não encontrada. Atualize a Central de Respostas.');
+ state.replyId=id;go('inbox-detail');
+ if((invite.status==='accepted'||invite.status==='declined')&&
+   !responseSeen(state.data,invite)){
+  if(state.cloudError)return delayToast('Não foi possível marcar a resposta como lida: sem conexão com o banco.');
+  try{
+   await markResponseReadRemote(auth,state.user.id,invite.id);
+   if(!responseSeen(state.data,invite)){
+    state.data={...state.data,reads:[...(state.data.reads||[]),
+     {id:invite.id,inviteId:invite.id,seenAt:new Date().toISOString()}]};
+    try{safeSave(localStorage,state.user.id,state.data)}catch{}
+   }
+   render();
+  }catch(err){delayToast('Não foi possível guardar a leitura: '+String(err.message||err));}
+ }
 }
 function openWorkApproval(budgetId){
  if(state.busy||state.cloudError)return;
@@ -1020,10 +1046,11 @@ mount.addEventListener('change',event=>{
  }
 });
 mount.addEventListener('click',async event=>{
- const b=event.target.closest('[data-go],[data-action],[data-tab],[data-fin-filter],[data-theme-choice]');
+ const b=event.target.closest('[data-go],[data-action],[data-tab],[data-fin-filter],[data-theme-choice],[data-reply-filter]');
  if(!b)return;
  if(b.dataset.go){go(b.dataset.go);return;}
  if(b.dataset.tab){state.costTab=b.dataset.tab;render();return;}
+ if(b.dataset.replyFilter){state.replyFilter=b.dataset.replyFilter;render();return;}
  if(b.dataset.finFilter){state.finFilter=b.dataset.finFilter;render();return;}
  if(b.dataset.themeChoice){await chooseTheme(b.dataset.themeChoice);return;}
  const action=b.dataset.action;
@@ -1035,13 +1062,9 @@ mount.addEventListener('click',async event=>{
    b.innerHTML=icon(i.type==='text'?'eye-off':'eye',22);
   }
  }else if(action==='notifications'){
-  const accepted=(state.data.invites||[]).filter(i=>i.status==='accepted');
-  const declined=(state.data.invites||[]).filter(i=>i.status==='declined');
-  delayToast(accepted.length||declined.length?
-   accepted.length+' proposta(s) aceita(s) e '+declined.length+
-    ' recusada(s). Veja os detalhes em Orçamentos.':
-   summary(state.data).missing?'Você tem cadastros pendentes de custos e equipe.':
-   'Nenhuma resposta nova no momento.');
+  state.replyFilter=unreadReplies(state.data).length?'new':'all';
+  state.replySearch='';
+  go('inbox');
  }else if(action==='month-info'){
   delayToast('Exibindo os valores mensais cadastrados. Histórico por mês virá depois.');
  }else if(action==='soon'){delayToast('Esta função será construída após aprovarmos a base.');}
@@ -1054,6 +1077,8 @@ mount.addEventListener('click',async event=>{
  else if(action==='work-measure-approve'){await approveWorkMeasurement(b.dataset.id);}
  else if(action==='work-measure-delete'){await deleteWorkRecord('measurements',b.dataset.id);}
  else if(action==='work-log-delete'){await deleteWorkRecord('workLogs',b.dataset.id);}
+ else if(action==='inbox-open'){await openInboxReply(b.dataset.id);}
+ else if(action==='inbox-open-budget'){openBudget(b.dataset.id);}
  else if(action==='budget-clone'){cloneBudget(b.dataset.id);}
  else if(action==='budget-invite-create'){await createInviteForBudget(b.dataset.id);}
  else if(action==='budget-invite-copy'){await copyInviteForBudget(b.dataset.id);}
@@ -1101,6 +1126,12 @@ mount.addEventListener('click',async event=>{
  }
 });
 mount.addEventListener('input',event=>{
+ if(event.target.id==='inbox-search'){
+  state.replySearch=event.target.value;
+  const target=mount.querySelector('#inbox-results');
+  if(target)target.innerHTML=responseResultHtml(state.data,state.replyFilter,state.replySearch);
+  return;
+ }
  if(event.target.id==='budget-catalog-search'){
   state.budgetCatalogSearch=event.target.value;
   refreshBudgetCatalogResults();
