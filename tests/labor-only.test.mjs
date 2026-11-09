@@ -50,7 +50,7 @@ test('modal e lista de serviços ocultam custos diretos somente nas novas propos
  const serviceForm=budgetServiceDialog(service(200),false,snapshot,'hours',true);
  assert.doesNotMatch(serviceForm,/name="directCost"/);
  assert.match(serviceForm,/não inclui fornecimento de materiais/);
- const estimate=budgetServiceEstimate(service(200),snapshot,'hours',true);
+ const estimate=budgetServiceEstimate(service(200),snapshot,'hours',true).replace(/\s/g,' ');
  assert.match(estimate,/R\$ 25\.070,79/);
  assert.doesNotMatch(estimate,/Materiais\/equipamentos totais/);
  assert.match(budgetServiceDialog(service(200),true,snapshot,'hours',false),/name="directCost"/);
