@@ -141,8 +141,23 @@ const server=createServer((req,res)=>{
   await page.locator('#budget-form [name="executionTerm"]').fill('Até 18 dias úteis após liberação');
   await page.locator('#budget-form [name="warrantyTerms"]').fill('Conforme contrato');
   await page.locator('#budget-form [name="project"]').fill('Reforma do Centro Comercial');
-  await page.locator('#budget-catalog').selectOption('SIURB:A100');
-  await page.locator('[data-action="budget-add-item"]').click();
+  // Os serviços vêm do catálogo sincronizado com o Supabase e devem ser pesquisáveis.
+  assert.equal(await page.locator('.budget-catalog-row').count(),3);
+  const colors=await page.locator('.budget-catalog-row').evaluateAll(rows=>
+   rows.slice(0,3).map(row=>getComputedStyle(row).backgroundColor));
+  assert.equal(colors[0],'rgb(255, 255, 255)','Primeira linha com fundo branco');
+  assert.notEqual(colors[1],colors[0],'Segunda linha com fundo escuro');
+  assert.equal(colors[2],colors[0],'Terceira linha novamente branca');
+  await page.locator('#budget-catalog-search').fill('quadro');
+  assert.equal(await page.locator('.budget-catalog-row').count(),1);
+  assert.match(await page.locator('.budget-catalog-row').first().innerText(),/Quadro de distribuicao/);
+  await page.locator('#budget-catalog-search').fill('a100');
+  assert.equal(await page.locator('.budget-catalog-row').count(),1,'Pesquisa por codigo');
+  await page.locator('#budget-catalog-search').fill('servico inexistente');
+  assert.equal(await page.locator('.budget-catalog-row').count(),0);
+  await page.locator('[data-action="budget-catalog-clear"]').click();
+  assert.equal(await page.locator('.budget-catalog-row').count(),3);
+  await page.locator('[data-action="budget-choose-service"][data-code="SIURB:A100"]').click();
   assert.equal(await page.locator('#budget-service-form').count(),1);
   assert.equal(await page.locator('.budget-item').count(),0,'Abrir o modal não deve adicionar o serviço');
   assert.equal(await page.locator('#budget-service-form [name="quantity"]').inputValue(),'1');
@@ -161,7 +176,7 @@ const server=createServer((req,res)=>{
   await page.locator('#budget-service-form [data-action="close-modal"]').click();
   assert.equal(await page.locator('.budget-item').count(),0,'Cancelar o modal não insere item');
   // O mesmo serviço pode ser cadastrado com validação antes de alterar o rascunho.
-  await page.locator('[data-action="budget-add-item"]').click();
+  await page.locator('[data-action="budget-choose-service"][data-code="SIURB:A100"]').click();
   await page.locator('#budget-service-form [name="directCost"]').fill('35');
   await page.locator('#budget-service-form [name="quantity"]').fill('0');
   await page.locator('#budget-service-form [type="submit"]').click();
@@ -179,8 +194,9 @@ const server=createServer((req,res)=>{
   await page.locator('#budget-service-form [name="quantity"]').fill('4');
   await page.locator('#budget-service-form [type="submit"]').click();
   assert.match(await page.locator('.budget-item').first().innerText(),/4 un/);
-  await page.locator('#budget-catalog').selectOption('SIURB:B200');
-  await page.locator('[data-action="budget-add-item"]').click();
+  await page.locator('#budget-catalog-search').fill('pintura');
+  assert.equal(await page.locator('.budget-catalog-row').count(),1);
+  await page.locator('[data-action="budget-choose-service"][data-code="SIURB:B200"]').click();
   await page.locator('#budget-service-form [name="quantity"]').fill('1');
   await page.locator('#budget-service-form [name="directCost"]').fill('');
   await page.locator('#budget-service-form [type="submit"]').click();
@@ -228,8 +244,8 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.proposal-conditions').innerText(),/20 dias úteis estimados/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-custo-automatico-20261108/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-custo-automatico-20261108/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-busca-servicos-zebra-20261108/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-busca-servicos-zebra-20261108/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),
