@@ -63,6 +63,11 @@ const server=createServer((req,res)=>{
   await owner.locator('[data-action="budget-open"]').first().click();
   await owner.locator('.proposal-online-action a').waitFor();
   assert.match(await owner.locator('.proposal-online-action a').getAttribute('href'),/aceite\.html#t=[0-9a-f]{64}/);
+  await owner.emulateMedia({media:'print'});
+  const printed=await owner.pdf({format:'A4',printBackground:true,preferCSSPageSize:true});
+  const pages=(Buffer.from(printed).toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;
+  assert.equal(pages,3,'PDF com botão de aceite deve continuar com 3 páginas A4');
+  await owner.emulateMedia({media:'screen'});
   const visitor=await context.newPage();
   visitor.on('pageerror',err=>errors.push(err.message));
   await visitor.goto(origin+'/aceite.html#t='+invites[0].token);
