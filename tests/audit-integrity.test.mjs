@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fresh,summary,employeeCost} from '../src/calc.mjs';
-import {DEFAULT_COMPANY,capacity,quoteFromCost} from '../src/pricing.mjs';
+import {DEFAULT_COMPANY,quoteForHours,quoteFromCost} from '../src/pricing.mjs';
 import {createPricingSnapshot,budgetQuantityEstimate,priceBudget,budgetCsv} from '../src/budget.mjs';
 import {budgetEditorView} from '../src/budget-ui.mjs';
+import {pricingPreview} from '../src/settings-ui.mjs';
 import {schedulePlan} from '../src/budget-schedule.mjs';
 import {monthSummary} from '../src/finance.mjs';
 import {createE2EClient} from '../src/e2e-client.mjs';
@@ -145,4 +146,19 @@ test('sincronizacao inclui mais de mil linhas em cada tabela, sem perda silencio
  assert.equal(loaded.catalog.filter(x=>x.roles.length===0).length,191);
  assert.equal(loaded.fixed.at(-1).name,'Despesa 1204');
  assert.equal(loaded.ledger.at(-1).title,'Fatura 1202');
+});
+
+test('simulador por hora é idêntico ao motor da proposta, sem arredondamento duplo',()=>{
+ const data=fresh();
+ data.company={...DEFAULT_COMPANY,companyName:'CIVOLTEN',taxPct:6,marginPct:30,
+  productivePeople:2,reviewed:true};
+ data.fixed=[{name:'Custo pequeno para testar centavos',amount:1.01,frequency:'monthly'}];
+ const correct=quoteForHours(101,data.company,1,0);
+ assert.equal(correct.selling,1);
+ assert.equal(quoteFromCost(1,data.company).selling,2,
+  'A cotação não deve usar o centavo por hora já arredondado');
+ const preview=pricingPreview(data,1,0).replace(/\s/g,' ');
+ assert.match(preview,/Venda sugerida \/ hora<\/span><strong>R\$ 0,01/);
+ const draftPrice=budgetQuantityEstimate(createPricingSnapshot(data),1,1,0);
+ assert.equal(draftPrice.selling,correct.selling);
 });
