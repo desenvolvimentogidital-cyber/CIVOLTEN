@@ -1,6 +1,6 @@
 // Interface responsiva de orçamento com catálogo interno e histórico compatível.
 import {summary,brl} from './calc.mjs';
-import {priceBudget,budgetUnitEstimate} from './budget.mjs';
+import {priceBudget,budgetQuantityEstimate} from './budget.mjs';
 import {catalogRows} from './service-catalog.mjs';
 import {icon,e} from './views.mjs';
 import {printableBudget} from './budget-print.mjs';
@@ -39,17 +39,25 @@ export function budgetsView(data){
  '<div class="fin-empty">Nenhum orçamento salvo. Crie seu primeiro orçamento com os serviços do catálogo interno.</div>')+
  '<div class="fin-link-row"><button type="button" data-go="company">Ajustar precificação '+icon('chevron',17)+'</button></div></section>';
 }
-function itemRow(item,index,snapshot){
+function itemRow(item,index,snapshot,pricedRow=null){
  const quantity=Number(item.quantity).toLocaleString('pt-BR',{maximumFractionDigits:3});
  const hours=Number(item.laborHours).toLocaleString('pt-BR',{maximumFractionDigits:3});
  const cost=money(Math.round(Number(item.directCost??0)*100));
- let estimate=null;try{estimate=budgetUnitEstimate(snapshot,item.laborHours,item.directCost)}catch{};
+ let quote=null;try{quote=budgetQuantityEstimate(snapshot,item.laborHours,item.quantity,item.directCost)}catch{};
+ const hoursTotal=pricedRow?.hours??quote?.totalHours;
+ const laborTotal=pricedRow?.labor??quote?.labor;
+ const sellingTotal=pricedRow?.selling??quote?.selling;
+ const materialsTotal=pricedRow?.materials??quote?.materials;
  return '<article class="budget-item budget-item-compact" data-budget-item="'+e(item.id)+'">'+
   '<div class="budget-item-top"><span>'+(item.source==='demo'?'Serviço a revisar':item.source==='internal'?'Serviço CIVOLTEN':'Personalizado')+' · item '+(index+1)+'</span>'+
   '<button type="button" class="budget-remove" data-action="budget-remove-item" data-id="'+e(item.id)+'" aria-label="Remover serviço">'+icon('trash',16)+' Remover</button></div>'+
   '<h3>'+e(item.description)+'</h3>'+
   '<p class="budget-item-summary">'+quantity+' '+e(item.unit)+' · '+hours+' HH/un. · adicionais/un. '+cost+'</p>'+
- (estimate?'<p class="budget-item-summary">Mão de obra/un. '+money(estimate.labor)+' · venda estimada/un. <strong>'+money(estimate.selling)+'</strong></p>':'')+ 
+  (sellingTotal!=null?'<div class="budget-item-totals">'+
+   '<span>Esforço total: <b>'+Number(hoursTotal).toLocaleString('pt-BR',{maximumFractionDigits:3})+' HH</b></span>'+
+   '<span>Mão de obra total: <b>'+money(laborTotal)+'</b></span>'+
+   '<span>Materiais/equipamentos totais: <b>'+money(materialsTotal)+'</b></span>'+
+   '<strong>Preço total deste serviço ('+quantity+' '+e(item.unit)+'): '+money(sellingTotal)+'</strong></div>':'')+
   '<button type="button" class="budget-item-edit" data-action="budget-edit-item" data-id="'+e(item.id)+'">'+icon('edit',16)+' Editar serviço</button>'+
   '</article>';
 }
@@ -57,26 +65,38 @@ const serviceField=(label,name,value,type='text',params='')=>
  '<label class="modal-field"><span>'+label+'</span><input name="'+name+'" type="'+type+'" value="'+e(value??'')+'" '+
  (type==='number'?'inputmode="decimal" min="0" step="any" ':'')+params+'></label>';
 // Exibe automaticamente os valores atuais sem exigir preenchimento de campo calculado.
-export function budgetServiceEstimate(fields,snapshot){
- if(!snapshot)return '<p class="fin-helper">O custo por hora será calculado assim que os custos mensais e a capacidade da empresa estiverem disponíveis.</p>';
- let quote=null;
- try{quote=budgetUnitEstimate(snapshot,fields?.laborHours,fields?.directCost)}catch{}
- if(!quote)return '<p class="fin-helper">Informe uma produtividade HH/un maior que zero para calcular o valor por unidade.</p>';
- const daily=Math.ceil(quote.monthly/quote.days);
- const hour=Math.ceil(quote.hourly);
+export function budgetServiceEstimate(fields,snapshot,pricingMode='hours'){
+ if(!snapshot)return '<p class="fin-helper">O custo por HH será calculado quando a empresa tiver custos mensais e capacidade produtiva configurados.</p>';
+ let quote=null;try{quote=budgetQuantityEstimate(snapshot,fields?.laborHours,fields?.quantity,fields?.directCost)}catch{}
+ if(!quote)return '<p class="fin-helper">Informe quantidade maior que zero, produtividade HH/un maior que zero e eventuais adicionais para calcular o total.</p>';
+ const num=value=>Number(value).toLocaleString('pt-BR',{maximumFractionDigits:3});
+ const avgUnit='R$ '+(quote.selling/100/quote.quantity).toLocaleString('pt-BR',
+  {minimumFractionDigits:2,maximumFractionDigits:4});
+ const rate='R$ '+(quote.hourly/100).toLocaleString('pt-BR',
+  {minimumFractionDigits:4,maximumFractionDigits:4});
+ const daily=Math.ceil(quote.monthly/quote.days),unit=e(fields?.unit||'un');
  return '<div class="budget-unit-summary" role="status">'+
-  '<div class="budget-unit-summary-head">Cálculo automático pelo custo da CIVOLTEN</div>'+
-  '<div><span>Custo mensal</span><strong>'+money(quote.monthly)+'</strong></div>'+
-  '<div><span>Por dia ('+quote.days+' dias)</span><strong>'+money(daily)+'</strong></div>'+
-  '<div><span>Por hora produtiva ('+quote.hoursDay+'h × '+quote.people+' profissionais)</span><strong>'+money(hour)+'/HH</strong></div>'+
-  '<div><span>Mão de obra por '+e(fields?.unit||'un')+' ('+quote.hours+' HH)</span><strong>'+money(quote.labor)+'</strong></div>'+
-  '<div><span>Materiais e equipamentos adicionais</span><strong>'+money(quote.materials)+'</strong></div>'+
-  '<div class="budget-unit-sale"><span>Preço de venda sugerido por '+e(fields?.unit||'un')+'</span><strong>'+
+  '<div class="budget-unit-summary-head">Cálculo da quantidade total · CIVOLTEN</div>'+
+  '<div><span>Despesa mensal da empresa</span><strong>'+money(quote.monthly)+'</strong></div>'+
+  '<div><span>Custo por dia ('+quote.days+' dias)</span><strong>'+money(daily)+'</strong></div>'+
+  '<div><span>Custo por HH ('+quote.hoursDay+'h × '+quote.people+' profissionais)</span><strong>'+rate+'/HH</strong></div>'+
+  '<div class="budget-quantity-math"><span>Quantidade × produtividade</span><strong>'+
+   num(quote.quantity)+' '+unit+' × '+num(quote.hours)+' HH/'+unit+' = '+num(quote.totalHours)+' HH</strong></div>'+
+  '<div><span>Mão de obra dos '+num(quote.quantity)+' '+unit+'</span><strong>'+money(quote.labor)+'</strong></div>'+
+  '<div><span>Materiais/equipamentos totais</span><strong>'+money(quote.materials)+'</strong></div>'+
+  '<div><span>Custo total antes de impostos e lucro</span><strong>'+money(quote.cost)+'</strong></div>'+
+  '<div><span>Impostos sobre a venda</span><strong>'+money(quote.taxes)+'</strong></div>'+
+  '<div><span>Lucro gerencial</span><strong>'+money(quote.grossProfit)+'</strong></div>'+
+  '<div><span>Preço médio por '+unit+' (até 4 casas)</span><strong>'+avgUnit+'</strong></div>'+
+  '<div class="budget-full-quote"><span>PREÇO TOTAL DOS '+num(quote.quantity)+' '+unit+'</span><strong>'+
    money(quote.selling)+'</strong></div>'+
-  '<small>Preço com imposto e margem já cadastrados. O orçamento final usa quantidade e modalidade de precificação escolhida.</small>'+
+  '<small>O valor total é calculado com todas as HH ('+num(quote.totalHours)+') antes do arredondamento. '+
+   'Imposto e margem já estão incluídos; nenhum preço oficial da SIURB/SINAPI é usado.</small>'+
+  (pricingMode==='days'?'<p class="budget-mode-notice">Este resumo usa precificação por HH. A proposta está configurada <b>por dias de execução</b>, '+
+   'que usa o custo diário e o cronograma; o total final pode ser diferente.</p>':'')+
  '</div>';
 }
-export function budgetServiceDialog(service,editing=false,snapshot=null){
+export function budgetServiceDialog(service,editing=false,snapshot=null,pricingMode='hours'){
  return '<div class="modal-inner budget-service-modal">'+
  '<div class="modal-heading"><h2 id="budget-service-title">'+(editing?'Editar serviço':'Adicionar serviço')+'</h2>'+
  '<button type="button" class="small-square" data-action="close-modal" aria-label="Fechar formulário">×</button></div>'+
@@ -92,7 +112,7 @@ export function budgetServiceDialog(service,editing=false,snapshot=null){
  '</div></div>'+
  (service.crewComposition?'<p class="fin-helper">Equipe sugerida: '+e(service.crewComposition)+'. Faixa inicial: '+e(service.hhMin)+' a '+e(service.hhMax)+' HH/'+e(service.unit)+'. O ponto médio é pré-selecionado e pode ser ajustado.</p>':'')+
  '<p class="fin-helper">A mão de obra é calculada automaticamente: custo mensal ÷ dias ÷ horas ÷ profissionais × HH/un. Deixe adicionais em R$ 0,00 quando já estiverem nos custos mensais. Em serviços mecanizados, confira o custo real da máquina/equipamento.</p>'+
- '<div id="budget-service-estimate" aria-live="polite">'+budgetServiceEstimate(service,snapshot)+'</div>'+
+ '<div id="budget-service-estimate" aria-live="polite">'+budgetServiceEstimate(service,snapshot,pricingMode)+'</div>'+
  '<p id="budget-service-error" class="form-error" role="alert" hidden></p>'+
  '<div class="modal-buttons">'+
  '<button type="button" class="outlined-button" data-action="close-modal">Cancelar</button>'+
@@ -223,7 +243,8 @@ export function budgetCatalogResults(records,search=''){
 }
 export function budgetEditorView(data,draft,err='',pickerSearch=''){
  if(!draft)return budgetsView(data);
- let priced=false;try{priced=!needsReview(draft)&&!!priceBudget(draft)}catch{/* mostrar erro no preview */}
+ let calculated=null;try{calculated=!needsReview(draft)?priceBudget(draft):null}catch{/* mostrar erro no preview */}
+ const priced=!!calculated;
  return '<section class="fin-screen budget-screen budget-editor">'+header('Montar orçamento','budgets')+
  status(draft)+
  '<form id="budget-form" class="budget-form" novalidate>'+
@@ -255,7 +276,7 @@ export function budgetEditorView(data,draft,err='',pickerSearch=''){
   ' Adicionar serviço manual</button></div>'+
  '<p class="fin-helper">A produtividade SIURB/SINAPI preenche as HH/un. O custo por unidade é calculado automaticamente com as despesas da sua empresa, imposto e margem, sem usar preços da tabela oficial.</p>'+
  '<button class="outlined-button" type="button" data-go="catalog">'+icon('clipboard',18)+' Importar catalogo SIURB/SINAPI</button>'+
- (draft.items.length?'<div class="budget-items">'+draft.items.map((item,index)=>itemRow(item,index,draft.pricing)).join('')+'</div>':
+ (draft.items.length?'<div class="budget-items">'+draft.items.map((item,index)=>itemRow(item,index,draft.pricing,calculated?.rows[index]||null)).join('')+'</div>':
  '<div class="fin-empty">Inclua ao menos um serviço para salvar o orçamento.</div>')+
  scheduleControls(data,draft)+
  '<div class="budget-section-heading"><h2>Formação do preço</h2></div>'+
