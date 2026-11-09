@@ -47,7 +47,7 @@ export function budgetsView(data){
     (invitation.respondedAt?' · '+dateBR(invitation.respondedAt.slice(0,10)):'')+'</p>':'')+
   (linked?'<button type="button" class="outlined-button budget-work-launch" data-action="work-open" data-id="'+e(linked.id)+'">'+icon('building',18)+' Abrir obra · '+e(linked.contractRef)+'</button>':
   (b.demo===false&&b.commercial?.laborOnly===true&&price&&
-   !['pending','declined'].includes(invitation?.status)?
+   (!invitation||invitation.status==='accepted')?
    '<button type="button" class="outlined-button budget-work-launch" data-action="work-approve-budget" data-id="'+e(b.id)+'">'+icon('check',18)+
     (invitation?.status==='accepted'?' Formalizar aceite recebido e abrir obra':' Registrar aceite e abrir obra')+'</button>':''))+
  (b.demo===false&&b.commercial?.laborOnly===true&&price&&!linked?
