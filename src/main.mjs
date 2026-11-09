@@ -371,6 +371,24 @@ function newBudget(){
   pricing:createPricingSnapshot(state.data),status:'draft',demo:false,createdAt:null};
  state.budgetError='';go('budget-edit');
 }
+function cloneBudget(id){
+ const original=state.data.budgets.find(x=>x.id===id);
+ if(!original)return;
+ const next=structuredClone(original);
+ next.id=null;next.createdAt=null;next.title=('Nova proposta - '+original.title).slice(0,180);
+ next.demo=false;next.status='draft';
+ next.items=next.items.map(item=>({
+  ...item,id:crypto.randomUUID(),source:item.source==='demo'?'manual':item.source,
+  sourceCode:item.source==='demo'?'':item.sourceCode,
+  directCost:0,
+  laborHours:item.source==='demo'?'':item.laborHours
+ }));
+ next.commercial={...(next.commercial||{}),laborOnly:true};
+ next.pricing=createPricingSnapshot(state.data);
+ state.budgetCatalogSearch='';state.budgetDraft=next;state.budgetError='';
+ go('budget-edit');
+ delayToast('Cópia de mão de obra criada. Confira HH, escopo e valores antes de salvar.');
+}
 function openBudget(id){
  state.budgetCatalogSearch='';
  const found=state.data.budgets.find(x=>x.id===id);
@@ -604,6 +622,8 @@ async function saveBudget(form){
  try{
   const f=Object.fromEntries(new FormData(form));
   const draft={...state.budgetDraft};
+  if(draft.id&&state.data.works?.some(w=>w.budgetId===draft.id))
+   throw Error('Proposta já aprovada e congelada. Use Duplicar para criar uma nova versão.');
   for(const key of ['title','customer','project','location','notes','expiresOn'])
    if(key in f)draft[key]=f[key];
   draft.commercial={...(draft.commercial||{})};
@@ -802,6 +822,23 @@ async function updateWorkStatus(status){
  }catch(err){delayToast('Falha ao atualizar obra: '+String(err.message||err));}
  finally{state.busy=false;}
 }
+async function deleteWorkRecord(kind,id){
+ const work=workCurrent();
+ if(!work||work.status!=='in_progress'||state.cloudError||state.busy)return;
+ const collection=kind==='measurements'?'measurements':'workLogs';
+ const record=state.data[collection].find(x=>x.id===id&&x.workOrderId===work.id);
+ if(!record)return;
+ if(collection==='measurements'&&record.status!=='draft')
+  return delayToast('Medição já aprovada não pode ser apagada.');
+ if(!confirm('Excluir o registro incorreto? Esta ação não pode ser desfeita.'))return;
+ state.busy=true;
+ try{
+  await deleteRemote(auth,state.user.id,collection,id);
+  await refreshWorkData();
+  delayToast('Registro removido. Você pode lançar o valor correto.');
+ }catch(err){delayToast('Não foi possível excluir: '+String(err.message||err));}
+ finally{state.busy=false;}
+}
 async function approveWorkMeasurement(id){
  const work=workCurrent(),m=state.data.measurements.find(x=>x.id===id&&x.workOrderId===work?.id);
  if(!m||m.status!=='draft'||state.busy||state.cloudError)return;
@@ -830,6 +867,7 @@ function printWorkOrder(){
  if(old)old.remove();
  const div=document.createElement('div');div.id='work-print-root';
  div.innerHTML=workPrintable(work);document.body.appendChild(div);
+ window.addEventListener('afterprint',()=>div.remove(),{once:true});
  window.print();
 }
 function exportReport(){
@@ -894,6 +932,9 @@ mount.addEventListener('click',async event=>{
  else if(action==='work-log-new'){openWorkForm('work-log');}
  else if(action==='work-measure-new'){openWorkForm('work-measure');}
  else if(action==='work-measure-approve'){await approveWorkMeasurement(b.dataset.id);}
+ else if(action==='work-measure-delete'){await deleteWorkRecord('measurements',b.dataset.id);}
+ else if(action==='work-log-delete'){await deleteWorkRecord('workLogs',b.dataset.id);}
+ else if(action==='budget-clone'){cloneBudget(b.dataset.id);}
  else if(action==='work-measure-bill'){openWorkForm('work-bill',b.dataset.id);}
  else if(action==='work-complete'){await updateWorkStatus('completed');}
  else if(action==='work-export'){exportWork();}
