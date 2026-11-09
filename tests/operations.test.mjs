@@ -5,7 +5,7 @@ import {createWorkOrder,createWorkLog,createMeasurement,roleMatch,
  workProgress,workCsv,canComplete,billingReference} from '../src/operations.mjs';
 import {priceBudget} from '../src/budget.mjs';
 import {createE2EClient} from '../src/e2e-client.mjs';
-import {fetchRemote,putRemote,billMeasurementRemote} from '../src/cloud.mjs';
+import {fetchRemote,fetchOperationsRemote,putRemote,billMeasurementRemote} from '../src/cloud.mjs';
 import {fresh} from '../src/calc.mjs';
 
 const uid='00000000-0000-4000-8000-000000000001';
@@ -126,5 +126,10 @@ test('simulador Supabase salva obra, horas e medição e emite uma única conta 
   assert.equal(loaded.ledger[0].amount,m.amount);
   assert.equal(loaded.ledger[0].reference,'MED:'+m.id);
   assert.equal(loaded.ledger[0].dueDate,'2026-12-05');
+  const originalCatalog=[{id:'local',code:'SIURB:123',roles:[{role:'Eletricista',hours:1.78}]}];
+  const fast=await fetchOperationsRemote(client,uid,{...loaded,catalog:originalCatalog});
+  assert.equal(fast.workLogs.length,1);
+  assert.equal(fast.measurements.length,1);
+  assert.deepEqual(fast.catalog,originalCatalog,'não baixa todo catálogo SIURB para atualizar obra');
  }finally{globalThis.localStorage=old;}
 });
