@@ -15,8 +15,9 @@ export function catalogHours(record){
  }
  return Math.round(hours*1e5)/1e5;
 }
-export const catalogReady=item=>catalogHours(item)!==null&&
- decimal(item.directCost)!==null&&decimal(item.directCost)>=0;
+// Para proposta exclusivamente de mão de obra, só HH por unidade é exigido.
+// Custos diretos antigos permanecem preservados para orçamentos históricos.
+export const catalogReady=item=>catalogHours(item)!==null;
 export function catalogStats(records){
  const entries=catalogRows(records);
  return {total:entries.length,ready:entries.filter(catalogReady).length,

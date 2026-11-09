@@ -162,8 +162,8 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('.budget-item').count(),0,'Abrir o modal não deve adicionar o serviço');
   assert.equal(await page.locator('#budget-service-form [name="quantity"]').inputValue(),'1');
   assert.equal(await page.locator('#budget-service-form [name="laborHours"]').inputValue(),'5');
-  assert.equal(await page.locator('#budget-service-form [name="directCost"]').inputValue(),'0');
-  assert.equal(await page.locator('#budget-service-form [name="directCost"]').getAttribute('required'),null);
+  assert.equal(await page.locator('#budget-service-form [name="directCost"]').count(),0,'Não pedir material em nova proposta');
+  assert.match(await page.locator('.budget-labor-scope').innerText(),/Somente mão de obra/);
   assert.match(await page.locator('#budget-service-estimate').innerText(),/Despesa mensal da empresa/);
   assert.match(await page.locator('#budget-service-estimate').innerText(),/Custo por HH/);
   assert.match(await page.locator('#budget-service-estimate').innerText(),/PREÇO TOTAL DOS 1 un/);
@@ -184,13 +184,11 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('.budget-item').count(),0,'Cancelar o modal não insere item');
   // O mesmo serviço pode ser cadastrado com validação antes de alterar o rascunho.
   await page.locator('[data-action="budget-choose-service"][data-code="SIURB:A100"]').click();
-  await page.locator('#budget-service-form [name="directCost"]').fill('35');
   await page.locator('#budget-service-form [name="quantity"]').fill('0');
   await page.locator('#budget-service-form [type="submit"]').click();
   assert.match(await page.locator('#budget-service-error').innerText(),/quantidade válido/);
   assert.equal(await page.locator('.budget-item').count(),0);
   await page.locator('#budget-service-form [name="quantity"]').fill('2');
-  await page.locator('#budget-service-form [name="directCost"]').fill('35');
   await page.locator('#budget-service-form [type="submit"]').click();
   assert.equal(await page.locator('.budget-item').count(),1);
   assert.match(await page.locator('.budget-item').first().innerText(),/2 un/);
@@ -205,10 +203,9 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('.budget-catalog-row').count(),1);
   await page.locator('[data-action="budget-choose-service"][data-code="SIURB:B200"]').click();
   await page.locator('#budget-service-form [name="quantity"]').fill('1');
-  await page.locator('#budget-service-form [name="directCost"]').fill('');
   await page.locator('#budget-service-form [type="submit"]').click();
   assert.equal(await page.locator('.budget-item').count(),2);
-  assert.match((await page.locator('.budget-item').last().innerText()).replace(/\s/g,' '),/adicionais\/un\. R\$ 0,00/);
+  assert.match(await page.locator('.budget-item').last().innerText(),/somente mão de obra/);
   // Equipe atual = 2; uma obra longa precisa retornar dias e equipe, sem erro vermelho.
   await page.locator('[data-action="budget-edit-item"]').first().click();
   await page.locator('#budget-service-form [name="quantity"]').fill('2500');
@@ -259,11 +256,13 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('.proposal-services .proposal-cover-background').count(),0);
   assert.match(await page.locator('.proposal-cover-background').getAttribute('src'),/file_000000007df8820eb700b32dbfca9c55\.png/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/40% na assinatura/);
+  assert.match(await page.locator('.proposal-conditions').innerText(),/EXCLUSIVAMENTE DE MÃO DE OBRA/);
+  assert.equal((await page.evaluate(()=>window.CIVOLTENPreview.data.budgets))[0].commercial.laborOnly,true);
   assert.match(await page.locator('.proposal-conditions').innerText(),/20 dias úteis estimados/);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
-  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-auditoria-integridade-20261109/);
-  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-auditoria-integridade-20261109/);
+  assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-somente-mao-de-obra-20261109/);
+  assert.match(await page.locator('script[src*="app.js"]').getAttribute('src'),/civolten-somente-mao-de-obra-20261109/);
   await page.evaluate(()=>{
    window.print=()=>{window.__civoltenPrintTest={
     v5:!!document.querySelector('.budget-print.budget-pdf-v5'),

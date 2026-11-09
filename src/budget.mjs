@@ -91,6 +91,8 @@ export function validateCommercial(raw={}){
   scopeNotes:safeText(c.scopeNotes,900,'Escopo e exclusões'),
   companyContact:safeText(c.companyContact,200,'Contato da empresa'),
   companyDocument:safeText(c.companyDocument,40,'Documento da empresa'),
+  // Orçamentos anteriores sem esta marca continuam com a composição histórica.
+  laborOnly:c.laborOnly===true,
   schedule:validateSchedule(c.schedule)
  };
 }
@@ -108,6 +110,8 @@ export function validateBudget(raw){
   throw Error('Adicione ao menos um serviço.');
  if(raw.items.length>100)throw Error('Máximo de 100 itens por orçamento.');
  const items=raw.items.map(validateBudgetItem);
+ if(raw.commercial?.laborOnly===true&&items.some(x=>x.directCost!==0))
+  throw Error('Proposta somente de mão de obra não pode incluir materiais ou adicionais. Revise os itens.');
  if(new Set(items.map(x=>x.id)).size!==items.length)throw Error('Itens duplicados no orçamento.');
  if(raw.demo===false&&items.some(x=>x.source==='demo'))throw Error('Serviços fictícios não podem entrar no novo orçamento CIVOLTEN.');
  const snapshot=raw.pricing==null?null:validateBudgetSnapshot(raw.pricing);
@@ -177,6 +181,8 @@ export function priceBudget(raw){
  if(!snapshot)return null;
  const p=validateBudgetSnapshot(snapshot);
  if(!Array.isArray(raw.items)||!raw.items.length)return null;
+ if(raw.commercial?.laborOnly===true&&raw.items.some(x=>Number(x.directCost??0)!==0))
+  throw Error('Proposta somente de mão de obra não pode cobrar adicionais ou materiais.');
  if(raw.demo===false&&raw.items.some(item=>!Number.isFinite(Number(item.laborHours))||Number(item.laborHours)<=0))
   throw Error('Informe produtividade maior que zero em todos os serviços antes de calcular o preço profissional.');
  const config={reviewed:true,taxPct:p.taxPct,marginPct:p.marginPct};
@@ -251,16 +257,25 @@ export function budgetCsv(budget){
  ['Modalidade do preço',p.pricingMode==='days'?'Por dias úteis de execução':'Por horas-homem'],
  ['Dias úteis estimados',p.schedule?.days??''],['Profissionais estimados',p.schedule?.crew??''],
  ['Total do orçamento (R$)',(p.totalSale/100).toFixed(2)],
+ ['Escopo',budget.commercial?.laborOnly===true?
+  'Fornecimento exclusivo de mão de obra; materiais e insumos por conta do contratante.':'Serviços conforme a proposta.'],
  [],
- ['Código de serviço','Serviço','Unidade','Quantidade','Horas-homem/un','Horas-homem totais',
-  'Materiais/equipamentos adicionais por unidade (R$)',
-  'Mão de obra total (R$)','Materiais/equipamentos totais (R$)','Custo total (R$)',
-  'Preço médio por unidade (R$; 4 casas)','Valor de venda total (R$)']
+ ...(budget.commercial?.laborOnly===true?
+  [['Código de serviço','Serviço','Unidade','Quantidade','Horas-homem/un','Horas-homem totais',
+   'Custo de mão de obra total (R$)','Preço médio por unidade (R$; 4 casas)','Venda total (R$)']]:
+  [['Código de serviço','Serviço','Unidade','Quantidade','Horas-homem/un','Horas-homem totais',
+   'Materiais/equipamentos adicionais por unidade (R$)',
+   'Mão de obra total (R$)','Materiais/equipamentos totais (R$)','Custo total (R$)',
+   'Preço médio por unidade (R$; 4 casas)','Valor de venda total (R$)']])
  ];
- for(const item of p.rows)cells.push([item.sourceCode||'MANUAL',item.description,item.unit,
-  item.quantity,item.laborHours,item.hours,item.directCost,
-  (item.labor/100).toFixed(2),(item.materials/100).toFixed(2),
-  (item.cost/100).toFixed(2),(item.unitSelling/100).toFixed(4),
-  (item.selling/100).toFixed(2)]);
+ for(const item of p.rows)cells.push(budget.commercial?.laborOnly===true?
+  [item.sourceCode||'MANUAL',item.description,item.unit,
+   item.quantity,item.laborHours,item.hours,(item.labor/100).toFixed(2),
+   (item.unitSelling/100).toFixed(4),(item.selling/100).toFixed(2)]:
+  [item.sourceCode||'MANUAL',item.description,item.unit,
+   item.quantity,item.laborHours,item.hours,item.directCost,
+   (item.labor/100).toFixed(2),(item.materials/100).toFixed(2),
+   (item.cost/100).toFixed(2),(item.unitSelling/100).toFixed(4),
+   (item.selling/100).toFixed(2)]);
  return '\uFEFF'+cells.map(row=>row.map(csvSafe).join(';')).join('\r\n');
 }

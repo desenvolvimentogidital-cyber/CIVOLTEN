@@ -28,7 +28,7 @@ test('CSV oficial traz codigo, unidade, mao de obra; ignora coluna de preco',()=
  assert.equal(result.items[0].referenceMonth,'2026-07');
  assert.equal(result.items[0].directCost,null);
  assert.equal(catalogHours(result.items[0]),5);
- assert.equal(catalogReady(result.items[0]),false,'nao inventar custo proprio');
+ assert.equal(catalogReady(result.items[0]),true,'HH basta para serviço de mão de obra, sem exigir material');
  assert.deepEqual(result.items[0].roles,[{role:'Eletricista',hours:3.5},{role:'Ajudante',hours:1.5}]);
  assert.equal(result.loadedLabor,3);
 });
