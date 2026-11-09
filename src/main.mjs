@@ -828,7 +828,7 @@ function openWorkApproval(budgetId){
  const b=state.data.budgets.find(x=>x.id===budgetId);
  if(!b)return delayToast('Salve o orçamento no Supabase antes de criar a obra.');
  const invitation=state.data.invites.find(x=>x.budgetId===budgetId);
- if(invitation&&invitation.status!=='accepted'&&invitation.status!=='revoked')
+ if(invitation&&invitation.status!=='accepted')
   return delayToast(invitation.status==='pending'?'Aguarde a resposta do cliente ao PDF.':
    'A proposta foi recusada. Duplique e envie uma nova versão.');
  if(state.data.works.some(x=>x.budgetId===budgetId)){
