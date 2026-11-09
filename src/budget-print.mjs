@@ -115,6 +115,7 @@ const conditions=(b,p,c)=>
  '<div class="proposal-investment"><div><span>'+icon('coins',29)+'</span>'+
  '<b>INVESTIMENTO TOTAL<br>DA PROPOSTA</b></div>'+
  '<strong>'+brl(p.totalSale)+'</strong></div>'+
+ (c.laborOnly?'<div class="proposal-labor-scope"><strong>PROPOSTA EXCLUSIVAMENTE DE MÃO DE OBRA</strong><p>Materiais e insumos necessários à execução são de fornecimento do contratante e não estão incluídos no preço. Contratações especiais de máquinas ou equipamentos devem ser tratadas separadamente.</p></div>':'')+
  '<div class="proposal-terms">'+
  card('coins','Condições de Pagamento',c.paymentTerms)+
  card('calendar','Prazo de Execução',c.executionTerm)+
