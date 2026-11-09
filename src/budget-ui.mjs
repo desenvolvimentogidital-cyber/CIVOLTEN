@@ -27,14 +27,21 @@ export function budgetsView(data){
  '<p class="fin-intro">Elabore propostas comerciais com produtividade por HH/un, composições importadas da SIURB/SINAPI e custos reais da CIVOLTEN.</p>'+
  '<button type="button" class="outlined-button" data-go="catalog">'+icon('clipboard',18)+' Catálogo de serviços SIURB/SINAPI</button>'+
  '<button class="gold-button budget-new-button" type="button" data-action="budget-new">'+icon('plus',22)+' Novo orçamento CIVOLTEN</button>'+
+ '<button type="button" class="outlined-button" data-go="works">'+icon('building',18)+' Acompanhar obras e medições</button>'+
  (rows.length?'<div class="budget-list">'+rows.map(b=>{
   let price=null;try{price=priceBudget(b)}catch{/* registros antigos devem continuar acessíveis */}
-  return '<button class="budget-list-item" type="button" data-action="budget-open" data-id="'+e(b.id)+'">'+
+  const linked=(data.works||[]).find(w=>w.budgetId===b.id);
+  return '<div class="budget-entry">'+
+  '<button class="budget-list-item" type="button" data-action="budget-open" data-id="'+e(b.id)+'">'+
    '<span class="budget-list-icon">'+icon('clipboard',22)+'</span>'+
    '<span class="budget-list-copy"><b>'+e(b.title)+'</b><small>'+e(b.customer||'Cliente não informado')+
    '</small><em>'+b.items.length+' serviço(s) · '+dateBR(b.createdAt?.slice(0,10))+'</em></span>'+
    '<span class="budget-list-total"><strong>'+(needsReview(b)?'A revisar':price?money(price.totalSale):'Sem preço')+'</strong>'+
-   '<small>'+(needsReview(b)?'Revisão pendente':'Rascunho')+'</small></span></button>';
+   '<small>'+(linked?'Ordem de serviço vinculada':needsReview(b)?'Revisão pendente':'Proposta comercial')+'</small></span></button>'+
+  (linked?'<button type="button" class="outlined-button budget-work-launch" data-action="work-open" data-id="'+e(linked.id)+'">'+icon('building',18)+' Abrir obra · '+e(linked.contractRef)+'</button>':
+  (b.demo===false&&b.commercial?.laborOnly===true&&price?
+   '<button type="button" class="outlined-button budget-work-launch" data-action="work-approve-budget" data-id="'+e(b.id)+'">'+icon('check',18)+' Registrar aceite e abrir obra</button>':''))+
+ '</div>';
  }).join('')+'</div>':
  '<div class="fin-empty">Nenhum orçamento salvo. Crie seu primeiro orçamento com os serviços do catálogo interno.</div>')+
  '<div class="fin-link-row"><button type="button" data-go="company">Ajustar precificação '+icon('chevron',17)+'</button></div></section>';
