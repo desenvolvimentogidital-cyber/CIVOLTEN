@@ -59,6 +59,7 @@ jobs:
           node --check src/budget.mjs
           node --check src/budget-ui.mjs
           node --check src/catalog-import.mjs
+          node --check src/catalog-xls.mjs
           node --check src/catalog-ui.mjs
           node --check src/service-catalog.mjs
           node --check src/budget-print.mjs
