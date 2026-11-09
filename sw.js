@@ -1,5 +1,5 @@
-const CACHE='civolten-premium-ui-v27-20261109-proposal-reply';
-const PRECACHE=['/','/index.html','/styles.css?v=civolten-aceite-pdf-20261109','/app.js?v=civolten-aceite-pdf-20261109','/manifest.webmanifest',
+const CACHE='civolten-premium-ui-v28-20261109-inbox';
+const PRECACHE=['/','/index.html','/styles.css?v=civolten-central-respostas-20261109','/app.js?v=civolten-central-respostas-20261109','/manifest.webmanifest',
 '/assets/civolten-logo.png','/assets/civolten-simbolo.png','/assets/proposal-construction.svg','/assets/proposal-photo-atlas.webp','/assets/file_000000007df8820eb700b32dbfca9c55.png','/assets/skyline.svg',
 '/assets/icon-192.png','/assets/icon-512.png'];
 self.addEventListener('install',e=>{
