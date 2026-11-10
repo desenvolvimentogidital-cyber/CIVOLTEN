@@ -9,6 +9,8 @@ for(const file of ['index.html','aceite.html','manifest.webmanifest','sw.js'])
 await copyFile('src/styles.css',path.join(dest,'styles.css'));
 await copyFile('src/aceite.css',path.join(dest,'aceite.css'));
 await cp('assets',path.join(dest,'assets'),{recursive:true});
+// Site institucional público, separado da aplicação de gestão.
+await cp('site',path.join(dest,'site'),{recursive:true});
 await build({
  entryPoints:['src/main.mjs'],outfile:path.join(dest,'app.js'),
  bundle:true,format:'iife',platform:'browser',target:['es2022'],minify:true,
