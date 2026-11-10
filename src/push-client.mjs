@@ -68,12 +68,21 @@ export function updateDeviceBadge(number){
   }
  }catch{/* API opcional no Android */}
 }
+let primedAudio=null;
+export function primeNewLeadTone(){
+ try{
+  const Ctx=window.AudioContext||window.webkitAudioContext;
+  if(!Ctx)return;
+  if(!primedAudio)primedAudio=new Ctx();
+  if(primedAudio.state==='suspended')void primedAudio.resume().catch(()=>{});
+ }catch{/* Áudio depende do navegador. */}
+}
 export function playNewLeadTone(){
  try{
   const Ctx=window.AudioContext||window.webkitAudioContext;
   if(!Ctx)return;
-  const ctx=new Ctx();
-  if(ctx.state==='suspended'){void ctx.close();return;}
+  const ctx=primedAudio||new Ctx();
+  if(ctx.state==='suspended'){if(!primedAudio)void ctx.close();return;}
   const t=ctx.currentTime;
   for(const [start,freq] of [[0,660],[0.16,880]]){
    const osc=ctx.createOscillator(),gain=ctx.createGain();
@@ -84,7 +93,7 @@ export function playNewLeadTone(){
    osc.connect(gain);gain.connect(ctx.destination);
    osc.start(t+start);osc.stop(t+start+.14);
   }
-  setTimeout(()=>void ctx.close().catch(()=>{}),700);
+  if(!primedAudio)setTimeout(()=>void ctx.close().catch(()=>{}),700);
   if(typeof navigator.vibrate==='function')navigator.vibrate([140,70,140]);
  }catch{/* Autoplay e áudio dependem das permissões do navegador. */}
 }

@@ -23,7 +23,7 @@ import {createProposalToken,proposalResponseUrl,proposalValidUntil} from './prop
 import {unreadReplies,responseSeen} from './proposal-inbox.mjs';
 import {responseInboxView,responseDetailView,responseResultHtml} from './proposal-inbox-ui.mjs';
 import {siteLeadsView} from './site-leads-ui.mjs';
-import {newSiteLeadCount,newSiteLeadIds,activatePush,deactivatePush,pushStatus,updateDeviceBadge,playNewLeadTone} from './push-client.mjs';
+import {newSiteLeadCount,newSiteLeadIds,activatePush,deactivatePush,pushStatus,updateDeviceBadge,playNewLeadTone,primeNewLeadTone} from './push-client.mjs';
 import {createWorkOrder,createWorkLog,createMeasurement,
  workProgress,workCsv,canComplete} from './operations.mjs';
 import {worksView,workDetailView,workApprovalDialog,workLogDialog,
@@ -265,7 +265,7 @@ async function refreshSiteLeads(){
    delayToast(newIds.length===1?'Novo pedido de orçamento recebido!':'Você recebeu '+newIds.length+' novos pedidos de orçamento.');
   }
  }catch(err){state.siteLeadsError='Não foi possível carregar os pedidos: '+String(err.message||err);}
- finally{state.siteLeadsLoading=false;if(state.user&&state.checkedSession)render();}
+ finally{state.siteLeadsLoading=false;if(state.user&&state.checkedSession&&['home','more','site-leads'].includes(state.view)&&!modal.open)render();}
 }
 async function setSiteLeadStatus(id,next){
  if(state.busy||!state.user||state.cloudError)return delayToast('Confira a conexão com o Supabase antes de alterar.');
@@ -1471,6 +1471,8 @@ if(auth?.auth?.onAuthStateChange){
 }
 render();
 session();
+// Chrome Android libera áudio somente após uma interação real com a página.
+window.addEventListener('pointerdown',primeNewLeadTone,{once:true,capture:true});
 setInterval(()=>{void refreshInviteReplies();},45000);
 setInterval(()=>{if(state.user&&!document.hidden)void refreshSiteLeads();},30000);
 document.addEventListener('visibilitychange',()=>{
