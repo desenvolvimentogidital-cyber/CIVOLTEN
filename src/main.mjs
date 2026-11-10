@@ -22,6 +22,7 @@ import {catalogView,catalogEditorDialog} from './catalog-ui.mjs';
 import {createProposalToken,proposalResponseUrl,proposalValidUntil} from './proposal-link.mjs';
 import {unreadReplies,responseSeen} from './proposal-inbox.mjs';
 import {responseInboxView,responseDetailView,responseResultHtml} from './proposal-inbox-ui.mjs';
+import {siteLeadsView} from './site-leads-ui.mjs';
 import {createWorkOrder,createWorkLog,createMeasurement,
  workProgress,workCsv,canComplete} from './operations.mjs';
 import {worksView,workDetailView,workApprovalDialog,workLogDialog,
@@ -41,7 +42,7 @@ const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
- cloudError:null,budgetDraft:null,budgetError:'',workId:null,replyId:null,replyFilter:'all',replySearch:'',fieldFilter:'all',fieldSearch:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
+ cloudError:null,budgetDraft:null,budgetError:'',workId:null,replyId:null,replyFilter:'all',replySearch:'',siteLeads:[],siteLeadsLoading:false,siteLeadsError:'',fieldFilter:'all',fieldSearch:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
 };
@@ -65,6 +66,7 @@ function render(){
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
  else if(state.view==='appearance')html=appearanceView(state.data.company);
  else if(state.view==='budgets')html=budgetsView(state.data);
+ else if(state.view==='site-leads')html=siteLeadsView(state.siteLeads,state.siteLeadsLoading,state.siteLeadsError);
  else if(state.view==='inbox')html=responseInboxView(state.data,state.replyFilter,state.replySearch);
  else if(state.view==='inbox-detail')html=responseDetailView(state.data,state.replyId);
  else if(state.view==='works')html=worksView(state.data);
@@ -196,14 +198,75 @@ async function signOut(){
 }
 function go(view){
  if(view==='soon'){delayToast('Este recurso será construído na próxima etapa.');return;}
- if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail','field-progress','inbox','inbox-detail'].includes(view))return;
+ if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail','field-progress','inbox','inbox-detail','site-leads'].includes(view))return;
  if(view==='catalog')state.catalogBack=state.view==='budget-edit'?'budget-edit':'budgets';
  if(view==='budgets'){state.budgetDraft=null;state.budgetError='';}
  if(view==='works')state.workId=null;
  if(view==='inbox')state.replyId=null;
  state.view=view;render();
+ if(view==='site-leads')void refreshSiteLeads();
  if(window.scrollY)window.scrollTo({top:0,behavior:'instant'});
 }
+
+async function refreshSiteLeads(){
+ if(!state.user||state.siteLeadsLoading)return;
+ state.siteLeadsLoading=true;state.siteLeadsError='';if(state.view==='site-leads')render();
+ try{
+  const {data,error}=await auth.from('cv_site_leads_v1').select('*')
+   .eq('owner_user_id',state.user.id).order('created_at',{ascending:false}).limit(200);
+  if(error)throw Error(error.message);
+  state.siteLeads=data||[];
+ }catch(err){state.siteLeadsError='Não foi possível carregar os pedidos: '+String(err.message||err);}
+ finally{state.siteLeadsLoading=false;if(state.view==='site-leads')render();}
+}
+async function setSiteLeadStatus(id,next){
+ if(state.busy||!state.user||state.cloudError)return delayToast('Confira a conexão com o Supabase antes de alterar.');
+ const allowed=['em_contato','orcamento_enviado','concluido','arquivado'];
+ if(!allowed.includes(next)||!state.siteLeads.some(x=>x.id===id))return;
+ state.busy=true;
+ try{
+  const {data,error}=await auth.from('cv_site_leads_v1').update({status:next})
+   .eq('id',id).eq('owner_user_id',state.user.id).select('id,status').single();
+  if(error||!data?.id)throw Error(error?.message||'Banco não confirmou a atualização.');
+  state.siteLeads=state.siteLeads.map(x=>x.id===id?{...x,status:data.status}:x);
+  render();delayToast('Situação da solicitação atualizada.');
+ }catch(err){delayToast('Falha ao atualizar pedido: '+String(err.message||err));}
+ finally{state.busy=false;}
+}
+async function openSiteLeadPhotos(id){
+ const lead=state.siteLeads.find(x=>x.id===id);
+ if(!lead||!state.user||!auth?.storage)return;
+ if(modal.open)modal.close();
+ state.editor={kind:'site-lead-photos'};
+ modal.innerHTML='<div class="modal-inner"><div class="modal-heading"><h2>Anexos da solicitação</h2>'+
+  '<button class="small-square" type="button" data-action="close-modal" aria-label="Fechar">×</button></div>'+
+  '<p class="fin-helper">Fotos e documentos privados enviados pelo cliente.</p>'+
+  '<div id="site-lead-photos-list"><p>Consultando anexos...</p></div></div>';
+ modal.showModal();
+ const region=modal.querySelector('#site-lead-photos-list');
+ const prefix=lead.id+'/'+lead.upload_token;
+ try{
+  const {data,error}=await auth.storage.from('cv-site-lead-photos-v1').list(prefix,{limit:10});
+  if(error)throw Error(error.message);
+  if(!modal.open||state.editor?.kind!=='site-lead-photos')return;
+  region.replaceChildren();
+  const files=(data||[]).filter(x=>/^[a-f0-9-]{36}\.(jpg|png|webp|pdf)$/i.test(x.name||''));
+  if(!files.length){region.textContent='Nenhum arquivo anexado a esta solicitação.';return;}
+  for(let i=0;i<files.length;i++){
+   const path=prefix+'/'+files[i].name;
+   const response=await auth.storage.from('cv-site-lead-photos-v1').createSignedUrl(path,3600);
+   if(response.error||!/^https:\/\//.test(response.data?.signedUrl||''))continue;
+   if(!modal.open||state.editor?.kind!=='site-lead-photos')return;
+   const link=document.createElement('a');
+   link.className='outlined-button site-lead-file';
+   link.textContent='Abrir anexo '+(i+1);
+   link.href=response.data.signedUrl;link.target='_blank';link.rel='noopener noreferrer';
+   region.append(link);
+  }
+  if(!region.childElementCount)region.textContent='Não foi possível gerar os links de acesso aos anexos.';
+ }catch(err){if(region?.isConnected)region.textContent='Falha ao consultar anexos: '+String(err.message||err);}
+}
+
 function openEditor(kind,id=null,suggested='income'){
  if(!['fixed','variable','employees','payroll','ledger'].includes(kind))return;
  if(state.cloudError){delayToast('Banco indisponível: não é seguro editar antes de sincronizar.');return;}
@@ -1168,6 +1231,9 @@ mount.addEventListener('click',async event=>{
  else if(action==='work-open'){openWork(b.dataset.id);}
   else if(action==='work-field-open'){openFieldTracking();}
   else if(action==='field-edit'){openFieldEdit(b.dataset.id);}
+  else if(action==='site-leads-refresh'){await refreshSiteLeads();}
+  else if(action==='site-lead-status'){await setSiteLeadStatus(b.dataset.id,b.dataset.status);}
+  else if(action==='site-lead-photos'){await openSiteLeadPhotos(b.dataset.id);}
  else if(action==='work-approve-budget'){openWorkApproval(b.dataset.id);}
  else if(action==='work-start'){await updateWorkStatus('in_progress');}
  else if(action==='work-cancel'){await updateWorkStatus('cancelled');}

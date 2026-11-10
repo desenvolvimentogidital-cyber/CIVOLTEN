@@ -1974,3 +1974,18 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 .field-existing-photos p{font-size:12px;color:#e9d4b5}
 .field-photo-link{display:block;border:1px solid #a4834b;border-radius:8px;
  padding:9px 12px;font-size:12px;color:#f7dbac;text-decoration:underline;overflow-wrap:anywhere}
+
+/* Pedidos públicos recebidos do site institucional: dados isolados por RLS. */
+.site-leads-screen{padding-bottom:26px}
+.site-lead-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:18px 0;color:var(--text)}
+.site-lead-summary>.outlined-button{margin-left:auto;min-height:37px}
+.site-lead-card{border:1px solid #ac7e2d;border-radius:16px;background:linear-gradient(140deg,#24201b,#111112);padding:17px;margin:13px 0;box-shadow:inset 0 0 10px #c58b1715}
+.site-lead-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.site-lead-head strong{display:block;font-size:18px}.site-lead-head small{display:block;color:#c8c1b7;margin-top:4px}
+.site-lead-state{font-size:12px;border:1px solid #a17a31;border-radius:30px;padding:6px 9px;white-space:nowrap}
+.site-lead-state.novo{color:#ffd173;border-color:#edb644}
+.site-lead-card p{font-size:14px;line-height:1.4;margin:9px 0;overflow-wrap:anywhere}
+.site-lead-description{white-space:pre-wrap;padding:11px;border-radius:9px;background:#0c0c0d;border:1px solid #5a4b39}
+.site-lead-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.site-lead-actions .outlined-button{min-height:37px;padding:8px 11px;font-size:13px}
+.site-lead-file{display:flex;margin:8px 0;padding:10px;justify-content:center}

@@ -107,7 +107,7 @@ export function homeView(data,user){
   metric('Funcionários','users',String(count))+metric('Custo mensal','calendar',brl(s.total),true)+
   '</section>'+heading('wrench','Acesso rápido')+
   '<div class="shortcut-grid">'+[
-   ['Orçamentos','clipboard','budgets'],['Central de Respostas','mail','inbox'],['Obras e execução','building','works'],['Equipe','users','team'],['Relatórios','file','reports'],['Financeiro','coins','finance']
+   ['Orçamentos','clipboard','budgets'],['Solicitações do site','mail','site-leads'],['Central de Respostas','mail','inbox'],['Obras e execução','building','works'],['Equipe','users','team'],['Relatórios','file','reports'],['Financeiro','coins','finance']
   ].map(([title,ic,go])=>'<button type="button" class="shortcut" data-go="'+go+'">'+icon(ic,27)+'<span>'+title+'</span></button>').join('')+
   '</div>'+
   (replies.length?'<button type="button" class="budget-reply-dashboard" '+(newest?
@@ -218,6 +218,7 @@ export function moreView(user,data){
  '<button data-go="inbox" class="settings-row">'+icon('mail',21)+' Central de Respostas'+
  (unreadReplies(data).length?' ('+unreadReplies(data).length+' novas)':'')+
  ' '+icon('chevron',17)+'</button>'+
+ '<button data-go="site-leads" class="settings-row">'+icon('mail',21)+' Solicitações do site '+icon('chevron',17)+'</button>'+ 
  '<button data-go="works" class="settings-row">'+icon('building',21)+' Obras, medições e execução '+icon('chevron',17)+'</button>'+ 
  '<button data-go="company" class="settings-row">'+icon('building',21)+' Empresa e precificação '+icon('chevron',17)+'</button>'+
  '<button data-go="appearance" class="settings-row">'+icon('chart',21)+' Cores do aplicativo '+icon('chevron',17)+'</button>'+
