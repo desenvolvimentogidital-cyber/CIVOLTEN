@@ -23,6 +23,7 @@ import {createProposalToken,proposalResponseUrl,proposalValidUntil} from './prop
 import {unreadReplies,responseSeen} from './proposal-inbox.mjs';
 import {responseInboxView,responseDetailView,responseResultHtml} from './proposal-inbox-ui.mjs';
 import {siteLeadsView} from './site-leads-ui.mjs';
+import {newSiteLeadCount,newSiteLeadIds,activatePush,deactivatePush,pushStatus,updateDeviceBadge,playNewLeadTone} from './push-client.mjs';
 import {createWorkOrder,createWorkLog,createMeasurement,
  workProgress,workCsv,canComplete} from './operations.mjs';
 import {worksView,workDetailView,workApprovalDialog,workLogDialog,
@@ -37,12 +38,15 @@ const auth=E2E?createE2EClient():
   auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
  }):null);
 const recoveryToken=new URLSearchParams(location.search).get('token');
+const deepLinkSite=new URLSearchParams(location.search).get('abrir')==='solicitacoes';
+let deferredAppInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredAppInstallPrompt=event;});
 const mount=document.getElementById('app');
 const modal=document.getElementById('editor-dialog');
 const toastNode=document.getElementById('toast');
 const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
- cloudError:null,budgetDraft:null,budgetError:'',workId:null,replyId:null,replyFilter:'all',replySearch:'',siteLeads:[],siteLeadsLoading:false,siteLeadsError:'',fieldFilter:'all',fieldSearch:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
+ cloudError:null,budgetDraft:null,budgetError:'',workId:null,replyId:null,replyFilter:'all',replySearch:'',siteLeads:[],siteLeadsInitialized:false,siteLeadsLoading:false,siteLeadsError:'',pushState:'inactive',pushBusy:false,fieldFilter:'all',fieldSearch:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
  checkedSession:false
 };
@@ -58,7 +62,7 @@ function render(){
   return;
  }
  let html='';
- if(state.view==='home')html=homeView(state.data,state.user);
+ if(state.view==='home')html=homeView(state.data,state.user,newSiteLeadCount(state.siteLeads));
  else if(state.view==='costs')html=costsView(state.data,state.costTab);
  else if(state.view==='team')html=teamView(state.data);
  else if(state.view==='finance')html=financeView(state.data,state.finMonth,state.finFilter);
@@ -74,8 +78,8 @@ function render(){
  else if(state.view==='field-progress')html=fieldProgressView(state.data,state.workId,state.fieldFilter,state.fieldSearch);
  else if(state.view==='catalog')html=catalogView(state.data,state.catalogCategory,state.catalogBack,state.catalogImport,state.catalogSearch);
  else if(state.view==='budget-edit')html=budgetEditorView(state.data,state.budgetDraft,state.budgetError,state.budgetCatalogSearch);
- else html=moreView(state.user,state.data);
- mount.innerHTML=shell(state.view,html);
+ else html=moreView(state.user,state.data,newSiteLeadCount(state.siteLeads),state.pushState,state.pushBusy);
+ mount.innerHTML=shell(state.view,html,newSiteLeadCount(state.siteLeads));
  // Orçamentos com link já enviado ou obra aprovada são somente leitura.
  // O PDF mantém o mesmo conteúdo que foi apresentado ao cliente.
  if(state.view==='budget-edit'&&state.budgetDraft?.id&&
@@ -111,12 +115,12 @@ async function session(){
   const result=saved.data?.session?await auth.auth.getUser():{data:{user:null},error:null};
   if(result.error)throw Error(result.error.message||'Falha de sessão');
   state.user=result.data?.user||null;
-  if(state.user)await loadForUser(state.user);
+  if(state.user){await loadForUser(state.user);if(deepLinkSite)state.view='site-leads';}
   else state.data=fresh();
  }catch(err){
   state.user=null;
   state.authError='Não foi possível verificar seu acesso: '+(err.message||'falha na conexão');
- }finally{state.checkedSession=true;render();}
+ }finally{state.checkedSession=true;render();if(state.user){void refreshSiteLeads();void refreshPushState();}}
 }
 async function submitLogin(form){
  const fields=Object.fromEntries(new FormData(form));
@@ -171,7 +175,7 @@ async function submitLogin(form){
      if(check.error)throw Error(authMessage(check.error,'login'));
      const user=check.data?.user||null;
      if(!user)throw Error('A sessão não foi confirmada. Entre novamente.');
-     state.user=user;await loadForUser(user);state.view='home';state.authMode='login';
+     state.user=user;await loadForUser(user);state.view=deepLinkSite?'site-leads':'home';state.authMode='login';
      delayToast('Bem-vindo ao CIVOLTEN!');
     }
    }else{
@@ -179,20 +183,20 @@ async function submitLogin(form){
     if(check.error)throw Error(authMessage(check.error,'login'));
     const user=check.data?.user||null;
     if(!user)throw Error('Não foi possível confirmar sua sessão. Tente entrar novamente.');
-    state.user=user;await loadForUser(user);state.view='home';state.authMode='login';
+    state.user=user;await loadForUser(user);state.view=deepLinkSite?'site-leads':'home';state.authMode='login';
     delayToast('Bem-vindo ao CIVOLTEN!');
    }
   }
  }catch(err){state.authError=String(err.message||'Falha de autenticação.');}
- finally{state.authBusy=false;render();}
+ finally{state.authBusy=false;render();if(state.user){void refreshSiteLeads();void refreshPushState();}}
 }
 async function signOut(){
  if(!auth)return;
  state.busy=true;delayToast('Saindo da sua conta...');
  try{
   const r=await auth.auth.signOut();if(r?.error)throw Error(r.error.message||'Falha ao sair');
-  state.user=null;state.data=fresh();state.cloudError=null;state.budgetDraft=null;state.budgetError='';state.view='home';state.authMode='login';
-  state.authError='';render();delayToast('Sessão encerrada. Seus dados locais foram preservados.');
+  state.user=null;state.data=fresh();state.cloudError=null;state.budgetDraft=null;state.budgetError='';state.view=deepLinkSite?'site-leads':'home';state.authMode='login';
+  state.authError='';state.siteLeads=[];state.siteLeadsInitialized=false;state.pushState='inactive';updateDeviceBadge(0);render();delayToast('Sessão encerrada. Seus dados locais foram preservados.');
  }catch(err){delayToast(err.message||'Não foi possível sair.');}
  finally{state.busy=false;}
 }
@@ -208,6 +212,42 @@ function go(view){
  if(window.scrollY)window.scrollTo({top:0,behavior:'instant'});
 }
 
+async function refreshPushState(){
+ if(!state.user)return;
+ const next=await pushStatus();
+ if(state.user){state.pushState=next;if(state.checkedSession)render();}
+}
+async function togglePush(){
+ if(state.pushBusy||!state.user)return;
+ state.pushBusy=true;render();
+ try{
+  if(state.pushState==='active'){
+   await deactivatePush(auth,state.user.id);
+   state.pushState='inactive';
+   delayToast('Notificações desativadas neste celular.');
+  }else{
+   await activatePush(auth,state.user.id);
+   state.pushState='active';
+   delayToast('Avisos ativados! Novos pedidos podem aparecer mesmo com o app fechado.');
+  }
+ }catch(err){
+  delayToast(String(err.message||err));
+  state.pushState=await pushStatus();
+ }finally{state.pushBusy=false;render();}
+}
+async function installCivolten(){
+ if(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true){
+  delayToast('O aplicativo CIVOLTEN já está instalado neste celular.');return;
+ }
+ if(deferredAppInstallPrompt){
+  const current=deferredAppInstallPrompt;
+  deferredAppInstallPrompt=null;
+  await current.prompt();
+  await current.userChoice;
+ }else{
+  delayToast('No Chrome, toque nos três pontos (⋮) e escolha Instalar app ou Adicionar à tela inicial.');
+ }
+}
 async function refreshSiteLeads(){
  if(!state.user||state.siteLeadsLoading)return;
  state.siteLeadsLoading=true;state.siteLeadsError='';if(state.view==='site-leads')render();
@@ -215,9 +255,17 @@ async function refreshSiteLeads(){
   const {data,error}=await auth.from('cv_site_leads_v1').select('*')
    .eq('owner_user_id',state.user.id).order('created_at',{ascending:false}).limit(200);
   if(error)throw Error(error.message);
-  state.siteLeads=data||[];
+  const previous=state.siteLeads;
+  const newIds=state.siteLeadsInitialized?newSiteLeadIds(previous,data||[]):[];
+  state.siteLeads=data||[];state.siteLeadsInitialized=true;
+  const count=newSiteLeadCount(state.siteLeads);
+  updateDeviceBadge(count);
+  if(newIds.length&&document.visibilityState==='visible'){
+   playNewLeadTone();
+   delayToast(newIds.length===1?'Novo pedido de orçamento recebido!':'Você recebeu '+newIds.length+' novos pedidos de orçamento.');
+  }
  }catch(err){state.siteLeadsError='Não foi possível carregar os pedidos: '+String(err.message||err);}
- finally{state.siteLeadsLoading=false;if(state.view==='site-leads')render();}
+ finally{state.siteLeadsLoading=false;if(state.user&&state.checkedSession)render();}
 }
 async function setSiteLeadStatus(id,next){
  if(state.busy||!state.user||state.cloudError)return delayToast('Confira a conexão com o Supabase antes de alterar.');
@@ -229,7 +277,7 @@ async function setSiteLeadStatus(id,next){
    .eq('id',id).eq('owner_user_id',state.user.id).select('id,status').single();
   if(error||!data?.id)throw Error(error?.message||'Banco não confirmou a atualização.');
   state.siteLeads=state.siteLeads.map(x=>x.id===id?{...x,status:data.status}:x);
-  render();delayToast('Situação da solicitação atualizada.');
+  updateDeviceBadge(newSiteLeadCount(state.siteLeads));render();delayToast('Situação da solicitação atualizada.');
  }catch(err){delayToast('Falha ao atualizar pedido: '+String(err.message||err));}
  finally{state.busy=false;}
 }
@@ -1222,6 +1270,7 @@ mount.addEventListener('click',async event=>{
    b.innerHTML=icon(i.type==='text'?'eye-off':'eye',22);
   }
  }else if(action==='notifications'){
+  if(newSiteLeadCount(state.siteLeads)>0){go('site-leads');return;}
   state.replyFilter=unreadReplies(state.data).length?'new':'all';
   state.replySearch='';
   go('inbox');
@@ -1232,6 +1281,8 @@ mount.addEventListener('click',async event=>{
   else if(action==='work-field-open'){openFieldTracking();}
   else if(action==='field-edit'){openFieldEdit(b.dataset.id);}
   else if(action==='site-leads-refresh'){await refreshSiteLeads();}
+  else if(action==='push-toggle'){await togglePush();}
+  else if(action==='install-app'){await installCivolten();}
   else if(action==='site-lead-status'){await setSiteLeadStatus(b.dataset.id,b.dataset.status);}
   else if(action==='site-lead-photos'){await openSiteLeadPhotos(b.dataset.id);}
  else if(action==='work-approve-budget'){openWorkApproval(b.dataset.id);}
@@ -1399,7 +1450,7 @@ if('serviceWorker' in navigator&&!E2E)
    if(document.querySelector('#civolten-update-prompt'))return;
    const bar=document.createElement('div');
    bar.id='civolten-update-prompt';
-   bar.innerHTML='<span>Nova versão disponível, incluindo o PDF comercial.</span>'+
+   bar.innerHTML='<span>Nova versão do CIVOLTEN disponível.</span>'+
     '<button type="button">Atualizar aplicativo</button>';
    bar.querySelector('button').addEventListener('click',()=>{
     if((state.view==='budget-edit'||modal.open)&&!confirm('Atualizar agora? Edições ainda não salvas podem ser perdidas.'))return;
@@ -1421,8 +1472,12 @@ if(auth?.auth?.onAuthStateChange){
 render();
 session();
 setInterval(()=>{void refreshInviteReplies();},45000);
+setInterval(()=>{if(state.user&&!document.hidden)void refreshSiteLeads();},30000);
 document.addEventListener('visibilitychange',()=>{
- if(!document.hidden)void refreshInviteReplies();
+ if(!document.hidden){void refreshInviteReplies();if(state.user)void refreshSiteLeads();}
+});
+navigator.serviceWorker?.addEventListener?.('message',event=>{
+ if(event.data?.type==='civolten-open-leads'&&state.user)go('site-leads');
 });
 window.CIVOLTENPreview={get view(){return state.view},get data(){return structuredClone(state.data)},
  get user(){return state.user},go,openEditor,summary:()=>summary(state.data),

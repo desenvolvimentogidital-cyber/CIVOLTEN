@@ -1,4 +1,4 @@
-const CACHE='civolten-premium-ui-v32-20261109-field-digital';
+const CACHE='civolten-premium-ui-v33-20261110-push-install';
 const PRECACHE=['/','/index.html','/styles.css?v=civolten-acompanhamento-digital-20261109','/app.js?v=civolten-acompanhamento-digital-20261109','/manifest.webmanifest',
 '/assets/civolten-logo.png','/assets/civolten-simbolo.png','/assets/proposal-construction.svg','/assets/proposal-photo-atlas.webp','/assets/file_000000007df8820eb700b32dbfca9c55.png','/assets/skyline.svg',
 '/assets/icon-192.png','/assets/icon-512.png'];
@@ -22,4 +22,29 @@ self.addEventListener('fetch',e=>{
   }return resp;
  }).catch(()=>caches.match(req,{ignoreSearch:true}).then(hit=>
   hit||(req.mode==='navigate'?caches.match('/index.html'):Response.error()))));
+});
+/* Web Push: o Android pode mostrar o aviso mesmo com o app fechado. */
+self.addEventListener('push',event=>{
+ let payload={};
+ try{payload=event.data?.json()||{};}catch{/* mensagem sem dados */}
+ if(payload.type!=='site-lead')return;
+ const id=String(payload.id||'').slice(0,60);
+ const options={
+  body:'Você recebeu um pedido de orçamento. Toque para visualizar.',
+  icon:'/assets/icon-192.png',badge:'/assets/icon-192.png',
+  tag:'civolten-site-lead-'+id,renotify:true,
+  vibrate:[220,90,220],requireInteraction:false,
+  data:{url:'/?abrir=solicitacoes'}
+ };
+ event.waitUntil(self.registration.showNotification('CIVOLTEN · Novo orçamento',options));
+});
+self.addEventListener('notificationclick',event=>{
+ event.notification.close();
+ event.waitUntil((async()=>{
+  const target=new URL('/?abrir=solicitacoes',self.location.origin);
+  const pages=await clients.matchAll({type:'window',includeUncontrolled:true});
+  const existing=pages.find(c=>{try{return new URL(c.url).origin===target.origin}catch{return false}});
+  if(existing){await existing.focus();existing.postMessage({type:'civolten-open-leads'});}
+  else await clients.openWindow(target.href);
+ })());
 });

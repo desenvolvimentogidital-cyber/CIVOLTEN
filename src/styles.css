@@ -1989,3 +1989,17 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 .site-lead-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .site-lead-actions .outlined-button{min-height:37px;padding:8px 11px;font-size:13px}
 .site-lead-file{display:flex;margin:8px 0;padding:10px;justify-content:center}
+
+/* Contadores de pedidos novos e configurações de notificações. */
+.nav-item,.shortcut,.welcome-row .small-square{position:relative}
+.nav-notice-badge,.shortcut-notice-badge,.settings-notice-badge{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-width:21px;height:21px;padding:0 5px;border-radius:999px;
+ background:#ffc23b;color:#171109;font-size:12px;font-weight:900;
+ line-height:1;border:1px solid #ffe59a;box-shadow:0 0 10px #ffac2755;
+ font-variant-numeric:tabular-nums;
+}
+.nav-notice-badge{position:absolute;top:0;right:5px;z-index:2}
+.shortcut-notice-badge{position:absolute;right:8px;top:7px;z-index:2}
+.settings-notice-badge{margin-left:auto;margin-right:5px}
+.settings-row:disabled{opacity:.6}

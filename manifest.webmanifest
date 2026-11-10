@@ -1,7 +1,7 @@
 {
   "name": "CIVOLTEN — Elétrica & Construção Civil",
   "short_name": "CIVOLTEN",
-  "description": "Gestão de custos da empresa e funcionários.",
+  "description": "Gestão de obras, custos e solicitações de orçamento da CIVOLTEN.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -19,6 +19,19 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Novos orçamentos",
+      "short_name": "Orçamentos",
+      "url": "/?abrir=solicitacoes",
+      "icons": [
+        {
+          "src": "/assets/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

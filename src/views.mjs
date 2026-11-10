@@ -63,18 +63,18 @@ export function authView(mode='login',error='',busy=false){
   '</div><div class="industrial-skyline" aria-hidden="true"></div>'+
   '<footer class="auth-footer">'+icon('lock',18)+'<span>Acesse sua operação com segurança</span></footer></main>';
 }
-function nav(view){
+function nav(view,siteUnread=0){
  const items=[['home','Início','home'],['costs','Custos','coins'],['team','Equipe','users'],['more','Mais','more']];
  return '<nav class="bottom-nav" aria-label="Navegação">'+items.map(([id,label,ic])=>
  '<button type="button" data-go="'+id+'" class="nav-item '+(id===view?'active':'')+'" '+(id===view?'aria-current="page"':'')+'>'+
- icon(ic,24)+'<span>'+label+'</span></button>').join('')+'</nav>';
+ icon(ic,24)+'<span>'+label+'</span>'+(id==='more'&&siteUnread?'<span class="nav-notice-badge">'+(siteUnread>99?'99+':siteUnread)+'</span>':'')+'</button>').join('')+'</nav>';
 }
 function top(){
  return '<header class="app-header">'+BRAND+'</header>';
 }
-export function shell(view,content){
+export function shell(view,content,siteUnread=0){
  return '<div class="app-screen">'+top()+'<div class="app-scroll">'+content+'</div>'+
-  '<div class="edge-glint" aria-hidden="true"></div><div class="industrial-skyline app-skyline" aria-hidden="true"></div>'+nav(view)+'</div>';
+  '<div class="edge-glint" aria-hidden="true"></div><div class="industrial-skyline app-skyline" aria-hidden="true"></div>'+nav(view,siteUnread)+'</div>';
 }
 function metric(title,iconName,value,accent=false){
  return '<div class="metric-card '+(accent?'is-featured':'')+'"><div class="metric-icon">'+icon(iconName,28)+'</div>'+
@@ -83,7 +83,7 @@ function metric(title,iconName,value,accent=false){
 function heading(iconName,title){
  return '<div class="section-label"><span class="section-icon">'+icon(iconName,22)+'</span><h2>'+title+'</h2><div class="section-streak"></div></div>';
 }
-export function homeView(data,user){
+export function homeView(data,user,siteUnread=0){
  const s=summary(data);const first=String(user?.user_metadata?.name||user?.name||user?.email?.split('@')[0]||'').trim().split(/\s+/)[0]||'usuário';
  const count=s.employees;
  const works=(data.works||[]).filter(w=>w.status!=='cancelled');
@@ -101,14 +101,14 @@ export function homeView(data,user){
    newest.budgetSnapshot?.customer||newest.respondentName||'Cliente'):'';
  return '<div class="dashboard">'+
   '<div class="welcome-row"><div class="avatar-outline">'+icon('user',25)+'</div><div class="welcome-text"><h1>Olá, '+e(first)+'</h1>'+
-  '<span>Bem-vindo ao seu painel</span></div><button class="small-square" type="button" data-action="notifications" aria-label="Notificações">'+icon('bell',23)+(unseen.length?'<span class="reply-bell-count">'+unseen.length+'</span>':'')+'</button></div>'+
+  '<span>Bem-vindo ao seu painel</span></div><button class="small-square" type="button" data-action="notifications" aria-label="Notificações">'+icon('bell',23)+(unseen.length+siteUnread?'<span class="reply-bell-count">'+(unseen.length+siteUnread>99?'99+':unseen.length+siteUnread)+'</span>':'')+'</button></div>'+
   '<div class="horizontal-glow"></div><section class="metric-grid" aria-label="Resumo da empresa">'+
   metric('Custos fixos','coins',brl(s.fixed))+metric('Custos variáveis','chart',brl(s.variable))+
   metric('Funcionários','users',String(count))+metric('Custo mensal','calendar',brl(s.total),true)+
   '</section>'+heading('wrench','Acesso rápido')+
   '<div class="shortcut-grid">'+[
    ['Orçamentos','clipboard','budgets'],['Solicitações do site','mail','site-leads'],['Central de Respostas','mail','inbox'],['Obras e execução','building','works'],['Equipe','users','team'],['Relatórios','file','reports'],['Financeiro','coins','finance']
-  ].map(([title,ic,go])=>'<button type="button" class="shortcut" data-go="'+go+'">'+icon(ic,27)+'<span>'+title+'</span></button>').join('')+
+  ].map(([title,ic,go])=>'<button type="button" class="shortcut" data-go="'+go+'">'+icon(ic,27)+'<span>'+title+'</span>'+(go==='site-leads'&&siteUnread?'<b class="shortcut-notice-badge">'+(siteUnread>99?'99+':siteUnread)+'</b>':'')+'</button>').join('')+
   '</div>'+
   (replies.length?'<button type="button" class="budget-reply-dashboard" '+(newest?
     'data-action="inbox-open" data-id="'+e(newest.id)+'"':'data-go="inbox"')+'>'+
@@ -206,7 +206,7 @@ export function teamView(data){
   '<span>Cadastre o primeiro profissional para iniciar.</span></div>')+'</div>'+
   '<div class="action-area"><button class="gold-button" data-action="new-employee" type="button">'+icon('plus',26)+' Novo funcionário</button></div>';
 }
-export function moreView(user,data){
+export function moreView(user,data,siteUnread=0,pushState='inactive',pushBusy=false){
  const sum=summary(data);
  return '<div class="page-heading"><button class="small-square" data-go="home" aria-label="Voltar">'+icon('back',25)+'</button>'+
  '<h1>Configurações</h1><span class="small-square is-empty"></span></div>'+
@@ -218,7 +218,9 @@ export function moreView(user,data){
  '<button data-go="inbox" class="settings-row">'+icon('mail',21)+' Central de Respostas'+
  (unreadReplies(data).length?' ('+unreadReplies(data).length+' novas)':'')+
  ' '+icon('chevron',17)+'</button>'+
- '<button data-go="site-leads" class="settings-row">'+icon('mail',21)+' Solicitações do site '+icon('chevron',17)+'</button>'+ 
+ '<button data-go="site-leads" class="settings-row">'+icon('mail',21)+' Solicitações do site '+(siteUnread?' <span class="settings-notice-badge">'+(siteUnread>99?'99+':siteUnread)+'</span>':'')+icon('chevron',17)+'</button>'+ 
+ '<button type="button" data-action="push-toggle" class="settings-row" '+(pushBusy?'disabled':'')+'>'+icon('bell',21)+(pushState==='active'?' Desativar notificações neste celular':pushState==='blocked'?' Permissão bloqueada: consulte o celular':pushState==='unsupported'?' Notificações indisponíveis neste navegador':' Ativar avisos no celular')+icon('chevron',17)+'</button>'+ 
+ '<button type="button" data-action="install-app" class="settings-row">'+icon('home',21)+' Instalar CIVOLTEN no celular '+icon('chevron',17)+'</button>'+ 
  '<button data-go="works" class="settings-row">'+icon('building',21)+' Obras, medições e execução '+icon('chevron',17)+'</button>'+ 
  '<button data-go="company" class="settings-row">'+icon('building',21)+' Empresa e precificação '+icon('chevron',17)+'</button>'+
  '<button data-go="appearance" class="settings-row">'+icon('chart',21)+' Cores do aplicativo '+icon('chevron',17)+'</button>'+
