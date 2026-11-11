@@ -12,6 +12,7 @@ test('solicitações do site: lista e informações operacionais sem valores fin
  assert.match(html,/Reforma de cozinha/);
  assert.match(html,/site-lead-status/);
  assert.match(html,/site-lead-photos/);
+ assert.match(html,/Ver fotos e anexos/);
  assert.match(html,/wa.me\/5511999999999/);
  assert.doesNotMatch(html,/Valor contratado|Margem de lucro|R\$/);
 });

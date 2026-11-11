@@ -286,10 +286,10 @@ async function openSiteLeadPhotos(id){
  if(!lead||!state.user||!auth?.storage)return;
  if(modal.open)modal.close();
  state.editor={kind:'site-lead-photos'};
- modal.innerHTML='<div class="modal-inner"><div class="modal-heading"><h2>Anexos da solicitação</h2>'+
+ modal.innerHTML='<div class="modal-inner"><div class="modal-heading"><h2>Fotos e anexos da obra</h2>'+
   '<button class="small-square" type="button" data-action="close-modal" aria-label="Fechar">×</button></div>'+
-  '<p class="fin-helper">Fotos e documentos privados enviados pelo cliente.</p>'+
-  '<div id="site-lead-photos-list"><p>Consultando anexos...</p></div></div>';
+  '<p class="fin-helper">As fotos são privadas e podem ser abertas somente por sua conta.</p>'+
+  '<div id="site-lead-photos-list" role="region" aria-label="Fotos recebidas"><p>Consultando fotos...</p></div></div>';
  modal.showModal();
  const region=modal.querySelector('#site-lead-photos-list');
  const prefix=lead.id+'/'+lead.upload_token;
@@ -300,19 +300,45 @@ async function openSiteLeadPhotos(id){
   region.replaceChildren();
   const files=(data||[]).filter(x=>/^[a-f0-9-]{36}\.(jpg|png|webp|pdf)$/i.test(x.name||''));
   if(!files.length){region.textContent='Nenhum arquivo anexado a esta solicitação.';return;}
+  region.classList.add('site-lead-photos-grid');
   for(let i=0;i<files.length;i++){
    const path=prefix+'/'+files[i].name;
    const response=await auth.storage.from('cv-site-lead-photos-v1').createSignedUrl(path,3600);
-   if(response.error||!/^https:\/\//.test(response.data?.signedUrl||''))continue;
+   if(response.error||!response.data?.signedUrl)continue;
    if(!modal.open||state.editor?.kind!=='site-lead-photos')return;
+   let signed;
+   try{signed=new URL(response.data.signedUrl,'https://rvhnuowqfdugcecgmxnv.supabase.co');}
+   catch{continue;}
+   if(signed.origin!=='https://rvhnuowqfdugcecgmxnv.supabase.co'||
+      !signed.pathname.startsWith('/storage/v1/object/sign/cv-site-lead-photos-v1/'))continue;
+   const isPhoto=/\.(jpg|png|webp)$/i.test(files[i].name);
    const link=document.createElement('a');
-   link.className='outlined-button site-lead-file';
-   link.textContent='Abrir anexo '+(i+1);
-   link.href=response.data.signedUrl;link.target='_blank';link.rel='noopener noreferrer';
+   link.className='site-lead-photo-tile';
+   link.href=signed.href;
+   link.target='_blank';
+   link.rel='noopener noreferrer';
+   link.setAttribute('aria-label',isPhoto?'Abrir foto '+(i+1):'Abrir documento '+(i+1));
+   if(isPhoto){
+    const photo=document.createElement('img');
+    photo.src=signed.href;
+    photo.alt='Foto '+(i+1)+' enviada pelo cliente';
+    photo.loading='lazy';
+    photo.decoding='async';
+    photo.referrerPolicy='no-referrer';
+    link.append(photo);
+   }else{
+    const fileIcon=document.createElement('span');
+    fileIcon.className='site-lead-pdf-icon';
+    fileIcon.textContent='PDF';
+    link.append(fileIcon);
+   }
+   const caption=document.createElement('span');
+   caption.textContent=isPhoto?'Foto '+(i+1)+' · tocar para ampliar':'Documento '+(i+1)+' · abrir PDF';
+   link.append(caption);
    region.append(link);
   }
-  if(!region.childElementCount)region.textContent='Não foi possível gerar os links de acesso aos anexos.';
- }catch(err){if(region?.isConnected)region.textContent='Falha ao consultar anexos: '+String(err.message||err);}
+  if(!region.childElementCount)region.textContent='Não foi possível abrir os anexos. Atualize a solicitação e tente novamente.';
+ }catch(err){if(region?.isConnected)region.textContent='Falha ao consultar fotos: '+String(err.message||err);}
 }
 
 function openEditor(kind,id=null,suggested='income'){

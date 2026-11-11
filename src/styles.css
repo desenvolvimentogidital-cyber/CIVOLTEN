@@ -2003,3 +2003,19 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 .shortcut-notice-badge{position:absolute;right:8px;top:7px;z-index:2}
 .settings-notice-badge{margin-left:auto;margin-right:5px}
 .settings-row:disabled{opacity:.6}
+
+/* CIVOLTEN — miniaturas protegidas dos anexos enviados pelo site. */
+#site-lead-photos-list.site-lead-photos-grid{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));
+ gap:12px;margin:14px 0;max-height:65vh;overflow-y:auto;
+}
+.site-lead-photo-tile{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:8px;min-width:0;overflow:hidden;padding:8px;border-radius:13px;
+ color:#f5d9a6;background:#141414;border:1px solid #a4834b;
+ text-decoration:none;box-shadow:inset 0 0 10px #c58b1718;
+}
+.site-lead-photo-tile img{display:block;width:100%;height:180px;object-fit:cover;border-radius:9px}
+.site-lead-photo-tile span:last-child{font-size:12px;line-height:1.35;text-align:center}
+.site-lead-pdf-icon{display:grid;place-items:center;width:100%;height:180px;
+ border-radius:9px;background:#29231b;font-size:30px;font-weight:800;color:#f6c463}

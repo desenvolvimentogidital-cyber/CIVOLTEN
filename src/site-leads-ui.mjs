@@ -26,7 +26,7 @@ export function siteLeadsView(list=[],loading=false,error=''){
    '<p class="site-lead-description">'+e(r.description)+'</p>'+
    '<div class="site-lead-actions">'+
    (validPhone?'<a class="outlined-button" target="_blank" rel="noopener noreferrer" href="https://wa.me/'+dial+'">'+icon('mail',16)+' Conversar</a>':'')+
-   '<button type="button" class="outlined-button" data-action="site-lead-photos" data-id="'+e(r.id)+'">'+icon('file',16)+' Anexos</button>'+
+   '<button type="button" class="outlined-button" data-action="site-lead-photos" data-id="'+e(r.id)+'">'+icon('file',16)+' Ver fotos e anexos</button>'+
    (status==='novo'?'<button type="button" class="outlined-button" data-action="site-lead-status" data-status="em_contato" data-id="'+e(r.id)+'">Em contato</button>':'')+
    (status!=='concluido'&&status!=='arquivado'?'<button type="button" class="outlined-button" data-action="site-lead-status" data-status="concluido" data-id="'+e(r.id)+'">Concluir</button>':'')+
    (status!=='arquivado'?'<button type="button" class="outlined-button" data-action="site-lead-status" data-status="arquivado" data-id="'+e(r.id)+'">Arquivar</button>':'')+
