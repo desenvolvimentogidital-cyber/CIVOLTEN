@@ -93,3 +93,26 @@
 }
 .nfse-field-error:before{content:"!";display:inline-grid;place-items:center;vertical-align:middle;width:17px;height:17px;margin-right:6px;border-radius:50%;background:#c62834;color:#fff;font-weight:850;font-size:12px}
 
+/* Cadastro inteligente, histórico de rascunhos e mensagens de consulta */
+.nfse-history{border:1px solid #b58a4b;background:linear-gradient(145deg,#242326,#131317);border-radius:16px;padding:13px;box-shadow:0 8px 19px #0007}
+.nfse-history-heading{display:flex;justify-content:space-between;gap:9px;align-items:center}
+.nfse-history-heading h2{font-size:16px;color:#ffe0a1;margin:0 0 3px}
+.nfse-history-heading p{font-size:11px;color:#c5beba;margin:0;line-height:1.4}
+.nfse-history-empty{font-size:12px;color:#e2d7c1;margin:12px 0 0}
+.nfse-history-list{display:grid;gap:8px;margin-top:12px;max-height:285px;overflow:auto}
+.nfse-history-item{display:flex;gap:10px;align-items:center;justify-content:space-between;border-radius:11px;border:1px solid #71634b;padding:11px;background:#191a1f}
+.nfse-history-item>div:first-child{min-width:0;display:grid;gap:5px}
+.nfse-history-item strong{font-size:12px;color:#fff3dd;word-break:break-word}
+.nfse-history-item span{font-size:11px;color:#c6c1bd}
+.nfse-history-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.nfse-history-actions button,.nfse-outline-action{border:1px solid #cf9f4d;border-radius:9px;color:#ffdda2;background:#3b2c19;font-weight:800;font-size:12px;min-height:34px;padding:7px 11px}
+.nfse-outline-action{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.nfse-history-actions .nfse-remove{min-width:32px;background:#432022;border-color:#ae5157;color:#ffd7d7;font-size:18px;padding:5px}
+.nfse-lookup{display:grid;gap:6px;align-content:start;grid-column:1/-1}
+.nfse-lookup-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;justify-self:start;min-height:40px;padding:8px 12px;border:1px solid #936316;border-radius:11px;color:#28170a;background:linear-gradient(#ffe99e,#fbc043);font-size:13px;font-weight:850}
+.nfse-lookup-button:disabled{opacity:.55;cursor:wait}
+.nfse-lookup-note{display:block;font-size:12px;color:#49515d;line-height:1.5}
+.nfse-lookup-note.is-error{color:#b21e2b;font-weight:700}
+.nfse-import{grid-column:1/-1}
+.nfse-tax-guide{display:flex;gap:9px;align-items:flex-start;padding:12px;border-radius:13px;border:1px solid #dbad55;background:#302313;color:#ffe8bb;font-size:12px;line-height:1.6}
+.nfse-notice{border:1px solid #b48b48;border-radius:11px;padding:12px;background:#27241f;color:#ffe8bd;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
