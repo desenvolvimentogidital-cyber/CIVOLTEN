@@ -97,12 +97,12 @@ export async function saveNfseCloud(client,userId,id,d){
  if(error)fail('O rascunho não foi salvo na nuvem: '+error.message);
  return {id:safeId,status:ready?'ready':'draft'};
 }
-export async function saveNfseClient(client,userId,d){
+export async function saveNfseClient(client,userId,d,existingId=null){
  checkSession(client,userId);
  const data=clientFromDraft(d);
  if(!data)return false;
  const {error}=await client.from(NFSE_CLIENT_TABLE).upsert({
-  ...data,id:crypto.randomUUID(),user_id:userId,updated_at:new Date().toISOString()
+  ...data,id:existingId||crypto.randomUUID(),user_id:userId,updated_at:new Date().toISOString()
  },{onConflict:'user_id,cnpj'}).select('id');
  if(error)fail('Rascunho salvo, mas não foi possível cadastrar o cliente: '+error.message);
  return true;
