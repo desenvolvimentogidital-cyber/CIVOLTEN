@@ -1,0 +1,65 @@
+/* CIVOLTEN — NFS-e | composição prata, dourado e preto, mobile first. */
+.nfse-page{color:#f6f1e8;display:flex;flex-direction:column;gap:16px;padding-bottom:22px}
+.nfse-page *{box-sizing:border-box}
+.nfse-head{display:flex;align-items:center;gap:13px;border-bottom:1px solid #d49742;padding:6px 0 16px;min-width:0}
+.nfse-title-icon{display:grid;place-items:center;flex:0 0 52px;height:52px;border:1px solid #ffce66;border-radius:14px;color:#ffd765;background:linear-gradient(145deg,#3a240e,#0f1014);box-shadow:0 0 13px #d7802899,inset 0 1px 4px #ffffcc70}
+.nfse-head h1{font-size:clamp(22px,6vw,30px);line-height:1.12;margin:0;font-weight:850;letter-spacing:-.5px;color:#fff}
+.nfse-head p{font-size:12px;line-height:1.4;margin:6px 0 0;color:#dfcbb1}
+.nfse-progress{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.nfse-step{display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 4px;border-radius:12px;border:1px solid #55463b;background:linear-gradient(145deg,#24252c,#0e1014);color:#c5bfbd;font-size:12px;min-width:0}
+.nfse-step span{display:grid;place-items:center;flex:0 0 25px;height:25px;border-radius:50%;border:1px solid #7b7474;color:#ddd;font-weight:800}
+.nfse-step b{font-size:12px;font-weight:700;white-space:nowrap}
+.nfse-step.is-current{border:1px solid #ffde64;color:#1a1001;background:linear-gradient(155deg,#ffe471,#febf26 48%,#d88705);box-shadow:0 3px 13px #f5a11355}
+.nfse-step.is-current span{color:#1d1308;border-color:#ffef9d;background:#fff8ce}
+.nfse-step.is-done{border-color:#98701b;color:#ffce60}
+.nfse-step.is-done span{background:#59400e;color:#ffdf7b}
+.nfse-pending{display:flex;align-items:center;gap:8px;border:1px solid #9c7844;border-radius:12px;background:#382c1d;color:#ffdfb2;padding:10px 12px;font-size:12px;line-height:1.42}
+.nfse-layout{display:grid;gap:14px;align-items:start}
+.nfse-main,.nfse-form{display:grid;gap:13px;min-width:0}
+.nfse-card{padding:15px 13px 17px;border:1px solid #d0b383;border-radius:18px;background:linear-gradient(145deg,#fcfcfc 0%,#eceef1 52%,#c8cdd4 100%);color:#1b2029;box-shadow:0 3px 0 #74767b,0 8px 17px #0008,inset 0 1px 0 #fff}
+.nfse-card-title{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:850;line-height:1.3;color:#231b16;margin:0 0 12px}
+.nfse-card-title:before{content:"";display:inline-block;width:5px;height:23px;border-radius:3px;background:linear-gradient(#fff1a1,#f7b10d,#a35400);box-shadow:0 0 8px #c68727}
+.nfse-helper{font-size:11px;color:#4e5059;margin:-4px 0 12px;line-height:1.5}
+.nfse-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px 9px}
+.nfse-field{min-width:0;display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:750;color:#2b2f3b}
+.nfse-field span{line-height:1.4}.nfse-field b{color:#aa5400}
+.nfse-wide{grid-column:1/-1}
+.nfse-field input,.nfse-field select,.nfse-field textarea,.nfse-import select{width:100%;min-width:0;max-width:100%;min-height:44px;padding:10px;border:1px solid #a7a9ae;border-radius:11px;color:#20232c;background:#fff;box-shadow:inset 0 1px 4px #0001;font-size:14px;font-weight:550;outline-offset:1px}
+.nfse-field textarea{min-height:80px;resize:vertical}
+.nfse-field input:focus,.nfse-field select:focus,.nfse-field textarea:focus,.nfse-import select:focus{outline:2px solid #e5a624;border-color:#a66e18}
+.nfse-field input::placeholder{color:#707784}
+.nfse-actions{display:grid;gap:10px}
+.nfse-primary,.nfse-secondary,.nfse-disabled{display:flex;justify-content:center;align-items:center;gap:8px;min-height:51px;width:100%;padding:10px 12px;border-radius:14px;font-size:15px;font-weight:800;line-height:1.25;text-align:center}
+.nfse-primary{color:#211707;border:1px solid #ffe680;background:linear-gradient(160deg,#fff392 0%,#ffc62f 34%,#efa20e 70%,#d27600);box-shadow:0 2px 0 #8b540e,0 6px 15px #cf7f1880,inset 0 1px 3px #fff}
+.nfse-primary:active{transform:translateY(1px)}
+.nfse-secondary{color:#f8d99c;background:#1e1c1b;border:1px solid #c08b2e}
+.nfse-disabled{color:#d6d6d6;border:1px solid #656363;background:#363638;cursor:not-allowed;opacity:.8}
+.nfse-validation{border-radius:18px;padding:17px 15px;background:linear-gradient(150deg,#24242b,#111319 75%);border:1px solid #d69b39;box-shadow:0 6px 18px #0008,inset 0 1px 2px #ffed9b30}
+.nfse-validation h3{display:flex;gap:8px;align-items:center;color:#ffdc85;margin:0 0 4px;font-size:18px}
+.nfse-validation>p{font-size:12px;color:#d8d3cb;line-height:1.55;margin:5px 0 14px}
+.nfse-review-list{display:grid;gap:2px}
+.nfse-review-row{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #807a7540;padding:10px 0;font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.nfse-review-row span{color:#aeb5c1;flex:0 0 34%}
+.nfse-review-row strong{color:#fff;text-align:right;min-width:0;font-weight:720}
+.nfse-validation-summary{margin-top:14px;padding:10px;border-radius:10px;border:1px solid #d29a48;background:#4a3115;color:#ffdda9;font-size:12px;font-weight:750}
+.nfse-api-note{border-top:1px solid #59585a;padding-top:12px;margin-top:13px!important}
+.nfse-confirm .nfse-review-row span{color:#49505c}.nfse-confirm .nfse-review-row strong{color:#202633}
+.nfse-confirm .nfse-review-row strong{max-width:66%}
+.nfse-confirm .nfse-actions{margin-top:18px}
+.nfse-problems{margin-top:15px;padding:12px 13px;background:#fff2dc;color:#663608;border:1px solid #b8731b;border-radius:12px;font-size:12px;line-height:1.55}
+.nfse-problems ul{margin:6px 0 0;padding-left:18px}
+.nfse-ok{display:flex;gap:7px;align-items:center;margin-top:13px;padding:12px;border-radius:10px;background:#e6f6e8;color:#125420;font-size:12px}
+.nfse-import{border-radius:15px;background:#241d14;color:#f9ead2;border:1px solid #b58537;padding:13px;display:grid;gap:7px}
+.nfse-import label{font-size:13px;font-weight:750}
+.nfse-import p{font-size:11px;color:#e7cb9c;margin:0;line-height:1.45}
+@media(min-width:900px){
+ .nfse-layout{grid-template-columns:minmax(0,1fr) 300px}
+ .nfse-validation{position:sticky;top:12px}
+}
+@media(max-width:380px){
+ .nfse-fields{grid-template-columns:1fr}
+ .nfse-head p{font-size:11px}
+ .nfse-step{gap:3px}
+ .nfse-step span{flex-basis:22px;height:22px}
+ .nfse-step b{font-size:11px}
+}
