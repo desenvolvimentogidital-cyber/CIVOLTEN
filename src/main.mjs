@@ -29,6 +29,7 @@ import {createWorkOrder,createWorkLog,createMeasurement,
 import {worksView,workDetailView,workApprovalDialog,workLogDialog,
  workMeasurementDialog,workBillingDialog,workPrintable} from './operations-ui.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,payrollSettingsView,cltBreakdownHtml,e,icon} from './views.mjs';
+import {nfseView,nfseNewDraft,nfseIssues,nfseStorageKey} from './nfse-ui.mjs';
 const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
 const SUPABASE_PUBLIC_KEY=__CIVOLTEN_SUPABASE_PUBLISHABLE_KEY__;
 const E2E=__CIVOLTEN_E2E__===true&&['127.0.0.1','localhost'].includes(location.hostname);
@@ -48,6 +49,7 @@ const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
  cloudError:null,budgetDraft:null,budgetError:'',workId:null,replyId:null,replyFilter:'all',replySearch:'',siteLeads:[],siteLeadsInitialized:false,siteLeadsLoading:false,siteLeadsError:'',pushState:'inactive',pushBusy:false,fieldFilter:'all',fieldSearch:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
+ nfseDraft:null,nfseStep:1,
  checkedSession:false
 };
 const delayToast=(text)=>{
@@ -70,6 +72,7 @@ function render(){
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
  else if(state.view==='appearance')html=appearanceView(state.data.company);
  else if(state.view==='budgets')html=budgetsView(state.data);
+ else if(state.view==='nfse')html=nfseView(state.nfseDraft||nfseNewDraft(state.data.company),state.nfseStep,(state.data.budgets||[]).filter(b=>b.demo===false));
  else if(state.view==='site-leads')html=siteLeadsView(state.siteLeads,state.siteLeadsLoading,state.siteLeadsError);
  else if(state.view==='inbox')html=responseInboxView(state.data,state.replyFilter,state.replySearch);
  else if(state.view==='inbox-detail')html=responseDetailView(state.data,state.replyId);
@@ -202,7 +205,13 @@ async function signOut(){
 }
 function go(view){
  if(view==='soon'){delayToast('Este recurso será construído na próxima etapa.');return;}
- if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail','field-progress','inbox','inbox-detail','site-leads'].includes(view))return;
+ if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail','field-progress','inbox','inbox-detail','site-leads','nfse'].includes(view))return;
+ if(view==='nfse'&&!state.nfseDraft){
+  state.nfseDraft=nfseNewDraft(state.data.company);state.nfseStep=1;
+  try{const cached=JSON.parse(localStorage.getItem(nfseStorageKey(state.user?.id))||'null');
+   if(cached&&typeof cached==='object'&&!Array.isArray(cached))state.nfseDraft={...state.nfseDraft,...cached};
+  }catch{/* armazenamento local opcional */}
+ }
  if(view==='catalog')state.catalogBack=state.view==='budget-edit'?'budget-edit':'budgets';
  if(view==='budgets'){state.budgetDraft=null;state.budgetError='';}
  if(view==='works')state.workId=null;
@@ -1252,7 +1261,35 @@ function exportReport(){
  document.body.appendChild(link);link.click();link.remove();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+function captureNfse(){
+ const form=mount.querySelector('#nfse-form');
+ if(form)state.nfseDraft={...state.nfseDraft,...Object.fromEntries(new FormData(form))};
+}
+function saveNfse(){
+ captureNfse();
+ try{localStorage.setItem(nfseStorageKey(state.user?.id),JSON.stringify(state.nfseDraft));
+  delayToast('Rascunho salvo neste aparelho. Nenhuma NFS-e foi emitida.');
+ }catch{delayToast('Não foi possível salvar o rascunho neste aparelho.');}
+}
+function importBudgetToNfse(id){
+ captureNfse();
+ const b=(state.data.budgets||[]).find(x=>x.id===id&&x.demo===false);
+ if(!b)return;
+ let amount='';
+ try{const priced=priceBudget(b);if(Number.isFinite(priced.totalSale)&&priced.totalSale>0)amount=(priced.totalSale/100).toFixed(2);}catch{/* orçamento ainda não precificado */}
+ const description=(b.items||[]).map(item=>item.description).filter(Boolean).join('; ').slice(0,2000);
+ state.nfseDraft={...state.nfseDraft,clientName:b.customer||state.nfseDraft.clientName,
+  description:description||state.nfseDraft.description,amount:amount||state.nfseDraft.amount,
+  reference:b.project||b.title||state.nfseDraft.reference};
+ render();delayToast('Dados do orçamento importados. Confira todos os campos fiscais.');
+}
 mount.addEventListener('change',event=>{
+ if(state.view==='nfse'&&event.target.id==='nfse-budget'){
+  if(event.target.value)importBudgetToNfse(event.target.value);return;
+ }
+ if(state.view==='nfse'&&event.target.name==='workType'&&event.target.form?.id==='nfse-form'){
+  captureNfse();render();return;
+ }
  if(event.target.id==='catalog-category'){state.catalogCategory=event.target.value;render();return;}
  if(event.target.id==='catalog-import-file'){void loadCatalogImportFile(event.target.files?.[0]);return;}
  if(state.catalogImport){
@@ -1282,6 +1319,10 @@ mount.addEventListener('click',async event=>{
  const b=event.target.closest('[data-go],[data-action],[data-tab],[data-fin-filter],[data-theme-choice],[data-reply-filter],[data-field-filter]');
  if(!b)return;
  if(b.dataset.go){go(b.dataset.go);return;}
+ if(state.view==='nfse'&&b.dataset.action==='nfse-save'){saveNfse();return;}
+ if(state.view==='nfse'&&b.dataset.action==='nfse-prev'){
+  captureNfse();state.nfseStep=Math.max(1,state.nfseStep-1);render();return;
+ }
  if(b.dataset.tab){state.costTab=b.dataset.tab;render();return;}
  if(b.dataset.replyFilter){state.replyFilter=b.dataset.replyFilter;render();return;}
  if(b.dataset.fieldFilter){state.fieldFilter=b.dataset.fieldFilter;render();return;}
@@ -1417,6 +1458,12 @@ mount.addEventListener('input',event=>{
  });
 });
 mount.addEventListener('submit',event=>{
+ if(event.target.id==='nfse-form'){
+  event.preventDefault();captureNfse();
+  const issues=nfseIssues(state.nfseDraft,state.nfseStep);
+  if(issues.length){delayToast(issues[0]);return;}
+  state.nfseStep=Math.min(3,state.nfseStep+1);render();return;
+ }
  if(event.target.id==='budget-form'){event.preventDefault();void saveBudget(event.target);return;}
  if(event.target.id==='company-form'){event.preventDefault();void saveCompanySettings(event.target);return;}
  if(event.target.id!=='auth-form')return;
