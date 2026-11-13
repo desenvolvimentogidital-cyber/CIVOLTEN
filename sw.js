@@ -1,5 +1,5 @@
-const CACHE='civolten-premium-ui-v33-20261110-push-install';
-const PRECACHE=['/','/index.html','/styles.css?v=civolten-acompanhamento-digital-20261109','/app.js?v=civolten-acompanhamento-digital-20261109','/manifest.webmanifest',
+const CACHE='civolten-premium-ui-v34-20261113-nfse-layout';
+const PRECACHE=['/','/index.html','/nfse.css?v=20261113','/styles.css?v=civolten-acompanhamento-digital-20261109','/app.js?v=civolten-acompanhamento-digital-20261109','/manifest.webmanifest',
 '/assets/civolten-logo.png','/assets/civolten-simbolo.png','/assets/proposal-construction.svg','/assets/proposal-photo-atlas.webp','/assets/file_000000007df8820eb700b32dbfca9c55.png','/assets/skyline.svg',
 '/assets/icon-192.png','/assets/icon-512.png'];
 self.addEventListener('install',e=>{
