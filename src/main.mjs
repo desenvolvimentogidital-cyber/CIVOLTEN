@@ -30,6 +30,7 @@ import {worksView,workDetailView,workApprovalDialog,workLogDialog,
  workMeasurementDialog,workBillingDialog,workPrintable} from './operations-ui.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,payrollSettingsView,cltBreakdownHtml,e,icon} from './views.mjs';
 import {nfseView,nfseNewDraft,nfseIssues,nfseFieldErrors,nfseStorageKey} from './nfse-ui.mjs';
+import {lookupCnpj,lookupCep,clientToDraft,loadNfseRecords,saveNfseCloud,saveNfseClient,deleteNfseCloud} from './nfse-data.mjs';
 const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
 const SUPABASE_PUBLIC_KEY=__CIVOLTEN_SUPABASE_PUBLISHABLE_KEY__;
 const E2E=__CIVOLTEN_E2E__===true&&['127.0.0.1','localhost'].includes(location.hostname);
@@ -49,7 +50,7 @@ const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
  cloudError:null,budgetDraft:null,budgetError:'',workId:null,replyId:null,replyFilter:'all',replySearch:'',siteLeads:[],siteLeadsInitialized:false,siteLeadsLoading:false,siteLeadsError:'',pushState:'inactive',pushBusy:false,fieldFilter:'all',fieldSearch:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
- nfseDraft:null,nfseStep:1,
+ nfseDraft:null,nfseStep:1,nfseId:null,nfseDrafts:[],nfseClients:[],nfseLoaded:false,nfseLoading:false,nfseSaving:false,nfseLookup:false,nfseNotice:'',
  checkedSession:false
 };
 const delayToast=(text)=>{
@@ -72,7 +73,7 @@ function render(){
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
  else if(state.view==='appearance')html=appearanceView(state.data.company);
  else if(state.view==='budgets')html=budgetsView(state.data);
- else if(state.view==='nfse')html=nfseView(state.nfseDraft||nfseNewDraft(state.data.company),state.nfseStep,(state.data.budgets||[]).filter(b=>b.demo===false));
+ else if(state.view==='nfse')html=nfseView(state.nfseDraft||nfseNewDraft(state.data.company),state.nfseStep,(state.data.budgets||[]).filter(b=>b.demo===false),{drafts:state.nfseDrafts,clients:state.nfseClients,loaded:state.nfseLoaded,notice:state.nfseNotice});
  else if(state.view==='site-leads')html=siteLeadsView(state.siteLeads,state.siteLeadsLoading,state.siteLeadsError);
  else if(state.view==='inbox')html=responseInboxView(state.data,state.replyFilter,state.replySearch);
  else if(state.view==='inbox-detail')html=responseDetailView(state.data,state.replyId);
@@ -199,7 +200,8 @@ async function signOut(){
  try{
   const r=await auth.auth.signOut();if(r?.error)throw Error(r.error.message||'Falha ao sair');
   state.user=null;state.data=fresh();state.cloudError=null;state.budgetDraft=null;state.budgetError='';state.view=deepLinkSite?'site-leads':'home';state.authMode='login';
-  state.authError='';state.siteLeads=[];state.siteLeadsInitialized=false;state.pushState='inactive';updateDeviceBadge(0);render();delayToast('Sessão encerrada. Seus dados locais foram preservados.');
+  state.authError='';state.siteLeads=[];state.siteLeadsInitialized=false;state.pushState='inactive';
+  state.nfseDraft=null;state.nfseId=null;state.nfseStep=1;state.nfseDrafts=[];state.nfseClients=[];state.nfseLoaded=false;state.nfseNotice='';updateDeviceBadge(0);render();delayToast('Sessão encerrada. Seus dados locais foram preservados.');
  }catch(err){delayToast(err.message||'Não foi possível sair.');}
  finally{state.busy=false;}
 }
@@ -210,6 +212,8 @@ function go(view){
   state.nfseDraft=nfseNewDraft(state.data.company);state.nfseStep=1;
   try{const cached=JSON.parse(localStorage.getItem(nfseStorageKey(state.user?.id))||'null');
    if(cached&&typeof cached==='object'&&!Array.isArray(cached))state.nfseDraft={...state.nfseDraft,...cached};
+   const savedId=localStorage.getItem(nfseStorageKey(state.user?.id)+':id');
+   if(/^[a-f0-9-]{36}$/i.test(savedId||''))state.nfseId=savedId;
   }catch{/* armazenamento local opcional */}
  }
  if(view==='catalog')state.catalogBack=state.view==='budget-edit'?'budget-edit':'budgets';
@@ -218,6 +222,7 @@ function go(view){
  if(view==='inbox')state.replyId=null;
  state.view=view;render();
  if(view==='site-leads')void refreshSiteLeads();
+ if(view==='nfse'&&!state.nfseLoaded)void refreshNfseRecords();
  if(window.scrollY)window.scrollTo({top:0,behavior:'instant'});
 }
 
@@ -1317,12 +1322,144 @@ function focusNfseFirstError(){
  }
  return false;
 }
-function saveNfse(){
- captureNfse();
- try{localStorage.setItem(nfseStorageKey(state.user?.id),JSON.stringify(state.nfseDraft));
-  delayToast('Rascunho salvo neste aparelho. Nenhuma NFS-e foi emitida.');
- }catch{delayToast('Não foi possível salvar o rascunho neste aparelho.');}
+async function refreshNfseRecords(force=false){
+ if(!state.user||state.nfseLoading||(!force&&state.nfseLoaded))return;
+ const forUser=state.user.id;
+ state.nfseLoading=true;
+ try{
+  const result=await loadNfseRecords(auth,forUser);
+  if(state.user?.id!==forUser)return;
+  state.nfseDrafts=result.drafts;state.nfseClients=result.clients;
+  state.nfseLoaded=true;
+  if(state.nfseDrafts.length&&!state.nfseId){
+   // Preservar o rascunho local; só abrir um rascunho salvo por escolha do usuário.
+   state.nfseNotice='Rascunhos e clientes sincronizados com sua conta.';
+  }
+ }catch(err){
+  if(state.user?.id!==forUser)return;
+  state.nfseNotice='Não foi possível carregar a nuvem: '+String(err.message||err)+'. Você ainda pode editar localmente.';
+ }finally{
+  state.nfseLoading=false;
+  if(state.user?.id===forUser&&state.view==='nfse'){
+   captureNfse();render();
+  }
+ }
 }
+function nfseSaveLocal(){
+ try{
+  localStorage.setItem(nfseStorageKey(state.user?.id),JSON.stringify(state.nfseDraft));
+  if(state.nfseId)localStorage.setItem(nfseStorageKey(state.user?.id)+':id',state.nfseId);
+  else localStorage.removeItem(nfseStorageKey(state.user?.id)+':id');
+  return true;
+ }catch{return false}
+}
+async function saveNfse(options={}){
+ captureNfse();
+ if(state.nfseSaving||!state.user)return false;
+ const savedLocally=nfseSaveLocal();
+ state.nfseSaving=true;
+ let success=false;
+ try{
+  const result=await saveNfseCloud(auth,state.user.id,state.nfseId,state.nfseDraft);
+  state.nfseId=result.id;
+  nfseSaveLocal();
+  let clientWarning='';
+  try{await saveNfseClient(auth,state.user.id,state.nfseDraft,state.nfseClients.find(c=>c.cnpj===state.nfseDraft.clientCnpj.replace(/\D/g,''))?.id);}
+  catch(err){clientWarning=' Cliente não atualizado: '+String(err.message||err);}
+  state.nfseNotice='Rascunho salvo no Supabase, acessível pela sua conta. Nenhuma NFS-e foi emitida.'+clientWarning;
+  success=true;
+  if(!options.silent)delayToast('Rascunho salvo na sua conta. Nenhuma NFS-e foi emitida.');
+  // Evitar recarregar dados antigos em outra conta ou uma tela diferente.
+  const current=await loadNfseRecords(auth,state.user.id);
+  state.nfseDrafts=current.drafts;state.nfseClients=current.clients;state.nfseLoaded=true;
+ }catch(err){
+  state.nfseNotice=(savedLocally?'Salvo apenas neste aparelho. ':'Não foi possível salvar. ')+
+   'Nuvem indisponível: '+String(err.message||err);
+  if(!options.silent)delayToast('Erro ao salvar na nuvem. Confira a mensagem na tela.');
+ }finally{
+  state.nfseSaving=false;
+  if(state.view==='nfse'){
+   // Preservar alterações feitas enquanto o salvamento assíncrono terminava.
+   captureNfse();render();
+  }
+ }
+ return success;
+}
+function newNfse(){
+ if(state.nfseSaving)return;
+ const last=state.nfseDraft||{};
+ state.nfseDraft={...nfseNewDraft(state.data.company),
+  issuerName:last.issuerName||state.data.company?.companyName||'',
+  issuerCnpj:last.issuerCnpj||'',regime:last.regime||state.data.company?.taxRegime||'mei'};
+ state.nfseId=null;state.nfseStep=1;
+ state.nfseNotice='Nova nota em preparação. Nenhuma emissão realizada.';
+ nfseSaveLocal();render();window.scrollTo({top:0,behavior:'instant'});
+}
+function openNfseDraft(id){
+ if(state.nfseSaving)return;
+ const found=state.nfseDrafts.find(x=>x.id===id);if(!found)return;
+ state.nfseDraft={...nfseNewDraft(state.data.company),...found.payload};
+ state.nfseId=found.id;state.nfseStep=1;
+ state.nfseNotice='Rascunho carregado da sua conta. Confira os dados antes de prosseguir.';
+ nfseSaveLocal();render();window.scrollTo({top:0,behavior:'instant'});
+}
+async function removeNfseDraft(id){
+ if(state.nfseSaving||!state.user||!confirm('Excluir este rascunho? A exclusão não poderá ser desfeita.'))return;
+ try{
+  await deleteNfseCloud(auth,state.user.id,id);
+  state.nfseDrafts=state.nfseDrafts.filter(x=>x.id!==id);
+  if(state.nfseId===id)newNfse();
+  state.nfseNotice='Rascunho excluído da sua conta.';
+  render();
+ }catch(err){state.nfseNotice=String(err.message||err);render();}
+}
+function nfseLookupMessage(kind,message,failed=false){
+ const el=mount.querySelector('[data-nfse-lookup="'+kind+'"]');
+ if(el){el.textContent=message;el.classList.toggle('is-error',failed);}
+}
+async function consultNfseCnpj(){
+ captureNfse();
+ if(state.nfseLookup)return;
+ if(nfseFieldErrors(state.nfseDraft,1).clientCnpj){
+  const field=mount.querySelector('[name="clientCnpj"]');
+  setNfseFieldError(field,'Informe um CNPJ válido para consultar.');
+  field?.focus();field?.scrollIntoView({behavior:'smooth',block:'center'});return;
+ }
+ state.nfseLookup=true;
+ nfseLookupMessage('cnpj','Consultando cadastro público...');
+ try{
+  const cnpjRequested=state.nfseDraft.clientCnpj;
+  const data=await lookupCnpj(cnpjRequested);
+  captureNfse();
+  if(state.nfseDraft.clientCnpj!==cnpjRequested)return;
+  state.nfseDraft={...state.nfseDraft,...data};
+  const caution=data.active?'':' Atenção: situação cadastral não confirmada como ativa.';
+  state.nfseNotice='Consulta concluída. Confira os dados cadastrais antes de salvar.'+caution;
+  render();
+ }catch(err){nfseLookupMessage('cnpj',String(err.message||err)+' Você pode preencher manualmente.',true);}
+ finally{state.nfseLookup=false;}
+}
+async function consultNfseCep(){
+ captureNfse();
+ if(state.nfseLookup)return;
+ if(nfseFieldErrors(state.nfseDraft,1).cep){
+  const field=mount.querySelector('[name="cep"]');
+  setNfseFieldError(field,'Informe um CEP válido para consultar.');
+  field?.focus();field?.scrollIntoView({behavior:'smooth',block:'center'});return;
+ }
+ state.nfseLookup=true;nfseLookupMessage('cep','Consultando CEP...');
+ try{
+  const cepRequested=state.nfseDraft.cep;
+  const data=await lookupCep(cepRequested);
+  captureNfse();
+  if(state.nfseDraft.cep!==cepRequested)return;
+  state.nfseDraft={...state.nfseDraft,...data};
+  state.nfseNotice='Endereço consultado. Confira rua, número e município da obra.';
+  render();
+ }catch(err){nfseLookupMessage('cep',String(err.message||err)+' O endereço continua editável.',true);}
+ finally{state.nfseLookup=false;}
+}
+
 function importBudgetToNfse(id){
  captureNfse();
  const b=(state.data.budgets||[]).find(x=>x.id===id&&x.demo===false);
@@ -1337,6 +1474,12 @@ function importBudgetToNfse(id){
 }
 mount.addEventListener('change',event=>{
  if(state.view==='nfse')updateNfseFieldError(event.target);
+ if(state.view==='nfse'&&event.target.id==='nfse-client-pick'){
+  captureNfse();const chosen=state.nfseClients.find(c=>c.cnpj===event.target.value);
+  if(chosen){state.nfseDraft={...state.nfseDraft,...clientToDraft(chosen)};
+   state.nfseNotice='Cliente cadastrado selecionado. Confira os dados.';render();}
+  return;
+ }
  if(state.view==='nfse'&&event.target.id==='nfse-budget'){
   if(event.target.value)importBudgetToNfse(event.target.value);return;
  }
@@ -1372,7 +1515,12 @@ mount.addEventListener('click',async event=>{
  const b=event.target.closest('[data-go],[data-action],[data-tab],[data-fin-filter],[data-theme-choice],[data-reply-filter],[data-field-filter]');
  if(!b)return;
  if(b.dataset.go){go(b.dataset.go);return;}
- if(state.view==='nfse'&&b.dataset.action==='nfse-save'){saveNfse();return;}
+ if(state.view==='nfse'&&b.dataset.action==='nfse-save'){void saveNfse();return;}
+ if(state.view==='nfse'&&b.dataset.action==='nfse-new'){newNfse();return;}
+ if(state.view==='nfse'&&b.dataset.action==='nfse-open'){openNfseDraft(b.dataset.id);return;}
+ if(state.view==='nfse'&&b.dataset.action==='nfse-delete'){void removeNfseDraft(b.dataset.id);return;}
+ if(state.view==='nfse'&&b.dataset.action==='nfse-lookup-cnpj'){void consultNfseCnpj();return;}
+ if(state.view==='nfse'&&b.dataset.action==='nfse-lookup-cep'){void consultNfseCep();return;}
  if(state.view==='nfse'&&b.dataset.action==='nfse-prev'){
   captureNfse();state.nfseStep=Math.max(1,state.nfseStep-1);render();return;
  }
@@ -1518,7 +1666,8 @@ mount.addEventListener('submit',event=>{
  if(event.target.id==='nfse-form'){
   event.preventDefault();
   if(!focusNfseFirstError())return;
-  state.nfseStep=Math.min(3,state.nfseStep+1);render();return;
+  state.nfseStep=Math.min(3,state.nfseStep+1);render();
+  void saveNfse({silent:true});return;
  }
  if(event.target.id==='budget-form'){event.preventDefault();void saveBudget(event.target);return;}
  if(event.target.id==='company-form'){event.preventDefault();void saveCompanySettings(event.target);return;}
