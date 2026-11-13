@@ -6,7 +6,7 @@
   "description": "CIVOLTEN — interface mobile premium aprovada, custos e funcionários",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node --test tests/calc.test.mjs tests/cloud.test.mjs tests/auth-flow.test.mjs tests/payroll.test.mjs tests/finance.test.mjs tests/pricing.test.mjs tests/budget.test.mjs tests/budget-total.test.mjs tests/audit-integrity.test.mjs tests/labor-only.test.mjs tests/operations.test.mjs tests/field-progress.test.mjs tests/work-order-print.test.mjs tests/work-status-transition.test.mjs tests/proposal-acceptance.test.mjs tests/proposal-inbox.test.mjs tests/budget-catalog.test.mjs tests/budget-print.test.mjs tests/budget-schedule.test.mjs tests/schedule-print.test.mjs tests/productivity-catalog.test.mjs tests/catalog-xls.test.mjs tests/cost-presets.test.mjs tests/site-leads.test.mjs tests/push-client.test.mjs tests/nfse-ui.test.mjs",
+    "test": "node --test tests/calc.test.mjs tests/cloud.test.mjs tests/auth-flow.test.mjs tests/payroll.test.mjs tests/finance.test.mjs tests/pricing.test.mjs tests/budget.test.mjs tests/budget-total.test.mjs tests/audit-integrity.test.mjs tests/labor-only.test.mjs tests/operations.test.mjs tests/field-progress.test.mjs tests/work-order-print.test.mjs tests/work-status-transition.test.mjs tests/proposal-acceptance.test.mjs tests/proposal-inbox.test.mjs tests/budget-catalog.test.mjs tests/budget-print.test.mjs tests/budget-schedule.test.mjs tests/schedule-print.test.mjs tests/productivity-catalog.test.mjs tests/catalog-xls.test.mjs tests/cost-presets.test.mjs tests/site-leads.test.mjs tests/push-client.test.mjs tests/nfse-ui.test.mjs tests/nfse-data.test.mjs",
     "test:browser": "node tests/browser.cjs"
   },
   "dependencies": {
