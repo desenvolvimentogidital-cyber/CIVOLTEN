@@ -1,4 +1,4 @@
-@import url("/nfse.css?v=20261113");
+@import url("/nfse.css?v=20261113-cloud");
 :root{--bg:#080808;--panel:#19191b;--panel2:#262426;--gold:#ffbb24;--sun:#ff8b00;--silver:#d9d7d7;--text:#f5f0e9;--muted:#c4beb8;--border:rgba(237,229,218,.50);--soft:rgba(250,250,250,.13);font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:dark}
 *{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:#060606;color:var(--text);font-size:15px;-webkit-font-smoothing:antialiased}
 button,input,select{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
