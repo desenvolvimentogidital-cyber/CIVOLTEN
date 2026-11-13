@@ -1362,7 +1362,7 @@ async function saveNfse(options={}){
   state.nfseId=result.id;
   nfseSaveLocal();
   let clientWarning='';
-  try{await saveNfseClient(auth,state.user.id,state.nfseDraft);}
+  try{await saveNfseClient(auth,state.user.id,state.nfseDraft,state.nfseClients.find(c=>c.cnpj===state.nfseDraft.clientCnpj.replace(/\D/g,''))?.id);}
   catch(err){clientWarning=' Cliente não atualizado: '+String(err.message||err);}
   state.nfseNotice='Rascunho salvo no Supabase, acessível pela sua conta. Nenhuma NFS-e foi emitida.'+clientWarning;
   success=true;
