@@ -1340,7 +1340,9 @@ async function refreshNfseRecords(force=false){
   state.nfseNotice='Não foi possível carregar a nuvem: '+String(err.message||err)+'. Você ainda pode editar localmente.';
  }finally{
   state.nfseLoading=false;
-  if(state.user?.id===forUser&&state.view==='nfse')render();
+  if(state.user?.id===forUser&&state.view==='nfse'){
+   captureNfse();render();
+  }
  }
 }
 function nfseSaveLocal(){
