@@ -37,29 +37,49 @@ export function nfseHasCnpj(value){
  const check=(slice,weights)=>{let sum=0;for(let i=0;i<weights.length;i++)sum+=Number(slice[i])*weights[i];let mod=sum%11;return mod<2?0:11-mod;};
  return check(n,[5,4,3,2,9,8,7,6,5,4,3,2])===Number(n[12])&&check(n,[6,5,4,3,2,9,8,7,6,5,4,3,2])===Number(n[13]);
 }
-export function nfseIssues(d,step=3){
- const issues=[];
- const add=(ok,msg)=>{if(!ok)issues.push(msg);};
- add(nfseHasCnpj(d.issuerCnpj),'Informe um CNPJ válido da empresa emissora.');
- add(Boolean(String(d.issuerName||'').trim()),'Informe o nome da empresa emissora.');
- add(nfseHasCnpj(d.clientCnpj),'Informe um CNPJ válido do tomador.');
- add(Boolean(String(d.clientName||'').trim()),'Informe o nome do cliente.');
- add(Boolean(String(d.description||'').trim()),'Descreva o serviço realizado.');
- add(Number(String(d.amount??'').replace(',','.'))>0,'Informe o valor do serviço.');
- add(/^\d{4}-\d\d-\d\d$/.test(d.competence||''),'Informe a data de competência.');
+// Cada erro possui o nome exato de um campo visível. A interface usa este mapa
+// para destacar, explicar e focar o primeiro problema em vez de mostrar um toast.
+export function nfseFieldErrors(d,step=3){
+ const errors={};
+ const add=(name,valid,message)=>{if(!valid)errors[name]=message;};
+ const required=value=>Boolean(String(value??'').trim());
+ const isRealDate=value=>{
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return false;
+  const [year,month,day]=value.split('-').map(Number);
+  const date=new Date(Date.UTC(year,month-1,day));
+  return year>=2000&&date.getUTCFullYear()===year&&date.getUTCMonth()+1===month&&date.getUTCDate()===day;
+ };
+ const ufs=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+ add('issuerName',required(d.issuerName),'Informe o nome da empresa emissora.');
+ add('issuerCnpj',nfseHasCnpj(d.issuerCnpj),'Informe um CNPJ válido da empresa emissora.');
+ add('regime',regimeOptions.some(([value])=>value===d.regime),'Selecione o regime tributário da empresa.');
+ add('clientName',required(d.clientName),'Informe a razão social do cliente.');
+ add('clientCnpj',nfseHasCnpj(d.clientCnpj),'Informe um CNPJ válido do tomador.');
+ add('clientEmail',!required(d.clientEmail)||/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(d.clientEmail).trim()),'Confira o e-mail do cliente ou deixe em branco.');
+ add('description',required(d.description),'Descreva o serviço realizado.');
+ const amount=Number(String(d.amount??'').replace(',','.'));
+ add('amount',Number.isFinite(amount)&&amount>0,'Informe um valor do serviço maior que zero.');
+ add('competence',isRealDate(d.competence),'Informe uma data de competência válida.');
  if(d.workType==='endereco'){
-  add(digits(d.cep).length===8,'Informe o CEP de 8 dígitos do local da obra.');
-  add(Boolean(String(d.city||'').trim())&&/^[A-Za-z]{2}$/.test(d.uf||''),'Informe município e UF da obra.');
-  add(Boolean(String(d.street||'').trim())&&Boolean(String(d.number||'').trim()),'Informe rua e número da obra.');
- }else add(Boolean(String(d.workCode||'').trim()),'Informe o código de obra/CIB fornecido pelo cliente.');
+  add('cep',digits(d.cep).length===8,'Informe o CEP de 8 dígitos do local da obra.');
+  add('city',required(d.city),'Informe o município da obra.');
+  add('uf',ufs.includes(String(d.uf||'').toUpperCase()),'Informe a UF válida da obra (ex.: SP).');
+  add('street',required(d.street),'Informe o logradouro da obra.');
+  add('number',required(d.number),'Informe o número do endereço da obra.');
+ }else if(d.workType==='cno'||d.workType==='cib'){
+  add('workCode',required(d.workCode),'Informe o código de obra/CIB fornecido pelo cliente.');
+ }else add('workType',false,'Selecione como a obra será identificada.');
  if(step>=2){
-  add(digits(d.serviceCode).length===6,'Informe o código de tributação nacional com seis dígitos.');
-  add(digits(d.nbs).length===9,'Informe a NBS do serviço com nove dígitos.');
-  add(Boolean(String(d.serviceCity||'').trim()),'Informe o município da prestação.');
-  add(d.issRetention!=='conferir','Confirme a retenção do ISS com base no regime e contrato.');
-  add(d.ibsCbs!=='conferir','Confirme a informação de IBS/CBS aplicável à competência.');
+  add('serviceCode',digits(d.serviceCode).length===6,'Informe o código de tributação nacional com seis dígitos.');
+  add('nbs',digits(d.nbs).length===9,'Informe a NBS do serviço com nove dígitos.');
+  add('serviceCity',required(d.serviceCity),'Informe o município da prestação.');
+  add('issRetention',['sim','nao'].includes(d.issRetention),'Confirme a retenção do ISS com base no regime e contrato.');
+  add('ibsCbs',['sim','nao'].includes(d.ibsCbs),'Confirme a informação de IBS/CBS aplicável à competência.');
  }
- return issues;
+ return errors;
+}
+export function nfseIssues(d,step=3){
+ return Object.values(nfseFieldErrors(d,step));
 }
 const row=(label,value)=>'<div class="nfse-review-row"><span>'+e(label)+'</span><strong>'+e(value||'—')+'</strong></div>';
 
