@@ -25,7 +25,7 @@ export function nfseNewDraft(company={}){
  const now=new Date();
  const localDate=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
  return {issuerName:company.companyName||'',issuerCnpj:'',regime:company.taxRegime||'mei',
-  clientName:'',clientCnpj:'',clientEmail:'',description:'',amount:'',competence:localDate,
+  clientName:'',clientCnpj:'',clientEmail:'',clientCep:'',clientStreet:'',clientNumber:'',clientDistrict:'',clientCity:'',clientUf:'',clientComplement:'',description:'',amount:'',competence:localDate,
   serviceCode:'',nbs:'',serviceCity:'',workType:'endereco',workCode:'',cep:'',street:'',number:'',district:'',city:'',uf:'',complement:'',
   taxStatus:'tributavel',specialRegime:'nenhum',issSuspended:'nao',issRetention:'conferir',
   issBenefit:'nao',issDeduction:'nao',ibsCbs:'conferir',
@@ -56,6 +56,7 @@ export function nfseFieldErrors(d,step=3){
  add('clientName',required(d.clientName),'Informe a razão social do cliente.');
  add('clientCnpj',nfseHasCnpj(d.clientCnpj),'Informe um CNPJ válido do tomador.');
  add('clientEmail',!required(d.clientEmail)||/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(d.clientEmail).trim()),'Confira o e-mail do cliente ou deixe em branco.');
+ add('clientCep',!required(d.clientCep)||digits(d.clientCep).length===8,'CEP do cliente precisa ter oito dígitos ou ficar em branco.');
  add('description',required(d.description),'Descreva o serviço realizado.');
  const amount=Number(String(d.amount??'').replace(',','.'));
  add('amount',Number.isFinite(amount)&&amount>0,'Informe um valor do serviço maior que zero.');
@@ -81,9 +82,29 @@ export function nfseFieldErrors(d,step=3){
 export function nfseIssues(d,step=3){
  return Object.values(nfseFieldErrors(d,step));
 }
+const lookupLine=(action,label,notice,kind)=>'<div class="nfse-lookup nfse-wide">'+
+ '<button type="button" data-action="'+action+'" class="nfse-lookup-button">'+icon('search',17)+' '+label+'</button>'+
+ '<span class="nfse-lookup-note" data-nfse-lookup="'+kind+'" role="status" aria-live="polite">'+e(notice||'')+'</span></div>';
+const taxAdvice=regime=>{
+ const base=regime==='mei'?
+  'MEI/SIMEI: o DAS é normalmente mensal e fixo. Não desconte uma alíquota comum do Simples nesta nota. Retenção e enquadramento do serviço devem ser confirmados.':
+  regime==='simples'?
+  'Simples Nacional (ME/EPP): alíquota depende do anexo, receita acumulada e condições da atividade. A retenção de ISS depende das regras aplicáveis. Sem estes dados não existe desconto automático confiável.':
+  'Regime diferente de MEI/Simples: as regras de ISS, retenções e tributos federais exigem conferência específica.';
+ return '<aside class="nfse-tax-guide">'+icon('file',17)+' <span>'+base+'</span></aside>';
+};
+const nfseHistory=(drafts=[])=>'<section class="nfse-history"><div class="nfse-history-heading"><div><h2>Rascunhos salvos</h2><p>Notas em preparação — nenhuma foi emitida.</p></div>'+
+ '<button type="button" data-action="nfse-new" class="nfse-outline-action">'+icon('plus',16)+' Nova</button></div>'+
+ (drafts.length?'<div class="nfse-history-list">'+drafts.slice(0,15).map(row=>{
+  const d=row.payload||{},updated=row.updatedAt?new Date(row.updatedAt).toLocaleDateString('pt-BR'):'';
+  return '<div class="nfse-history-item"><div><strong>'+e(d.clientName||'Cliente ainda não informado')+'</strong>'+
+  '<span>'+e(updated)+' · '+e(row.status==='ready'?'Revisado · não emitido':'Em preenchimento')+'</span></div>'+
+  '<div class="nfse-history-actions"><button type="button" data-action="nfse-open" data-id="'+e(row.id)+'">Abrir</button>'+
+  '<button type="button" class="nfse-remove" data-action="nfse-delete" data-id="'+e(row.id)+'" aria-label="Excluir rascunho">×</button></div></div>';
+ }).join('')+'</div>':'<p class="nfse-history-empty">Ainda não há rascunhos na sua conta.</p>')+'</section>';
 const row=(label,value)=>'<div class="nfse-review-row"><span>'+e(label)+'</span><strong>'+e(value||'—')+'</strong></div>';
 
-export function nfseView(d,step=1,budgets=[]){
+export function nfseView(d,step=1,budgets=[],options={}){
  const issues=nfseIssues(d,step);
  const steps=['Dados','Tributação','Conferência'];
  const stage=steps.map((t,i)=>'<div class="nfse-step'+(step===i+1?' is-current':'')+(step>i+1?' is-done':'')+'"><span>'+String(i+1)+'</span><b>'+t+'</b></div>').join('');
@@ -98,6 +119,9 @@ export function nfseView(d,step=1,budgets=[]){
  row('Valor',displayMoney(d.amount))+
  '</div><div class="nfse-validation-summary">'+(count?'Há '+count+' item(ns) para revisar.':'Campos básicos conferidos.')+'</div>'+
  '<p class="nfse-api-note">A emissão pela API Nacional ainda não está habilitada. Esta tela prepara um rascunho, não uma NFS-e oficial.</p></aside>';
+ const clients=Array.isArray(options.clients)?options.clients:[];
+ const history=options.loaded?nfseHistory(options.drafts||[]):'';
+ const clientPicker=clients.length?'<div class="nfse-import"><label for="nfse-client-pick">Cliente já cadastrado</label><select id="nfse-client-pick"><option value="">Selecione para preencher os dados</option>'+clients.map(c=>'<option value="'+e(c.cnpj)+'">'+e(c.legal_name)+' — '+e(c.cnpj)+'</option>').join('')+'</select></div>':'';
  const budgetSelect=budgets.length?'<div class="nfse-import"><label for="nfse-budget">Preencher a partir de um orçamento</label>'+
  '<select id="nfse-budget"><option value="">Selecione para aproveitar dados existentes</option>'+
  budgets.map(b=>'<option value="'+e(b.id)+'">'+e((b.customer||'Cliente')+' — '+(b.project||b.title||'Orçamento'))+'</option>').join('')+'</select>'+
@@ -109,9 +133,17 @@ export function nfseView(d,step=1,budgets=[]){
    input('CNPJ','issuerCnpj',d.issuerCnpj,{required:true,placeholder:'00.000.000/0000-00',max:18})+
    select('Regime tributário','regime',d.regime,regimeOptions),
    'Use o mesmo regime que consta no cadastro fiscal da empresa.')+
-  fieldGroup('Cliente / Tomador do serviço',input('Razão social','clientName',d.clientName,{required:true,wide:true,max:180})+
+  fieldGroup('Cliente / Tomador do serviço',clientPicker+input('Razão social','clientName',d.clientName,{required:true,wide:true,max:180})+
    input('CNPJ','clientCnpj',d.clientCnpj,{required:true,placeholder:'00.000.000/0000-00',max:18})+
-   input('E-mail (opcional)','clientEmail',d.clientEmail,{type:'email',max:160}))+
+   input('E-mail (opcional)','clientEmail',d.clientEmail,{type:'email',max:160})+
+   lookupLine('nfse-lookup-cnpj','Consultar CNPJ','Busca pública. Confira os dados antes de emitir.','cnpj'))+
+  fieldGroup('Endereço de faturamento do cliente (opcional)',
+   input('CEP','clientCep',d.clientCep,{max:9})+input('Município','clientCity',d.clientCity,{max:100})+
+   input('UF','clientUf',d.clientUf,{max:2})+input('Bairro','clientDistrict',d.clientDistrict,{max:100})+
+   input('Rua','clientStreet',d.clientStreet,{wide:true,max:180})+
+   input('Número','clientNumber',d.clientNumber,{max:20})+
+   input('Complemento','clientComplement',d.clientComplement,{max:100}),
+   'Não confunda o endereço do tomador com o local em que a obra foi executada.')+
   fieldGroup('Serviço prestado',textarea('Descrição do serviço','description',d.description,true)+
    input('Valor total (R$)','amount',d.amount,{type:'number',required:true})+
    input('Data de competência','competence',d.competence,{type:'date',required:true}))+
@@ -119,6 +151,7 @@ export function nfseView(d,step=1,budgets=[]){
    select('Identificação da obra','workType',d.workType,addressOptions,true)+
    (d.workType==='endereco'?
     input('CEP da obra','cep',d.cep,{required:true,placeholder:'00000-000',max:9})+
+    lookupLine('nfse-lookup-cep','Consultar CEP','Se a consulta falhar, você pode preencher manualmente.','cep')+
     input('Município da obra','city',d.city,{required:true,max:100})+
     input('UF','uf',d.uf,{required:true,max:2})+
     input('Bairro','district',d.district,{max:100})+
@@ -149,6 +182,7 @@ export function nfseView(d,step=1,budgets=[]){
    select('Benefício municipal','issBenefit',d.issBenefit,yesNo)+
    select('Dedução / redução da base','issDeduction',d.issDeduction,yesNo),
    'Retenção e deduções exigem confirmação das regras aplicáveis. MEI/SIMEI não usa uma alíquota comum do Simples por nota.')+
+  taxAdvice(d.regime)+
   fieldGroup('Reforma tributária / IBS-CBS',
    select('Preencher informações IBS/CBS?','ibsCbs',d.ibsCbs,[['conferir','A conferir'],...yesNo],true),
    'Considere a competência, o regime tributário e as orientações vigentes do emissor nacional.')+
@@ -173,6 +207,8 @@ export function nfseView(d,step=1,budgets=[]){
  }
  return '<section class="nfse-page"><div class="nfse-head"><div class="nfse-title-icon">'+icon('file',27)+'</div><div><h1>Emitir NFS-e</h1>'+
  '<p>Nota Fiscal de Serviço • preenchimento simplificado</p></div></div>'+
+ (step===1?history:'')+
+ (options.notice?'<div class="nfse-notice" role="status">'+e(options.notice)+'</div>':'')+
  '<div class="nfse-progress">'+stage+'</div>'+
  '<div class="nfse-pending">'+icon('lock',17)+' Modo preparação: nenhuma nota será transmitida ao governo.</div>'+
  '<div class="nfse-layout"><main class="nfse-main">'+body+'</main>'+side+'</div></section>';
