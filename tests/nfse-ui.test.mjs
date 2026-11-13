@@ -32,7 +32,7 @@ test('tela nunca apresenta botão habilitado de emissão oficial',()=>{
  const html=nfseView(complete(),3);
  assert.match(html,/Emitir NFS-e — integração pendente/);
  assert.match(html,/disabled title=/);
- assert.match(html,/Nenhuma? NFS-e/i);
+ assert.match(html,/nenhuma nota será transmitida/i);
 });
 test('protege a renderização dos dados vindos de rascunhos',()=>{
  const html=nfseView({...complete(),clientName:'<script>alert(1)</script>'},3);
