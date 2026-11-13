@@ -41,6 +41,36 @@ const server=createServer((req,res)=>{
    'Cadastro com sessão Supabase não deve pedir confirmação nem login novamente');
   assert.equal(await page.evaluate(()=>window.CIVOLTENPreview.user.email),
    'teste@example.com');
+  // NFS-e: acesso pelo celular, preenchimento, conferência e rascunho sem emissão.
+  await page.locator('.bottom-nav [data-go="more"]').click();
+  await page.locator('[data-go="nfse"]').click();
+  await page.locator('.nfse-page').waitFor();
+  assert.match(await page.locator('.nfse-head').innerText(),/Emitir NFS-e/);
+  await page.locator('#nfse-form [name="issuerName"]').fill('CIVOLTEN Teste');
+  await page.locator('#nfse-form [name="issuerCnpj"]').fill('67.138.121/0001-75');
+  await page.locator('#nfse-form [name="regime"]').selectOption('mei');
+  await page.locator('#nfse-form [name="clientName"]').fill('Ativa Construções Ltda');
+  await page.locator('#nfse-form [name="clientCnpj"]').fill('71.731.707/0001-16');
+  await page.locator('#nfse-form [name="description"]').fill('Instalação de dois pontos de câmeras CFTV');
+  await page.locator('#nfse-form [name="amount"]').fill('4000');
+  await page.locator('#nfse-form [name="cep"]').fill('11060-300');
+  await page.locator('#nfse-form [name="city"]').fill('Santos');
+  await page.locator('#nfse-form [name="uf"]').fill('SP');
+  await page.locator('#nfse-form [name="street"]').fill('Av. Marechal Floriano Peixoto');
+  await page.locator('#nfse-form [name="number"]').fill('74');
+  await page.locator('#nfse-form [type="submit"]').click();
+  await page.locator('#nfse-form [name="serviceCode"]').fill('07.02.02');
+  await page.locator('#nfse-form [name="nbs"]').fill('1.0106.11.00');
+  await page.locator('#nfse-form [name="serviceCity"]').fill('Santos/SP');
+  await page.locator('#nfse-form [name="issRetention"]').selectOption('nao');
+  await page.locator('#nfse-form [name="ibsCbs"]').selectOption('nao');
+  await page.locator('#nfse-form [type="submit"]').click();
+  await page.locator('.nfse-confirm').waitFor();
+  assert.match(await page.locator('.nfse-confirm').innerText(),/4.000,00/);
+  assert.equal(await page.getByRole('button',{name:/Emitir NFS-e — integração pendente/}).isDisabled(),true);
+  await page.screenshot({path:'test-artifacts/nfse-mobile.png',fullPage:true});
+  await page.locator('[data-action="nfse-save"]').click();
+  assert.match(await page.locator('#toast').innerText(),/Rascunho salvo/);
   // Ao sair, um cadastro repetido não substitui a senha da conta existente.
   await page.locator('.bottom-nav [data-go="more"]').click();
   await page.locator('[data-action="signout"]').click();
