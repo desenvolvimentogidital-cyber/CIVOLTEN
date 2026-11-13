@@ -1376,11 +1376,15 @@ async function saveNfse(options={}){
   if(!options.silent)delayToast('Erro ao salvar na nuvem. Confira a mensagem na tela.');
  }finally{
   state.nfseSaving=false;
-  if(state.view==='nfse')render();
+  if(state.view==='nfse'){
+   // Preservar alterações feitas enquanto o salvamento assíncrono terminava.
+   captureNfse();render();
+  }
  }
  return success;
 }
 function newNfse(){
+ if(state.nfseSaving)return;
  const last=state.nfseDraft||{};
  state.nfseDraft={...nfseNewDraft(state.data.company),
   issuerName:last.issuerName||state.data.company?.companyName||'',
@@ -1390,6 +1394,7 @@ function newNfse(){
  nfseSaveLocal();render();window.scrollTo({top:0,behavior:'instant'});
 }
 function openNfseDraft(id){
+ if(state.nfseSaving)return;
  const found=state.nfseDrafts.find(x=>x.id===id);if(!found)return;
  state.nfseDraft={...nfseNewDraft(state.data.company),...found.payload};
  state.nfseId=found.id;state.nfseStep=1;
@@ -1421,7 +1426,10 @@ async function consultNfseCnpj(){
  state.nfseLookup=true;
  nfseLookupMessage('cnpj','Consultando cadastro público...');
  try{
-  const data=await lookupCnpj(state.nfseDraft.clientCnpj);
+  const cnpjRequested=state.nfseDraft.clientCnpj;
+  const data=await lookupCnpj(cnpjRequested);
+  captureNfse();
+  if(state.nfseDraft.clientCnpj!==cnpjRequested)return;
   state.nfseDraft={...state.nfseDraft,...data};
   const caution=data.active?'':' Atenção: situação cadastral não confirmada como ativa.';
   state.nfseNotice='Consulta concluída. Confira os dados cadastrais antes de salvar.'+caution;
@@ -1439,7 +1447,10 @@ async function consultNfseCep(){
  }
  state.nfseLookup=true;nfseLookupMessage('cep','Consultando CEP...');
  try{
-  const data=await lookupCep(state.nfseDraft.cep);
+  const cepRequested=state.nfseDraft.cep;
+  const data=await lookupCep(cepRequested);
+  captureNfse();
+  if(state.nfseDraft.cep!==cepRequested)return;
   state.nfseDraft={...state.nfseDraft,...data};
   state.nfseNotice='Endereço consultado. Confira rua, número e município da obra.';
   render();
