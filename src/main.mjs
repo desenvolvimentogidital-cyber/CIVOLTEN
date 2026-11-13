@@ -29,7 +29,7 @@ import {createWorkOrder,createWorkLog,createMeasurement,
 import {worksView,workDetailView,workApprovalDialog,workLogDialog,
  workMeasurementDialog,workBillingDialog,workPrintable} from './operations-ui.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,payrollSettingsView,cltBreakdownHtml,e,icon} from './views.mjs';
-import {nfseView,nfseNewDraft,nfseIssues,nfseStorageKey} from './nfse-ui.mjs';
+import {nfseView,nfseNewDraft,nfseIssues,nfseFieldErrors,nfseStorageKey} from './nfse-ui.mjs';
 const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
 const SUPABASE_PUBLIC_KEY=__CIVOLTEN_SUPABASE_PUBLISHABLE_KEY__;
 const E2E=__CIVOLTEN_E2E__===true&&['127.0.0.1','localhost'].includes(location.hostname);
@@ -1265,6 +1265,58 @@ function captureNfse(){
  const form=mount.querySelector('#nfse-form');
  if(form)state.nfseDraft={...state.nfseDraft,...Object.fromEntries(new FormData(form))};
 }
+// Erros da NFS-e ficam no próprio campo. O usuário é levado até a primeira
+// correção, com foco acessível e rolagem adequada ao navegador do celular.
+function setNfseFieldError(field,message){
+ const wrapper=field?.closest('.nfse-field');
+ if(!wrapper)return;
+ const old=wrapper.querySelector('.nfse-field-error');
+ if(!message){
+  wrapper.classList.remove('nfse-invalid');
+  field.removeAttribute('aria-invalid');
+  field.removeAttribute('aria-describedby');
+  old?.remove();
+  return;
+ }
+ wrapper.classList.add('nfse-invalid');
+ field.setAttribute('aria-invalid','true');
+ const id='nfse-error-'+field.name;
+ field.setAttribute('aria-describedby',id);
+ const line=old||document.createElement('small');
+ line.id=id;line.className='nfse-field-error';
+ line.textContent=message;
+ if(!old)wrapper.appendChild(line);
+}
+function updateNfseFieldError(field,showUntouched=false){
+ if(!field?.name||field.form?.id!=='nfse-form')return;
+ if(!showUntouched&&field.getAttribute('aria-invalid')!=='true')return;
+ captureNfse();
+ setNfseFieldError(field,nfseFieldErrors(state.nfseDraft,state.nfseStep)[field.name]);
+}
+function focusNfseFirstError(){
+ captureNfse();
+ const errors=nfseFieldErrors(state.nfseDraft,state.nfseStep);
+ const names=Object.keys(errors);
+ if(!names.length)return true;
+ let form=mount.querySelector('#nfse-form');
+ if(!form)return false;
+ // Um rascunho antigo pode conter um erro da etapa anterior.
+ if(!Array.from(form.elements).some(field=>field.name===names[0])&&state.nfseStep>1){
+  state.nfseStep=1;render();
+  form=mount.querySelector('#nfse-form');
+ }
+ let first=null;
+ for(const field of form.querySelectorAll('input[name],textarea[name],select[name]')){
+  const message=errors[field.name];
+  setNfseFieldError(field,message);
+  if(message&&!first)first=field;
+ }
+ if(first){
+  first.focus({preventScroll:true});
+  first.scrollIntoView({behavior:'smooth',block:'center'});
+ }
+ return false;
+}
 function saveNfse(){
  captureNfse();
  try{localStorage.setItem(nfseStorageKey(state.user?.id),JSON.stringify(state.nfseDraft));
@@ -1284,6 +1336,7 @@ function importBudgetToNfse(id){
  render();delayToast('Dados do orçamento importados. Confira todos os campos fiscais.');
 }
 mount.addEventListener('change',event=>{
+ if(state.view==='nfse')updateNfseFieldError(event.target);
  if(state.view==='nfse'&&event.target.id==='nfse-budget'){
   if(event.target.value)importBudgetToNfse(event.target.value);return;
  }
@@ -1411,6 +1464,7 @@ mount.addEventListener('click',async event=>{
  }
 });
 mount.addEventListener('input',event=>{
+ if(state.view==='nfse')updateNfseFieldError(event.target);
  if(event.target.id==='field-search'){
   state.fieldSearch=event.target.value;
   const target=mount.querySelector('#field-result-list');
@@ -1457,11 +1511,13 @@ mount.addEventListener('input',event=>{
   card.hidden=!!query&&!card.dataset.searchName.includes(query);
  });
 });
+mount.addEventListener('focusout',event=>{
+ if(state.view==='nfse')updateNfseFieldError(event.target,true);
+});
 mount.addEventListener('submit',event=>{
  if(event.target.id==='nfse-form'){
-  event.preventDefault();captureNfse();
-  const issues=nfseIssues(state.nfseDraft,state.nfseStep);
-  if(issues.length){delayToast(issues[0]);return;}
+  event.preventDefault();
+  if(!focusNfseFirstError())return;
   state.nfseStep=Math.min(3,state.nfseStep+1);render();return;
  }
  if(event.target.id==='budget-form'){event.preventDefault();void saveBudget(event.target);return;}
