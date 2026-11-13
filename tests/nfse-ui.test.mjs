@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {nfseHasCnpj,nfseNewDraft,nfseIssues,nfseView,nfseStorageKey} from '../src/nfse-ui.mjs';
+import {nfseHasCnpj,nfseNewDraft,nfseIssues,nfseFieldErrors,nfseView,nfseStorageKey} from '../src/nfse-ui.mjs';
 
 const complete=()=>{
  const d=nfseNewDraft({companyName:'CIVOLTEN',taxRegime:'mei'});
@@ -10,6 +10,27 @@ const complete=()=>{
   number:'74',city:'Santos',uf:'SP',district:'Gonzaga',serviceCity:'Santos/SP',
   serviceCode:'07.02.02',nbs:'1.0106.11.00',issRetention:'nao',ibsCbs:'nao'};
 };
+test('identifica campo e mensagem específica para destacar no formulário',()=>{
+ const d=complete();
+ assert.deepEqual(nfseFieldErrors(d,3),{});
+ const problems=nfseFieldErrors({...d,issuerName:'',issuerCnpj:'00000000000000',clientEmail:'email-invalido'},1);
+ assert.equal(Object.keys(problems)[0],'issuerName');
+ assert.ok(problems.issuerCnpj.includes('CNPJ'));
+ assert.ok(problems.clientEmail.includes('e-mail'));
+ assert.equal(problems.nbs,undefined,'Primeira etapa não valida campo que ainda não apareceu');
+});
+test('valida campos vazios e formatos incorretos individualmente',()=>{
+ const d=complete();
+ assert.ok(nfseFieldErrors({...d,competence:'2026-02-30'},1).competence);
+ assert.ok(nfseFieldErrors({...d,amount:'0'},1).amount);
+ assert.ok(nfseFieldErrors({...d,cep:'11060'},1).cep);
+ assert.ok(nfseFieldErrors({...d,uf:'XX'},1).uf);
+ assert.ok(nfseFieldErrors({...d,street:'',number:'74'},1).street);
+ assert.ok(nfseFieldErrors({...d,city:''},1).city);
+ assert.ok(nfseFieldErrors({...d,serviceCode:''},2).serviceCode);
+ assert.ok(nfseFieldErrors({...d,issRetention:'conferir'},2).issRetention);
+ assert.ok(nfseFieldErrors({...d,ibsCbs:'conferir'},2).ibsCbs);
+});
 test('valida CNPJs de emitente e tomador sem confiar no formato',()=>{
  assert.equal(nfseHasCnpj('67.138.121/0001-75'),true);
  assert.equal(nfseHasCnpj('71.731.707/0001-16'),true);
