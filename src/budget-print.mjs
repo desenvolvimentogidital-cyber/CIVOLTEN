@@ -5,6 +5,7 @@ import {brl} from './calc.mjs';
 import {priceBudget,validateCommercial} from './budget.mjs';
 import {e,icon} from './views.mjs';
 import {proposalResponseUrl} from './proposal-link.mjs';
+import {proposalReference} from './budget-document-guard.mjs';
 
 const logo='/assets/civolten-logo.png';
 const mark='/assets/civolten-simbolo.png';
@@ -16,10 +17,7 @@ const dateBR=value=>{
  const match=/^(\d{4})-(\d\d)-(\d\d)/.exec(value);
  return match?match[3]+'/'+match[2]+'/'+match[1]:'Não informada';
 };
-const proposalRef=b=>{
- const year=(b.createdAt||new Date().toISOString()).slice(0,4);
- return b.id?'PC-'+year+'-'+String(b.id).slice(0,8).toUpperCase():'PRÉVIA';
-};
+// A referência da proposta e a do cronograma vêm da mesma função.
 export function splitServicePages(rows){
  const groups=[];let buffer=[],weight=0;
  for(const row of rows){
@@ -146,7 +144,7 @@ export function printableBudget(b,invite=null){
  try{priced=priceBudget(b)}catch{return '';}
  if(!priced)return '';
  const c=validateCommercial(b.commercial),groups=splitServicePages(priced.rows);
- const total=groups.length+2,ref=proposalRef(b),demo=false;
+ const total=groups.length+2,ref=proposalReference(b),demo=false;
  const pages=[page('proposal-cover',1,total,ref,demo,cover(b,1,total,ref,demo))];
  groups.forEach((chunk,i)=>pages.push(page('proposal-services',i+2,total,ref,demo,
   services(chunk,i+1,groups.length,ref),'PROPOSTA COMERCIAL · SERVIÇOS')));
