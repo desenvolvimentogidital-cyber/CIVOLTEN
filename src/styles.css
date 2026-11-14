@@ -2020,3 +2020,30 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 .site-lead-photo-tile span:last-child{font-size:12px;line-height:1.35;text-align:center}
 .site-lead-pdf-icon{display:grid;place-items:center;width:100%;height:180px;
  border-radius:9px;background:#29231b;font-size:30px;font-weight:800;color:#f6c463}
+
+
+/* NFS-e / propostas: correção de impressão da folha 3 com aceite online.
+   Evita que os nomes e as legendas das assinaturas fiquem ocultos pelo rodapé A4. */
+@media print{
+ .budget-pdf-v5 .proposal-conditions:has(.proposal-online-action) .proposal-investment{
+  min-height:27mm!important;
+ }
+ .budget-pdf-v5 .proposal-conditions:has(.proposal-online-action) .proposal-terms{
+  gap:1.6mm!important;margin-top:3mm!important;
+ }
+ .budget-pdf-v5 .proposal-conditions:has(.proposal-online-action) .proposal-term{
+  min-height:15mm!important;padding:1.8mm 4mm!important;
+ }
+ .budget-pdf-v5 .proposal-conditions:has(.proposal-online-action) .proposal-notes{
+  margin-top:2mm!important;padding:2mm 4mm!important;
+ }
+ .budget-pdf-v5 .proposal-conditions:has(.proposal-online-action) .proposal-accept{
+  margin-top:1.5mm!important;padding-bottom:1mm!important;
+ }
+ .budget-pdf-v5 .proposal-conditions:has(.proposal-online-action) .proposal-online-action{
+  margin-top:1.5mm!important;
+ }
+ .budget-pdf-v5 .proposal-conditions:has(.proposal-online-action) .proposal-signatures{
+  margin-top:3mm!important;gap:6mm!important;
+ }
+}
