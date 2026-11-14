@@ -306,6 +306,24 @@ const server=createServer((req,res)=>{
    {v5:true,pages:3,logo:true,watermark:true},'O botão deve chamar o Signature novo');
   // Exportação PDF real (sem chamar impressão do Android), validando o modelo escolhido.
   await page.emulateMedia({media:'print'});
+  // Simular a mesma caixa de aceite que aparece num PDF já enviado,
+  // conferindo que o texto das duas assinaturas não é cortado pelo rodapé.
+  await page.locator('.proposal-conditions .proposal-signatures').evaluate(el=>{
+   const action=document.createElement('div');
+   action.className='proposal-online-action';
+   action.innerHTML='<a href="https://example.invalid/aceite">RESPONDER À PROPOSTA ONLINE</a>'+
+    '<small>Abra o botão ou link do PDF e escolha Aceitar ou Recusar. A resposta ficará registrada.</small>';
+   el.before(action);
+  });
+  const signatureFit=await page.locator('.proposal-conditions').evaluate(el=>{
+   const footer=el.querySelector('.proposal-footer').getBoundingClientRect();
+   const labels=[...el.querySelectorAll('.proposal-signatures small')];
+   return {count:labels.length,bottom:Math.max(...labels.map(x=>x.getBoundingClientRect().bottom)),
+    footerTop:footer.top};
+  });
+  assert.equal(signatureFit.count,2);
+  assert.ok(signatureFit.bottom<signatureFit.footerTop-3,
+   'Legenda das assinaturas deve ficar inteiramente acima do rodapé A4');
   const marks=await page.locator('.proposal-wordmark,.proposal-brand-icon,.proposal-watermark img')
    .evaluateAll(list=>list.map(img=>({ok:img.complete&&img.naturalWidth>0,src:img.getAttribute('src')})));
   assert.equal(marks.length,12,'Logo e marca-d’água em cada uma das três páginas');
