@@ -24,13 +24,13 @@ const normalize=(k,row)=>{
   notes:row.notes||'',photoPaths:row.photo_paths||[],
   updatedAt:row.updated_at,createdAt:row.created_at};
  if(k==='reads')return {id:row.id,inviteId:row.invite_id,seenAt:row.seen_at};
- if(k==='invites')return {id:row.id,budgetId:row.budget_id,token:row.token,
+ if(k==='invites')return {id:row.id,budgetId:row.budget_id||row.budget_snapshot?.id||null,token:row.token,
   budgetSnapshot:row.budget_snapshot,totalCents:Number(row.total_cents),
   validUntil:row.valid_until,status:row.status,
   respondentName:row.respondent_name||'',respondentEmail:row.respondent_email||'',
   declineReason:row.decline_reason||'',respondedAt:row.responded_at||null,
   createdAt:row.created_at};
- if(k==='works')return {id:row.id,budgetId:row.budget_id,customer:row.customer,
+ if(k==='works')return {id:row.id,budgetId:row.budget_id||row.budget_snapshot?.id||null,customer:row.customer,
   project:row.project,contractRef:row.contract_ref,acceptanceRef:row.acceptance_ref,
   budgetSnapshot:row.budget_snapshot,pricedRows:row.priced_rows,
   contractValue:Number(row.contract_value),status:row.status,

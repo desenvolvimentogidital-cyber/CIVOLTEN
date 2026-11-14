@@ -539,11 +539,23 @@ const server=createServer((req,res)=>{
   await page.locator('.bottom-nav [data-go="home"]').click();
   await page.locator('[data-go="budgets"]').first().click();
   await page.locator('[data-action="budget-open"]').first().click();
+  page.once('dialog',dialog=>{
+   assert.match(dialog.message(),/PERMANENTEMENTE/);
+   assert.match(dialog.message(),/PRESERVADOS/);
+   return dialog.accept();
+  });
   await page.locator('[data-action="budget-delete"]').click();
-  assert.equal(await page.locator('.budget-item').count(),2,
-   'O orçamento vinculado ao contrato não pode ser apagado');
+  await page.locator('.budget-screen:not(.budget-editor)').waitFor();
   assert.equal(await page.locator('.budget-list-item').count(),0,
-   'O orçamento continua aberto para leitura');
+   'O orçamento removido não volta para a lista');
+  await page.locator('[data-go="works"]').first().click();
+  assert.equal(await page.locator('[data-action="work-open"]').count(),1,
+   'A exclusão do orçamento não pode apagar a obra');
+  await page.locator('[data-action="work-open"]').first().click();
+  assert.match(await page.locator('.work-header').innerText(),/Concluída/);
+  const ledgerAfterDelete=await page.evaluate(()=>window.CIVOLTENPreview.data.ledger);
+  assert.equal(ledgerAfterDelete.length,1,
+   'Lançamentos de faturamento precisam ser preservados');
 
   assert.deepEqual(errors,[],'Não pode haver erros no navegador');
   console.log('PASSOU: serviços CIVOLTEN, HH por unidade, orçamento, PDF, cronograma, banco simulado e CSV.');

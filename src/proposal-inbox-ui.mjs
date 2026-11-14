@@ -69,6 +69,7 @@ export function responseDetailView(data,id){
   '<div class="page-heading"><button class="small-square" data-go="inbox">'+icon('back',22)+'</button>'+
   '<h1>Resposta não encontrada</h1></div><p class="fin-empty">Atualize o aplicativo e consulte a Central de Respostas.</p></section>';
  const i=r.invite,contract=r.work;
+ const budgetAvailable=(data.budgets||[]).some(b=>b.id===i.budgetId);
  const isAnswered=responded(i);
  const statusTitle=i.status==='accepted'?'Cliente ACEITOU sua proposta':
    i.status==='declined'?'Cliente RECUSOU sua proposta':statusCopy(i);
@@ -93,15 +94,16 @@ export function responseDetailView(data,id){
  '<div class="inbox-next-actions">'+
  (contract?'<button type="button" class="gold-button" data-action="work-open" data-id="'+e(contract.id)+'">'+
   icon('building',19)+' Abrir obra · '+e(contract.contractRef)+'</button>':
-  i.status==='accepted'?'<button type="button" class="gold-button" data-action="work-approve-budget" data-id="'+e(i.budgetId)+'">'+
+  i.status==='accepted'&&budgetAvailable?'<button type="button" class="gold-button" data-action="work-approve-budget" data-id="'+e(i.budgetId)+'">'+
    icon('check',19)+' Formalizar aceite e abrir obra</button>':'')+
- (i.status==='declined'?'<button type="button" class="gold-button" data-action="budget-clone" data-id="'+e(i.budgetId)+'">'+
+ (i.status==='declined'&&budgetAvailable?'<button type="button" class="gold-button" data-action="budget-clone" data-id="'+e(i.budgetId)+'">'+
    icon('file',19)+' Criar nova proposta para este cliente</button>':'')+
- '<button type="button" class="outlined-button" data-action="inbox-open-budget" data-id="'+e(i.budgetId)+'">'+
-   icon('clipboard',18)+' Abrir orçamento deste cliente</button>'+
+ (budgetAvailable?'<button type="button" class="outlined-button" data-action="inbox-open-budget" data-id="'+e(i.budgetId)+'">'+
+   icon('clipboard',18)+' Abrir orçamento deste cliente</button>':'')+
  (i.status==='pending'?'<button type="button" class="outlined-button" data-action="budget-invite-copy" data-id="'+e(i.budgetId)+'">'+
     icon('file',18)+' Copiar link de resposta</button>':'')+
- '<button type="button" class="outlined-button" data-go="inbox">'+icon('back',18)+' Voltar à Central de Respostas</button></div>'+
+ '<button type="button" class="outlined-button" data-go="inbox">'+icon('back',18)+' Voltar à Central de Respostas</button></div>'+ 
+ (!budgetAvailable?'<p class="fin-helper">Orçamento excluído. O histórico da resposta e eventuais registros da obra permanecem preservados. Para uma nova proposta, crie outro orçamento.</p>':'')+
  (i.status==='accepted'?'<p class="fin-helper">Esse é um registro de aceite eletrônico simples. Antes de iniciar o contrato, confirme a identidade e autorização de quem respondeu.</p>':'')+
  '</section>';
 }
