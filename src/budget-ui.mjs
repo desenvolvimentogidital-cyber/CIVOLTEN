@@ -61,6 +61,8 @@ export function budgetsView(data){
    '<button type="button" class="outlined-button budget-work-launch" data-action="budget-invite-copy" data-id="'+e(b.id)+'">'+icon('file',18)+' Copiar link para enviar ao cliente</button>':''):'')+
  '<button type="button" class="outlined-button budget-work-launch" data-action="budget-clone" data-id="'+e(b.id)+'">'+
  icon('file',17)+' Duplicar para nova proposta de mão de obra</button>'+
+ '<button type="button" class="fin-delete budget-list-delete" data-action="budget-delete" data-id="'+e(b.id)+'">'+
+ icon('trash',17)+' Excluir orçamento</button>'+
  '</div>';
  }).join('')+'</div>':
  '<div class="fin-empty">Nenhum orçamento salvo. Crie seu primeiro orçamento com os serviços do catálogo interno.</div>')+
@@ -283,7 +285,7 @@ export function budgetEditorView(data,draft,err='',pickerSearch=''){
  const priced=!!calculated;
  return '<section class="fin-screen budget-screen budget-editor">'+header('Montar orçamento','budgets')+
  status(draft)+
-(locked?'<p class="fin-helper budget-labor-scope"><b>Proposta enviada ou aprovada e congelada.</b> Os valores e condições não podem ser alterados. Para corrigir ou negociar uma nova versão, use <b>Duplicar para nova proposta</b> na lista.</p>':'')+
+(locked?'<p class="fin-helper budget-labor-scope"><b>Proposta enviada ou aprovada e congelada.</b> Os valores e condições não podem ser alterados. É possível excluir o orçamento com confirmação, sem apagar o histórico de aceite, obra e financeiro.</p>':'')+
  '<form id="budget-form" class="budget-form" novalidate>'+
  '<div class="budget-editor-head"><span>Rascunho · '+(draft.id?'edição':'novo')+'</span>'+
  '<p>Ao salvar, o orçamento fica privado na sua conta. Os itens e custos não alteram Financeiro, contratos ou estoque.</p></div>'+
