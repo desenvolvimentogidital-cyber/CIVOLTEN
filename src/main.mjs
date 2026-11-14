@@ -13,6 +13,7 @@ import {createService,createPricingSnapshot,validateBudget,validateBudgetItem,bu
 import {budgetsView,budgetEditorView,budgetPreview,budgetServiceDialog,budgetServiceEstimate,budgetCatalogResults,budgetSchedulePreview,getBudgetSchedule} from './budget-ui.mjs';
 import {scheduleCsv,suggestExecutionTerm} from './budget-schedule.mjs';
 import {workSchedulePlan,printableFieldSchedule} from './schedule-print.mjs';
+import {assertSavedBudgetForPdf,laborOnlyScopeWarnings} from './budget-document-guard.mjs';
 import {fieldProgressView,fieldListHtml,fieldEditDialog} from './field-progress-ui.mjs';
 import {validateFieldUpdate,fieldRecord} from './field-progress.mjs';
 import {uploadFieldPhotos,rollbackFieldPhotos,showFieldPhotos} from './field-evidence.mjs';
@@ -864,6 +865,13 @@ function exportSchedule(){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
  }catch(err){delayToast(String(err.message||err));}
 }
+function confirmLaborOnlyScope(budget){
+ const items=laborOnlyScopeWarnings(budget);
+ if(!items.length)return true;
+ return confirm('Atenção: esta proposta é SOMENTE DE MÃO DE OBRA, mas há serviço(s) que parecem incluir fornecimento, compra ou locação:\n\n'+
+  items.slice(0,3).join('\n')+
+  '\n\nConfirme o escopo, as HH e o que o cliente fornecerá. Deseja continuar gerando o documento?');
+}
 async function printScheduleForField(fromWork=false){
  const old=document.getElementById('field-schedule-print-root');
  if(old)old.remove();
@@ -880,9 +888,10 @@ async function printScheduleForField(fromWork=false){
   }else{
    const draft=state.budgetDraft;
    if(!draft)throw Error('Abra um orçamento para gerar seu cronograma.');
+   const ref=assertSavedBudgetForPdf(draft,state.data.budgets.find(b=>b.id===draft.id));
+   if(!confirmLaborOnlyScope(draft))return;
    plan=getBudgetSchedule(state.data,draft);
-   context={ref:draft.id?'Orçamento '+String(draft.id).slice(0,8).toUpperCase():
-     'Orçamento ainda não salvo',customer:draft.customer,project:draft.project||draft.title,
+   context={ref,customer:draft.customer,project:draft.project||draft.title,
     title:draft.title,items:draft.items};
   }
   div.innerHTML=printableFieldSchedule(plan,context);
@@ -912,6 +921,8 @@ function exportBudget(){
 }
 async function printBudget(){
  try{
+  assertSavedBudgetForPdf(state.budgetDraft,state.data.budgets.find(b=>b.id===state.budgetDraft?.id));
+  if(!confirmLaborOnlyScope(state.budgetDraft))return;
   if(!state.budgetDraft||!priceBudget(state.budgetDraft))
    throw Error('Configure e calcule os valores antes de gerar o PDF.');
   render();
