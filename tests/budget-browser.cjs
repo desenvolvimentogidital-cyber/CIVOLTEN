@@ -246,13 +246,9 @@ const server=createServer((req,res)=>{
    };
   });
   await page.locator('[data-action="budget-schedule-pdf"]').click();
-  await page.waitForFunction(()=>Boolean(window.__fieldScheduleHtml));
-  const fieldHtml=await page.evaluate(()=>window.__fieldScheduleHtml);
-  assert.match(fieldHtml,/CRONOGRAMA DE CAMPO/);
-  assert.match(fieldHtml,/field-schedule-check/);
-  assert.match(fieldHtml,/20 dias úteis/);
-  assert.match(fieldHtml,/civolten-logo.png/);
-  assert.doesNotMatch(fieldHtml,/Valor contratado|R\\$/);
+  assert.equal(await page.evaluate(()=>window.__fieldScheduleHtml),'',
+   'PDF definitivo só pode ser gerado após salvar o orçamento');
+  assert.match(await page.locator('#toast').innerText(),/Salve o orçamento primeiro/);
   assert.equal(await page.locator('#field-schedule-print-root').count(),0);
   assert.match(await page.locator('#budget-price-preview').innerText(),/Preço final para o cliente/);
   await fs.promises.mkdir(path.join(__dirname,'../test-artifacts'),{recursive:true});
@@ -276,6 +272,23 @@ const server=createServer((req,res)=>{
   assert.match(await page.locator('.proposal-conditions').innerText(),/EXCLUSIVAMENTE DE MÃO DE OBRA/);
   assert.equal((await page.evaluate(()=>window.CIVOLTENPreview.data.budgets))[0].commercial.laborOnly,true);
   assert.match(await page.locator('.proposal-conditions').innerText(),/20 dias úteis estimados/);
+  // A impressão salva usa a mesma referência da proposta; jamais 'não salvo'.
+  await page.evaluate(()=>{
+   window.__fieldScheduleHtml='';
+   window.print=()=>{
+    window.__fieldScheduleHtml=document.querySelector('#field-schedule-print-root')?.innerHTML||'';
+    window.dispatchEvent(new Event('afterprint'));
+   };
+  });
+  await page.locator('[data-action="budget-schedule-pdf"]').click();
+  await page.waitForFunction(()=>Boolean(window.__fieldScheduleHtml));
+  const fieldHtml=await page.evaluate(()=>window.__fieldScheduleHtml);
+  assert.match(fieldHtml,/CRONOGRAMA DE CAMPO/);
+  assert.match(fieldHtml,/field-schedule-check/);
+  assert.match(fieldHtml,/20 dias úteis/);
+  assert.match(fieldHtml,/PC-2026-/);
+  assert.doesNotMatch(fieldHtml,/ainda não salvo|Valor contratado/i);
+  assert.equal(await page.locator('#field-schedule-print-root').count(),0);
   assert.doesNotMatch(await page.locator('.proposal-services').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('.proposal-conditions').innerText(),/R\$\s*[\d.]/);
   assert.match(await page.locator('link[rel="stylesheet"]').getAttribute('href'),/civolten-notificacoes-20261110/);
@@ -293,6 +306,24 @@ const server=createServer((req,res)=>{
    {v5:true,pages:3,logo:true,watermark:true},'O botão deve chamar o Signature novo');
   // Exportação PDF real (sem chamar impressão do Android), validando o modelo escolhido.
   await page.emulateMedia({media:'print'});
+  // Simular a mesma caixa de aceite que aparece num PDF já enviado,
+  // conferindo que o texto das duas assinaturas não é cortado pelo rodapé.
+  await page.locator('.proposal-conditions .proposal-signatures').evaluate(el=>{
+   const action=document.createElement('div');
+   action.className='proposal-online-action';
+   action.innerHTML='<a href="https://example.invalid/aceite">RESPONDER À PROPOSTA ONLINE</a>'+
+    '<small>Abra o botão ou link do PDF e escolha Aceitar ou Recusar. A resposta ficará registrada.</small>';
+   el.before(action);
+  });
+  const signatureFit=await page.locator('.proposal-conditions').evaluate(el=>{
+   const footer=el.querySelector('.proposal-footer').getBoundingClientRect();
+   const labels=[...el.querySelectorAll('.proposal-signatures small')];
+   return {count:labels.length,bottom:Math.max(...labels.map(x=>x.getBoundingClientRect().bottom)),
+    footerTop:footer.top};
+  });
+  assert.equal(signatureFit.count,2);
+  assert.ok(signatureFit.bottom<signatureFit.footerTop-3,
+   'Legenda das assinaturas deve ficar inteiramente acima do rodapé A4');
   const marks=await page.locator('.proposal-wordmark,.proposal-brand-icon,.proposal-watermark img')
    .evaluateAll(list=>list.map(img=>({ok:img.complete&&img.naturalWidth>0,src:img.getAttribute('src')})));
   assert.equal(marks.length,12,'Logo e marca-d’água em cada uma das três páginas');
@@ -351,6 +382,9 @@ const server=createServer((req,res)=>{
   await page.locator('[data-action="budget-edit-item"]').first().click();
   await page.locator('#budget-service-form [name="quantity"]').fill('3');
   await page.locator('#budget-service-form [type="submit"]').click();
+  await page.locator('[data-action="budget-print"]').click();
+  assert.match(await page.locator('#toast').innerText(),/alterações não salvas/,
+   'Mudanças de quantidade não podem gerar proposta com a referência antiga');
   await page.locator('#budget-form [type="submit"]').click();
   await page.locator('.budget-list-item').first().waitFor();
   await page.reload({waitUntil:'networkidle'});

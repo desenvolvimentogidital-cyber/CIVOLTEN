@@ -7,6 +7,7 @@ import {printableBudget} from './budget-print.mjs';
 import {companyConfig} from './pricing.mjs';
 import {schedulePlan} from './budget-schedule.mjs';
 import {proposalResponseLabel} from './proposal-link.mjs';
+import {laborOnlyScopeWarnings} from './budget-document-guard.mjs';
 const money=brl;
 const dateBR=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'')?v.slice(8,10)+'/'+v.slice(5,7)+'/'+v.slice(0,4):'Não definida';
 const header=(text,back)=>'<div class="page-heading"><button type="button" class="small-square" data-go="'+back+'" aria-label="Voltar">'+
@@ -273,6 +274,7 @@ export function budgetCatalogResults(records,search=''){
 export function budgetEditorView(data,draft,err='',pickerSearch=''){
  if(!draft)return budgetsView(data);
  const laborOnly=draft.commercial?.laborOnly===true;
+ const scopeWarnings=laborOnlyScopeWarnings(draft);
  const invitation=(data.invites||[]).find(i=>i.budgetId===draft.id);
  const locked=!!(data.works||[]).find(w=>w.budgetId===draft.id)||!!invitation;
  const payrollUnreviewed=(data.employees||[]).some(e=>e.active!==false&&e.contractType==='clt')&&
@@ -299,7 +301,9 @@ export function budgetEditorView(data,draft,err='',pickerSearch=''){
  textarea('Escopo e exclusões','scopeNotes',draft.commercial?.scopeNotes||'')+
  field('Contato comercial da empresa (opcional)','companyContact',draft.commercial?.companyContact||'','text','maxlength="200"')+
  field('CNPJ ou identificação da empresa (opcional)','companyDocument',draft.commercial?.companyDocument||'','text','maxlength="40"')+
- '<div class="budget-section-heading"><h2>Serviços</h2><span>'+draft.items.length+' item(ns)</span></div>'+ (laborOnly?'<p class="fin-helper budget-labor-scope"><b>Somente mão de obra:</b> preços calculados com as horas de trabalho e custos da empresa. Materiais e insumos serão fornecidos pelo contratante e não são cobrados aqui.</p>':'')+
+ '<div class="budget-section-heading"><h2>Serviços</h2><span>'+draft.items.length+' item(ns)</span></div>'+
+ (scopeWarnings.length?'<p class="fin-helper budget-audit-note" role="status"><strong>Conferir escopo:</strong> esta é uma proposta somente de mão de obra, mas os serviços '+scopeWarnings.map(x=>'<b>'+e(x)+'</b>').join(', ')+' parecem incluir fornecimento/compra/locação. Revise a descrição ou confirme que os materiais são do contratante antes de imprimir.</p>':'')+
+ (laborOnly?'<p class="fin-helper budget-labor-scope"><b>Somente mão de obra:</b> preços calculados com as horas de trabalho e custos da empresa. Materiais e insumos serão fornecidos pelo contratante e não são cobrados aqui.</p>':'')+
  '<div class="budget-service-picker">'+
   '<label class="budget-catalog-search-label" for="budget-catalog-search">Procurar serviços do catálogo</label>'+
   '<div class="budget-catalog-search-tools">'+
@@ -339,6 +343,7 @@ export function budgetEditorView(data,draft,err='',pickerSearch=''){
  '<p class="fin-helper">O link exclusivo será incluído no PDF e poderá ser copiado para WhatsApp ou e-mail.</p>':
  '<p class="fin-helper">Salve primeiro um orçamento real somente de mão de obra para gerar um link de resposta.</p>')+
  '</section>'+
+ '<p class="fin-helper">Para gerar a proposta e o cronograma com a mesma referência, salve primeiro este orçamento e reabra-o. Alterações posteriores exigem novo salvamento.</p>'+
  '<div class="budget-secondary-actions"><button type="button" class="outlined-button" data-action="budget-print"'+(priced?'':' disabled')+'>'+icon('file',18)+' Visualizar / PDF</button>'+
  '<button type="button" class="outlined-button" data-action="budget-export"'+(priced?'':' disabled')+'>'+icon('file',18)+' Exportar CSV</button></div>'+ 
  '<p class="budget-pdf-model-label">'+icon('check',15)+' Proposta Signature · 3 páginas · CIVOLTEN</p>'+
