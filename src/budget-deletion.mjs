@@ -13,5 +13,7 @@ export function budgetDeletionPrompt(budget,data){
  if(context.pending)paragraphs.push('Os links de aceite ainda aguardando resposta serão revogados.');
  if(context.invites.length||context.works.length)
   paragraphs.push('Importante: o histórico de aceites, as ordens de serviço, medições e lançamentos financeiros vinculados serão PRESERVADOS. Eles não serão excluídos junto com o orçamento.');
+ if(context.invites.some(i=>i.status==='accepted')&&!context.works.length)
+  paragraphs.push('Atenção: o aceite já registrado ficará no histórico, mas não será possível abrir uma nova ordem de serviço a partir do orçamento apagado.');
  return paragraphs.join('\n\n')+'\n\nConfirmar exclusão?';
 }
