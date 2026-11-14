@@ -14,6 +14,7 @@ import {budgetsView,budgetEditorView,budgetPreview,budgetServiceDialog,budgetSer
 import {scheduleCsv,suggestExecutionTerm} from './budget-schedule.mjs';
 import {workSchedulePlan,printableFieldSchedule} from './schedule-print.mjs';
 import {assertSavedBudgetForPdf,laborOnlyScopeWarnings} from './budget-document-guard.mjs';
+import {budgetDeletionContext,budgetDeletionPrompt} from './budget-deletion.mjs';
 import {fieldProgressView,fieldListHtml,fieldEditDialog} from './field-progress-ui.mjs';
 import {validateFieldUpdate,fieldRecord} from './field-progress.mjs';
 import {uploadFieldPhotos,rollbackFieldPhotos,showFieldPhotos} from './field-evidence.mjs';
@@ -822,25 +823,45 @@ async function saveBudget(form){
   state.budgetError=String(err.message||err);render();
  }finally{state.busy=false;if(button)button.disabled=false;}
 }
-async function removeBudget(){
- const item=state.budgetDraft;
- if(!item?.id||!state.user||state.busy||state.cloudError)return;
- if(state.data.works?.some(w=>w.budgetId===item.id)||
-    state.data.invites?.some(i=>i.budgetId===item.id)){
-  delayToast('Proposta enviada ou aprovada não pode ser excluída. Duplique para criar outra versão.');return;
- }
- if(!confirm('Excluir o orçamento "'+item.title+'"? A ação é irreversível.'))return;
+async function removeBudget(id=state.budgetDraft?.id){
+ if(!id||!state.user||state.busy||state.cloudError)return;
+ const item=(state.data.budgets||[]).find(b=>b.id===id);
+ if(!item){delayToast('Orçamento não encontrado. Sincronize a conta.');return;}
+ // Destruição somente após a confirmação explícita do proprietário.
+ if(!confirm(budgetDeletionPrompt(item,state.data)))return;
+ const userId=state.user.id;
+ const context=budgetDeletionContext(state.data,id);
  state.busy=true;
  try{
-  await deleteRemote(auth,state.user.id,'budgets',item.id);
+  await deleteRemote(auth,userId,'budgets',id);
+  // O Supabase revoga links pendentes e mantém snapshots de histórico/obra.
   const copy=structuredClone(state.data);
-  copy.budgets=copy.budgets.filter(x=>x.id!==item.id);
+  copy.budgets=copy.budgets.filter(b=>b.id!==id);
+  if(context.pending)copy.invites=copy.invites.map(i=>
+   i.budgetId===id&&i.status==='pending'?{...i,status:'revoked'}:i);
+  if(state.user?.id!==userId)return;
   state.data=copy;
-  try{safeSave(localStorage,state.user.id,copy)}catch{/* cache opcional */}
-  state.budgetDraft=null;go('budgets');delayToast('Orçamento excluído.');
- }catch(err){delayToast('Falha ao excluir orçamento: '+String(err.message||err));}
- finally{state.busy=false;}
+  try{safeSave(localStorage,userId,copy)}catch{/* cache opcional */}
+  state.budgetDraft=null;state.budgetError='';
+  go('budgets');
+  delayToast('Orçamento excluído permanentemente. Histórico da obra e aceites preservado.');
+  // Confere revogação e histórico no Supabase; o resultado já confirmado não reverte.
+  try{
+   const fresh=await fetchRemote(auth,userId);
+   if(state.user?.id===userId){
+    state.data=fresh;
+    try{safeSave(localStorage,userId,fresh)}catch{}
+    if(state.view==='budgets')render();
+   }
+  }catch{
+   if(state.user?.id===userId)
+    delayToast('Orçamento excluído. Atualize mais tarde para sincronizar o histórico.');
+  }
+ }catch(err){
+  delayToast('Não foi possível excluir o orçamento: '+String(err.message||err));
+ }finally{state.busy=false;}
 }
+
 function applyScheduleTerm(){
  if(!state.budgetDraft)return;
  let plan;try{plan=getBudgetSchedule(state.data,state.budgetDraft)}catch(err){
@@ -1604,7 +1625,7 @@ mount.addEventListener('click',async event=>{
   else if(action==='budget-schedule-pdf'){await printScheduleForField(false);}
  else if(action==='budget-export'){exportBudget();}
  else if(action==='budget-print'){await printBudget();}
- else if(action==='budget-delete'){await removeBudget();}
+ else if(action==='budget-delete'){await removeBudget(b.dataset.id||state.budgetDraft?.id);}
  else if(action==='new-income'){openEditor('ledger',null,'income');}
  else if(action==='new-expense'){openEditor('ledger',null,'expense');}
  else if(action==='mark-paid'){await markPaid(b.dataset.id);}
