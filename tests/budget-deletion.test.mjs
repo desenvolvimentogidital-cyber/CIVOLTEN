@@ -45,7 +45,7 @@ test('aceite e histórico continuam legíveis quando o orçamento foi excluído'
  assert.match(html,/Orçamento excluído/);
  assert.doesNotMatch(html,/data-action="work-approve-budget"/);
  assert.doesNotMatch(html,/data-action="inbox-open-budget"/);
- assert.match(html,/R\$ 12\.500,00/);
+ assert.match(html,/R\$\s*12\.500,00/);
 });
 test('obra continua acessível na central de respostas se o cadastro original foi apagado',()=>{
  const i=invite('accepted'),w={id:'obra-1',budgetId:id,contractRef:'OS-2026-ABC'};
