@@ -28,7 +28,7 @@ test('fórmula usa custo total/hora + custo direto; tributo e lucro sobre preço
  assert.ok(p.totalLaborSale>0&&p.totalMaterialsSale>0);
  assert.equal(p.totalCost+p.totalTax+p.profit,p.totalSale);
  assert.equal(p.totalLaborSale+p.totalMaterialsSale,p.totalSale);
- assert.equal(p.totalMaterialsSale,0);
+ assert.ok(p.totalLaborSale>0&&p.totalMaterialsSale>0);
 });
 test('dois itens com quantidades diferentes compõem total sem perdas',()=>{
  const items=[createService('DEMO-E02','i2'),createService('DEMO-C02','i3')];
