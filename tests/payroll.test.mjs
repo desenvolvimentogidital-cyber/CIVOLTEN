@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {payrollPreset,payrollConfig,validatePayroll,cltFromCents} from '../src/payroll.mjs';
-import {employeeCost,summary,fresh} from '../src/calc.mjs';
+import {employeeCost,summary,fresh,validate} from '../src/calc.mjs';
 import {createE2EClient} from '../src/e2e-client.mjs';
 import {fetchRemote,putPayrollRemote} from '../src/cloud.mjs';
 import {payrollConsistencyWarning} from '../src/settings-ui.mjs';
@@ -81,4 +81,19 @@ test('avisa divergência entre anexo da empresa e cenário de encargos sem alter
  assert.match(payrollConsistencyWarning({taxRegime:'simples',annex:'IV'},{regime:'simples_other'}),/Anexo IV.*demais anexos/);
  assert.match(payrollConsistencyWarning({taxRegime:'presumido',annex:'nao_definido'},{regime:'annex_iv'}),/cenário de encargos gerais/);
  assert.equal(payrollConsistencyWarning({taxRegime:'simples',annex:'III'},{regime:'simples_other'}),'');
+});
+
+test('dias trabalhados calculam custo diário sem alterar o salário mensal',()=>{
+ const cost=employeeCost({contractType:'clt',salary:2800,quantity:22});
+ assert.equal(cost.monthly,434778);
+ assert.equal(cost.daily,19763);
+ const data=fresh();data.employees=[{contractType:'clt',salary:2800,quantity:22,active:true}];
+ assert.equal(summary(data).team,434778);
+});
+test('cadastro CLT exige dias trabalhados válidos entre 1 e 31',()=>{
+ const base={name:'Ana',role:'Eletricista',contractType:'clt',salary:'2800',hours:'176',benefits:'0',extras:'0'};
+ assert.throws(()=>validate('employees',base),/dias trabalhados/);
+ assert.throws(()=>validate('employees',{...base,quantity:'32'}),/dias trabalhados/);
+ const saved=validate('employees',{...base,quantity:'22'});
+ assert.equal(saved.quantity,22);
 });
