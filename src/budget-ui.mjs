@@ -297,6 +297,9 @@ export function budgetEditorView(data,draft,err='',pickerSearch=''){
  textarea('Observações','notes',draft.notes)+
  '<div class="budget-section-heading"><h2>Condições comerciais</h2></div>'+ 
  '<p class="fin-helper">São exibidas somente na última página da proposta. Preencha condições reais; campos vazios serão marcados como a definir, sem inventar prazos ou garantias.</p>'+ 
+ '<label class="modal-field"><span>Apresentação dos valores na proposta</span><select name="pricePresentation" data-budget-field="pricePresentation">'+
+ '<option value="total"'+(draft.commercial?.pricePresentation!=='split'?' selected':'')+'>Mostrar somente o investimento total</option>'+
+ '<option value="split"'+(draft.commercial?.pricePresentation==='split'?' selected':'')+'>Separar mão de obra e materiais</option></select></label>'+
  textarea('Condições de pagamento','paymentTerms',draft.commercial?.paymentTerms||'')+
  textarea('Prazo de execução','executionTerm',draft.commercial?.executionTerm||'')+
  textarea('Garantia dos serviços','warrantyTerms',draft.commercial?.warrantyTerms||'')+
