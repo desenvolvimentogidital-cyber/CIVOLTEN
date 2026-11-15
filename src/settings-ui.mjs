@@ -52,9 +52,21 @@ export function pricingPreview(data,hours='8',extra='0'){
    '<div class="fin-highlight"><span>Preço sugerido</span><b>'+money(q.selling)+'</b></div></div>':
    '<p class="form-error">Informe horas positivas e custo direto válido para calcular.</p>')+'</div>';
 }
+export function payrollConsistencyWarning(company,payroll){
+ const cfg=companyConfig(company),regime=String(payroll?.regime||'annex_iv');
+ if(cfg.taxRegime==='simples'&&['I','II','III','V'].includes(cfg.annex)&&regime==='annex_iv')
+  return 'Conferência contábil necessária: a empresa está configurada no Simples Nacional, Anexo '+cfg.annex+', mas a folha está usando o cenário de encargos do Anexo IV. Isso pode depender das atividades e receitas da empresa; não alteramos nenhum percentual automaticamente.';
+ if(cfg.taxRegime==='simples'&&cfg.annex==='IV'&&regime==='simples_other')
+  return 'Conferência contábil necessária: a empresa está configurada no Anexo IV, mas a folha está usando o cenário dos demais anexos do Simples. Confirme o enquadramento antes de usar o custo da equipe em propostas.';
+ if(['presumido','real'].includes(cfg.taxRegime)&&regime!=='general')
+  return 'Conferência contábil necessária: o regime tributário da empresa e o cenário de encargos gerais da folha estão diferentes. Confirme com a contabilidade antes de usar o custo da equipe em propostas.';
+ return '';
+}
 export function companyView(data,hours='8',extra='0'){
  const cfg=companyConfig(data.company),sum=summary(data);
+ const payrollWarning=payrollConsistencyWarning(data.company,data.payroll);
  return '<section class="fin-screen company-screen">'+heading('Configurações da empresa')+
+ (payrollWarning?'<p class="fin-helper cost-pending-note" role="alert"><strong>Conferir folha e regime tributário.</strong> '+e(payrollWarning)+'</p>':'')+
  '<div class="fin-kpi-grid">'+metric('Custo mensal da empresa',sum.total)+
  '<div class="fin-kpi"><span>Funcionários ativos</span><strong>'+sum.employees+'</strong></div></div>'+
  '<p class="fin-intro">Esses parâmetros serão usados como padrão para formar preços de mão de obra e futuros orçamentos. Não alteram os custos originais.</p>'+
