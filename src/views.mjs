@@ -200,7 +200,7 @@ export function teamView(data){
    '<span class="employee-top"><span class="employee-avatar"><span>'+e(initials)+'</span></span>'+
    '<span class="employee-info"><b>'+e(person.name)+'</b><em>'+e(person.role||'Profissional')+'</em></span>'+
    '<span class="staff-pill '+(person.active===false?'inactive':'')+'"><span></span>'+(person.active===false?'Inativo':'Ativo')+'</span></span>'+
-   '<span class="employee-bottom"><span class="staff-value">'+icon('calendar',19)+'<span>Custo mensal'+(person.contractType==='clt'?' estimado':'')+'<b>'+brl(c.monthly)+'</b></span></span>'+
+   '<span class="employee-bottom"><span class="staff-value">'+icon('calendar',19)+'<span>Custo mensal'+(person.contractType==='clt'?' estimado':'')+'<b>'+brl(c.monthly)+'</b>'+(person.contractType==='clt'?'<small>Custo/dia: '+brl(c.daily)+'</small>':'')+'</span></span>'+
    '<span class="staff-value">'+icon('clock',19)+'<span>Custo por hora<b>'+brl(c.hourly)+'</b></span></span></span></button>';
   }).join(''):'<div class="empty-state">'+icon('users',32)+'<b>Nenhum funcionário cadastrado</b>'+
   '<span>Cadastre o primeiro profissional para iniciar.</span></div>')+'</div>'+
