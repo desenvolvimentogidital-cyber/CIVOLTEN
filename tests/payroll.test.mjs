@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {payrollPreset,payrollConfig,validatePayroll,cltFromCents} from '../src/payroll.mjs';
 import {employeeCost,summary,fresh,validate} from '../src/calc.mjs';
 import {createE2EClient} from '../src/e2e-client.mjs';
-import {fetchRemote,putPayrollRemote} from '../src/cloud.mjs';
+import {fetchRemote,putPayrollRemote,putRemote} from '../src/cloud.mjs';
 import {payrollConsistencyWarning} from '../src/settings-ui.mjs';
 test('salário CLT R$ 2.800 calcula provisões, FGTS, CPP e RAT sem digitar percentuais',()=>{
  const cost=employeeCost({contractType:'clt',salary:2800});
@@ -96,4 +96,20 @@ test('cadastro CLT exige dias trabalhados válidos entre 1 e 31',()=>{
  assert.throws(()=>validate('employees',{...base,quantity:'32'}),/dias trabalhados/);
  const saved=validate('employees',{...base,quantity:'22'});
  assert.equal(saved.quantity,22);
+});
+
+test('dias trabalhados são persistidos no campo de quantidade já existente',async()=>{
+ const m=new Map(),storage={getItem:k=>m.get(k)||null,setItem:(k,v)=>m.set(k,v)};
+ globalThis.localStorage=storage;
+ const client=createE2EClient();
+ const {data}=await client.auth.signInWithPassword({email:'dias@example.com',password:'teste'});
+ const userId=data.user.id;
+ const employee=validate('employees',{name:'Ana',role:'Eletricista',contractType:'clt',
+  salary:'2800',quantity:'22',hours:'176',benefits:'0',extras:'0'});
+ employee.id='00000000-0000-4000-8000-000000000001';
+ await putRemote(client,userId,'employees',employee);
+ const loaded=await fetchRemote(client,userId);
+ const saved=loaded.employees.find(x=>x.id===employee.id);
+ assert.equal(saved.quantity,22);
+ assert.equal(employeeCost(saved,loaded.payroll).daily,19763);
 });
