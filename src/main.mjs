@@ -379,7 +379,7 @@ function refreshCltPreview(){
  const form=modal.querySelector('#record-form'),area=modal.querySelector('#clt-preview');
  if(!form||!area)return;
  const fields=Object.fromEntries(new FormData(form));
- area.innerHTML=cltBreakdownHtml({salary:fields.salary,
+ area.innerHTML=cltBreakdownHtml({salary:fields.salary,quantity:fields.quantity,
   benefits:fields.benefits,extras:fields.extras},state.data.payroll);
 }
 function refreshVariableCostPreview(){
