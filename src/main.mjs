@@ -601,7 +601,7 @@ function updateBudgetField(element){
   const item=draft.items.find(x=>x.id===container.dataset.budgetItem);
   if(item&&['description','unit','quantity','laborHours','directCost'].includes(key))
    item[key]=element.value;
- }else if(['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument'].includes(key)){
+ }else if(['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument','pricePresentation'].includes(key)){
   draft.commercial={...(draft.commercial||{}),[key]:element.value};
  }else if(['title','customer','project','location','expiresOn','notes'].includes(key))
   draft[key]=element.value;
@@ -803,7 +803,7 @@ async function saveBudget(form){
   for(const key of ['title','customer','project','location','notes','expiresOn'])
    if(key in f)draft[key]=f[key];
   draft.commercial={...(draft.commercial||{})};
-  for(const key of ['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument'])
+  for(const key of ['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument','pricePresentation'])
    if(key in f)draft.commercial[key]=f[key];
   if(draft.demo!==false||draft.items.some(item=>item.source==='demo'))
    throw Error('Revise os itens e custos do orçamento anterior antes de salvar como proposta comercial.');
