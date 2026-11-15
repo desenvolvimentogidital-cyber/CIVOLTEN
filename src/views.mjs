@@ -245,7 +245,8 @@ export function editorView(kind,item={},settings=null){
  '<div class="employee-fields" data-contract="clt">'+
  textInput('Salário-base mensal (R$)','salary',item.salary??'',{type:'number'})+
  '<p class="helper-text">FGTS, 13º, férias e encargos são calculados automaticamente usando as configurações da empresa. O salário continua mensal; os dias informados calculam o custo médio por dia trabalhado.</p>'+
- textInput('Dias trabalhados no mês','quantity',item.quantity??'',{type:'number',required:true,placeholder:'Ex.: 22'})+\n textInput('Horas produtivas por mês (opcional, para custo/hora)','hours',item.hours??'',{type:'number'})+
+ textInput('Dias trabalhados no mês','quantity',item.quantity??'',{type:'number',required:true,placeholder:'Ex.: 22'})+
+ textInput('Horas produtivas por mês (opcional, para custo/hora)','hours',item.hours??'',{type:'number'})+
  '<div class="form-cols">'+textInput('Benefícios (R$)','benefits',item.benefits??'',{type:'number'})+
  textInput('Outros custos (R$)','extras',item.extras??'',{type:'number'})+'</div>'+
  '<div id="clt-preview" class="clt-preview" aria-live="polite"></div></div>'+
@@ -284,6 +285,7 @@ export function cltBreakdownHtml(p,settings){
  if(cost.monthly===null)return '<p class="helper-text">Informe o salário-base para visualizar o custo automático.</p>';
  const b=cost.breakdown;
  return '<div class="clt-preview-heading">Custo total mensal estimado<strong>'+brl(cost.monthly)+'</strong></div>'+
+  (cost.daily!==null?breakRow('Custo médio por dia trabalhado',cost.daily):'')+
   breakRow('Salário-base',b.salary)+breakRow('13º proporcional',b.thirteenth)+
   breakRow('Provisão para férias/cobertura',b.vacation)+
   breakRow('Adicional de 1/3 de férias',b.vacationThird)+
