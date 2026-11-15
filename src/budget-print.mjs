@@ -115,6 +115,11 @@ const conditions=(b,p,c,invite=null)=>
  '<b>INVESTIMENTO TOTAL<br>DA PROPOSTA</b></div>'+
  '<strong>'+brl(p.totalSale)+'</strong></div>'+
  (c.laborOnly?'<div class="proposal-labor-scope"><strong>PROPOSTA EXCLUSIVAMENTE DE MÃO DE OBRA</strong><p>Materiais e insumos necessários à execução são de fornecimento do contratante e não estão incluídos no preço. Contratações especiais de máquinas ou equipamentos devem ser tratadas separadamente.</p></div>':'')+
+ (c.pricePresentation==='split'?'<div class="proposal-terms proposal-price-split">'+
+  card('users','Mão de obra',brl(p.totalLaborSale))+
+  (c.laborOnly?card('package','Materiais','Não incluídos · fornecimento do contratante'):
+   card('package','Materiais e equipamentos',brl(p.totalMaterialsSale)))+
+  '</div>':'')+
  '<div class="proposal-terms">'+
  card('coins','Condições de Pagamento',c.paymentTerms)+
  card('calendar','Prazo de Execução',c.executionTerm)+
