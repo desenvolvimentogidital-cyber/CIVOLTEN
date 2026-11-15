@@ -188,10 +188,12 @@ export function costsView(data,tab='fixed'){
 }
 export function teamView(data){
  const staff=(data.employees||[]),sum=summary(data);
+ const missingDays=staff.filter(p=>p.active!==false&&p.contractType==='clt'&&!(Number(p.quantity)>0)).length;
  return '<div class="page-heading"><button class="small-square is-plain" data-go="home" aria-label="Voltar">'+icon('back',25)+'</button><h1>Funcionários</h1>'+
   '<button class="small-square" data-action="search-people" aria-label="Pesquisar funcionários">'+icon('search',23)+'</button></div>'+
   '<div class="team-total"><span class="team-image">'+icon('hardhat',50)+icon('users',36)+'</span>'+
   '<div><span>Custo da equipe no mês</span><strong>'+brl(sum.team)+'</strong></div></div>'+
+  (missingDays?'<p class="helper-text" role="status">'+missingDays+' funcionário(s) CLT ainda sem dias trabalhados informados. Edite o cadastro para calcular o custo médio diário.</p>':'')+
   '<div class="team-search" id="team-search" hidden><label>'+icon('search',20)+
   '<input type="search" id="search-people" placeholder="Buscar profissional"></label></div>'+
   '<div class="employee-list">'+(staff.length?staff.map(person=>{
