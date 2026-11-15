@@ -93,6 +93,7 @@ export function validateCommercial(raw={}){
   companyDocument:safeText(c.companyDocument,40,'Documento da empresa'),
   // Orçamentos anteriores sem esta marca continuam com a composição histórica.
   laborOnly:c.laborOnly===true,
+  pricePresentation:c.pricePresentation==='split'?'split':'total',
   schedule:validateSchedule(c.schedule)
  };
 }
@@ -176,6 +177,11 @@ export function budgetQuantityEstimate(snapshot,hours,quantity,extraDirect=0){
 export function budgetUnitEstimate(snapshot,hours,extraDirect=0){
  return budgetQuantityEstimate(snapshot,hours,1,extraDirect);
 }
+const splitSelling=(selling,labor,materials)=>{
+ const cost=labor+materials;
+ const laborSelling=cost>0?Math.floor(selling*labor/cost):selling;
+ return {laborSelling,materialsSelling:selling-laborSelling};
+};
 export function priceBudget(raw){
  const snapshot=raw?.pricing;
  if(!snapshot)return null;
@@ -219,10 +225,13 @@ export function priceBudget(raw){
    const tax=last?quote.taxes-assignedTax:
     Math.floor(quote.taxes*selling/quote.selling);
    assignedTax+=tax;
-   return {...row,labor,cost,selling,tax,unitSelling:selling/row.quantity};
+   const split=splitSelling(selling,labor,row.materials);
+   return {...row,labor,cost,selling,tax,...split,unitSelling:selling/row.quantity};
   });
   return {rows:distributed,totalCost,totalSale:quote.selling,totalTax:quote.taxes,
-   totalHours:plan.totalHours,profit:quote.grossProfit,snapshot:p,quantity:rows.length,
+   totalLaborSale:distributed.reduce((sum,row)=>sum+row.laborSelling,0),
+   totalMaterialsSale:distributed.reduce((sum,row)=>sum+row.materialsSelling,0),
+   totalHours:plan.totalHours,profit:quote.grossProfit,snapshot:p,
    pricingMode:'days',schedule:plan,totalLabor,totalMaterials};
  }
  let totalCost=0,totalSale=0,totalHours=0,totalTax=0;
@@ -232,12 +241,15 @@ export function priceBudget(raw){
   if(!price)throw Error('Não foi possível calcular o total deste serviço; confira HH, quantidade e custos.');
   const hours=price.totalHours,labor=price.labor,materials=price.materials,cost=price.cost;
   totalCost+=cost;totalSale+=price.selling;totalHours+=hours;totalTax+=price.taxes;
+  const split=splitSelling(price.selling,labor,materials);
   return {...r,hours,labor,materials,cost,selling:price.selling,
-   tax:price.taxes,unitSelling:price.perUnitSelling};
+   tax:price.taxes,...split,unitSelling:price.perUnitSelling};
  });
  if(!Number.isSafeInteger(totalCost)||!Number.isSafeInteger(totalSale)||
    totalSale>99999999999999)throw Error('Valor final excedeu o limite.');
  return {rows,totalCost,totalSale,totalTax,totalHours,
+  totalLaborSale:rows.reduce((sum,row)=>sum+row.laborSelling,0),
+  totalMaterialsSale:rows.reduce((sum,row)=>sum+row.materialsSelling,0),
   profit:totalSale-totalCost-totalTax,snapshot:p,quantity:rows.length,pricingMode:'hours'};
 }
 const csvSafe=v=>{
