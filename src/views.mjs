@@ -244,8 +244,8 @@ export function editorView(kind,item={},settings=null){
  select('Vínculo','contractType',item.contractType||'clt',[['clt','CLT'],['contractor','Prestador / terceirizado']])+
  '<div class="employee-fields" data-contract="clt">'+
  textInput('Salário-base mensal (R$)','salary',item.salary??'',{type:'number'})+
- '<p class="helper-text">FGTS, 13º, férias e encargos são calculados automaticamente usando as configurações da empresa.</p>'+
- textInput('Horas produtivas por mês (opcional, para custo/hora)','hours',item.hours??'',{type:'number'})+
+ '<p class="helper-text">FGTS, 13º, férias e encargos são calculados automaticamente usando as configurações da empresa. O salário continua mensal; os dias informados calculam o custo médio por dia trabalhado.</p>'+
+ textInput('Dias trabalhados no mês','quantity',item.quantity??'',{type:'number',required:true,placeholder:'Ex.: 22'})+\n textInput('Horas produtivas por mês (opcional, para custo/hora)','hours',item.hours??'',{type:'number'})+
  '<div class="form-cols">'+textInput('Benefícios (R$)','benefits',item.benefits??'',{type:'number'})+
  textInput('Outros custos (R$)','extras',item.extras??'',{type:'number'})+'</div>'+
  '<div id="clt-preview" class="clt-preview" aria-live="polite"></div></div>'+
