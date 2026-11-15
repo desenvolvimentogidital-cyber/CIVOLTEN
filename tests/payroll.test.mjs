@@ -4,6 +4,7 @@ import {payrollPreset,payrollConfig,validatePayroll,cltFromCents} from '../src/p
 import {employeeCost,summary,fresh} from '../src/calc.mjs';
 import {createE2EClient} from '../src/e2e-client.mjs';
 import {fetchRemote,putPayrollRemote} from '../src/cloud.mjs';
+import {payrollConsistencyWarning} from '../src/settings-ui.mjs';
 test('salário CLT R$ 2.800 calcula provisões, FGTS, CPP e RAT sem digitar percentuais',()=>{
  const cost=employeeCost({contractType:'clt',salary:2800});
  assert.equal(cost.monthly,434778);
@@ -73,4 +74,11 @@ test('configurações CLT são salvas separadamente por conta no Supabase',async
  assert.equal(after.payroll.regime,'simples_other');
  assert.equal(after.payroll.reviewed,true);
  assert.equal(after.fixed.length,0);
+});
+
+test('avisa divergência entre anexo da empresa e cenário de encargos sem alterar alíquotas',()=>{
+ assert.match(payrollConsistencyWarning({taxRegime:'simples',annex:'III'},{regime:'annex_iv'}),/Anexo III.*Anexo IV/);
+ assert.match(payrollConsistencyWarning({taxRegime:'simples',annex:'IV'},{regime:'simples_other'}),/Anexo IV.*demais anexos/);
+ assert.match(payrollConsistencyWarning({taxRegime:'presumido',annex:'nao_definido'},{regime:'annex_iv'}),/cenário de encargos gerais/);
+ assert.equal(payrollConsistencyWarning({taxRegime:'simples',annex:'III'},{regime:'simples_other'}),'');
 });
