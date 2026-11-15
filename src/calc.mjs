@@ -50,7 +50,7 @@ export function employeeCost(p,companySettings=DEFAULT_PAYROLL){
   const monthly=unit==='month'?rate:qty!==null&&qty>=0?Math.round(rate*qty):null;
   const hourly=unit==='hour'?rate:(unit==='day'&&hours>0?
    Math.round(rate/hours):unit==='month'&&hours>0?Math.round(rate/hours):null);
-  return {monthly,daily:unit==='day'?rate:(qty>0?Math.round(monthly/qty):null),hourly,status:monthly===null?'partial':'ready'};
+  return {monthly,daily:unit==='day'?rate:(monthly!==null&&qty>0?Math.round(monthly/qty):null),hourly,status:monthly===null?'partial':'ready'};
  }
  const salary=cents(p.salary),monthlyHours=decimal(p.hours);
  const benefits=cents(p.benefits??0),extras=cents(p.extras??0);
