@@ -596,6 +596,16 @@ function updateBudgetField(element){
  }
  const key=element.dataset.budgetField;
  if(!key)return false;
+ if(key==='laborOnly'){
+  const next=element.value==='true';
+  if(next&&draft.items.some(item=>Number(item.directCost||0)>0)){
+   element.value='false';
+   delayToast('Há materiais ou equipamentos informados nos serviços. Zere esses valores antes de mudar para somente mão de obra.');
+   return true;
+  }
+  draft.commercial={...(draft.commercial||{}),laborOnly:next};
+  render();return true;
+ }
  const container=element.closest('[data-budget-item]');
  if(container){
   const item=draft.items.find(x=>x.id===container.dataset.budgetItem);
@@ -805,6 +815,7 @@ async function saveBudget(form){
   draft.commercial={...(draft.commercial||{})};
   for(const key of ['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument','pricePresentation'])
    if(key in f)draft.commercial[key]=f[key];
+  if('laborOnly' in f)draft.commercial.laborOnly=f.laborOnly==='true';
   if(draft.demo!==false||draft.items.some(item=>item.source==='demo'))
    throw Error('Revise os itens e custos do orçamento anterior antes de salvar como proposta comercial.');
   draft.pricing=draft.pricing||createPricingSnapshot(state.data);
