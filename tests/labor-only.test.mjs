@@ -25,6 +25,8 @@ test('novo escopo somente mao de obra: HH e preco corretos, sem material',()=>{
  assert.equal(p.totalSale,2507079);
  assert.equal(p.totalTax+p.profit+p.totalCost,p.totalSale);
  assert.equal(p.rows[0].materials,0);
+ assert.equal(p.totalLaborSale,p.totalSale);
+ assert.equal(p.totalMaterialsSale,0);
  const csv=budgetCsv(b);
  assert.match(csv,/Fornecimento exclusivo de mão de obra/);
  assert.match(csv,/25070\.79/);
