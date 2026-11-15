@@ -57,7 +57,9 @@ export function employeeCost(p,companySettings=DEFAULT_PAYROLL){
  if(salary===null||salary<=0)return {monthly:null,daily:null,hourly:null,status:'pending'};
  const clt=cltFromCents(salary,companySettings);
  const monthly=clt.subtotal+(benefits||0)+(extras||0);
- const daysWorked=decimal(p.quantity);\n return {monthly,daily:daysWorked>0?Math.round(monthly/daysWorked):null,\n  hourly:monthlyHours>0?Math.round(monthly/monthlyHours):null,
+ const daysWorked=decimal(p.quantity);
+ return {monthly,daily:daysWorked>0?Math.round(monthly/daysWorked):null,
+  hourly:monthlyHours>0?Math.round(monthly/monthlyHours):null,
   status:'ready',estimated:true,settingsReviewed:clt.reviewed,
   breakdown:{...clt,benefits:benefits||0,extras:extras||0,monthly}};
 }
@@ -117,8 +119,10 @@ export function validate(kind,fields){
   }
   const salary=requireAmount(fields.salary,'o salário-base');
   if(salary<=0)throw Error('O salário deve ser maior que zero.');
-  const hours=pick(fields.hours);
+  const hours=pick(fields.hours),daysWorked=pick(fields.quantity);
   if(hours!==null&&hours<=0)throw Error('Horas produtivas devem ser maiores que zero.');
+  if(daysWorked===null||!Number.isInteger(daysWorked)||daysWorked<1||daysWorked>31)
+   throw Error('Informe os dias trabalhados no mês (de 1 a 31).');
   const benefits=pick(fields.benefits)??0,extras=pick(fields.extras)??0;
   if(benefits<0||extras<0)throw Error('Benefícios e outros custos não podem ser negativos.');
   return {name,role,contractType,active,salary,hours,quantity:daysWorked,benefits,extras};
