@@ -12,11 +12,11 @@ As alíquotas são configuradas **uma vez por conta** em Mais → Encargos CLT d
 
 | Tipo | FGTS | CPP patronal | RAT estimado | Terceiros |
 |---|---:|---:|---:|---:|
-| Simples Nacional, Anexo IV (cenário inicial) | 8% | 20% | 2% | 0% |
+| MEI com um único empregado (cenário legal específico) | 8% | 3% | 0% | 0% |\n| Simples Nacional, Anexo IV (cenário inicial) | 8% | 20% | 2% | 0% |
 | Simples Nacional, demais anexos | 8% | 0% | 0% | 0% |
 | Lucro Presumido / Real | 8% | 20% | 2% | 5,8% |
 
-**Não é possível determinar o enquadramento da empresa apenas pelo salário.** Os percentuais variam com CNAE, Anexo do Simples, RAT ajustado por FAP, entidades de terceiros, lotação tributária, eventual CPRB/desoneração e regras específicas. A configuração padrão é um ponto de partida para cenários de obras, mas pode não ser o enquadramento da empresa. O contador deve conferir e ajustar uma única vez. A estimativa não deve ser tratada como guia de pagamento, valor exato da folha ou obrigação fiscal.
+**Não é possível determinar o enquadramento da empresa apenas pelo salário.** Os percentuais variam com CNAE, Anexo do Simples, RAT ajustado por FAP, entidades de terceiros, lotação tributária, eventual CPRB/desoneração e regras específicas. A configuração padrão é um ponto de partida para cenários de obras, mas pode não ser o enquadramento da empresa. O contador deve conferir e ajustar uma única vez.\n\nPara o **MEI que mantém um único empregado**, o cenário específico usa 3% de contribuição patronal previdenciária (CPP) e 8% de FGTS, conforme o eSocial Web MEI e o art. 105 da Resolução CGSN nº 140/2018. O MEI pode contratar apenas um empregado, remunerado até um salário mínimo ou o piso da categoria. O cenário do aplicativo é uma estimativa de custo mensal com provisões, não substitui o fechamento mensal no eSocial/DAE e não valida automaticamente o limite salarial ou a categoria profissional. Se houver mais de um cadastro CLT ativo em uma conta configurada como MEI, a interface passa a alertar para conferência; nenhum cadastro é alterado automaticamente. A estimativa não deve ser tratada como guia de pagamento, valor exato da folha ou obrigação fiscal.
 
 O modelo de provisão gerencial usa salário + 1/12 de 13º + 1/12 de férias/cobertura + 1/36 do adicional constitucional de férias e calcula os encargos percentuais sobre essa base gerencial. Isso é **custo para planejamento de mão de obra**, não soma de obrigações mensais recolhidas na mesma competência: a rubrica de férias/cobertura evita falta de orçamento quando o empregado sai de férias ou é substituído. Em operações sem cobertura, confirme com a contabilidade se a parcela deve ser ajustada para evitar duplicidade com o salário já pago.
 
@@ -33,7 +33,7 @@ Exemplo ilustrativo com R$ 2.800, sem benefícios e cenário inicial Anexo IV:
 - Total: **R$ 4.347,78/mês (estimativa de planejamento)**
 
 Referências federais:
-- [Receita Federal: CPP no Simples Nacional Anexo IV](https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/cobrancas-e-intimacoes/contribuicao-previdenciaria-anexo-iv-do-simples-nacional)
+- [eSocial: Manual Web MEI — CPP patronal de 3% e FGTS de 8%](https://www.gov.br/esocial/pt-br/documentacao-tecnica/manuais/manual-do-usuario-esocial-web-mei-versao-de-06-02-2026.pdf)\n- [Receita Federal: Resolução CGSN nº 140/2018, art. 105 — limite de um empregado](https://normas.receita.fazenda.gov.br/sijut2consulta/link.action?idAto=92278)\n- [Receita Federal: CPP no Simples Nacional Anexo IV](https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/cobrancas-e-intimacoes/contribuicao-previdenciaria-anexo-iv-do-simples-nacional)
 - [Receita Federal: contribuições previdenciárias para PJ](https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/tributos/contribuicoes-previdenciarias-pj)
 - [FGTS: depósito de 8% no vínculo CLT](https://www.fgts.gov.br/Paginas/subpaginas/recolhimento-empregado.aspx)
 - [Gov.br: planilha gerencial de 13º, férias e encargos](https://www.gov.br/compras/pt-br/acesso-a-informacao/legislacao/instrucoes-normativas/instrucao-normativa-no-5-de-26-de-maio-de-2017-atualizada)
