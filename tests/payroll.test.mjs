@@ -56,6 +56,7 @@ test('validar configurações impede taxas fora de faixa',()=>{
  assert.throws(()=>validatePayroll({regime:'annex_iv',fgtsPct:'',employerPct:'20',
   ratPct:'2',terceirosPct:'0'}),/Informe/);
  assert.equal(payrollConfig(null).reviewed,false);
+ assert.equal(payrollConfig(null).regime,'annex_iv','o cenário padrão antigo deve ser preservado para contas existentes');
  assert.deepEqual(payrollPreset('annex_iv'),payrollConfig({regime:'annex_iv'}).reviewed?null:payrollPreset('annex_iv'));
 });
 test('configurações CLT são salvas separadamente por conta no Supabase',async()=>{
