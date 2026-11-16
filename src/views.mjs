@@ -278,8 +278,8 @@ export function editorView(kind,item={},settings=null){
 }
 
 export function payrollLabel(regime){
- return ({annex_iv:'Simples Nacional — Anexo IV',simples_other:'Simples Nacional — outros anexos',
-  general:'Lucro Presumido / Real'})[regime]||'Simples Nacional — Anexo IV';
+ return ({mei:'MEI — empregado (3% CPP + 8% FGTS)',annex_iv:'Simples Nacional — Anexo IV',
+  simples_other:'Simples Nacional — outros anexos',general:'Lucro Presumido / Real'})[regime]||'Simples Nacional — Anexo IV';
 }
 const breakRow=(label,money)=>'<div class="clt-breakdown-row"><span>'+label+'</span><strong>'+brl(money)+'</strong></div>';
 export function cltBreakdownHtml(p,settings){
@@ -306,9 +306,9 @@ export function payrollSettingsView(settings){
  const pct=(name,label,val)=>textInput(label+' (%)',name,val,{type:'number',required:true});
  return '<div class="modal-inner"><div class="modal-heading"><h2>Encargos CLT da empresa</h2>'+
   '<button type="button" class="small-square" data-action="close-modal" aria-label="Fechar">×</button></div>'+
-  '<p class="helper-text">Configure uma vez. O custo de todos os funcionários CLT será recalculado automaticamente a partir do salário-base. Os percentuais abaixo são um cenário inicial para construção civil, não sua classificação tributária confirmada.</p>'+
+  '<p class="helper-text">Configure uma vez. O custo de todos os funcionários CLT será recalculado automaticamente a partir do salário-base. Os percentuais abaixo são um cenário inicial, não sua classificação tributária confirmada. Para MEI com um único empregado, o cenário específico usa 3% de CPP patronal e 8% de FGTS; confirme também o limite de remuneração e o enquadramento com a contabilidade.</p>'+
   '<form id="payroll-form"><div class="modal-fields">'+
-  sel('regime',[['annex_iv',payrollLabel('annex_iv')],
+  sel('regime',[['mei',payrollLabel('mei')],['annex_iv',payrollLabel('annex_iv')],
    ['simples_other',payrollLabel('simples_other')],['general',payrollLabel('general')]],cfg.regime)+
   '<div class="form-cols">'+pct('fgtsPct','FGTS',cfg.fgtsPct)+
   pct('employerPct','INSS patronal/CPP',cfg.employerPct)+'</div>'+
