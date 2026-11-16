@@ -448,8 +448,12 @@ function toggleContractFields(){
  const form=modal.querySelector('#record-form');
  if(!form)return;
  const type=form.elements.contractType?.value||'clt';
- for(const wrap of form.querySelectorAll('[data-contract]'))
-  wrap.hidden=wrap.dataset.contract!==type;
+ for(const wrap of form.querySelectorAll('[data-contract]')){
+  const inactive=wrap.dataset.contract!==type;
+  wrap.hidden=inactive;
+  for(const control of wrap.querySelectorAll('input,select,textarea,button'))
+   control.disabled=inactive;
+ }
 }
 async function importCostPresets(){
  if(!state.user||state.cloudError||state.busy){
