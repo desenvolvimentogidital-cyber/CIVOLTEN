@@ -414,6 +414,7 @@ const server=createServer((req,res)=>{
   await page.locator('#record-form [name="name"]').fill('Profissional eletricista');
   await page.locator('#record-form [name="role"]').fill('Eletricista');
   await page.locator('#record-form [name="salary"]').fill('2800');
+  await page.locator('#record-form [data-contract="clt"] [name="quantity"]').fill('22');
   await page.locator('#record-form [type="submit"]').click();
   await page.locator('.employee-card').first().waitFor();
   await page.locator('.bottom-nav [data-go="home"]').click();
