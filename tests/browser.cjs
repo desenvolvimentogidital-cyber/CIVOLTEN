@@ -156,8 +156,10 @@ const server=createServer((req,res)=>{
   await page.locator('#record-form [name="name"]').fill('João Silva');
   await page.locator('#record-form [name="role"]').fill('Eletricista');
   await page.locator('#record-form [name="salary"]').fill('3000');
-  await page.locator('#record-form .employee-fields[data-contract="clt"] input[name="quantity"]').fill('22');
-  await page.locator('#record-form [name="hours"]').fill('160');
+  const cltDays=page.locator('#record-form .employee-fields[data-contract="clt"] input[name="quantity"]');
+  await cltDays.fill('22');
+  assert.equal(await cltDays.inputValue(),'22','Dias trabalhados devem ser preenchidos no campo CLT visível');
+  await page.locator('#record-form [name="hours"]').first().fill('160');
   assert.match(await page.locator('#clt-preview').innerText(),/4\.658,34/,
    'O custo completo CLT deve aparecer automaticamente ao informar salário-base');
   assert.equal(await page.locator('#record-form [name="fgtsPct"]').count(),0,
