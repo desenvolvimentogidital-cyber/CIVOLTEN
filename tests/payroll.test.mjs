@@ -113,3 +113,23 @@ test('dias trabalhados são persistidos no campo de quantidade já existente',as
  assert.equal(saved.quantity,22);
  assert.equal(employeeCost(saved,loaded.payroll).daily,19763);
 });
+
+test('cenário MEI usa 3% de CPP patronal e 8% de FGTS no custo gerencial',()=>{
+ const rates=payrollPreset('mei');
+ assert.deepEqual([rates.fgtsPct,rates.employerPct,rates.ratPct,rates.terceirosPct],[8,3,0,0]);
+ const cost=employeeCost({contractType:'clt',salary:1621},rates);
+ assert.deepEqual([cost.breakdown.fgts,cost.breakdown.employer,cost.breakdown.rat,cost.breakdown.terceiros],
+  [15490,5809,0,0]);
+ assert.equal(cost.monthly,214918);
+ assert.equal(cost.settingsReviewed,false);
+});
+test('alerta MEI aponta divergência de regime e mais de um CLT ativo sem alterar cadastros',()=>{
+ const warning=payrollConsistencyWarning({taxRegime:'mei'},payrollPreset('annex_iv'),[
+  {contractType:'clt',active:true},{contractType:'clt',active:true}
+ ]);
+ assert.match(warning,/cenário específico do MEI/);
+ assert.match(warning,/apenas um empregado/);
+ assert.equal(payrollConsistencyWarning({taxRegime:'mei'},payrollPreset('mei'),[
+  {contractType:'clt',active:true}
+ ]),'');
+});
