@@ -163,7 +163,12 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('#record-form [name="fgtsPct"]').count(),0,
    'Percentuais não devem ser pedidos em cada funcionário');
   await page.locator('#record-form button[type="submit"]').click();
-  await page.locator('.employee-card').waitFor();
+  try{await page.locator('.employee-card').waitFor({timeout:10000});}
+  catch(error){
+   const formError=await page.locator('#record-form #form-error').textContent().catch(()=> '');
+   const formText=await page.locator('#record-form').innerText().catch(()=> '');
+   throw new Error('Cadastro CLT não apareceu na lista. Erro do formulário: '+formError+'. Conteúdo: '+formText);
+  }
   assert.match(await page.locator('.team-total').innerText(),/4\.658,34/);
   await page.screenshot({path:'test-artifacts/funcionarios.png',fullPage:true});
   await page.locator('[data-go="home"]').last().click();
