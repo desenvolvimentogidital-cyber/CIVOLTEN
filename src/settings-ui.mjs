@@ -52,19 +52,27 @@ export function pricingPreview(data,hours='8',extra='0'){
    '<div class="fin-highlight"><span>Preço sugerido</span><b>'+money(q.selling)+'</b></div></div>':
    '<p class="form-error">Informe horas positivas e custo direto válido para calcular.</p>')+'</div>';
 }
-export function payrollConsistencyWarning(company,payroll){
+export function payrollConsistencyWarning(company,payroll,employees=[]){
  const cfg=companyConfig(company),regime=String(payroll?.regime||'annex_iv');
+ const warnings=[];
+ const activeClt=(employees||[]).filter(item=>item?.active!==false&&item?.contractType!=='contractor').length;
+ if(cfg.taxRegime==='mei'&&regime!=='mei')
+  warnings.push('A empresa está configurada como MEI, mas a folha não está usando o cenário específico do MEI (3% de CPP patronal e 8% de FGTS). Confirme o enquadramento antes de usar o custo da equipe.');
+ if(cfg.taxRegime!=='mei'&&regime==='mei')
+  warnings.push('A folha está usando o cenário MEI, mas a empresa não está configurada como MEI. Confirme o enquadramento antes de usar o custo da equipe.');
+ if(cfg.taxRegime==='mei'&&activeClt>1)
+  warnings.push('Atenção: o MEI pode manter apenas um empregado. Há '+activeClt+' cadastros CLT ativos; confirme se são registros de teste/inativos ou se o enquadramento da empresa mudou. Nenhum cadastro foi alterado.');
  if(cfg.taxRegime==='simples'&&['I','II','III','V'].includes(cfg.annex)&&regime==='annex_iv')
-  return 'Conferência contábil necessária: a empresa está configurada no Simples Nacional, Anexo '+cfg.annex+', mas a folha está usando o cenário de encargos do Anexo IV. Isso pode depender das atividades e receitas da empresa; não alteramos nenhum percentual automaticamente.';
+  warnings.push('Conferência contábil necessária: a empresa está configurada no Simples Nacional, Anexo '+cfg.annex+', mas a folha está usando o cenário de encargos do Anexo IV. Isso pode depender das atividades e receitas da empresa; não alteramos nenhum percentual automaticamente.');
  if(cfg.taxRegime==='simples'&&cfg.annex==='IV'&&regime==='simples_other')
-  return 'Conferência contábil necessária: a empresa está configurada no Anexo IV, mas a folha está usando o cenário dos demais anexos do Simples. Confirme o enquadramento antes de usar o custo da equipe em propostas.';
+  warnings.push('Conferência contábil necessária: a empresa está configurada no Anexo IV, mas a folha está usando o cenário dos demais anexos do Simples. Confirme o enquadramento antes de usar o custo da equipe em propostas.');
  if(['presumido','real'].includes(cfg.taxRegime)&&regime!=='general')
-  return 'Conferência contábil necessária: o regime tributário da empresa e o cenário de encargos gerais da folha estão diferentes. Confirme com a contabilidade antes de usar o custo da equipe em propostas.';
- return '';
+  warnings.push('Conferência contábil necessária: o regime tributário da empresa e o cenário de encargos gerais da folha estão diferentes. Confirme com a contabilidade antes de usar o custo da equipe em propostas.');
+ return warnings.join(' ');
 }
 export function companyView(data,hours='8',extra='0'){
  const cfg=companyConfig(data.company),sum=summary(data);
- const payrollWarning=payrollConsistencyWarning(data.company,data.payroll);
+ const payrollWarning=payrollConsistencyWarning(data.company,data.payroll,data.employees);
  return '<section class="fin-screen company-screen">'+heading('Configurações da empresa')+
  (payrollWarning?'<p class="fin-helper cost-pending-note" role="alert"><strong>Conferir folha e regime tributário.</strong> '+e(payrollWarning)+'</p>':'')+
  '<div class="fin-kpi-grid">'+metric('Custo mensal da empresa',sum.total)+
