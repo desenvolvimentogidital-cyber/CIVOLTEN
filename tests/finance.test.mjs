@@ -48,3 +48,14 @@ test('exportação CSV não executa fórmula inserida em descrição',()=>{
  const csv=reportCsv({ledger:[income({title:'=2+2'})],fixed:[],variable:[],employees:[]},'2026-11');
  assert.match(csv,/'=2\+2/);
 });
+
+test('relatório CSV inclui dias trabalhados e custo diário da equipe',()=>{
+ const csv=reportCsv({ledger:[],fixed:[],variable:[],payroll:{},employees:[
+  {name:'Ana',role:'Eletricista',contractType:'clt',salary:2800,quantity:22,hours:176,active:true}
+ ]},'2026-11');
+ assert.match(csv,/Dias trabalhados\/mês/);
+ assert.match(csv,/Custo médio\/dia/);
+ assert.match(csv,/Ana/);
+ assert.match(csv,/22/);
+ assert.match(csv,/197,63/);
+});
