@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createE2EClient} from '../src/e2e-client.mjs';
-import {fetchRemote,putRemote,deleteRemote,putCompanyRemote,putCatalogBatchRemote,TABLES,createMaterialMovementRemote,fetchInventoryRemote} from '../src/cloud.mjs';
+import {fetchRemote,putRemote,deleteRemote,putCompanyRemote,putCatalogBatchRemote,TABLES,createMaterialMovementRemote,fetchInventoryRemote,putMaterialRemote} from '../src/cloud.mjs';
 import {summary} from '../src/calc.mjs';
 const userId='00000000-0000-4000-8000-000000000001';
 test('dados financeiros são escritos no banco e lidos com valores reais',async()=>{
@@ -156,7 +156,7 @@ test('estoque, fornecedores e movimentos são persistidos, isolados e auditávei
  const c=createE2EClient();await c.auth.signInWithPassword({email:'teste@example.com',password:'senha-forte'});
  const material={id:'77777777-7777-4777-8777-777777777777',name:'Cabo flexível 2,5 mm',category:'Elétrica',unit:'m',minStock:10,stock:0,averageCost:0,active:true};
  const supplier={id:'88888888-8888-4888-8888-888888888888',name:'Distribuidora elétrica',document:'',phone:'',email:'',notes:''};
- await putRemote(c,userId,'materials',material);await putRemote(c,userId,'suppliers',supplier);
+ await putMaterialRemote(c,userId,material);await putRemote(c,userId,'suppliers',supplier);
  const movement={materialId:material.id,type:'purchase',quantity:25,unitCost:2.4,supplierId:supplier.id,workOrderId:null,reference:'NF 123',notes:'Compra inicial'};
  const movementId=await createMaterialMovementRemote(c,userId,movement);
  const inventory=await fetchInventoryRemote(c,userId);
