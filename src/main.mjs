@@ -1811,6 +1811,8 @@ modal.addEventListener('click',event=>{
  const action=b.dataset.action;
  if(action==='close-modal')closeEditor();
  if(action==='delete-record')void removeRecord();
+ if(action==='material-delete')void deleteInventoryRecord('materials',b.dataset.id);
+ if(action==='supplier-delete')void deleteInventoryRecord('suppliers',b.dataset.id);
 });
 modal.addEventListener('change',event=>{
  if(event.target.name==='contractType'){toggleContractFields();refreshCltPreview();}
