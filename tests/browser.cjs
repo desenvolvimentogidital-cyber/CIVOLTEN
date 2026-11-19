@@ -72,7 +72,7 @@ const server=createServer((req,res)=>{
   await page.locator('#material-movement-form button[type="submit"]').click();
   assert.match(await page.locator('#movement-error').innerText(),/Estoque insuficiente/);
   assert.match(await page.locator('.employee-card').filter({hasText:'Cabo flexível 2,5 mm'}).first().innerText(),/15 m/);
-  await page.locator('#editor-dialog [data-action="close-modal"]').click();
+  await page.locator('#editor-dialog [data-action="close-modal"]').first().click();
   // NFS-e: acesso pelo celular, preenchimento, conferência e rascunho sem emissão.
   await page.locator('.bottom-nav [data-go="more"]').click();
   await page.locator('[data-go="nfse"]').click();
