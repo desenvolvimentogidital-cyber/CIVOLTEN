@@ -6,7 +6,8 @@ create table if not exists public.cv_suppliers_v1 (
  name text not null check(length(btrim(name)) between 1 and 180),
  document text not null default '' check(document='' or length(document) in (11,14)),
  phone text not null default '', email text not null default '', notes text not null default '',
- created_at timestamptz not null default now(), updated_at timestamptz not null default now()
+ created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
+ unique(user_id,id)
 );
 create index if not exists cv_suppliers_v1_user_idx on public.cv_suppliers_v1(user_id);
 alter table public.cv_suppliers_v1 enable row level security;
