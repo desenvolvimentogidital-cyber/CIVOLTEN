@@ -1,0 +1,38 @@
+import {stockStatus} from './materials.mjs';
+import {e,icon} from './views.mjs';
+const money=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const field=(label,name,value='',type='text',required=false)=>'<label class="modal-field"><span>'+label+'</span><input name="'+name+'" type="'+type+'" value="'+e(value??'')+'" '+(required?'required':'')+(type==='number'?' step="any" min="0" inputmode="decimal"':'')+'></label>';
+export function materialsView(data){
+ const materials=data.materials||[],suppliers=data.suppliers||[];
+ const low=materials.filter(m=>m.active!==false&&stockStatus(m).belowMinimum).length;
+ const total=materials.reduce((n,m)=>n+stockStatus(m).inventoryValue,0);
+ return '<div class="page-heading"><button class="small-square" data-go="home" aria-label="Voltar">'+icon('back',25)+'</button><h1>Materiais e estoque</h1><button class="small-square" data-action="material-new" aria-label="Novo material">'+icon('plus',22)+'</button></div>'+
+ '<div class="metric-grid"><div class="metric-card"><div class="metric-icon">'+icon('boxes',25)+'</div><div class="metric-text"><span>Itens cadastrados</span><strong>'+materials.length+'</strong></div></div>'+
+ '<div class="metric-card"><div class="metric-icon">'+icon('alert-triangle',25)+'</div><div class="metric-text"><span>Abaixo do mínimo</span><strong>'+low+'</strong></div></div>'+
+ '<div class="metric-card is-featured"><div class="metric-icon">'+icon('coins',25)+'</div><div class="metric-text"><span>Valor estimado em estoque</span><strong>'+money(total)+'</strong></div></div></div>'+
+ '<div class="section-label"><span class="section-icon">'+icon('boxes',22)+'</span><h2>Catálogo de materiais</h2><div class="section-streak"></div></div>'+
+ '<div class="action-area"><button class="gold-button" data-action="material-new">'+icon('plus',20)+' Cadastrar material</button><button class="outlined-button" data-action="supplier-new">'+icon('plus',18)+' Novo fornecedor</button></div>'+
+ (materials.length?'<div class="employee-list">'+materials.map(m=>{const s=stockStatus(m);return '<article class="employee-card"><span class="employee-top"><span class="employee-avatar">'+icon('package',26)+'</span><span class="employee-info"><b>'+e(m.name)+'</b><em>'+e(m.category||'Sem categoria')+' · '+e(m.unit)+'</em></span><span class="staff-pill '+(s.belowMinimum?'inactive':'')+'"><span></span>'+(s.belowMinimum?'Estoque baixo':'Estoque OK')+'</span></span><span class="employee-bottom"><span class="staff-value"><span>Saldo atual<b>'+s.stock.toLocaleString('pt-BR')+' '+e(m.unit)+'</b><small>Mínimo: '+s.min.toLocaleString('pt-BR')+' '+e(m.unit)+'</small></span></span><span class="staff-value"><span>Custo médio<b>'+money(m.averageCost)+'</b><small>Valor: '+money(s.inventoryValue)+'</small></span></span></span><div class="action-area"><button class="outlined-button" data-action="material-movement" data-id="'+e(m.id)+'">Movimentar</button><button class="outlined-button" data-action="material-edit" data-id="'+e(m.id)+'">Editar</button></div></article>';}).join('')+'</div>':'<div class="empty-state">'+icon('package',32)+'<b>Nenhum material cadastrado</b><span>Cadastre os materiais usados nas obras para começar a controlar o estoque.</span></div>')+
+ '<div class="section-label"><span class="section-icon">'+icon('truck',22)+'</span><h2>Fornecedores</h2><div class="section-streak"></div></div>'+
+ (suppliers.length?'<div class="employee-list">'+suppliers.map(s=>'<button class="employee-card" type="button" data-action="supplier-edit" data-id="'+e(s.id)+'"><span class="employee-top"><span class="employee-avatar">'+icon('truck',25)+'</span><span class="employee-info"><b>'+e(s.name)+'</b><em>'+e(s.document||'Documento não informado')+'</em></span>'+icon('edit',18)+'</span><span class="small-muted">'+e(s.phone||s.email||'Sem contato cadastrado')+'</span></button>').join('')+'</div>':'<p class="helper-text">Nenhum fornecedor cadastrado ainda.</p>')+
+ '<p class="helper-text">As movimentações são registradas no histórico e atualizam o saldo no banco em uma única operação. Saídas não podem deixar o estoque negativo.</p>';
+}
+export function materialEditorDialog(item={}){
+ return '<div class="modal-inner"><div class="modal-heading"><h2>'+(item.id?'Editar material':'Novo material')+'</h2><button class="small-square" data-action="close-modal">×</button></div><form id="material-form"><div class="modal-fields">'+
+ field('Nome do material','name',item.name,'text',true)+field('Categoria','category',item.category)+field('Unidade (un, m, kg...)','unit',item.unit||'un','text',true)+field('Estoque mínimo','minStock',item.minStock??0,'number')+
+ '</div><p class="form-error" id="material-error" hidden></p><div class="modal-buttons"><button type="button" class="outlined-button" data-action="close-modal">Cancelar</button><button type="submit" class="gold-button">Salvar material</button></div></form>'+(item.id?'<button class="delete-link" data-action="material-delete" data-id="'+e(item.id)+'">Excluir material</button>':'')+'</div>';
+}
+export function supplierEditorDialog(item={}){
+ return '<div class="modal-inner"><div class="modal-heading"><h2>'+(item.id?'Editar fornecedor':'Novo fornecedor')+'</h2><button class="small-square" data-action="close-modal">×</button></div><form id="supplier-form"><div class="modal-fields">'+
+ field('Nome / razão social','name',item.name,'text',true)+field('CPF ou CNPJ','document',item.document)+field('Telefone','phone',item.phone,'tel')+field('E-mail','email',item.email,'email')+field('Observações','notes',item.notes)+
+ '</div><p class="form-error" id="supplier-error" hidden></p><div class="modal-buttons"><button type="button" class="outlined-button" data-action="close-modal">Cancelar</button><button type="submit" class="gold-button">Salvar fornecedor</button></div></form>'+(item.id?'<button class="delete-link" data-action="supplier-delete" data-id="'+e(item.id)+'">Excluir fornecedor</button>':'')+'</div>';
+}
+export function movementDialog(material,suppliers){
+ const options=(suppliers||[]).map(s=>'<option value="'+e(s.id)+'">'+e(s.name)+'</option>').join('');
+ return '<div class="modal-inner"><div class="modal-heading"><h2>Movimentar estoque</h2><button class="small-square" data-action="close-modal">×</button></div><p class="helper-text"><b>'+e(material.name)+'</b> · Saldo atual: '+Number(material.stock||0).toLocaleString('pt-BR')+' '+e(material.unit)+'</p><form id="material-movement-form" data-material-id="'+e(material.id)+'"><div class="modal-fields">'+
+ '<label class="modal-field"><span>Tipo de movimentação</span><select name="type"><option value="purchase">Compra / entrada</option><option value="entry">Entrada avulsa</option><option value="exit">Saída para uso</option><option value="loss">Perda / avaria</option><option value="return">Devolução ao estoque</option><option value="adjustment">Ajuste de inventário (novo saldo)</option></select></label>'+
+ field('Quantidade','quantity','','number',true)+field('Custo unitário (R$) — obrigatório na compra','unitCost','','number')+
+ '<label class="modal-field"><span>Fornecedor (opcional)</span><select name="supplierId"><option value="">Não informado</option>'+options+'</select></label>'+
+ field('Nota / documento de compra','reference')+field('Observações','notes')+
+ '</div><p class="helper-text">Compra e entrada aumentam o saldo; saída e perda diminuem; devolução aumenta. Ajuste informa o novo saldo contado. Saídas acima do saldo são bloqueadas.</p><p class="form-error" id="movement-error" hidden></p><div class="modal-buttons"><button type="button" class="outlined-button" data-action="close-modal">Cancelar</button><button type="submit" class="gold-button">Confirmar movimentação</button></div></form></div>';
+}
