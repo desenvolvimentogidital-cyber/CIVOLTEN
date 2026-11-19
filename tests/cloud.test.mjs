@@ -165,8 +165,10 @@ test('estoque, fornecedores e movimentos são persistidos, isolados e auditávei
  assert.equal(inventory.suppliers[0].name,supplier.name);
  assert.equal(inventory.materialMovements[0].id,movementId);
  await assert.rejects(createMaterialMovementRemote(c,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',movement),/RLS|Sessão/);
- await assert.rejects(c.from('cv_materials_v1').delete().eq('id',material.id).eq('user_id',userId).select(),/movimentações/i);
- await assert.rejects(c.from('cv_suppliers_v1').delete().eq('id',supplier.id).eq('user_id',userId).select(),/movimentações/i);
+ const blockedMaterial=await c.from('cv_materials_v1').delete().eq('id',material.id).eq('user_id',userId).select();
+ assert.match(blockedMaterial.error.message,/movimentações/i);
+ const blockedSupplier=await c.from('cv_suppliers_v1').delete().eq('id',supplier.id).eq('user_id',userId).select();
+ assert.match(blockedSupplier.error.message,/movimentações/i);
  await createMaterialMovementRemote(c,userId,{...movement,type:'exit',quantity:20,unitCost:null});
  assert.equal((await fetchInventoryRemote(c,userId)).materials[0].stock,5);
  await assert.rejects(createMaterialMovementRemote(c,userId,{...movement,type:'exit',quantity:6,unitCost:null}),/insuficiente/);
