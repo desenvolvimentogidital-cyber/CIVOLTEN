@@ -217,6 +217,11 @@ export async function createMaterialMovementRemote(client,userId,movement){
  if(typeof data!=='string'||!data)throw Error('Banco não confirmou a movimentação.');
  return data;
 }
+export async function fetchInventoryRemote(client,userId){
+ checkId(userId);
+ const [materials,suppliers,materialMovements]=await Promise.all(['materials','suppliers','materialMovements'].map(k=>fetchKind(client,userId,k)));
+ return {materials,suppliers,materialMovements};
+}
 export async function putRemote(client,userId,kind,item){
  checkId(userId);
  if(!TABLES[kind])throw Error('Tipo de cadastro inválido.');
