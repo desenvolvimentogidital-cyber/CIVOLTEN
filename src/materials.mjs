@@ -28,7 +28,7 @@ export function validateMovement(input,material){
  const delta=['purchase','entry','return'].includes(type)?quantity:
   ['exit','loss'].includes(type)?-quantity:quantity-current;
  if(current+delta<0)throw Error('Estoque insuficiente para esta movimentação.');
- return {materialId:material.id,type,quantity:Math.abs(delta),delta,
+ return {materialId:material.id,type,quantity:Math.abs(delta),inputQuantity:quantity,delta,
   unitCost:['purchase','entry'].includes(type)?unitCost:(unitCost??number(material.averageCost)),
   supplierId:input.supplierId||null,workOrderId:input.workOrderId||null,
   reference:clean(input.reference),notes:clean(input.notes)};
