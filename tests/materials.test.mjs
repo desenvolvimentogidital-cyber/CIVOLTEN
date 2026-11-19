@@ -8,6 +8,8 @@ test('valida material e estoque mínimo',()=>{
 });
 test('valida fornecedor e documento opcional',()=>{
  assert.equal(validateSupplier({name:'Fornecedor A'}).document,'');
+ assert.equal(validateSupplier({name:'Fornecedor A',document:'529.982.247-25'}).document,'52998224725');
+ assert.equal(validateSupplier({name:'Fornecedor A',document:'11.222.333/0001-81'}).document,'11222333000181');
  assert.throws(()=>validateSupplier({name:'Fornecedor A',document:'123'}),/CPF\/CNPJ/);
 });
 test('entrada, saída, perda, devolução e ajuste calculam saldo corretamente',()=>{
