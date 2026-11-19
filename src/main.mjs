@@ -1,7 +1,7 @@
 import {createClient} from '@supabase/supabase-js';
 import {validateMaterial,validateSupplier,validateMovement} from './materials.mjs';
 import {materialsView,materialEditorDialog,supplierEditorDialog,movementDialog} from './materials-ui.mjs';
-import {fetchRemote,fetchOperationsRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote,fetchInvitesRemote,revokeProposalRemote,fetchProposalRepliesRemote,markResponseReadRemote,transitionWorkStatusRemote,createMaterialMovementRemote,fetchInventoryRemote} from './cloud.mjs';
+import {fetchRemote,fetchOperationsRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote,fetchInvitesRemote,revokeProposalRemote,fetchProposalRepliesRemote,markResponseReadRemote,transitionWorkStatusRemote,createMaterialMovementRemote,fetchInventoryRemote,putMaterialRemote} from './cloud.mjs';
 import {prepareCostPresets} from './cost-presets.mjs';
 import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
@@ -519,7 +519,7 @@ async function saveMaterial(form){
   const id=state.editor?.id||crypto.randomUUID(),old=state.data.materials.find(x=>x.id===id);
   const item={...input,...old,id};
   if(button)button.disabled=true;
-  await putRemote(auth,state.user.id,'materials',item);
+  await putMaterialRemote(auth,state.user.id,item);
   const inventory=await fetchInventoryRemote(auth,state.user.id);
   state.data={...state.data,...inventory};
   try{safeSave(localStorage,state.user.id,state.data)}catch{}
