@@ -22,7 +22,8 @@ test('entrada, saída, perda, devolução e ajuste calculam saldo corretamente',
  assert.equal(applyMovement(stocked,{delta:-3}).stock,11);
  assert.equal(validateMovement({type:'loss',quantity:2},stocked).delta,-2);
  assert.equal(validateMovement({type:'return',quantity:1},stocked).delta,1);
- assert.equal(validateMovement({type:'adjustment',quantity:6},stocked).delta,-4);
+ assert.equal(validateMovement({type:'adjustment',quantity:6},stocked).delta,-8);
+ assert.throws(()=>validateMovement({type:'adjustment',quantity:14},stocked),/já corresponde/);
 });
 test('bloqueia saída maior que saldo e custo inválido',()=>{
  const material={id:'m1',stock:2,averageCost:3};
