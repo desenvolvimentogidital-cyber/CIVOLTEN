@@ -209,7 +209,7 @@ export async function fetchRemote(client,userId){
 export async function createMaterialMovementRemote(client,userId,movement){
  checkId(userId);
  const {data,error}=await client.rpc('cv_material_movement_create_v1',{
-  p_material_id:movement.materialId,p_type:movement.type,p_quantity:movement.quantity,
+  p_material_id:movement.materialId,p_type:movement.type,p_quantity:movement.inputQuantity??movement.quantity,
   p_unit_cost:movement.unitCost,p_supplier_id:movement.supplierId,
   p_work_order_id:movement.workOrderId,p_reference:movement.reference,p_notes:movement.notes
  });
