@@ -27,6 +27,7 @@ export function validateMovement(input,material){
  const current=number(material.stock)||0;
  const delta=['purchase','entry','return'].includes(type)?quantity:
   ['exit','loss'].includes(type)?-quantity:quantity-current;
+ if(delta===0)throw Error('O saldo já corresponde à quantidade informada.');
  if(current+delta<0)throw Error('Estoque insuficiente para esta movimentação.');
  return {materialId:material.id,type,quantity:Math.abs(delta),inputQuantity:quantity,delta,
   unitCost:['purchase','entry'].includes(type)?unitCost:(unitCost??number(material.averageCost)),
