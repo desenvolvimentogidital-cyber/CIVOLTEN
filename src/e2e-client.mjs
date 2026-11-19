@@ -141,7 +141,11 @@ export function createE2EClient(){
      }
      for(const row of rows){
       const i=all.findIndex(x=>x.id===row.id);
-      if(i>=0)all[i]=row;else all.push(row);
+      if(table==='cv_materials_v1'){
+       const prior=i>=0?all[i]:null;
+       const next={...row,stock:prior?.stock??0,average_cost:prior?.average_cost??0};
+       if(i>=0)all[i]=next;else all.push(next);
+      }else if(i>=0)all[i]=row;else all.push(row);
      }
      db[table]=all;save(db);
      const data=rows.map(row=>({id:row.id,user_id:row.user_id}));
