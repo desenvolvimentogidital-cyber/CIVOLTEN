@@ -54,7 +54,7 @@ const server=createServer((req,res)=>{
   await page.locator('#material-form [name="unit"]').fill('m');
   await page.locator('#material-form [name="minStock"]').fill('10');
   await page.locator('#material-form button[type="submit"]').click();
-  await page.locator('.employee-card').filter({hasText:'Cabo flexível 2,5 mm'}).waitFor();
+  await page.locator('.employee-card').filter({hasText:'Cabo flexível 2,5 mm'}).first().waitFor();
   await page.locator('[data-action="material-movement"]').click();
   await page.locator('#material-movement-form [name="quantity"]').fill('20');
   await page.locator('#material-movement-form [name="unitCost"]').fill('5');
