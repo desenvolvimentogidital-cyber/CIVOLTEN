@@ -162,6 +162,8 @@ test('estoque, fornecedores e movimentos são persistidos, isolados e auditávei
  const inventory=await fetchInventoryRemote(c,userId);
  assert.equal(inventory.materials[0].stock,25);
  assert.equal(inventory.materials[0].averageCost,2.4);
+ await putMaterialRemote(c,userId,{...inventory.materials[0],name:'Cabo 2,5 mm atualizado'});
+ assert.equal((await fetchInventoryRemote(c,userId)).materials[0].stock,25,'editar descrição não pode zerar saldo');
  assert.equal(inventory.suppliers[0].name,supplier.name);
  assert.equal(inventory.materialMovements[0].id,movementId);
  await assert.rejects(createMaterialMovementRemote(c,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',movement),/RLS|Sessão/);
