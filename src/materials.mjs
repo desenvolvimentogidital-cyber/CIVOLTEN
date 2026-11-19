@@ -10,11 +10,25 @@ export function validateMaterial(input){
  if(minStock===null||minStock<0)throw Error('O estoque mínimo não pode ser negativo.');
  return {id:input.id||null,name,category,unit,minStock,active:input.active!=='false'&&input.active!==false};
 }
+function validCpf(value){
+ if(/^([0-9])\\1+$/.test(value))return false;
+ const digit=(base,factors)=>{const sum=[...base].reduce((n,d,i)=>n+Number(d)*factors[i],0);const r=(sum*10)%11;return r===10?0:r;};
+ return digit(value.slice(0,9),[10,9,8,7,6,5,4,3,2])===Number(value[9])&&
+  digit(value.slice(0,10),[11,10,9,8,7,6,5,4,3,2])===Number(value[10]);
+}
+function validCnpj(value){
+ if(/^([0-9])\\1+$/.test(value))return false;
+ const digit=(base,factors)=>{const sum=[...base].reduce((n,d,i)=>n+Number(d)*factors[i],0);const r=sum%11;return r<2?0:11-r;};
+ return digit(value.slice(0,12),[5,4,3,2,9,8,7,6,5,4,3,2])===Number(value[12])&&
+  digit(value.slice(0,13),[6,5,4,3,2,9,8,7,6,5,4,3,2])===Number(value[13]);
+}
 export function validateSupplier(input){
  const name=clean(input.name),document=clean(input.document).replace(/[^0-9]/g,'');
  if(!name)throw Error('Informe o nome do fornecedor.');
  if(name.length>180)throw Error('O nome do fornecedor deve ter até 180 caracteres.');
  if(document&&![11,14].includes(document.length))throw Error('CPF/CNPJ do fornecedor inválido.');
+ if(document&&document.length===11&&!validCpf(document))throw Error('CPF do fornecedor inválido.');
+ if(document&&document.length===14&&!validCnpj(document))throw Error('CNPJ do fornecedor inválido.');
  return {id:input.id||null,name,document,phone:clean(input.phone),email:clean(input.email),notes:clean(input.notes)};
 }
 export function validateMovement(input,material){
