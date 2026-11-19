@@ -76,7 +76,7 @@ const normalize=(k,row)=>{
   quantity:row.quantity===null?null:Number(row.quantity)};
 };
 const payload=(k,item,userId)=>{
- if(k==='materials')return {id:item.id,user_id:userId,name:item.name,category:item.category||'',unit:item.unit||'un',min_stock:item.minStock||0,stock:item.stock||0,average_cost:item.averageCost||0,active:item.active!==false,updated_at:new Date().toISOString()};
+ if(k==='materials')return {id:item.id,user_id:userId,name:item.name,category:item.category||'',unit:item.unit||'un',min_stock:item.minStock||0,active:item.active!==false,updated_at:new Date().toISOString()};
  if(k==='suppliers')return {id:item.id,user_id:userId,name:item.name,document:item.document||'',phone:item.phone||'',email:item.email||'',notes:item.notes||'',updated_at:new Date().toISOString()};
  if(k==='materialMovements')throw Error('Movimentações devem ser registradas pela operação atômica de estoque.');
  if(k==='reads')throw Error('Marcações de leitura só podem ser criadas pelo fluxo de resposta.');
