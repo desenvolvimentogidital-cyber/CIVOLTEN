@@ -418,3 +418,11 @@ Manual e verificações: [Operação de obras e medições](docs/operacao-obras-
 As configurações efetivas de encargos CLT, impostos e o aceite real do cliente
 precisam ser confirmados pelo usuário/contador. O sistema não substitui
 contrato assinado nem emite nota fiscal.
+
+
+## Controle de materiais — fase 1 (em validação)
+O módulo inicial de estoque está descrito em `docs/controle-materiais-fase1.md`.
+Inclui materiais, fornecedores, entradas/saídas, perdas, devoluções, ajuste de inventário,
+custo médio ponderado e histórico com RLS. A migration `supabase/materials_inventory_v1.sql`
+ainda precisa de revisão e aplicação no projeto CIVOLTEN correto antes de publicar o frontend.
+O consumo automático por ordem de serviço e integração ao financeiro pertencem à fase 2.
