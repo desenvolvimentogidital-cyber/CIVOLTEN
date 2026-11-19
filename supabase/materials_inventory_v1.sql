@@ -33,7 +33,7 @@ create index if not exists cv_materials_v1_user_name_idx on public.cv_materials_
 alter table public.cv_materials_v1 enable row level security;
 revoke all on table public.cv_materials_v1 from public,anon,authenticated;
 grant select,delete on public.cv_materials_v1 to authenticated;
-grant insert(user_id,name,category,unit,min_stock,active) on public.cv_materials_v1 to authenticated;
+grant insert(id,user_id,name,category,unit,min_stock,active,updated_at) on public.cv_materials_v1 to authenticated;
 grant update(name,category,unit,min_stock,active,updated_at) on public.cv_materials_v1 to authenticated;
 create policy cv_mat_read_own on public.cv_materials_v1 for select to authenticated using(user_id=(select auth.uid()));
 create policy cv_mat_insert_own on public.cv_materials_v1 for insert to authenticated with check(user_id=(select auth.uid()));
