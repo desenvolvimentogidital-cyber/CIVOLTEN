@@ -24,7 +24,7 @@ function validCnpj(value){
 }
 export function validateSupplier(input){
  const name=clean(input.name),rawDocument=clean(input.document);
- if([...rawDocument].some(ch=>!('0123456789./- '.includes(ch)))throw Error('CPF/CNPJ do fornecedor inválido.');
+ if([...rawDocument].some(ch=>!('0123456789./- '.includes(ch))))throw Error('CPF/CNPJ do fornecedor inválido.');
  const document=rawDocument.replace(/[^0-9]/g,'');
  if(!name)throw Error('Informe o nome do fornecedor.');
  if(name.length>180)throw Error('O nome do fornecedor deve ter até 180 caracteres.');
