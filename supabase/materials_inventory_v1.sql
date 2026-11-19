@@ -32,9 +32,11 @@ create table if not exists public.cv_materials_v1 (
 create index if not exists cv_materials_v1_user_name_idx on public.cv_materials_v1(user_id,name);
 alter table public.cv_materials_v1 enable row level security;
 revoke all on table public.cv_materials_v1 from public,anon,authenticated;
-grant select,insert,update,delete on public.cv_materials_v1 to authenticated;
+grant select,delete on public.cv_materials_v1 to authenticated;
+grant insert(user_id,name,category,unit,min_stock,active) on public.cv_materials_v1 to authenticated;
+grant update(name,category,unit,min_stock,active,updated_at) on public.cv_materials_v1 to authenticated;
 create policy cv_mat_read_own on public.cv_materials_v1 for select to authenticated using(user_id=(select auth.uid()));
-create policy cv_mat_insert_own on public.cv_materials_v1 for insert to authenticated with check(user_id=(select auth.uid()) and stock=0 and average_cost=0);
+create policy cv_mat_insert_own on public.cv_materials_v1 for insert to authenticated with check(user_id=(select auth.uid()));
 create policy cv_mat_update_own on public.cv_materials_v1 for update to authenticated using(user_id=(select auth.uid())) with check(user_id=(select auth.uid()));
 create policy cv_mat_delete_own on public.cv_materials_v1 for delete to authenticated using(user_id=(select auth.uid()));
 
@@ -62,7 +64,7 @@ create or replace function public.cv_material_movement_create_v1(
  p_material_id uuid,p_type text,p_quantity numeric,p_unit_cost numeric default null,
  p_supplier_id uuid default null,p_work_order_id uuid default null,
  p_reference text default '',p_notes text default ''
-) returns uuid language plpgsql security invoker set search_path=public,pg_temp as $$
+) returns uuid language plpgsql security definer set search_path=public,pg_temp as $
 declare m public.cv_materials_v1%rowtype; delta numeric(14,4); next_stock numeric(14,4); next_avg numeric(14,4); movement_id uuid;
 begin
  if auth.uid() is null then raise exception 'Sessão inválida'; end if;
@@ -76,6 +78,7 @@ begin
  elsif p_type in ('exit','loss') then delta:=-p_quantity;
  else delta:=p_quantity-m.stock; end if;
  next_stock:=m.stock+delta;
+ if delta=0 then raise exception 'O saldo já corresponde à quantidade informada'; end if;
  if next_stock<0 then raise exception 'Estoque insuficiente'; end if;
  next_avg:=m.average_cost;
  if delta>0 and p_unit_cost is not null and p_type in ('purchase','entry') then
