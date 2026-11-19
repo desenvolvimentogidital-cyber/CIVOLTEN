@@ -226,7 +226,7 @@ export async function putMaterialRemote(client,userId,item){
  checkId(userId);
  const row=payload('materials',item,userId);
  const existing=await fetchKind(client,userId,'materials');
- const query=existing.some(x=>x.id===item.id)?client.from(TABLES.materials).update(row).eq('id',item.id).eq('user_id',userId):client.from(TABLES.materials).insert(row);
+ const query=existing.some(x=>x.id===item.id)?client.from(TABLES.materials).update({name:row.name,category:row.category,unit:row.unit,min_stock:row.min_stock,active:row.active,updated_at:row.updated_at}).eq('id',item.id).eq('user_id',userId):client.from(TABLES.materials).insert(row);
  const {data,error}=await query.select('id').single();
  if(error)throw Error('Falha ao salvar material: '+error.message);
  if(data?.id!==item.id)throw Error('Banco não confirmou o material.');
