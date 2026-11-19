@@ -48,7 +48,7 @@ const server=createServer((req,res)=>{
   await page.locator('#supplier-form [name="name"]').fill('Distribuidora Teste');
   await page.locator('#supplier-form [name="document"]').fill('11.222.333/0001-81');
   await page.locator('#supplier-form button[type="submit"]').click();
-  await page.locator('[data-action="material-new"]').click();
+  await page.locator('[data-action="material-new"]').last().click();
   await page.locator('#material-form [name="name"]').fill('Cabo flexível 2,5 mm');
   await page.locator('#material-form [name="category"]').fill('Elétrica');
   await page.locator('#material-form [name="unit"]').fill('m');
