@@ -23,7 +23,9 @@ function validCnpj(value){
   digit(value.slice(0,13),[6,5,4,3,2,9,8,7,6,5,4,3,2])===Number(value[13]);
 }
 export function validateSupplier(input){
- const name=clean(input.name),document=clean(input.document).replace(/[^0-9]/g,'');
+ const name=clean(input.name),rawDocument=clean(input.document);
+ if(rawDocument&&!/^[0-9.\\/\\-\\s]+$/.test(rawDocument))throw Error('CPF/CNPJ do fornecedor inválido.');
+ const document=rawDocument.replace(/[^0-9]/g,'');
  if(!name)throw Error('Informe o nome do fornecedor.');
  if(name.length>180)throw Error('O nome do fornecedor deve ter até 180 caracteres.');
  if(document&&![11,14].includes(document.length))throw Error('CPF/CNPJ do fornecedor inválido.');
