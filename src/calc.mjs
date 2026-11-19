@@ -22,7 +22,7 @@ export function fmt(value){
  return value==null?'':String(value).replace('.',',');
 }
 export function fresh(){
- return {version:1,fixed:[],variable:[],employees:[],ledger:[],budgets:[],catalog:[],works:[],workLogs:[],measurements:[],fieldProgress:[],invites:[],reads:[],payroll:{...DEFAULT_PAYROLL},company:{...DEFAULT_COMPANY},updatedAt:null};
+ return {version:1,fixed:[],variable:[],employees:[],ledger:[],budgets:[],catalog:[],works:[],workLogs:[],measurements:[],fieldProgress:[],materials:[],suppliers:[],materialMovements:[],invites:[],reads:[],payroll:{...DEFAULT_PAYROLL},company:{...DEFAULT_COMPANY},updatedAt:null};
 }
 export function fixedMonthly(item){
  const val=cents(item.amount);
@@ -145,6 +145,7 @@ export function safeLoad(storage,userId){
    workLogs:Array.isArray(raw.workLogs)?raw.workLogs:[],
    measurements:Array.isArray(raw.measurements)?raw.measurements:[],
    fieldProgress:Array.isArray(raw.fieldProgress)?raw.fieldProgress:[],
+   materials:Array.isArray(raw.materials)?raw.materials:[],suppliers:Array.isArray(raw.suppliers)?raw.suppliers:[],materialMovements:Array.isArray(raw.materialMovements)?raw.materialMovements:[],
    invites:Array.isArray(raw.invites)?raw.invites:[],
    reads:Array.isArray(raw.reads)?raw.reads:[],
    payroll:payrollConfig(raw.payroll),company:companyConfig(raw.company)};
