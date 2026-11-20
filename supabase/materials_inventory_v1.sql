@@ -13,9 +13,13 @@ create index if not exists cv_suppliers_v1_user_idx on public.cv_suppliers_v1(us
 alter table public.cv_suppliers_v1 enable row level security;
 revoke all on table public.cv_suppliers_v1 from public,anon,authenticated;
 grant select,insert,update,delete on public.cv_suppliers_v1 to authenticated;
+drop policy if exists cv_sup_read_own on public.cv_suppliers_v1;
 create policy cv_sup_read_own on public.cv_suppliers_v1 for select to authenticated using(user_id=(select auth.uid()));
+drop policy if exists cv_sup_insert_own on public.cv_suppliers_v1;
 create policy cv_sup_insert_own on public.cv_suppliers_v1 for insert to authenticated with check(user_id=(select auth.uid()));
+drop policy if exists cv_sup_update_own on public.cv_suppliers_v1;
 create policy cv_sup_update_own on public.cv_suppliers_v1 for update to authenticated using(user_id=(select auth.uid())) with check(user_id=(select auth.uid()));
+drop policy if exists cv_sup_delete_own on public.cv_suppliers_v1;
 create policy cv_sup_delete_own on public.cv_suppliers_v1 for delete to authenticated using(user_id=(select auth.uid()));
 
 create table if not exists public.cv_materials_v1 (
@@ -36,9 +40,13 @@ revoke all on table public.cv_materials_v1 from public,anon,authenticated;
 grant select,delete on public.cv_materials_v1 to authenticated;
 grant insert(id,user_id,name,category,unit,min_stock,active,updated_at) on public.cv_materials_v1 to authenticated;
 grant update(name,category,unit,min_stock,active,updated_at) on public.cv_materials_v1 to authenticated;
+drop policy if exists cv_mat_read_own on public.cv_materials_v1;
 create policy cv_mat_read_own on public.cv_materials_v1 for select to authenticated using(user_id=(select auth.uid()));
+drop policy if exists cv_mat_insert_own on public.cv_materials_v1;
 create policy cv_mat_insert_own on public.cv_materials_v1 for insert to authenticated with check(user_id=(select auth.uid()));
+drop policy if exists cv_mat_update_own on public.cv_materials_v1;
 create policy cv_mat_update_own on public.cv_materials_v1 for update to authenticated using(user_id=(select auth.uid())) with check(user_id=(select auth.uid()));
+drop policy if exists cv_mat_delete_own on public.cv_materials_v1;
 create policy cv_mat_delete_own on public.cv_materials_v1 for delete to authenticated using(user_id=(select auth.uid()));
 
 create table if not exists public.cv_material_movements_v1 (
@@ -59,6 +67,7 @@ create index if not exists cv_material_movements_v1_user_material_idx on public.
 alter table public.cv_material_movements_v1 enable row level security;
 revoke all on table public.cv_material_movements_v1 from public,anon,authenticated;
 grant select on public.cv_material_movements_v1 to authenticated;
+drop policy if exists cv_mov_read_own on public.cv_material_movements_v1;
 create policy cv_mov_read_own on public.cv_material_movements_v1 for select to authenticated using(user_id=(select auth.uid()));
 
 create or replace function public.cv_material_movement_create_v1(
@@ -69,9 +78,10 @@ create or replace function public.cv_material_movement_create_v1(
 declare m public.cv_materials_v1%rowtype; delta numeric(14,4); next_stock numeric(14,4); next_avg numeric(14,4); movement_id uuid;
 begin
  if auth.uid() is null then raise exception 'Sessão inválida'; end if;
- if p_type not in ('purchase','entry','exit','loss','return','adjustment') then raise exception 'Tipo de movimentação inválido'; end if;
+ if p_type is null or p_type not in ('purchase','entry','exit','loss','return','adjustment') then raise exception 'Tipo de movimentação inválido'; end if;
  if p_quantity is null or p_quantity<=0 then raise exception 'Quantidade deve ser maior que zero'; end if;
  if p_type in ('purchase','entry') and (p_unit_cost is null or p_unit_cost<0) then raise exception 'Informe custo unitário válido'; end if;
+ if p_unit_cost is not null and p_unit_cost<0 then raise exception 'Custo unitário não pode ser negativo'; end if;
  select * into m from public.cv_materials_v1 where id=p_material_id and user_id=auth.uid() and active=true for update;
  if not found then raise exception 'Material não encontrado ou inativo'; end if;
  if p_supplier_id is not null and not exists(select 1 from public.cv_suppliers_v1 where id=p_supplier_id and user_id=auth.uid()) then raise exception 'Fornecedor inválido'; end if;
