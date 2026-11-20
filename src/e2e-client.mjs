@@ -227,11 +227,12 @@ export function createE2EClient(){
    if(!user)return {data:null,error:{message:'Faça login'}};
    const db=read(),materials=db.cv_materials_v1||[],m=materials.find(x=>x.id===args.p_material_id&&x.user_id===user.id&&x.active!==false);
    if(!m)return {data:null,error:{message:'Material não encontrado ou inativo'}};
-   const type=args.p_type,q=Number(args.p_quantity),cost=args.p_unit_cost===null?null:Number(args.p_unit_cost);
-   if(!['purchase','entry','exit','loss','return','adjustment'].includes(type)||!Number.isFinite(q)||q<=0||(['purchase','entry'].includes(type)&&(!Number.isFinite(cost)||cost<0)))return {data:null,error:{message:'Movimentação inválida'}};
+   const type=args.p_type,q=Number(args.p_quantity),cost=args.p_unit_cost==null?null:Number(args.p_unit_cost);
+   if(!['purchase','entry','exit','loss','return','adjustment'].includes(type)||!Number.isFinite(q)||q<=0||(cost!==null&&(!Number.isFinite(cost)||cost<0))||(['purchase','entry'].includes(type)&&cost===null))return {data:null,error:{message:'Movimentação inválida'}};
    if(args.p_supplier_id&&!(db.cv_suppliers_v1||[]).some(x=>x.id===args.p_supplier_id&&x.user_id===user.id))return {data:null,error:{message:'Fornecedor inválido'}};
    const delta=['purchase','entry','return'].includes(type)?q:['exit','loss'].includes(type)?-q:q-Number(m.stock||0),next=Number(m.stock||0)+delta;
-   if(next<0)return {data:null,error:{message:'Estoque insuficiente'}};
+   if(delta===0)return {data:null,error:{message:'O saldo já corresponde à quantidade informada'}};
+    if(next<0)return {data:null,error:{message:'Estoque insuficiente'}};
    if(delta>0&&cost!==null&&['purchase','entry'].includes(type))m.average_cost=next===0?0:Math.round(((Number(m.stock||0)*Number(m.average_cost||0))+(delta*cost))/next*10000)/10000;
    m.stock=next;m.updated_at=new Date().toISOString();
    db.cv_material_movements_v1=db.cv_material_movements_v1||[];
