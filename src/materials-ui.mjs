@@ -29,12 +29,14 @@ export function supplierEditorDialog(item={}){
  field('Nome / razão social','name',item.name,'text',true)+field('CPF ou CNPJ','document',item.document)+field('Telefone','phone',item.phone,'tel')+field('E-mail','email',item.email,'email')+field('Observações','notes',item.notes)+
  '</div><p class="form-error" id="supplier-error" hidden></p><div class="modal-buttons"><button type="button" class="outlined-button" data-action="close-modal">Cancelar</button><button type="submit" class="gold-button">Salvar fornecedor</button></div></form>'+(item.id?'<button class="delete-link" data-action="supplier-delete" data-id="'+e(item.id)+'">Excluir fornecedor</button>':'')+'</div>';
 }
-export function movementDialog(material,suppliers){
+export function movementDialog(material,suppliers,works=[]){
+ const workOptions=(works||[]).filter(w=>w.status==='approved'||w.status==='in_progress').map(w=>'<option value="'+e(w.id)+'">'+e(w.project||w.customer||w.id)+'</option>').join('');
  const options=(suppliers||[]).map(s=>'<option value="'+e(s.id)+'">'+e(s.name)+'</option>').join('');
  return '<div class="modal-inner"><div class="modal-heading"><h2>Movimentar estoque</h2><button class="small-square" data-action="close-modal">×</button></div><p class="helper-text"><b>'+e(material.name)+'</b> · Saldo atual: '+Number(material.stock||0).toLocaleString('pt-BR')+' '+e(material.unit)+'</p><form id="material-movement-form" data-material-id="'+e(material.id)+'"><div class="modal-fields">'+
  '<label class="modal-field"><span>Tipo de movimentação</span><select name="type"><option value="purchase">Compra / entrada</option><option value="entry">Entrada avulsa</option><option value="exit">Saída para uso</option><option value="loss">Perda / avaria</option><option value="return">Devolução ao estoque</option><option value="adjustment">Ajuste de inventário (novo saldo)</option></select></label>'+
  field('Quantidade','quantity','','number',true)+field('Custo unitário (R$) — obrigatório na compra','unitCost','','number')+
  '<label class="modal-field"><span>Fornecedor (opcional)</span><select name="supplierId"><option value="">Não informado</option>'+options+'</select></label>'+
+ '<label class="modal-field"><span>Obra / ordem de serviço (opcional)</span><select name="workOrderId"><option value="">Sem obra vinculada</option>'+workOptions+'</select></label>'+
  field('Nota / documento de compra','reference')+field('Observações','notes')+
  '</div><p class="helper-text">Compra e entrada aumentam o saldo; saída e perda diminuem; devolução aumenta. Ajuste informa o novo saldo contado. Saídas acima do saldo são bloqueadas.</p><p class="form-error" id="movement-error" hidden></p><div class="modal-buttons"><button type="button" class="outlined-button" data-action="close-modal">Cancelar</button><button type="submit" class="gold-button">Confirmar movimentação</button></div></form></div>';
 }
