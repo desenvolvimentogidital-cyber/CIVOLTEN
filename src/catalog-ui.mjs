@@ -39,8 +39,9 @@ function importer(importData){
 }
 export function catalogView(data,category='all',back='budgets',importData=null,search=''){
  const entries=catalogRows(data.catalog),stats=catalogStats(data.catalog);
- const groups=[...new Set(entries.map(x=>x.category||x.source?.toUpperCase()||'Outros'))].sort();
- const filtered=entries.filter(x=>(category==='all'||x.category===category)&&
+ const entryGroup=x=>x.category||x.source?.toUpperCase()||'Outros';
+ const groups=[...new Set(entries.map(entryGroup))].sort();
+ const filtered=entries.filter(x=>(category==='all'||(category==='pending'?!catalogReady(x):entryGroup(x)===category))&&
   (x.description+' '+x.code+' '+x.sinapiCode).normalize('NFD')
    .replace(/[\u0300-\u036f]/g,'').toLowerCase()
    .includes(String(search||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()));
@@ -52,8 +53,9 @@ export function catalogView(data,category='all',back='budgets',importData=null,s
  '<div class="catalog-status"><b>'+stats.total+' servicos</b><b>'+stats.ready+' com produtividade</b><span>'+stats.pending+' sem HH</span></div>'+
  importer(importData)+
  (entries.length?
- '<label class="modal-field catalog-category"><span>Grupo ou fonte</span><select id="catalog-category">'+opt('all','Todos os importados ('+entries.length+')',category)+
- groups.map(g=>opt(g,g+' ('+entries.filter(x=>x.category===g).length+')',category)).join('')+'</select></label>'+
+ '<label class="modal-field catalog-category"><span>Grupo, fonte ou situação</span><select id="catalog-category">'+opt('all','Todos os importados ('+entries.length+')',category)+
+ opt('pending','Pendentes de HH ('+stats.pending+')',category)+
+ groups.map(g=>opt(g,g+' ('+entries.filter(x=>entryGroup(x)===g).length+')',category)).join('')+'</select></label>'+
  '<label class="catalog-filter"><span>Buscar por codigo ou nome</span><input id="catalog-search" type="search" placeholder="Pesquisar servico" autocomplete="off" value="'+e(search)+'"></label>'+
  '<p class="fin-helper">Exibindo '+rows.length+' de '+filtered.length+
  ' servicos encontrados. Pesquise por nome ou codigo para localizar qualquer outro.</p>'+

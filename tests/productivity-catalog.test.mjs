@@ -4,6 +4,7 @@ import {parseDelimited,parseDecimal,suggestColumns,buildCatalogImport} from '../
 import {CATALOG_PRESETS,catalogByCode,catalogRows,catalogHours,catalogReady,
  catalogStats,validateCatalogRecord,catalogToBudgetItem} from '../src/service-catalog.mjs';
 import {validateBudgetItem,validateBudget,priceBudget} from '../src/budget.mjs';
+import {catalogView} from '../src/catalog-ui.mjs';
 
 test('catalogo inicia vazio: sem servicos ficticios, predefinidos ou precos inventados',()=>{
  assert.deepEqual(CATALOG_PRESETS,[]);
@@ -77,4 +78,15 @@ test('planilha sem coeficiente nao ganha HH presumida; entrada incorreta falha f
  assert.equal(result.items[0].directCost,null);
  assert.throws(()=>buildCatalogImport(rows,{source:'siurb',month:'',mapping}),/competencia/);
  assert.throws(()=>buildCatalogImport(rows,{source:'sinapi',month:'2026-10',mapping:{code:0,description:-1,unit:2}}),/colunas/);
+});
+
+test('catalogo permite localizar somente servicos sem coeficiente HH',()=>{
+ const records=[
+  {id:'1',code:'SIURB:100',source:'siurb',category:'EDIF',description:'Piso sem HH',unit:'m²',roles:[]},
+  {id:'2',code:'SIURB:200',source:'siurb',category:'EDIF',description:'Pintura com HH',unit:'m²',roles:[{role:'Pintor',hours:0.4}]}
+ ];
+ const html=catalogView({catalog:records},'pending');
+ assert.match(html,/Pendentes de HH \(1\)/);
+ assert.match(html,/Piso sem HH/);
+ assert.doesNotMatch(html,/Pintura com HH/);
 });

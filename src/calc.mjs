@@ -45,19 +45,21 @@ export function variableMonthly(item){
 export function employeeCost(p,companySettings=DEFAULT_PAYROLL){
  if(p.contractType==='contractor'){
   const rate=cents(p.rate),qty=decimal(p.quantity),hours=decimal(p.hours);
-  if(rate===null||rate<=0)return {monthly:null,hourly:null,status:'pending'};
+  if(rate===null||rate<=0)return {monthly:null,daily:null,hourly:null,status:'pending'};
   const unit=p.rateUnit||'hour';
   const monthly=unit==='month'?rate:qty!==null&&qty>=0?Math.round(rate*qty):null;
   const hourly=unit==='hour'?rate:(unit==='day'&&hours>0?
    Math.round(rate/hours):unit==='month'&&hours>0?Math.round(rate/hours):null);
-  return {monthly,hourly,status:monthly===null?'partial':'ready'};
+  return {monthly,daily:unit==='day'?rate:(monthly!==null&&qty>0?Math.round(monthly/qty):null),hourly,status:monthly===null?'partial':'ready'};
  }
  const salary=cents(p.salary),monthlyHours=decimal(p.hours);
  const benefits=cents(p.benefits??0),extras=cents(p.extras??0);
- if(salary===null||salary<=0)return {monthly:null,hourly:null,status:'pending'};
+ if(salary===null||salary<=0)return {monthly:null,daily:null,hourly:null,status:'pending'};
  const clt=cltFromCents(salary,companySettings);
  const monthly=clt.subtotal+(benefits||0)+(extras||0);
- return {monthly,hourly:monthlyHours>0?Math.round(monthly/monthlyHours):null,
+ const daysWorked=decimal(p.quantity);
+ return {monthly,daily:daysWorked>0?Math.round(monthly/daysWorked):null,
+  hourly:monthlyHours>0?Math.round(monthly/monthlyHours):null,
   status:'ready',estimated:true,settingsReviewed:clt.reviewed,
   breakdown:{...clt,benefits:benefits||0,extras:extras||0,monthly}};
 }
@@ -117,11 +119,13 @@ export function validate(kind,fields){
   }
   const salary=requireAmount(fields.salary,'o salário-base');
   if(salary<=0)throw Error('O salário deve ser maior que zero.');
-  const hours=pick(fields.hours);
+  const hours=pick(fields.hours),daysWorked=pick(fields.quantity);
   if(hours!==null&&hours<=0)throw Error('Horas produtivas devem ser maiores que zero.');
+  if(daysWorked===null||!Number.isInteger(daysWorked)||daysWorked<1||daysWorked>31)
+   throw Error('Informe os dias trabalhados no mês (de 1 a 31).');
   const benefits=pick(fields.benefits)??0,extras=pick(fields.extras)??0;
   if(benefits<0||extras<0)throw Error('Benefícios e outros custos não podem ser negativos.');
-  return {name,role,contractType,active,salary,hours,benefits,extras};
+  return {name,role,contractType,active,salary,hours,quantity:daysWorked,benefits,extras};
  }
  throw Error('Cadastro inválido.');
 }

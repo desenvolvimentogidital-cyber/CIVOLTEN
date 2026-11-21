@@ -188,10 +188,12 @@ export function costsView(data,tab='fixed'){
 }
 export function teamView(data){
  const staff=(data.employees||[]),sum=summary(data);
+ const missingDays=staff.filter(p=>p.active!==false&&p.contractType==='clt'&&!(Number(p.quantity)>0)).length;
  return '<div class="page-heading"><button class="small-square is-plain" data-go="home" aria-label="Voltar">'+icon('back',25)+'</button><h1>Funcionários</h1>'+
   '<button class="small-square" data-action="search-people" aria-label="Pesquisar funcionários">'+icon('search',23)+'</button></div>'+
   '<div class="team-total"><span class="team-image">'+icon('hardhat',50)+icon('users',36)+'</span>'+
   '<div><span>Custo da equipe no mês</span><strong>'+brl(sum.team)+'</strong></div></div>'+
+  (missingDays?'<p class="helper-text" role="status">'+missingDays+' funcionário(s) CLT ainda sem dias trabalhados informados. Edite o cadastro para calcular o custo médio diário.</p>':'')+
   '<div class="team-search" id="team-search" hidden><label>'+icon('search',20)+
   '<input type="search" id="search-people" placeholder="Buscar profissional"></label></div>'+
   '<div class="employee-list">'+(staff.length?staff.map(person=>{
@@ -200,7 +202,7 @@ export function teamView(data){
    '<span class="employee-top"><span class="employee-avatar"><span>'+e(initials)+'</span></span>'+
    '<span class="employee-info"><b>'+e(person.name)+'</b><em>'+e(person.role||'Profissional')+'</em></span>'+
    '<span class="staff-pill '+(person.active===false?'inactive':'')+'"><span></span>'+(person.active===false?'Inativo':'Ativo')+'</span></span>'+
-   '<span class="employee-bottom"><span class="staff-value">'+icon('calendar',19)+'<span>Custo mensal'+(person.contractType==='clt'?' estimado':'')+'<b>'+brl(c.monthly)+'</b></span></span>'+
+   '<span class="employee-bottom"><span class="staff-value">'+icon('calendar',19)+'<span>Custo mensal'+(person.contractType==='clt'?' estimado':'')+'<b>'+brl(c.monthly)+'</b>'+(person.contractType==='clt'?'<small>Custo/dia: '+brl(c.daily)+'</small>':'')+'</span></span>'+
    '<span class="staff-value">'+icon('clock',19)+'<span>Custo por hora<b>'+brl(c.hourly)+'</b></span></span></span></button>';
   }).join(''):'<div class="empty-state">'+icon('users',32)+'<b>Nenhum funcionário cadastrado</b>'+
   '<span>Cadastre o primeiro profissional para iniciar.</span></div>')+'</div>'+
@@ -244,7 +246,8 @@ export function editorView(kind,item={},settings=null){
  select('Vínculo','contractType',item.contractType||'clt',[['clt','CLT'],['contractor','Prestador / terceirizado']])+
  '<div class="employee-fields" data-contract="clt">'+
  textInput('Salário-base mensal (R$)','salary',item.salary??'',{type:'number'})+
- '<p class="helper-text">FGTS, 13º, férias e encargos são calculados automaticamente usando as configurações da empresa.</p>'+
+ '<p class="helper-text">FGTS, 13º, férias e encargos são calculados automaticamente usando as configurações da empresa. O salário continua mensal; os dias informados calculam o custo médio por dia trabalhado.</p>'+
+ textInput('Dias trabalhados no mês','quantity',item.quantity??'',{type:'number',required:true,placeholder:'Ex.: 22'})+
  textInput('Horas produtivas por mês (opcional, para custo/hora)','hours',item.hours??'',{type:'number'})+
  '<div class="form-cols">'+textInput('Benefícios (R$)','benefits',item.benefits??'',{type:'number'})+
  textInput('Outros custos (R$)','extras',item.extras??'',{type:'number'})+'</div>'+
@@ -275,8 +278,8 @@ export function editorView(kind,item={},settings=null){
 }
 
 export function payrollLabel(regime){
- return ({annex_iv:'Simples Nacional — Anexo IV',simples_other:'Simples Nacional — outros anexos',
-  general:'Lucro Presumido / Real'})[regime]||'Simples Nacional — Anexo IV';
+ return ({mei:'MEI — empregado (3% CPP + 8% FGTS)',annex_iv:'Simples Nacional — Anexo IV',
+  simples_other:'Simples Nacional — outros anexos',general:'Lucro Presumido / Real'})[regime]||'Simples Nacional — Anexo IV';
 }
 const breakRow=(label,money)=>'<div class="clt-breakdown-row"><span>'+label+'</span><strong>'+brl(money)+'</strong></div>';
 export function cltBreakdownHtml(p,settings){
@@ -284,6 +287,7 @@ export function cltBreakdownHtml(p,settings){
  if(cost.monthly===null)return '<p class="helper-text">Informe o salário-base para visualizar o custo automático.</p>';
  const b=cost.breakdown;
  return '<div class="clt-preview-heading">Custo total mensal estimado<strong>'+brl(cost.monthly)+'</strong></div>'+
+  (cost.daily!==null?breakRow('Custo médio por dia trabalhado',cost.daily):'')+
   breakRow('Salário-base',b.salary)+breakRow('13º proporcional',b.thirteenth)+
   breakRow('Provisão para férias/cobertura',b.vacation)+
   breakRow('Adicional de 1/3 de férias',b.vacationThird)+
@@ -302,9 +306,9 @@ export function payrollSettingsView(settings){
  const pct=(name,label,val)=>textInput(label+' (%)',name,val,{type:'number',required:true});
  return '<div class="modal-inner"><div class="modal-heading"><h2>Encargos CLT da empresa</h2>'+
   '<button type="button" class="small-square" data-action="close-modal" aria-label="Fechar">×</button></div>'+
-  '<p class="helper-text">Configure uma vez. O custo de todos os funcionários CLT será recalculado automaticamente a partir do salário-base. Os percentuais abaixo são um cenário inicial para construção civil, não sua classificação tributária confirmada.</p>'+
+  '<p class="helper-text">Configure uma vez. O custo de todos os funcionários CLT será recalculado automaticamente a partir do salário-base. Os percentuais abaixo são um cenário inicial, não sua classificação tributária confirmada. Para MEI com um único empregado, o cenário específico usa 3% de CPP patronal e 8% de FGTS; confirme também o limite de remuneração e o enquadramento com a contabilidade.</p>'+
   '<form id="payroll-form"><div class="modal-fields">'+
-  sel('regime',[['annex_iv',payrollLabel('annex_iv')],
+  sel('regime',[['mei',payrollLabel('mei')],['annex_iv',payrollLabel('annex_iv')],
    ['simples_other',payrollLabel('simples_other')],['general',payrollLabel('general')]],cfg.regime)+
   '<div class="form-cols">'+pct('fgtsPct','FGTS',cfg.fgtsPct)+
   pct('employerPct','INSS patronal/CPP',cfg.employerPct)+'</div>'+

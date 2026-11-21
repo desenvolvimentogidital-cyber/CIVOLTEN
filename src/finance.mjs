@@ -95,11 +95,11 @@ const csvField=value=>{
 };
 export function reportCsv(data,month=currentMonth()){
  const head=['Seção','Tipo','Descrição','Categoria','Cliente/Fornecedor','Obra',
-  'Valor (R$)','Vencimento','Pago/Recebido em','Referência'];
+  'Valor (R$)','Vencimento','Pago/Recebido em','Referência','Dias trabalhados/mês','Custo médio/dia (R$)'];
  const rows=[];
- const row=(section,type,title,cat,party,project,amount,due,paid,reference)=>
+ const row=(section,type,title,cat,party,project,amount,due,paid,reference,days='',daily=null)=>
   rows.push([section,type,title,cat,party,project,(amount/100).toFixed(2).replace('.',','),
-   due||'',paid||'',reference||'']);
+   due||'',paid||'',reference||'',days??'',daily===null?'':(daily/100).toFixed(2).replace('.',',')]);
  for(const e of reportRows(data,month))
   row('Movimentação',e.kind==='income'?'Receita':'Despesa',e.title,e.category,e.party,e.project,
    amountCents(e),e.dueDate,e.paidDate,e.reference);
@@ -107,7 +107,10 @@ export function reportCsv(data,month=currentMonth()){
   row('Previsão','Custo fixo',e.name,e.category,'','',fixedMonthly(e)??0,month+'-01','','');
  for(const e of data.variable||[])
   row('Previsão','Custo variável',e.name,e.category,'','',variableMonthly(e)??0,month+'-01','','');
- for(const e of (data.employees||[]).filter(x=>x.active!==false))
-  row('Previsão','Equipe',e.name,e.role,'','',employeeCost(e,data.payroll).monthly??0,month+'-01','','');
+ for(const e of (data.employees||[]).filter(x=>x.active!==false)){
+  const cost=employeeCost(e,data.payroll);
+  row('Previsão','Equipe',e.name,e.role,'','',cost.monthly??0,month+'-01','', '',
+   e.contractType==='clt'?(e.quantity??''):'',cost.daily??null);
+ }
  return '\uFEFF'+[head,...rows].map(values=>values.map(csvField).join(';')).join('\r\n');
 }

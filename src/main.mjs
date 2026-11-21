@@ -379,7 +379,7 @@ function refreshCltPreview(){
  const form=modal.querySelector('#record-form'),area=modal.querySelector('#clt-preview');
  if(!form||!area)return;
  const fields=Object.fromEntries(new FormData(form));
- area.innerHTML=cltBreakdownHtml({salary:fields.salary,
+ area.innerHTML=cltBreakdownHtml({salary:fields.salary,quantity:fields.quantity,
   benefits:fields.benefits,extras:fields.extras},state.data.payroll);
 }
 function refreshVariableCostPreview(){
@@ -448,8 +448,12 @@ function toggleContractFields(){
  const form=modal.querySelector('#record-form');
  if(!form)return;
  const type=form.elements.contractType?.value||'clt';
- for(const wrap of form.querySelectorAll('[data-contract]'))
-  wrap.hidden=wrap.dataset.contract!==type;
+ for(const wrap of form.querySelectorAll('[data-contract]')){
+  const inactive=wrap.dataset.contract!==type;
+  wrap.hidden=inactive;
+  for(const control of wrap.querySelectorAll('input,select,textarea,button'))
+   control.disabled=inactive;
+ }
 }
 async function importCostPresets(){
  if(!state.user||state.cloudError||state.busy){
@@ -596,12 +600,22 @@ function updateBudgetField(element){
  }
  const key=element.dataset.budgetField;
  if(!key)return false;
+ if(key==='laborOnly'){
+  const next=element.value==='true';
+  if(next&&draft.items.some(item=>Number(item.directCost||0)>0)){
+   element.value='false';
+   delayToast('Há materiais ou equipamentos informados nos serviços. Zere esses valores antes de mudar para somente mão de obra.');
+   return true;
+  }
+  draft.commercial={...(draft.commercial||{}),laborOnly:next};
+  render();return true;
+ }
  const container=element.closest('[data-budget-item]');
  if(container){
   const item=draft.items.find(x=>x.id===container.dataset.budgetItem);
   if(item&&['description','unit','quantity','laborHours','directCost'].includes(key))
    item[key]=element.value;
- }else if(['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument'].includes(key)){
+ }else if(['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument','pricePresentation'].includes(key)){
   draft.commercial={...(draft.commercial||{}),[key]:element.value};
  }else if(['title','customer','project','location','expiresOn','notes'].includes(key))
   draft[key]=element.value;
@@ -803,8 +817,9 @@ async function saveBudget(form){
   for(const key of ['title','customer','project','location','notes','expiresOn'])
    if(key in f)draft[key]=f[key];
   draft.commercial={...(draft.commercial||{})};
-  for(const key of ['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument'])
+  for(const key of ['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument','pricePresentation'])
    if(key in f)draft.commercial[key]=f[key];
+  if('laborOnly' in f)draft.commercial.laborOnly=f.laborOnly==='true';
   if(draft.demo!==false||draft.items.some(item=>item.source==='demo'))
    throw Error('Revise os itens e custos do orçamento anterior antes de salvar como proposta comercial.');
   draft.pricing=draft.pricing||createPricingSnapshot(state.data);

@@ -164,6 +164,16 @@ const server=createServer((req,res)=>{
   assert.equal(await page.locator('#budget-service-form [name="laborHours"]').inputValue(),'5');
   assert.equal(await page.locator('#budget-service-form [name="directCost"]').count(),0,'Não pedir material em nova proposta');
   assert.match(await page.locator('.budget-labor-scope').innerText(),/Somente mão de obra/);
+  await page.locator('#budget-service-form [data-action="close-modal"]').click();
+  await page.locator('#budget-form [name="laborOnly"]').selectOption('false');
+  assert.equal(await page.locator('#budget-form [name="laborOnly"]').inputValue(),'false');
+  await page.locator('[data-action="budget-choose-service"][data-code="SIURB:A100"]').click();
+  assert.equal(await page.locator('#budget-service-form [name="directCost"]').count(),1,
+   'Modal permite informar materiais adicionais quando o escopo é misto');
+  await page.locator('#budget-service-form [data-action="close-modal"]').click();
+  await page.locator('#budget-form [name="laborOnly"]').selectOption('true');
+  assert.equal(await page.locator('#budget-form [name="laborOnly"]').inputValue(),'true');
+  await page.locator('[data-action="budget-choose-service"][data-code="SIURB:A100"]').click();
   assert.match(await page.locator('#budget-service-estimate').innerText(),/Despesa mensal da empresa/);
   assert.match(await page.locator('#budget-service-estimate').innerText(),/Custo por HH/);
   assert.match(await page.locator('#budget-service-estimate').innerText(),/PREÇO TOTAL DOS 1 un/);
@@ -404,6 +414,7 @@ const server=createServer((req,res)=>{
   await page.locator('#record-form [name="name"]').fill('Profissional eletricista');
   await page.locator('#record-form [name="role"]').fill('Eletricista');
   await page.locator('#record-form [name="salary"]').fill('2800');
+  await page.locator('#record-form [data-contract="clt"] [name="quantity"]').fill('22');
   await page.locator('#record-form [type="submit"]').click();
   await page.locator('.employee-card').first().waitFor();
   await page.locator('.bottom-nav [data-go="home"]').click();

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DEMO_SERVICES,createService,validateBudget,validateCommercial,priceBudget,createPricingSnapshot,budgetUnitEstimate,validateBudgetItem,budgetCsv} from '../src/budget.mjs';
+import {printableBudget} from '../src/budget-print.mjs';
 const company={companyName:'Construtora Teste',taxRegime:'simples',annex:'IV',taxPct:10,marginPct:20,
  productiveDays:20,hoursPerDay:8,productivePeople:2,reviewed:true};
 const priced={monthlyCostCents:1600000,productiveHours:320,
@@ -23,7 +24,11 @@ test('fórmula usa custo total/hora + custo direto; tributo e lucro sobre preço
  assert.equal(p.rows[0].materials,6000);
  assert.equal(p.totalCost,26000);
  assert.equal(p.totalSale,37143);
+ assert.equal(p.totalLaborSale+p.totalMaterialsSale,p.totalSale);
+ assert.ok(p.totalLaborSale>0&&p.totalMaterialsSale>0);
  assert.equal(p.totalCost+p.totalTax+p.profit,p.totalSale);
+ assert.equal(p.totalLaborSale+p.totalMaterialsSale,p.totalSale);
+ assert.ok(p.totalLaborSale>0&&p.totalMaterialsSale>0);
 });
 test('dois itens com quantidades diferentes compõem total sem perdas',()=>{
  const items=[createService('DEMO-E02','i2'),createService('DEMO-C02','i3')];
@@ -62,6 +67,19 @@ test('exportação CSV protege campos inseridos pelo usuário contra fórmulas',
  const b=validateBudget(raw({demo:false,title:'=2+2',items:[{...createService('manual','i1'),
   description:'@cmd',unit:'un',laborHours:2,directCost:35}]}));
  const csv=budgetCsv(b);assert.match(csv,/'=2\+2/);assert.match(csv,/'@cmd/);
+});
+
+test('proposta mista pode separar mão de obra e materiais sem alterar o total',()=>{
+ const item={...createService('DEMO-E01','mix-1'),source:'manual',sourceCode:'',
+  quantity:2,laborHours:2,directCost:30};
+ const b=validateBudget(raw({demo:false,items:[item],commercial:{laborOnly:false,pricePresentation:'split'}}));
+ const p=priceBudget(b);
+ assert.equal(p.totalLaborSale+p.totalMaterialsSale,p.totalSale);
+ const html=printableBudget(b);
+ assert.match(html,/Mão de obra/);
+ assert.match(html,/Materiais e equipamentos/);
+ assert.match(html,new RegExp((p.totalLaborSale/100).toLocaleString('pt-BR',{minimumFractionDigits:2})));
+ assert.equal(validateBudget(raw({commercial:{pricePresentation:'other'}})).commercial.pricePresentation,'total');
 });
 
 test('condições comerciais opcionais validadas, sem presumir prazo ou garantia',()=>{

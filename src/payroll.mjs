@@ -2,6 +2,7 @@
 // Presets são cenários INICIAIS, não enquadramento tributário confirmado.
 // CPP/RAT/terceiros podem variar por CNAE, CCT, FAP, desoneração e regime.
 export const PAYROLL_PRESETS=Object.freeze({
+ mei:Object.freeze({regime:'mei',fgtsPct:8,employerPct:3,ratPct:0,terceirosPct:0}),
  annex_iv:Object.freeze({regime:'annex_iv',fgtsPct:8,employerPct:20,ratPct:2,terceirosPct:0}),
  simples_other:Object.freeze({regime:'simples_other',fgtsPct:8,employerPct:0,ratPct:0,terceirosPct:0}),
  general:Object.freeze({regime:'general',fgtsPct:8,employerPct:20,ratPct:2,terceirosPct:5.8})
