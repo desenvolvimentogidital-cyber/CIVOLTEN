@@ -141,7 +141,11 @@ export function createE2EClient(){
      }
      for(const row of rows){
       const i=all.findIndex(x=>x.id===row.id);
-      if(i>=0)all[i]=row;else all.push(row);
+      if(table==='cv_materials_v1'){
+       const prior=i>=0?all[i]:null;
+       const next={...row,stock:prior?.stock??0,average_cost:prior?.average_cost??0};
+       if(i>=0)all[i]=next;else all.push(next);
+      }else if(i>=0)all[i]=row;else all.push(row);
      }
      db[table]=all;save(db);
      const data=rows.map(row=>({id:row.id,user_id:row.user_id}));
@@ -158,6 +162,8 @@ export function createE2EClient(){
      select:async()=>{
       if(!user||where.user_id!==user.id)return {data:[],error:null};
       const db=read(),all=db[table]||[],removed=all.filter(x=>x.id===where.id&&x.user_id===user.id);
+      if(table==='cv_materials_v1'&&(db.cv_material_movements_v1||[]).some(x=>x.material_id===where.id&&x.user_id===user.id))return {data:null,error:{message:'Material possui histórico de movimentações'}};
+      if(table==='cv_suppliers_v1'&&(db.cv_material_movements_v1||[]).some(x=>x.supplier_id===where.id&&x.user_id===user.id))return {data:null,error:{message:'Fornecedor possui movimentações vinculadas'}};
       db[table]=all.filter(x=>!removed.includes(x));save(db);
       return {data:removed.map(x=>({id:x.id})),error:null};
      }};
@@ -216,6 +222,22 @@ export function createE2EClient(){
     x.budget_id===args.p_budget_id&&x.user_id===user?.id&&x.status==='pending');
    if(!invite)return {data:null,error:{message:'Convite não encontrado ou já respondido'}};
    invite.status='revoked';save(db);return {data:true,error:null};
+  }
+  if(name==='cv_material_movement_create_v1'){
+   if(!user)return {data:null,error:{message:'Faça login'}};
+   const db=read(),materials=db.cv_materials_v1||[],m=materials.find(x=>x.id===args.p_material_id&&x.user_id===user.id&&x.active!==false);
+   if(!m)return {data:null,error:{message:'Material não encontrado ou inativo'}};
+   const type=args.p_type,q=Number(args.p_quantity),cost=args.p_unit_cost==null?null:Number(args.p_unit_cost);
+   if(!['purchase','entry','exit','loss','return','adjustment'].includes(type)||!Number.isFinite(q)||q<=0||(cost!==null&&(!Number.isFinite(cost)||cost<0))||(['purchase','entry'].includes(type)&&cost===null))return {data:null,error:{message:'Movimentação inválida'}};
+   if(args.p_supplier_id&&!(db.cv_suppliers_v1||[]).some(x=>x.id===args.p_supplier_id&&x.user_id===user.id))return {data:null,error:{message:'Fornecedor inválido'}};
+   const delta=['purchase','entry','return'].includes(type)?q:['exit','loss'].includes(type)?-q:q-Number(m.stock||0),next=Number(m.stock||0)+delta;
+   if(delta===0)return {data:null,error:{message:'O saldo já corresponde à quantidade informada'}};
+    if(next<0)return {data:null,error:{message:'Estoque insuficiente'}};
+   if(delta>0&&cost!==null&&['purchase','entry'].includes(type))m.average_cost=next===0?0:Math.round(((Number(m.stock||0)*Number(m.average_cost||0))+(delta*cost))/next*10000)/10000;
+   m.stock=next;m.updated_at=new Date().toISOString();
+   db.cv_material_movements_v1=db.cv_material_movements_v1||[];
+   const id=crypto.randomUUID();db.cv_material_movements_v1.push({id,user_id:user.id,material_id:m.id,supplier_id:args.p_supplier_id||null,movement_type:type,quantity:delta,unit_cost:cost,work_order_id:args.p_work_order_id||null,reference:args.p_reference||'',notes:args.p_notes||'',created_at:new Date().toISOString()});
+   save(db);return {data:id,error:null};
   }
   if(name!=='cv_bill_measurement_v1')
    return {data:null,error:{message:'Função não disponível no simulador'}};

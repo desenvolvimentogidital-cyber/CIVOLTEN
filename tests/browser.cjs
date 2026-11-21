@@ -41,6 +41,38 @@ const server=createServer((req,res)=>{
    'Cadastro com sessão Supabase não deve pedir confirmação nem login novamente');
   assert.equal(await page.evaluate(()=>window.CIVOLTENPreview.user.email),
    'teste@example.com');
+  // Controle de materiais: fornecedor, compra, saída e bloqueio de saldo negativo no Android.
+  await page.locator('.bottom-nav [data-go="more"]').click();
+  await page.locator('[data-go="materials"]').click();
+  await page.locator('[data-action="supplier-new"]').click();
+  await page.locator('#supplier-form [name="name"]').fill('Distribuidora Teste');
+  await page.locator('#supplier-form [name="document"]').fill('11.222.333/0001-81');
+  await page.locator('#supplier-form button[type="submit"]').click();
+  await page.locator('[data-action="material-new"]').last().click();
+  await page.locator('#material-form [name="name"]').fill('Cabo flexível 2,5 mm');
+  await page.locator('#material-form [name="category"]').fill('Elétrica');
+  await page.locator('#material-form [name="unit"]').fill('m');
+  await page.locator('#material-form [name="minStock"]').fill('10');
+  await page.locator('#material-form button[type="submit"]').click();
+  await page.locator('.employee-card').filter({hasText:'Cabo flexível 2,5 mm'}).first().first().waitFor();
+  await page.locator('[data-action="material-movement"]').click();
+  await page.locator('#material-movement-form [name="quantity"]').fill('20');
+  await page.locator('#material-movement-form [name="unitCost"]').fill('5');
+  await page.locator('#material-movement-form [name="supplierId"]').selectOption({label:'Distribuidora Teste'});
+  await page.locator('#material-movement-form button[type="submit"]').click();
+  assert.match(await page.locator('.employee-card').filter({hasText:'Cabo flexível 2,5 mm'}).first().innerText(),/20 m/);
+  await page.locator('[data-action="material-movement"]').click();
+  await page.locator('#material-movement-form [name="type"]').selectOption('exit');
+  await page.locator('#material-movement-form [name="quantity"]').fill('5');
+  await page.locator('#material-movement-form button[type="submit"]').click();
+  assert.match(await page.locator('.employee-card').filter({hasText:'Cabo flexível 2,5 mm'}).first().innerText(),/15 m/);
+  await page.locator('[data-action="material-movement"]').click();
+  await page.locator('#material-movement-form [name="type"]').selectOption('exit');
+  await page.locator('#material-movement-form [name="quantity"]').fill('16');
+  await page.locator('#material-movement-form button[type="submit"]').click();
+  assert.match(await page.locator('#movement-error').innerText(),/Estoque insuficiente/);
+  assert.match(await page.locator('.employee-card').filter({hasText:'Cabo flexível 2,5 mm'}).first().innerText(),/15 m/);
+  await page.locator('#editor-dialog [data-action="close-modal"]').first().click();
   // NFS-e: acesso pelo celular, preenchimento, conferência e rascunho sem emissão.
   await page.locator('.bottom-nav [data-go="more"]').click();
   await page.locator('[data-go="nfse"]').click();

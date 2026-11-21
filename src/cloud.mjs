@@ -15,9 +15,13 @@ export const TABLES={
  measurements:'cv_measurements_v1',
  invites:'cv_proposal_invites_v1',
  reads:'cv_proposal_receipt_reads_v1',
- fieldProgress:'cv_field_progress_v1'
+ fieldProgress:'cv_field_progress_v1',
+ materials:'cv_materials_v1',suppliers:'cv_suppliers_v1',materialMovements:'cv_material_movements_v1'
 };
 const normalize=(k,row)=>{
+ if(k==='materials')return {id:row.id,name:row.name,category:row.category||'',unit:row.unit,minStock:Number(row.min_stock||0),stock:Number(row.stock||0),averageCost:Number(row.average_cost||0),active:row.active!==false,createdAt:row.created_at};
+ if(k==='suppliers')return {id:row.id,name:row.name,document:row.document||'',phone:row.phone||'',email:row.email||'',notes:row.notes||'',createdAt:row.created_at};
+ if(k==='materialMovements')return {id:row.id,materialId:row.material_id,supplierId:row.supplier_id||null,type:row.movement_type,quantity:Number(row.quantity),unitCost:row.unit_cost===null?null:Number(row.unit_cost),workOrderId:row.work_order_id||null,reference:row.reference||'',notes:row.notes||'',createdAt:row.created_at};
  if(k==='fieldProgress')return {id:row.id,workOrderId:row.work_order_id,itemId:row.item_id,
   status:row.status,executedQuantity:Number(row.executed_quantity),
   employeeId:row.employee_id||null,observedOn:row.observed_on,
@@ -72,6 +76,9 @@ const normalize=(k,row)=>{
   quantity:row.quantity===null?null:Number(row.quantity)};
 };
 const payload=(k,item,userId)=>{
+ if(k==='materials')return {id:item.id,user_id:userId,name:item.name,category:item.category||'',unit:item.unit||'un',min_stock:item.minStock||0,active:item.active!==false,updated_at:new Date().toISOString()};
+ if(k==='suppliers')return {id:item.id,user_id:userId,name:item.name,document:item.document||'',phone:item.phone||'',email:item.email||'',notes:item.notes||'',updated_at:new Date().toISOString()};
+ if(k==='materialMovements')throw Error('Movimentações devem ser registradas pela operação atômica de estoque.');
  if(k==='reads')throw Error('Marcações de leitura só podem ser criadas pelo fluxo de resposta.');
  if(k==='fieldProgress')return {id:item.id,user_id:userId,work_order_id:item.workOrderId,
   item_id:item.itemId,status:item.status,executed_quantity:item.executedQuantity,
@@ -198,6 +205,34 @@ export async function fetchRemote(client,userId){
   productivePeople:a.productive_people,theme:a.theme,reviewed:a.reviewed
  }:null);
  return out;
+}
+export async function createMaterialMovementRemote(client,userId,movement){
+ checkId(userId);
+ const session=await client.auth.getUser();
+ if(session.error||session.data?.user?.id!==userId)throw Error('Sessão inválida para movimentar o estoque.');
+ const {data,error}=await client.rpc('cv_material_movement_create_v1',{
+  p_material_id:movement.materialId,p_type:movement.type,p_quantity:movement.inputQuantity??movement.quantity,
+  p_unit_cost:movement.unitCost,p_supplier_id:movement.supplierId,
+  p_work_order_id:movement.workOrderId,p_reference:movement.reference,p_notes:movement.notes
+ });
+ if(error)throw Error('Falha ao registrar movimentação: '+error.message);
+ if(typeof data!=='string'||!data)throw Error('Banco não confirmou a movimentação.');
+ return data;
+}
+export async function fetchInventoryRemote(client,userId){
+ checkId(userId);
+ const [materials,suppliers,materialMovements]=await Promise.all(['materials','suppliers','materialMovements'].map(k=>fetchKind(client,userId,k)));
+ return {materials,suppliers,materialMovements};
+}
+export async function putMaterialRemote(client,userId,item){
+ checkId(userId);
+ const row=payload('materials',item,userId);
+ const existing=await fetchKind(client,userId,'materials');
+ const query=existing.some(x=>x.id===item.id)?client.from(TABLES.materials).update({name:row.name,category:row.category,unit:row.unit,min_stock:row.min_stock,active:row.active,updated_at:row.updated_at}).eq('id',item.id).eq('user_id',userId):client.from(TABLES.materials).insert(row);
+ const {data,error}=await query.select('id').single();
+ if(error)throw Error('Falha ao salvar material: '+error.message);
+ if(data?.id!==item.id)throw Error('Banco não confirmou o material.');
+ return item;
 }
 export async function putRemote(client,userId,kind,item){
  checkId(userId);

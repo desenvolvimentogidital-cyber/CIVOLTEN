@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createE2EClient} from '../src/e2e-client.mjs';
-import {fetchRemote,putRemote,deleteRemote,putCompanyRemote,putCatalogBatchRemote,TABLES} from '../src/cloud.mjs';
+import {fetchRemote,putRemote,deleteRemote,putCompanyRemote,putCatalogBatchRemote,TABLES,createMaterialMovementRemote,fetchInventoryRemote,putMaterialRemote} from '../src/cloud.mjs';
 import {summary} from '../src/calc.mjs';
 const userId='00000000-0000-4000-8000-000000000001';
 test('dados financeiros são escritos no banco e lidos com valores reais',async()=>{
@@ -55,7 +55,7 @@ test('outro usuário não consegue salvar, excluir ou ler registros alheios',asy
  assert.deepEqual((await fetchRemote(c,someone)).fixed,[]);
 });
 test('não existe tabela pública sem mapeamento',()=>{
- assert.deepEqual(Object.keys(TABLES),['fixed','variable','employees','ledger','budgets','catalog','works','workLogs','measurements','invites','reads','fieldProgress']);
+ assert.deepEqual(Object.keys(TABLES),['fixed','variable','employees','ledger','budgets','catalog','works','workLogs','measurements','invites','reads','fieldProgress','materials','suppliers','materialMovements']);
 });
 
 test('lançamentos de faturamento são persistidos e isolados por usuário',async()=>{
@@ -150,4 +150,28 @@ test('importacao SIURB usa RLS sem apagar dados e suporta paginacao',async()=>{
  assert.equal(loaded.catalog.length,505,'Nao duplicar servico na reimportacao');
  assert.equal(loaded.catalog[0].directCost,12);
  await assert.rejects(putCatalogBatchRemote(c,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',[items[0]]),/RLS/);
+});
+
+test('estoque, fornecedores e movimentos são persistidos, isolados e auditáveis',async()=>{
+ const c=createE2EClient();await c.auth.signInWithPassword({email:'teste@example.com',password:'senha-forte'});
+ const material={id:'77777777-7777-4777-8777-777777777777',name:'Cabo flexível 2,5 mm',category:'Elétrica',unit:'m',minStock:10,stock:0,averageCost:0,active:true};
+ const supplier={id:'88888888-8888-4888-8888-888888888888',name:'Distribuidora elétrica',document:'',phone:'',email:'',notes:''};
+ await putMaterialRemote(c,userId,material);await putRemote(c,userId,'suppliers',supplier);
+ const movement={materialId:material.id,type:'purchase',quantity:25,unitCost:2.4,supplierId:supplier.id,workOrderId:null,reference:'NF 123',notes:'Compra inicial'};
+ const movementId=await createMaterialMovementRemote(c,userId,movement);
+ const inventory=await fetchInventoryRemote(c,userId);
+ assert.equal(inventory.materials[0].stock,25);
+ assert.equal(inventory.materials[0].averageCost,2.4);
+ await putMaterialRemote(c,userId,{...inventory.materials[0],name:'Cabo 2,5 mm atualizado'});
+ assert.equal((await fetchInventoryRemote(c,userId)).materials[0].stock,25,'editar descrição não pode zerar saldo');
+ assert.equal(inventory.suppliers[0].name,supplier.name);
+ assert.equal(inventory.materialMovements[0].id,movementId);
+ await assert.rejects(createMaterialMovementRemote(c,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',movement),/RLS|Sessão/);
+ const blockedMaterial=await c.from('cv_materials_v1').delete().eq('id',material.id).eq('user_id',userId).select();
+ assert.match(blockedMaterial.error.message,/movimentações/i);
+ const blockedSupplier=await c.from('cv_suppliers_v1').delete().eq('id',supplier.id).eq('user_id',userId).select();
+ assert.match(blockedSupplier.error.message,/movimentações/i);
+ await createMaterialMovementRemote(c,userId,{...movement,type:'exit',quantity:20,unitCost:null});
+ assert.equal((await fetchInventoryRemote(c,userId)).materials[0].stock,5);
+ await assert.rejects(createMaterialMovementRemote(c,userId,{...movement,type:'exit',quantity:6,unitCost:null}),/insuficiente/);
 });

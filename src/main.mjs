@@ -1,5 +1,7 @@
 import {createClient} from '@supabase/supabase-js';
-import {fetchRemote,fetchOperationsRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote,fetchInvitesRemote,revokeProposalRemote,fetchProposalRepliesRemote,markResponseReadRemote,transitionWorkStatusRemote} from './cloud.mjs';
+import {validateMaterial,validateSupplier,validateMovement} from './materials.mjs';
+import {materialsView,materialEditorDialog,supplierEditorDialog,movementDialog} from './materials-ui.mjs';
+import {fetchRemote,fetchOperationsRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote,fetchInvitesRemote,revokeProposalRemote,fetchProposalRepliesRemote,markResponseReadRemote,transitionWorkStatusRemote,createMaterialMovementRemote,fetchInventoryRemote,putMaterialRemote} from './cloud.mjs';
 import {prepareCostPresets} from './cost-presets.mjs';
 import {payrollPreset,validatePayroll} from './payroll.mjs';
 import {createE2EClient} from './e2e-client.mjs';
@@ -70,6 +72,7 @@ function render(){
  if(state.view==='home')html=homeView(state.data,state.user,newSiteLeadCount(state.siteLeads));
  else if(state.view==='costs')html=costsView(state.data,state.costTab);
  else if(state.view==='team')html=teamView(state.data);
+ else if(state.view==='materials')html=materialsView(state.data);
  else if(state.view==='finance')html=financeView(state.data,state.finMonth,state.finFilter);
  else if(state.view==='reports')html=reportsView(state.data,state.finMonth);
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
@@ -209,7 +212,7 @@ async function signOut(){
 }
 function go(view){
  if(view==='soon'){delayToast('Este recurso será construído na próxima etapa.');return;}
- if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail','field-progress','inbox','inbox-detail','site-leads','nfse'].includes(view))return;
+ if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail','field-progress','inbox','inbox-detail','site-leads','nfse','materials'].includes(view))return;
  if(view==='nfse'&&!state.nfseDraft){
   state.nfseDraft=nfseNewDraft(state.data.company);state.nfseStep=1;
   try{const cached=JSON.parse(localStorage.getItem(nfseStorageKey(state.user?.id))||'null');
@@ -489,6 +492,81 @@ async function importCostPresets(){
   state.busy=false;
   if(button?.isConnected)button.disabled=false;
  }
+}
+function openMaterialEditor(id=null){
+ if(state.cloudError||!state.user)return delayToast('Sincronize o banco antes de editar materiais.');
+ const item=state.data.materials.find(x=>x.id===id)||{};
+ state.editor={kind:'material',id};
+ modal.innerHTML=materialEditorDialog(item);modal.showModal();
+}
+function openSupplierEditor(id=null){
+ if(state.cloudError||!state.user)return delayToast('Sincronize o banco antes de editar fornecedores.');
+ const item=state.data.suppliers.find(x=>x.id===id)||{};
+ state.editor={kind:'supplier',id};
+ modal.innerHTML=supplierEditorDialog(item);modal.showModal();
+}
+function openMaterialMovement(id){
+ if(state.cloudError||!state.user)return delayToast('Sincronize o banco antes de movimentar o estoque.');
+ const item=state.data.materials.find(x=>x.id===id);
+ if(!item)return delayToast('Material não encontrado.');
+ state.editor={kind:'material-movement',id};
+ modal.innerHTML=movementDialog(item,state.data.suppliers);modal.showModal();
+}
+async function saveMaterial(form){
+ const button=form.querySelector('[type=submit]'),error=form.querySelector('#material-error');
+ try{
+  const input=validateMaterial(Object.fromEntries(new FormData(form)));
+  const id=state.editor?.id||crypto.randomUUID(),old=state.data.materials.find(x=>x.id===id);
+  const item={...input,...old,id};
+  if(button)button.disabled=true;
+  await putMaterialRemote(auth,state.user.id,item);
+  const inventory=await fetchInventoryRemote(auth,state.user.id);
+  state.data={...state.data,...inventory};
+  try{safeSave(localStorage,state.user.id,state.data)}catch{}
+  closeEditor();render();delayToast('Material salvo e sincronizado.');
+ }catch(err){if(error){error.textContent=String(err.message||err);error.hidden=false;}else delayToast(String(err.message||err));}
+ finally{if(button)button.disabled=false;}
+}
+async function saveSupplier(form){
+ const button=form.querySelector('[type=submit]'),error=form.querySelector('#supplier-error');
+ try{
+  const input=validateSupplier(Object.fromEntries(new FormData(form)));
+  const id=state.editor?.id||crypto.randomUUID(),item={...input,id};
+  if(button)button.disabled=true;
+  await putRemote(auth,state.user.id,'suppliers',item);
+  const inventory=await fetchInventoryRemote(auth,state.user.id);
+  state.data={...state.data,...inventory};
+  try{safeSave(localStorage,state.user.id,state.data)}catch{}
+  closeEditor();render();delayToast('Fornecedor salvo e sincronizado.');
+ }catch(err){if(error){error.textContent=String(err.message||err);error.hidden=false;}else delayToast(String(err.message||err));}
+ finally{if(button)button.disabled=false;}
+}
+async function saveMaterialMovement(form){
+ const button=form.querySelector('[type=submit]'),error=form.querySelector('#movement-error');
+ try{
+  const material=state.data.materials.find(x=>x.id===form.dataset.materialId);
+  const input=Object.fromEntries(new FormData(form));
+  const movement=validateMovement(input,material);
+  if(button)button.disabled=true;
+  await createMaterialMovementRemote(auth,state.user.id,movement);
+  const inventory=await fetchInventoryRemote(auth,state.user.id);
+  state.data={...state.data,...inventory};
+  try{safeSave(localStorage,state.user.id,state.data)}catch{}
+  closeEditor();render();delayToast('Movimentação registrada. Estoque atualizado.');
+ }catch(err){if(error){error.textContent=String(err.message||err);error.hidden=false;}else delayToast(String(err.message||err));}
+ finally{if(button)button.disabled=false;}
+}
+async function deleteInventoryRecord(kind,id){
+ const collection=kind==='materials'?'materials':'suppliers';
+ const item=state.data[collection].find(x=>x.id===id);if(!item)return;
+ if(!confirm('Excluir "'+item.name+'"? Se houver movimentações vinculadas, o banco bloqueará a exclusão para preservar o histórico.'))return;
+ try{
+  await deleteRemote(auth,state.user.id,kind,id);
+  const inventory=await fetchInventoryRemote(auth,state.user.id);
+  state.data={...state.data,...inventory};
+  try{safeSave(localStorage,state.user.id,state.data)}catch{}
+  closeEditor();render();delayToast('Cadastro excluído.');
+ }catch(err){delayToast('Não foi possível excluir: '+String(err.message||err));}
 }
 async function saveRecord(form){
  if(!state.editor||!state.user)return;
@@ -1641,6 +1719,13 @@ mount.addEventListener('click',async event=>{
  else if(action==='budget-export'){exportBudget();}
  else if(action==='budget-print'){await printBudget();}
  else if(action==='budget-delete'){await removeBudget(b.dataset.id||state.budgetDraft?.id);}
+ else if(action==='material-new'){openMaterialEditor();}
+ else if(action==='material-edit'){openMaterialEditor(b.dataset.id);}
+ else if(action==='material-movement'){openMaterialMovement(b.dataset.id);}
+ else if(action==='material-delete'){await deleteInventoryRecord('materials',b.dataset.id);}
+ else if(action==='supplier-new'){openSupplierEditor();}
+ else if(action==='supplier-edit'){openSupplierEditor(b.dataset.id);}
+ else if(action==='supplier-delete'){await deleteInventoryRecord('suppliers',b.dataset.id);}
  else if(action==='new-income'){openEditor('ledger',null,'income');}
  else if(action==='new-expense'){openEditor('ledger',null,'expense');}
  else if(action==='mark-paid'){await markPaid(b.dataset.id);}
@@ -1726,6 +1811,8 @@ modal.addEventListener('click',event=>{
  const action=b.dataset.action;
  if(action==='close-modal')closeEditor();
  if(action==='delete-record')void removeRecord();
+ if(action==='material-delete')void deleteInventoryRecord('materials',b.dataset.id);
+ if(action==='supplier-delete')void deleteInventoryRecord('suppliers',b.dataset.id);
 });
 modal.addEventListener('change',event=>{
  if(event.target.name==='contractType'){toggleContractFields();refreshCltPreview();}
@@ -1744,6 +1831,9 @@ modal.addEventListener('input',event=>{
    refreshBudgetServiceEstimate();
 });
 modal.addEventListener('submit',event=>{
+ if(event.target.id==='material-form'){event.preventDefault();void saveMaterial(event.target);return;}
+ if(event.target.id==='supplier-form'){event.preventDefault();void saveSupplier(event.target);return;}
+ if(event.target.id==='material-movement-form'){event.preventDefault();void saveMaterialMovement(event.target);return;}
  if(event.target.id==='field-progress-form'){
   event.preventDefault();void saveFieldEdit(event.target);return;
  }
