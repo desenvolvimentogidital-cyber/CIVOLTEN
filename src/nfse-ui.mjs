@@ -24,7 +24,7 @@ const fieldGroup=(title,body,description='')=>
 export function nfseNewDraft(company={}){
  const now=new Date();
  const localDate=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
- return {issuerName:company.companyName||'',issuerCnpj:'',regime:company.taxRegime||'mei',
+ return {issuerName:company.companyName||'',issuerCnpj:'',regime:'mei',
   clientName:'',clientCnpj:'',clientEmail:'',clientCep:'',clientStreet:'',clientNumber:'',clientDistrict:'',clientCity:'',clientUf:'',clientComplement:'',description:'',amount:'',competence:localDate,
   serviceCode:'',nbs:'',serviceCity:'',workType:'endereco',workCode:'',cep:'',street:'',number:'',district:'',city:'',uf:'',complement:'',
   taxStatus:'tributavel',specialRegime:'nenhum',issSuspended:'nao',issRetention:'conferir',
@@ -205,8 +205,9 @@ export function nfseView(d,step=1,budgets=[],options={}){
    '<button class="nfse-secondary" type="button" data-action="nfse-prev">Voltar e editar</button>'+
    '<button class="nfse-disabled" type="button" disabled title="Integração com a API oficial pendente">Emitir NFS-e — integração pendente</button></div></section>';
  }
- return '<section class="nfse-page"><div class="nfse-head"><div class="nfse-title-icon">'+icon('file',27)+'</div><div><h1>Emitir NFS-e</h1>'+
+ return '<section class="nfse-page"><div class="nfse-head"><div class="nfse-title-icon">'+icon('file',27)+'</div><div><h1>Preparar NFS-e</h1>'+
  '<p>Nota Fiscal de Serviço • preenchimento simplificado</p></div></div>'+
+ '<aside class="nfse-tax-guide">MEI: para emitir agora, use o <a href="https://www.nfse.gov.br/EmissorNacional/" target="_blank" rel="noopener noreferrer">Emissor Nacional gratuito</a>. A integração automática exige credenciamento e certificado digital válido; este formulário apenas prepara e salva dados, não transmite nem autoriza notas.</aside>'+ 
  (step===1?history:'')+
  (options.notice?'<div class="nfse-notice" role="status">'+e(options.notice)+'</div>':'')+
  '<div class="nfse-progress">'+stage+'</div>'+
