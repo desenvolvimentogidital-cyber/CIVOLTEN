@@ -24,7 +24,7 @@ const fieldGroup=(title,body,description='')=>
 export function nfseNewDraft(company={}){
  const now=new Date();
  const localDate=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
- return {issuerName:company.companyName||'',issuerCnpj:'',regime:'mei',
+ return {issuerName:company.companyName||'',issuerCnpj:'',regime:regimeOptions.some(([value])=>value===company.taxRegime)?company.taxRegime:'mei',
   clientName:'',clientCnpj:'',clientEmail:'',clientCep:'',clientStreet:'',clientNumber:'',clientDistrict:'',clientCity:'',clientUf:'',clientComplement:'',description:'',amount:'',competence:localDate,
   serviceCode:'',nbs:'',serviceCity:'',workType:'endereco',workCode:'',cep:'',street:'',number:'',district:'',city:'',uf:'',complement:'',
   taxStatus:'tributavel',specialRegime:'nenhum',issSuspended:'nao',issRetention:'conferir',
