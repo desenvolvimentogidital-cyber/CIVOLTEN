@@ -510,7 +510,7 @@ function openMaterialMovement(id){
  const item=state.data.materials.find(x=>x.id===id);
  if(!item)return delayToast('Material não encontrado.');
  state.editor={kind:'material-movement',id};
- modal.innerHTML=movementDialog(item,state.data.suppliers);modal.showModal();
+ modal.innerHTML=movementDialog(item,state.data.suppliers,state.data.works||[]);modal.showModal();
 }
 async function saveMaterial(form){
  const button=form.querySelector('[type=submit]'),error=form.querySelector('#material-error');
