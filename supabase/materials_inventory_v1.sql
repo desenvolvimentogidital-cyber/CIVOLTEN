@@ -103,3 +103,11 @@ begin
 end $$;
 revoke all on function public.cv_material_movement_create_v1(uuid,text,numeric,numeric,uuid,uuid,text,text) from public,anon;
 grant execute on function public.cv_material_movement_create_v1(uuid,text,numeric,numeric,uuid,uuid,text,text) to authenticated;
+
+-- Fase 2: vínculo seguro entre consumo de estoque e obra do mesmo usuário.
+do $$ begin
+ if not exists(select 1 from pg_constraint where conname='cv_mov_work_owner_fk' and conrelid='public.cv_material_movements_v1'::regclass) then
+  alter table public.cv_material_movements_v1 add constraint cv_mov_work_owner_fk
+   foreign key(user_id,work_order_id) references public.cv_work_orders_v1(user_id,id) on delete restrict;
+ end if;
+end $$;
