@@ -74,7 +74,7 @@ create or replace function public.cv_material_movement_create_v1(
  p_material_id uuid,p_type text,p_quantity numeric,p_unit_cost numeric default null,
  p_supplier_id uuid default null,p_work_order_id uuid default null,
  p_reference text default '',p_notes text default ''
-) returns uuid language plpgsql security definer set search_path=public,pg_temp as $
+) returns uuid language plpgsql security definer set search_path=public,pg_temp as $$
 declare m public.cv_materials_v1%rowtype; delta numeric(14,4); next_stock numeric(14,4); next_avg numeric(14,4); movement_id uuid;
 begin
  if auth.uid() is null then raise exception 'Sessão inválida'; end if;
