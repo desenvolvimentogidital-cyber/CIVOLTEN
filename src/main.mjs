@@ -1326,6 +1326,26 @@ async function updateWorkStatus(status){
  }catch(err){delayToast('Falha ao atualizar obra: '+String(err.message||err));}
  finally{state.busy=false;}
 }
+async function deleteCancelledWork(){
+ const work=workCurrent();
+ if(!work||work.status!=='cancelled'||!state.user||state.busy||state.cloudError)return;
+ const linked=['workLogs','measurements','fieldProgress','materialMovements'];
+ if(linked.some(kind=>(state.data[kind]||[]).some(x=>x.workOrderId===work.id))){
+  delayToast('Esta OS tem registros de execução ou materiais. Histórico preservado.');return;
+ }
+ if((state.data.ledger||[]).some(x=>String(x.reference||'').includes(work.contractRef||'___'))){
+  delayToast('Esta OS possui lançamento financeiro. Histórico preservado.');return;
+ }
+ if(!confirm('Excluir definitivamente esta OS cancelada? O orçamento e o aceite do cliente continuarão preservados.'))return;
+ state.busy=true;
+ try{
+  await deleteRemote(auth,state.user.id,'works',work.id);
+  await refreshWorkData();
+  state.workId=null;go('works');
+  delayToast('OS cancelada excluída. Orçamento e aceite preservados.');
+ }catch(err){delayToast('O banco impediu a exclusão: '+String(err.message||err));}
+ finally{state.busy=false;}
+}
 async function deleteWorkRecord(kind,id){
  const work=workCurrent();
  if(!work||work.status!=='in_progress'||state.cloudError||state.busy)return;
@@ -1681,6 +1701,7 @@ mount.addEventListener('click',async event=>{
  else if(action==='work-approve-budget'){openWorkApproval(b.dataset.id);}
  else if(action==='work-start'){await updateWorkStatus('in_progress');}
  else if(action==='work-cancel'){await updateWorkStatus('cancelled');}
+ else if(action==='work-delete'){await deleteCancelledWork();}
  else if(action==='work-log-new'){openWorkForm('work-log');}
  else if(action==='work-measure-new'){openWorkForm('work-measure');}
  else if(action==='work-measure-approve'){await approveWorkMeasurement(b.dataset.id);}
