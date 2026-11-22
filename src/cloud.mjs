@@ -58,6 +58,7 @@ const normalize=(k,row)=>{
   unit:row.unit,unitCost:Number(row.unit_cost),
   monthQty:row.month_qty===null?null:Number(row.month_qty)};
  if(k==='budgets')return {id:row.id,title:row.title,customer:row.customer,
+  customerRef:row.customer_ref||null,
   project:row.project||'',location:row.location||'',notes:row.notes||'',
   expiresOn:row.expires_on||null,items:row.items||[],pricing:row.pricing||null,
   commercial:row.commercial||{},
@@ -110,6 +111,7 @@ const payload=(k,item,userId)=>{
  if(k==='variable')return {...base,name:item.name,category:item.category,
   unit:item.unit,unit_cost:item.unitCost,month_qty:item.monthQty};
  if(k==='budgets')return {...base,title:item.title,customer:item.customer,
+  customer_ref:item.customerRef||null,
   project:item.project||'',location:item.location||'',notes:item.notes||'',
   expires_on:item.expiresOn||null,items:item.items,pricing:item.pricing||null,
   commercial:item.commercial||{},
