@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DEMO_SERVICES,createService,validateBudget,validateCommercial,priceBudget,createPricingSnapshot,budgetUnitEstimate,validateBudgetItem,budgetCsv} from '../src/budget.mjs';
 import {printableBudget} from '../src/budget-print.mjs';
+import {putRemote} from '../src/cloud.mjs';
 const company={companyName:'Construtora Teste',taxRegime:'simples',annex:'IV',taxPct:10,marginPct:20,
  productiveDays:20,hoursPerDay:8,productivePeople:2,reviewed:true};
 const priced={monthlyCostCents:1600000,productiveHours:320,
@@ -138,4 +139,15 @@ test('orçamento preserva identificação do cliente cadastrado no snapshot',()=
 test('vínculo inválido não contamina orçamento salvo',()=>{
  const b=raw({customerRef:{id:'00000000-0000-4000-8000-000000000010',kind:'cpf',document:'000',name:'Cliente A'}});
  assert.equal(validateBudget(b).customerRef,null);
+});
+
+test('Supabase recebe vínculo do cliente ao salvar orçamento',async()=>{
+ const id='00000000-0000-4000-8000-000000000020';
+ const user='00000000-0000-4000-8000-000000000001';
+ const b=validateBudget(raw({id,customerRef:{id:'00000000-0000-4000-8000-000000000010',kind:'cpf',document:'52998224725',name:'Cliente A'}}));
+ let payload;
+ const db={from(table){assert.equal(table,'cv_budget_drafts_v1');return {upsert(row){payload=row;return {select(){return {single:async()=>({data:{id},error:null})};}};}};}};
+ await putRemote(db,user,'budgets',b);
+ assert.deepEqual(payload.customer_ref,b.customerRef);
+ assert.equal(payload.user_id,user);
 });
