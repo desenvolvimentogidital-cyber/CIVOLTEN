@@ -1,4 +1,4 @@
-import {auditBudgetFinancials,auditWorkBilling} from './financial-audit.mjs';
+import {auditBudgetFinancials,auditWorkBilling,auditMonthlyCosts} from './financial-audit.mjs';
 import {createClient} from '@supabase/supabase-js';
 import {clientsView} from './clients-ui.mjs';
 import {loadIndividualClients,saveIndividualClient,deleteIndividualClient} from './individual-clients.mjs';
@@ -77,7 +77,11 @@ function render(){
  else if(state.view==='team')html=teamView(state.data);
  else if(state.view==='materials')html=materialsView(state.data);
  else if(state.view==='finance')html=financeView(state.data,state.finMonth,state.finFilter);
- else if(state.view==='reports')html=reportsView(state.data,state.finMonth);
+ else if(state.view==='reports'){
+  const audit=auditMonthlyCosts(state.data);
+  html=reportsView(state.data,state.finMonth);
+  if(!audit.ok)html='<section role="alert" class="notice">Auditoria financeira: '+audit.errors.map(e).join('; ')+'</section>'+html;
+ }
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
  else if(state.view==='appearance')html=appearanceView(state.data.company);
  else if(state.view==='budgets')html=budgetsView(state.data);
