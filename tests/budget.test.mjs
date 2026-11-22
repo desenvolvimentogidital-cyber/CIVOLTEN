@@ -1,5 +1,5 @@
 import test from 'node:test';
-import {auditBudgetFinancials,auditWorkBilling} from '../src/financial-audit.mjs';
+import {auditBudgetFinancials,auditWorkBilling,auditMonthlyCosts} from '../src/financial-audit.mjs';
 import assert from 'node:assert/strict';
 import {DEMO_SERVICES,createService,validateBudget,validateCommercial,priceBudget,createPricingSnapshot,budgetUnitEstimate,validateBudgetItem,budgetCsv} from '../src/budget.mjs';
 import {printableBudget} from '../src/budget-print.mjs';
@@ -176,4 +176,10 @@ test('auditoria de faturamento concilia medição aprovada com recebível',()=>{
  assert.equal(duplicate.ok,false);
  const excess=auditWorkBilling(order,[{...measurement,amount:150}],[]);
  assert.equal(excess.ok,false);
+});
+
+test('auditoria de custos mensais reconcilia componentes',()=>{
+ const report=auditMonthlyCosts({fixed:[],variable:[],employees:[]});
+ assert.equal(report.ok,true,report.errors.join('; '));
+ assert.equal(report.totals.monthly,report.totals.fixed+report.totals.variable+report.totals.team);
 });
