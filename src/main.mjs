@@ -1,5 +1,6 @@
 import {createClient} from '@supabase/supabase-js';
 import {clientsView} from './clients-ui.mjs';
+import {loadIndividualClients,saveIndividualClient,deleteIndividualClient} from './individual-clients.mjs';
 import {validateMaterial,validateSupplier,validateMovement} from './materials.mjs';
 import {materialsView,materialEditorDialog,supplierEditorDialog,movementDialog} from './materials-ui.mjs';
 import {fetchRemote,fetchOperationsRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote,fetchInvitesRemote,revokeProposalRemote,fetchProposalRepliesRemote,markResponseReadRemote,transitionWorkStatusRemote,createMaterialMovementRemote,fetchInventoryRemote,putMaterialRemote} from './cloud.mjs';
@@ -55,7 +56,7 @@ const state={
  user:null,data:fresh(),view:'home',costTab:'fixed',finMonth:currentMonth(),finFilter:'all',quoteHours:'8',quoteExtra:'0',authMode:recoveryToken?'newpass':'login',
  cloudError:null,budgetDraft:null,budgetError:'',workId:null,replyId:null,replyFilter:'all',replySearch:'',siteLeads:[],siteLeadsInitialized:false,siteLeadsLoading:false,siteLeadsError:'',pushState:'inactive',pushBusy:false,fieldFilter:'all',fieldSearch:'',catalogCategory:'all',catalogBack:'budgets',catalogImport:null,catalogSearch:'',budgetCatalogSearch:'',
  authBusy:false,authError:'',busy:false,editor:null,toastTimer:null,
- nfseDraft:null,nfseStep:1,nfseId:null,nfseDrafts:[],nfseClients:[],nfseLoaded:false,nfseLoading:false,nfseSaving:false,nfseLookup:false,nfseNotice:'',
+ individualClients:[],nfseDraft:null,nfseStep:1,nfseId:null,nfseDrafts:[],nfseClients:[],nfseLoaded:false,nfseLoading:false,nfseSaving:false,nfseLookup:false,nfseNotice:'',
  checkedSession:false
 };
 const delayToast=(text)=>{
@@ -79,7 +80,7 @@ function render(){
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
  else if(state.view==='appearance')html=appearanceView(state.data.company);
  else if(state.view==='budgets')html=budgetsView(state.data);
- else if(state.view==='clients')html=clientsView(state.nfseClients,state.nfseNotice);
+ else if(state.view==='clients')html=clientsView([...state.nfseClients,...state.individualClients],state.nfseNotice);
  else if(state.view==='nfse')html=nfseView(state.nfseDraft||nfseNewDraft(state.data.company),state.nfseStep,(state.data.budgets||[]).filter(b=>b.demo===false),{drafts:state.nfseDrafts,clients:state.nfseClients,loaded:state.nfseLoaded,notice:state.nfseNotice});
  else if(state.view==='site-leads')html=siteLeadsView(state.siteLeads,state.siteLeadsLoading,state.siteLeadsError);
  else if(state.view==='inbox')html=responseInboxView(state.data,state.replyFilter,state.replySearch);
@@ -208,7 +209,7 @@ async function signOut(){
   const r=await auth.auth.signOut();if(r?.error)throw Error(r.error.message||'Falha ao sair');
   state.user=null;state.data=fresh();state.cloudError=null;state.budgetDraft=null;state.budgetError='';state.view=deepLinkSite?'site-leads':'home';state.authMode='login';
   state.authError='';state.siteLeads=[];state.siteLeadsInitialized=false;state.pushState='inactive';
-  state.nfseDraft=null;state.nfseId=null;state.nfseStep=1;state.nfseDrafts=[];state.nfseClients=[];state.nfseLoaded=false;state.nfseNotice='';updateDeviceBadge(0);render();delayToast('Sessão encerrada. Seus dados locais foram preservados.');
+  state.individualClients=[];state.nfseDraft=null;state.nfseId=null;state.nfseStep=1;state.nfseDrafts=[];state.nfseClients=[];state.nfseLoaded=false;state.nfseNotice='';updateDeviceBadge(0);render();delayToast('Sessão encerrada. Seus dados locais foram preservados.');
  }catch(err){delayToast(err.message||'Não foi possível sair.');}
  finally{state.busy=false;}
 }
@@ -1474,34 +1475,38 @@ async function saveClientForm(form){
  if(!state.user||state.busy)return;
  const values=Object.fromEntries(new FormData(form));
  const cnpj=String(values.clientCnpj||'').replace(/\D/g,'');
- if(cnpj.length!==14){delayToast('Informe um CNPJ de 14 dígitos.');return;}
- const existing=state.nfseClients.find(c=>c.id===values.clientId)||state.nfseClients.find(c=>c.cnpj===cnpj);
+ if(values.clientKind!=='cpf'&&cnpj.length!==14){delayToast('Informe um CNPJ de 14 dígitos.');return;}
+ const isCpf=values.clientKind==='cpf';
+ const existing=(isCpf?state.individualClients:state.nfseClients).find(c=>c.id===values.clientId)||(isCpf?state.individualClients:state.nfseClients).find(c=>(c.cnpj||c.cpf)===cnpj);
  state.busy=true;
  try{
-  await saveNfseClient(auth,state.user.id,{...values,clientCnpj:cnpj},existing?.id||null);
+  if(isCpf)await saveIndividualClient(auth,state.user.id,{id:existing?.id,cpf:cnpj,legal_name:values.clientName,email:values.clientEmail});
+  else await saveNfseClient(auth,state.user.id,{...values,clientCnpj:cnpj},existing?.id||null);
   state.nfseNotice='Cliente salvo no Supabase.';
   await refreshNfseRecords(true);render();
  }catch(err){delayToast(String(err.message||err));}
  finally{state.busy=false;}
 }
 function editClient(id){
- const c=state.nfseClients.find(x=>x.id===id);
+ const c=[...state.nfseClients,...state.individualClients].find(x=>x.id===id);
  if(!c)return;
  const form=mount.querySelector('#client-form');
  if(!form)return;
  form.elements.clientId.value=c.id;
+ form.elements.clientKind.value=c.kind==='cpf'?'cpf':'cnpj';
  form.elements.clientName.value=c.legal_name;
- form.elements.clientCnpj.value=c.cnpj;
+ form.elements.clientCnpj.value=c.cnpj||c.cpf;
  form.elements.clientEmail.value=c.email||'';
  form.scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function removeClient(id){
- const c=state.nfseClients.find(x=>x.id===id);
+ const c=[...state.nfseClients,...state.individualClients].find(x=>x.id===id);
  if(!c||!state.user||state.busy)return;
  if(!confirm('Excluir o cadastro de '+c.legal_name+'? Orçamentos e obras existentes serão preservados.'))return;
  state.busy=true;
  try{
-  await deleteNfseClient(auth,state.user.id,id);
+  if(c.kind==='cpf')await deleteIndividualClient(auth,state.user.id,id);
+  else await deleteNfseClient(auth,state.user.id,id);
   state.nfseNotice='Cliente excluído; histórico de obras e orçamentos preservado.';
   await refreshNfseRecords(true);render();
  }catch(err){delayToast(String(err.message||err));}
@@ -1515,6 +1520,7 @@ async function refreshNfseRecords(force=false){
   const result=await loadNfseRecords(auth,forUser);
   if(state.user?.id!==forUser)return;
   state.nfseDrafts=result.drafts;state.nfseClients=result.clients;
+  state.individualClients=await loadIndividualClients(auth,forUser);
   state.nfseLoaded=true;
   if(state.nfseDrafts.length&&!state.nfseId){
    // Preservar o rascunho local; só abrir um rascunho salvo por escolha do usuário.
