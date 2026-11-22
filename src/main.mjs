@@ -682,6 +682,14 @@ function updateBudgetField(element){
  }
  const key=element.dataset.budgetField;
  if(!key)return false;
+ if(key==='customerSelect'){
+  const client=[...state.nfseClients,...state.individualClients].find(c=>c.id===element.value);
+  draft.customerRef=client?{id:client.id,kind:client.kind==='cpf'?'cpf':'cnpj',document:client.cpf||client.cnpj,name:client.legal_name}:null;
+  if(client)draft.customer=client.legal_name;
+  const field=mount.querySelector('#budget-form [name="customer"]');
+  if(field&&client)field.value=client.legal_name;
+  return true;
+ }
  if(key==='laborOnly'){
   const next=element.value==='true';
   if(next&&draft.items.some(item=>Number(item.directCost||0)>0)){
