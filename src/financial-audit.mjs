@@ -1,5 +1,6 @@
 // Auditoria determinística: valores monetários são centavos inteiros.
 import {priceBudget} from './budget.mjs';
+import {summary} from './calc.mjs';
 export function auditBudgetFinancials(budget){
  const errors=[];
  let price;
@@ -62,4 +63,15 @@ export function auditWorkBilling(order,measurements=[],ledger=[]){
   errors.push('Valor do contrato inválido.');
  if(approvedCents>contractCents)errors.push('Medições aprovadas superam o contrato.');
  return {ok:errors.length===0,errors,totals:{contract:contractCents,approved:approvedCents,billed:billedCents,pending:approvedCents-billedCents}};
+}
+
+export function auditMonthlyCosts(data){
+ const cost=summary(data);
+ const errors=[];
+ for(const key of ['fixed','variable','team','total'])
+  if(!Number.isSafeInteger(cost[key])||cost[key]<0)errors.push('Custo mensal inválido: '+key);
+ if(cost.fixed+cost.variable+cost.team!==cost.total)
+  errors.push('Total mensal não reconcilia com custos fixos, variáveis e equipe.');
+ if(!cost.readyForPricing)errors.push('Há custos inválidos que bloqueiam a precificação.');
+ return {ok:errors.length===0,errors,totals:{fixed:cost.fixed,variable:cost.variable,team:cost.team,monthly:cost.total},missing:cost.missing,blocking:cost.blocking};
 }
