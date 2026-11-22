@@ -31,6 +31,7 @@ export function createWorkOrder(budget,fields={},id){
  const frozen=structuredClone(budget);
  // Armazena a precificação homologada e todo o escopo. Não usa custos futuros para recalcular.
  return {id,budgetId:budget.id,customer:text(budget.customer,180,'cliente',true),
+  customerRef:frozen.customerRef||null,
   project:text(budget.project||budget.title,180,'obra'),contractRef:ref,
   acceptanceRef:acceptance,budgetSnapshot:frozen,pricedRows:p.rows,
   contractValue:p.totalSale/100,status:'approved',approvedOn,startOn,
