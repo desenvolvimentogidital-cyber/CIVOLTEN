@@ -1,3 +1,4 @@
+import {auditBudgetFinancials,auditWorkBilling,auditMonthlyCosts} from './financial-audit.mjs';
 import {createClient} from '@supabase/supabase-js';
 import {clientsView} from './clients-ui.mjs';
 import {loadIndividualClients,saveIndividualClient,deleteIndividualClient} from './individual-clients.mjs';
@@ -76,7 +77,11 @@ function render(){
  else if(state.view==='team')html=teamView(state.data);
  else if(state.view==='materials')html=materialsView(state.data);
  else if(state.view==='finance')html=financeView(state.data,state.finMonth,state.finFilter);
- else if(state.view==='reports')html=reportsView(state.data,state.finMonth);
+ else if(state.view==='reports'){
+  const audit=auditMonthlyCosts(state.data);
+  html=reportsView(state.data,state.finMonth);
+  if(!audit.ok)html='<section role="alert" class="notice">Auditoria financeira: '+audit.errors.map(e).join('; ')+'</section>'+html;
+ }
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
  else if(state.view==='appearance')html=appearanceView(state.data.company);
  else if(state.view==='budgets')html=budgetsView(state.data);
@@ -919,6 +924,8 @@ async function saveBudget(form){
    throw Error('Revise os itens e custos do orçamento anterior antes de salvar como proposta comercial.');
   draft.pricing=draft.pricing||createPricingSnapshot(state.data);
   const valid=validateBudget(draft);
+  const audit=auditBudgetFinancials(valid);
+  if(!audit.ok)throw Error('Auditoria financeira: '+audit.errors.join('; '));
   valid.id=state.budgetDraft.id||crypto.randomUUID();
   valid.createdAt=state.budgetDraft.createdAt||new Date().toISOString();
   await putRemote(auth,state.user.id,'budgets',valid);
@@ -1215,6 +1222,8 @@ function openWorkForm(kind,id=null){
   const measure=state.data.measurements.find(x=>x.id===id&&x.workOrderId===work.id);
   if(!measure||measure.status!=='approved')return delayToast('Aprove a medição antes de cobrar.');
   if(state.data.ledger.some(x=>x.reference==='MED:'+id))return delayToast('Medição já lançada no Financeiro.');
+  const billingAudit=auditWorkBilling(work,state.data.measurements,state.data.ledger);
+  if(!billingAudit.ok)return delayToast('Auditoria do faturamento: '+billingAudit.errors.join('; '));
   modal.innerHTML=workBillingDialog(measure);
  }else return;
  modal.showModal();
