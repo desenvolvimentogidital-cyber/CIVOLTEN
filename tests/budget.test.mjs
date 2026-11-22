@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {auditBudgetFinancials} from '../src/financial-audit.mjs';
 import assert from 'node:assert/strict';
 import {DEMO_SERVICES,createService,validateBudget,validateCommercial,priceBudget,createPricingSnapshot,budgetUnitEstimate,validateBudgetItem,budgetCsv} from '../src/budget.mjs';
 import {printableBudget} from '../src/budget-print.mjs';
@@ -151,4 +152,16 @@ test('Supabase recebe vínculo do cliente ao salvar orçamento',async()=>{
  assert.deepEqual(payload.customer_ref,b.customerRef);
  assert.equal(payload.user_id,user);
  assert.equal(payload.customer_ref.kind,'cpf');
+});
+
+test('auditoria financeira reconcilia proposta com precificação válida',()=>{
+ const b=raw({demo:false,items:[{id:'i1',source:'manual',description:'Serviço',unit:'un',quantity:2,laborHours:4,directCost:0}],commercial:{laborOnly:true,schedule:{goal:'crew',pricingMode:'hours'}}});
+ const report=auditBudgetFinancials(b);
+ assert.equal(report.ok,true,report.errors.join('; '));
+ assert.equal(report.totals.sale-report.totals.cost-report.totals.tax,report.totals.profit);
+});
+test('auditoria financeira recusa orçamento sem precificação',()=>{
+ const report=auditBudgetFinancials(raw({pricing:null}));
+ assert.equal(report.ok,false);
+ assert.ok(report.errors.length);
 });
