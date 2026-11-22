@@ -273,7 +273,7 @@ export function budgetCatalogResults(records,search=''){
    '<span class="budget-catalog-row-plus" aria-hidden="true">'+icon('plus',19)+'</span>'+
   '</button>').join('')+'</div>';
 }
-export function budgetEditorView(data,draft,err='',pickerSearch=''){
+export function budgetEditorView(data,draft,err='',pickerSearch='',clients=[]){
  if(!draft)return budgetsView(data);
  const laborOnly=draft.commercial?.laborOnly===true;
  const scopeWarnings=laborOnlyScopeWarnings(draft);
@@ -290,7 +290,7 @@ export function budgetEditorView(data,draft,err='',pickerSearch=''){
  '<div class="budget-editor-head"><span>Rascunho · '+(draft.id?'edição':'novo')+'</span>'+
  '<p>Ao salvar, o orçamento fica privado na sua conta. Os itens e custos não alteram Financeiro, contratos ou estoque.</p></div>'+
  field('Título do orçamento','title',draft.title,'text','maxlength="180" required')+
- field('Cliente','customer',draft.customer,'text','maxlength="180" required')+
+ '<label class="modal-field"><span>Cliente</span><input name="customer" data-budget-field="customer" list="budget-client-list" value="'+e(draft.customer||'')+'" maxlength="180" required autocomplete="off"><datalist id="budget-client-list">'+clients.map(c=>'<option value="'+e(c.legal_name)+'" label="'+e(c.kind==='cpf'?'CPF: '+c.cpf:'CNPJ: '+c.cnpj)+'"></option>').join('')+'</datalist><small>Selecione um cliente cadastrado ou informe um nome manualmente.</small></label>'+
  field('Obra / projeto','project',draft.project,'text','maxlength="180"')+
  field('Local da obra','location',draft.location,'text','maxlength="240"')+
  field('Validade da proposta','expiresOn',draft.expiresOn||'','date')+
