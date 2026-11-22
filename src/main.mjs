@@ -1,4 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
+import {clientsView} from './clients-ui.mjs';
 import {validateMaterial,validateSupplier,validateMovement} from './materials.mjs';
 import {materialsView,materialEditorDialog,supplierEditorDialog,movementDialog} from './materials-ui.mjs';
 import {fetchRemote,fetchOperationsRemote,putRemote,deleteRemote,putPayrollRemote,putCompanyRemote,putCostPresetsRemote,putCatalogBatchRemote,billMeasurementRemote,fetchInvitesRemote,revokeProposalRemote,fetchProposalRepliesRemote,markResponseReadRemote,transitionWorkStatusRemote,createMaterialMovementRemote,fetchInventoryRemote,putMaterialRemote} from './cloud.mjs';
@@ -34,7 +35,7 @@ import {worksView,workDetailView,workApprovalDialog,workLogDialog,
  workMeasurementDialog,workBillingDialog,workPrintable} from './operations-ui.mjs';
 import {authView,shell,homeView,costsView,teamView,moreView,editorView,payrollSettingsView,cltBreakdownHtml,e,icon} from './views.mjs';
 import {nfseView,nfseNewDraft,nfseIssues,nfseFieldErrors,nfseStorageKey} from './nfse-ui.mjs';
-import {lookupCnpj,lookupCep,clientToDraft,loadNfseRecords,saveNfseCloud,saveNfseClient,deleteNfseCloud} from './nfse-data.mjs';
+import {lookupCnpj,lookupCep,clientToDraft,loadNfseRecords,saveNfseCloud,saveNfseClient,deleteNfseCloud,deleteNfseClient} from './nfse-data.mjs';
 const SUPABASE_URL=__CIVOLTEN_SUPABASE_URL__;
 const SUPABASE_PUBLIC_KEY=__CIVOLTEN_SUPABASE_PUBLISHABLE_KEY__;
 const E2E=__CIVOLTEN_E2E__===true&&['127.0.0.1','localhost'].includes(location.hostname);
@@ -78,6 +79,7 @@ function render(){
  else if(state.view==='company')html=companyView(state.data,state.quoteHours,state.quoteExtra);
  else if(state.view==='appearance')html=appearanceView(state.data.company);
  else if(state.view==='budgets')html=budgetsView(state.data);
+ else if(state.view==='clients')html=clientsView(state.nfseClients,state.nfseNotice);
  else if(state.view==='nfse')html=nfseView(state.nfseDraft||nfseNewDraft(state.data.company),state.nfseStep,(state.data.budgets||[]).filter(b=>b.demo===false),{drafts:state.nfseDrafts,clients:state.nfseClients,loaded:state.nfseLoaded,notice:state.nfseNotice});
  else if(state.view==='site-leads')html=siteLeadsView(state.siteLeads,state.siteLeadsLoading,state.siteLeadsError);
  else if(state.view==='inbox')html=responseInboxView(state.data,state.replyFilter,state.replySearch);
@@ -212,7 +214,8 @@ async function signOut(){
 }
 function go(view){
  if(view==='soon'){delayToast('Este recurso será construído na próxima etapa.');return;}
- if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail','field-progress','inbox','inbox-detail','site-leads','nfse','materials'].includes(view))return;
+ if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail','field-progress','inbox','inbox-detail','site-leads','nfse','materials','clients'].includes(view))return;
+ if(view==='clients'){void refreshNfseRecords(true);}
  if(view==='nfse'&&!state.nfseDraft){
   state.nfseDraft=nfseNewDraft(state.data.company);state.nfseStep=1;
   try{const cached=JSON.parse(localStorage.getItem(nfseStorageKey(state.user?.id))||'null');
@@ -1467,6 +1470,42 @@ function focusNfseFirstError(){
  }
  return false;
 }
+async function saveClientForm(form){
+ if(!state.user||state.busy)return;
+ const values=Object.fromEntries(new FormData(form));
+ const cnpj=String(values.clientCnpj||'').replace(/\D/g,'');
+ if(cnpj.length!==14){delayToast('Informe um CNPJ de 14 dígitos.');return;}
+ const existing=state.nfseClients.find(c=>c.cnpj===cnpj);
+ state.busy=true;
+ try{
+  await saveNfseClient(auth,state.user.id,{...values,clientCnpj:cnpj},existing?.id||null);
+  state.nfseNotice='Cliente salvo no Supabase.';
+  await refreshNfseRecords(true);render();
+ }catch(err){delayToast(String(err.message||err));}
+ finally{state.busy=false;}
+}
+function editClient(id){
+ const c=state.nfseClients.find(x=>x.id===id);
+ if(!c)return;
+ const form=mount.querySelector('#client-form');
+ if(!form)return;
+ form.elements.clientName.value=c.legal_name;
+ form.elements.clientCnpj.value=c.cnpj;
+ form.elements.clientEmail.value=c.email||'';
+ form.scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function removeClient(id){
+ const c=state.nfseClients.find(x=>x.id===id);
+ if(!c||!state.user||state.busy)return;
+ if(!confirm('Excluir o cadastro de '+c.legal_name+'? Orçamentos e obras existentes serão preservados.'))return;
+ state.busy=true;
+ try{
+  await deleteNfseClient(auth,state.user.id,id);
+  state.nfseNotice='Cliente excluído; histórico de obras e orçamentos preservado.';
+  await refreshNfseRecords(true);render();
+ }catch(err){delayToast(String(err.message||err));}
+ finally{state.busy=false;}
+}
 async function refreshNfseRecords(force=false){
  if(!state.user||state.nfseLoading||(!force&&state.nfseLoaded))return;
  const forUser=state.user.id;
@@ -1485,7 +1524,7 @@ async function refreshNfseRecords(force=false){
   state.nfseNotice='Não foi possível carregar a nuvem: '+String(err.message||err)+'. Você ainda pode editar localmente.';
  }finally{
   state.nfseLoading=false;
-  if(state.user?.id===forUser&&state.view==='nfse'){
+  if(state.user?.id===forUser&&['nfse','clients'].includes(state.view)){
    captureNfse();render();
   }
  }
@@ -1660,6 +1699,8 @@ mount.addEventListener('click',async event=>{
  const b=event.target.closest('[data-go],[data-action],[data-tab],[data-fin-filter],[data-theme-choice],[data-reply-filter],[data-field-filter]');
  if(!b)return;
  if(b.dataset.go){go(b.dataset.go);return;}
+ if(b.dataset.action==='client-delete'){await removeClient(b.dataset.id);return;}
+ if(b.dataset.action==='client-edit'){editClient(b.dataset.id);return;}
  if(state.view==='nfse'&&b.dataset.action==='nfse-save'){void saveNfse();return;}
  if(state.view==='nfse'&&b.dataset.action==='nfse-new'){newNfse();return;}
  if(state.view==='nfse'&&b.dataset.action==='nfse-open'){openNfseDraft(b.dataset.id);return;}
@@ -1793,6 +1834,10 @@ mount.addEventListener('input',event=>{
   if(input?.setSelectionRange)input.setSelectionRange(cursor,cursor);
   return;
  }
+ if(event.target.id==='clients-search'){
+  const q=event.target.value.toLowerCase().trim();
+  mount.querySelectorAll('[data-client-search]').forEach(row=>row.hidden=!!q&&!row.dataset.clientSearch.includes(q));return;
+ }
  if(event.target.id==='cost-search'){
   const query=event.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
   mount.querySelectorAll('.cost-row[data-cost-search]').forEach(row=>{
@@ -1822,6 +1867,7 @@ mount.addEventListener('submit',event=>{
   state.nfseStep=Math.min(3,state.nfseStep+1);render();
   void saveNfse({silent:true});return;
  }
+ if(event.target.id==='client-form'){event.preventDefault();void saveClientForm(event.target);return;}
  if(event.target.id==='budget-form'){event.preventDefault();void saveBudget(event.target);return;}
  if(event.target.id==='company-form'){event.preventDefault();void saveCompanySettings(event.target);return;}
  if(event.target.id!=='auth-form')return;

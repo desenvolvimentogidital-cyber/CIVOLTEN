@@ -217,6 +217,7 @@ export function moreView(user,data,siteUnread=0,pushState='inactive',pushBusy=fa
  '<button data-go="team" class="settings-row">'+icon('users',21)+' Funcionários '+icon('chevron',17)+'</button>'+ 
   '<button data-go="materials" class="settings-row">'+icon('package',21)+' Materiais e estoque '+icon('chevron',17)+'</button>'+
  '<button data-go="finance" class="settings-row">'+icon('chart',21)+' Financeiro e faturamento '+icon('chevron',17)+'</button>'+
+ '<button data-go="clients" class="settings-row">'+icon('users',21)+' Clientes '+icon('chevron',17)+'</button>'+
  '<button data-go="budgets" class="settings-row">'+icon('clipboard',21)+' Orçamentos '+icon('chevron',17)+'</button>'+
  '<button data-go="nfse" class="settings-row">'+icon('file',21)+' Notas Fiscais (NFS-e) '+icon('chevron',17)+'</button>'+
  '<button data-go="inbox" class="settings-row">'+icon('mail',21)+' Central de Respostas'+
