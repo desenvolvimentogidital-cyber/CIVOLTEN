@@ -120,7 +120,7 @@ export function validateBudget(raw){
  const customerRef=ref&&typeof ref==='object'&&
   /^[a-f0-9-]{36}$/i.test(String(ref.id||''))&&
   ['cpf','cnpj'].includes(ref.kind)&&
-  /^\\d{11}$|^\\d{14}$/.test(String(ref.document||''))&&
+  /^\d{11}$|^\d{14}$/.test(String(ref.document||''))&&
   String(ref.name||'')===customer?
   {id:ref.id,kind:ref.kind,document:ref.document,name:customer}:null;
  return {id:raw.id,title,customer,customerRef,project,location,notes,expiresOn:expiresOn||null,
