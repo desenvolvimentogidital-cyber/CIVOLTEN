@@ -1,5 +1,5 @@
 import test from 'node:test';
-import {auditBudgetFinancials} from '../src/financial-audit.mjs';
+import {auditBudgetFinancials,auditWorkBilling} from '../src/financial-audit.mjs';
 import assert from 'node:assert/strict';
 import {DEMO_SERVICES,createService,validateBudget,validateCommercial,priceBudget,createPricingSnapshot,budgetUnitEstimate,validateBudgetItem,budgetCsv} from '../src/budget.mjs';
 import {printableBudget} from '../src/budget-print.mjs';
@@ -164,4 +164,16 @@ test('auditoria financeira recusa orçamento sem precificação',()=>{
  const report=auditBudgetFinancials(raw({pricing:null}));
  assert.equal(report.ok,false);
  assert.ok(report.errors.length);
+});
+
+test('auditoria de faturamento concilia medição aprovada com recebível',()=>{
+ const order={id:'obra1',contractValue:100,pricedRows:[{id:'serv1',selling:10000}]};
+ const measurement={id:'med1',workOrderId:'obra1',itemId:'serv1',amount:50,status:'approved'};
+ const ok=auditWorkBilling(order,[measurement],[{reference:'MED:med1',amount:50}]);
+ assert.equal(ok.ok,true,ok.errors.join('; '));
+ assert.equal(ok.totals.pending,0);
+ const duplicate=auditWorkBilling(order,[measurement],[{reference:'MED:med1',amount:50},{reference:'MED:med1',amount:50}]);
+ assert.equal(duplicate.ok,false);
+ const excess=auditWorkBilling(order,[{...measurement,amount:150}],[]);
+ assert.equal(excess.ok,false);
 });
