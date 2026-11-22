@@ -290,7 +290,7 @@ export function budgetEditorView(data,draft,err='',pickerSearch='',clients=[]){
  '<div class="budget-editor-head"><span>Rascunho · '+(draft.id?'edição':'novo')+'</span>'+
  '<p>Ao salvar, o orçamento fica privado na sua conta. Os itens e custos não alteram Financeiro, contratos ou estoque.</p></div>'+
  field('Título do orçamento','title',draft.title,'text','maxlength="180" required')+
- '<label class="modal-field"><span>Cliente</span><input name="customer" data-budget-field="customer" list="budget-client-list" value="'+e(draft.customer||'')+'" maxlength="180" required autocomplete="off"><datalist id="budget-client-list">'+clients.map(c=>'<option value="'+e(c.legal_name)+'" label="'+e(c.kind==='cpf'?'CPF: '+c.cpf:'CNPJ: '+c.cnpj)+'"></option>').join('')+'</datalist><small>Selecione um cliente cadastrado ou informe um nome manualmente.</small></label>'+
+ '<label class="modal-field"><span>Selecionar cliente cadastrado (opcional)</span><select data-budget-field="customerSelect"><option value="">Informar nome manualmente</option>'+clients.map(c=>'<option value="'+e(c.id)+'"'+(draft.customerRef?.id===c.id?' selected':'')+'>'+e(c.legal_name)+' · '+e(c.kind==='cpf'?'CPF '+c.cpf:'CNPJ '+c.cnpj)+'</option>').join('')+'</select></label>'+field('Cliente','customer',draft.customer,'text','maxlength="180" required')+
  field('Obra / projeto','project',draft.project,'text','maxlength="180"')+
  field('Local da obra','location',draft.location,'text','maxlength="240"')+
  field('Validade da proposta','expiresOn',draft.expiresOn||'','date')+
