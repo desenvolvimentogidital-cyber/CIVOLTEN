@@ -115,3 +115,12 @@ export async function deleteNfseCloud(client,userId,id){
  if(!data?.length)fail('Rascunho não encontrado na sua conta.');
  return true;
 }
+
+export async function deleteNfseClient(client,userId,id){
+ checkSession(client,userId);
+ if(!/^[a-f0-9-]{36}$/i.test(id||''))fail('Cliente inválido.');
+ const {data,error}=await client.from(NFSE_CLIENT_TABLE).delete().eq('id',id).eq('user_id',userId).select('id');
+ if(error)fail('Não foi possível excluir o cliente: '+error.message);
+ if(data?.length!==1)fail('O banco não confirmou a exclusão do cliente.');
+ return true;
+}
