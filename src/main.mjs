@@ -1,4 +1,4 @@
-import {auditBudgetFinancials} from './financial-audit.mjs';
+import {auditBudgetFinancials,auditWorkBilling} from './financial-audit.mjs';
 import {createClient} from '@supabase/supabase-js';
 import {clientsView} from './clients-ui.mjs';
 import {loadIndividualClients,saveIndividualClient,deleteIndividualClient} from './individual-clients.mjs';
@@ -1218,6 +1218,8 @@ function openWorkForm(kind,id=null){
   const measure=state.data.measurements.find(x=>x.id===id&&x.workOrderId===work.id);
   if(!measure||measure.status!=='approved')return delayToast('Aprove a medição antes de cobrar.');
   if(state.data.ledger.some(x=>x.reference==='MED:'+id))return delayToast('Medição já lançada no Financeiro.');
+  const billingAudit=auditWorkBilling(work,state.data.measurements,state.data.ledger);
+  if(!billingAudit.ok)return delayToast('Auditoria do faturamento: '+billingAudit.errors.join('; '));
   modal.innerHTML=workBillingDialog(measure);
  }else return;
  modal.showModal();
