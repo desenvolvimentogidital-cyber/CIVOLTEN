@@ -27,3 +27,39 @@ export function auditBudgetFinancials(budget){
  }
  return {ok:errors.length===0,errors,totals:{cost:price.totalCost,sale:price.totalSale,tax:price.totalTax,profit:price.profit}};
 }
+
+export function auditWorkBilling(order,measurements=[],ledger=[]){
+ const errors=[];
+ if(!order?.id||!Array.isArray(order.pricedRows))return {ok:false,errors:['Ordem de serviço inválida.']};
+ const orderMeasurements=measurements.filter(m=>m.workOrderId===order.id);
+ const priced=new Map(order.pricedRows.map(row=>[row.id,row]));
+ const sums=new Map();
+ let approvedCents=0,billedCents=0;
+ for(const m of orderMeasurements){
+  const row=priced.get(m.itemId);
+  if(!row){errors.push('Medição sem serviço contratado: '+m.id);continue;}
+  const value=Math.round(Number(m.amount)*100);
+  if(!Number.isSafeInteger(value)||value<0||Math.abs(Number(m.amount)*100-value)>1e-6){
+   errors.push('Valor monetário inválido na medição: '+m.id);continue;
+  }
+  sums.set(m.itemId,(sums.get(m.itemId)||0)+value);
+  if(sums.get(m.itemId)>row.selling)errors.push('Medições excedem valor contratado: '+m.itemId);
+  if(m.status==='approved')approvedCents+=value;
+  const entries=ledger.filter(entry=>entry.reference==='MED:'+m.id);
+  if(entries.length>1)errors.push('Recebível duplicado para medição: '+m.id);
+  if(entries.length){
+   if(m.status!=='approved')errors.push('Recebível vinculado a medição não aprovada: '+m.id);
+   for(const entry of entries){
+    const cents=Math.round(Number(entry.amount)*100);
+    if(!Number.isSafeInteger(cents)||cents!==value)
+     errors.push('Recebível diverge da medição: '+m.id);
+    billedCents+=Number.isSafeInteger(cents)?cents:0;
+   }
+  }
+ }
+ const contractCents=Math.round(Number(order.contractValue)*100);
+ if(!Number.isSafeInteger(contractCents)||contractCents<0)
+  errors.push('Valor do contrato inválido.');
+ if(approvedCents>contractCents)errors.push('Medições aprovadas superam o contrato.');
+ return {ok:errors.length===0,errors,totals:{contract:contractCents,approved:approvedCents,billed:billedCents,pending:approvedCents-billedCents}};
+}
