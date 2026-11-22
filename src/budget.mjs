@@ -123,7 +123,7 @@ export function createPricingSnapshot(data){
  const cost=summary(data),cfg=companyConfig(data.company),cap=capacity(cfg);
  // Modelos de despesas vazios nao devem impedir usar os custos reais ja cadastrados.
  // Custos da equipe sem informacao suficiente continuam bloqueando o calculo.
- if(!cfg.reviewed||cost.workforceMissing>0||!cap||!Number.isSafeInteger(cost.total)||cost.total<=0)return null;
+ if(!cfg.reviewed||!cost.readyForPricing||!cap||!Number.isSafeInteger(cost.total)||cost.total<=0)return null;
  return {monthlyCostCents:cost.total,productiveHours:cap.productiveHours,
   productiveDays:cfg.productiveDays,hoursPerDay:cfg.hoursPerDay,productivePeople:cfg.productivePeople,
   taxPct:cfg.taxPct,marginPct:cfg.marginPct,companyName:cfg.companyName||'CIVOLTEN',
