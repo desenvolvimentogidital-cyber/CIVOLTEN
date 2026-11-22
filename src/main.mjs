@@ -1544,7 +1544,7 @@ async function refreshNfseRecords(force=false){
   state.nfseNotice='Não foi possível carregar a nuvem: '+String(err.message||err)+'. Você ainda pode editar localmente.';
  }finally{
   state.nfseLoading=false;
-  if(state.user?.id===forUser&&['nfse','clients'].includes(state.view)){
+  if(state.user?.id===forUser&&['nfse','clients','budget-edit'].includes(state.view)){
    captureNfse();render();
   }
  }
@@ -1677,6 +1677,9 @@ function importBudgetToNfse(id){
  render();delayToast('Dados do orçamento importados. Confira todos os campos fiscais.');
 }
 mount.addEventListener('change',event=>{
+ if(state.view==='budget-edit'&&event.target.dataset.budgetField==='customerSelect'){
+  updateBudgetField(event.target);return;
+ }
  if(state.view==='nfse')updateNfseFieldError(event.target);
  if(state.view==='nfse'&&event.target.id==='nfse-client-pick'){
   captureNfse();const chosen=state.nfseClients.find(c=>c.cnpj===event.target.value);
