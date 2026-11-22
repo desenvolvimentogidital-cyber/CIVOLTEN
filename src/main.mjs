@@ -1473,7 +1473,7 @@ function focusNfseFirstError(){
 async function saveClientForm(form){
  if(!state.user||state.busy)return;
  const values=Object.fromEntries(new FormData(form));
- const cnpj=String(values.clientCnpj||'').replace(/\\D/g,'');
+ const cnpj=String(values.clientCnpj||'').replace(/\D/g,'');
  if(cnpj.length!==14){delayToast('Informe um CNPJ de 14 dígitos.');return;}
  const existing=state.nfseClients.find(c=>c.cnpj===cnpj);
  state.busy=true;
