@@ -134,3 +134,8 @@ test('orçamento preserva identificação do cliente cadastrado no snapshot',()=
  assert.equal(frozen.customer,'Cliente A');
  assert.equal(frozen.customerRef.kind,'cpf');
 });
+
+test('vínculo inválido não contamina orçamento salvo',()=>{
+ const b=raw({customerRef:{id:'00000000-0000-4000-8000-000000000010',kind:'cpf',document:'000',name:'Cliente A'}});
+ assert.equal(validateBudget(b).customerRef,null);
+});
