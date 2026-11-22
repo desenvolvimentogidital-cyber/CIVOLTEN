@@ -92,3 +92,24 @@ test('validação rejeita quantidade não numérica, HH inválida e custos negat
  for(const hours of [null,0,-3,10001,'1.12345'])assert.equal(budgetQuantityEstimate(snap,hours,150,0),null);
  assert.equal(budgetQuantityEstimate(snap,1.78,150,-1),null);
 });
+
+// Auditoria: impedir orçamento quando uma despesa real ainda não tem valor válido.
+import {createPricingSnapshot} from '../src/budget.mjs';
+import {DEFAULT_PAYROLL} from '../src/payroll.mjs';
+const baseCompany={reviewed:true,companyName:'CIVOLTEN',taxPct:6,marginPct:30,productiveDays:22,hoursPerDay:8,productivePeople:1};
+test('não gera preço se custo fixo real está incompleto',()=>{
+ const data={company:baseCompany,payroll:DEFAULT_PAYROLL,fixed:[{name:'Aluguel',amount:'inválido',frequency:'monthly'}],variable:[],employees:[{name:'Equipe',role:'Pedreiro',contractType:'contractor',rate:100,rateUnit:'month'}]};
+ assert.equal(createPricingSnapshot(data),null);
+});
+test('não gera preço se custo variável real tem valor inválido',()=>{
+ const data={company:baseCompany,payroll:DEFAULT_PAYROLL,fixed:[],variable:[{name:'Material',unitCost:'inválido',monthQty:2}],employees:[{name:'Equipe',role:'Pedreiro',contractType:'contractor',rate:100,rateUnit:'month'}]};
+ assert.equal(createPricingSnapshot(data),null);
+});
+test('custos válidos permitem preço e incluem imposto e margem',()=>{
+ const data={company:baseCompany,payroll:DEFAULT_PAYROLL,fixed:[{name:'Aluguel',amount:1000,frequency:'monthly'}],variable:[{name:'Transporte',unitCost:50,monthQty:2}],employees:[{name:'Equipe',role:'Pedreiro',contractType:'contractor',rate:100,rateUnit:'month'}]};
+ const snap=createPricingSnapshot(data);
+ assert.equal(snap.monthlyCostCents,120000);
+ const result=budgetQuantityEstimate(snap,8,1,0);
+ assert.ok(result.selling>result.cost);
+ assert.equal(result.selling,result.cost+result.taxes+result.grossProfit);
+});
