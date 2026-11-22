@@ -74,6 +74,7 @@ export function workDetailView(data,id){
  '<div class="work-actions">'+
  (w.status==='approved'?button('work-start','Iniciar execução','check')+
  button('work-cancel','Cancelar OS não iniciada','trash'):'')+
+ (w.status==='cancelled'?button('work-delete','Excluir OS cancelada sem registros','trash'):'')+
  (w.status==='in_progress'?button('work-log-new','Apontar horas trabalhadas','clock')+
   button('work-measure-new','Registrar medição','clipboard')+
   button('work-complete','Concluir obra','check',
