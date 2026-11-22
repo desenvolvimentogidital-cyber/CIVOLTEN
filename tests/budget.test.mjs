@@ -150,4 +150,5 @@ test('Supabase recebe vínculo do cliente ao salvar orçamento',async()=>{
  await putRemote(db,user,'budgets',b);
  assert.deepEqual(payload.customer_ref,b.customerRef);
  assert.equal(payload.user_id,user);
+ assert.equal(payload.customer_ref.kind,'cpf');
 });
