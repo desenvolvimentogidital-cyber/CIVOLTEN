@@ -79,8 +79,8 @@ export function summary(data){
  // Os modelos zerados não bloqueiam preços já configurados, mas permanecem
  // sinalizados: serão incorporados automaticamente quando receberem valores reais.
  // Um custo real com preço informado e quantidade ausente continua bloqueando.
- const blocking=fx.filter(x=>x===null).length+
-  va.filter((x,i)=>x===null&&cents((data.variable||[])[i].unitCost)!==0).length+
+ const blocking=fx.filter((x,i)=>x===null&&String((data.fixed||[])[i].amount??'').trim()!=='').length+
+  va.filter((x,i)=>x===null&&String((data.variable||[])[i].unitCost??'').trim()!=='').length+
   workforceMissing;
  return {fixed,variable,team,total:fixed+variable+team,employees:ep.length,
   missing,workforceMissing,assumedQuantities,complete:missing===0,readyForPricing:blocking===0,blocking,
