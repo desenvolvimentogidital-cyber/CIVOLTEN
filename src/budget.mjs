@@ -116,7 +116,14 @@ export function validateBudget(raw){
  if(new Set(items.map(x=>x.id)).size!==items.length)throw Error('Itens duplicados no orçamento.');
  if(raw.demo===false&&items.some(x=>x.source==='demo'))throw Error('Serviços fictícios não podem entrar no novo orçamento CIVOLTEN.');
  const snapshot=raw.pricing==null?null:validateBudgetSnapshot(raw.pricing);
- return {id:raw.id,title,customer,project,location,notes,expiresOn:expiresOn||null,
+ const ref=raw.customerRef;
+ const customerRef=ref&&typeof ref==='object'&&
+  /^[a-f0-9-]{36}$/i.test(String(ref.id||''))&&
+  ['cpf','cnpj'].includes(ref.kind)&&
+  /^\d{11}$|^\d{14}$/.test(String(ref.document||''))&&
+  String(ref.name||'')===customer?
+  {id:ref.id,kind:ref.kind,document:ref.document,name:customer}:null;
+ return {id:raw.id,title,customer,customerRef,project,location,notes,expiresOn:expiresOn||null,
   items,commercial:validateCommercial(raw.commercial),pricing:snapshot,status:'draft',demo:raw.demo!==false,createdAt:raw.createdAt||null};
 }
 export function createPricingSnapshot(data){

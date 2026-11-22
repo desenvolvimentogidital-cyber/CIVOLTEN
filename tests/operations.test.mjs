@@ -135,3 +135,13 @@ test('simulador Supabase salva obra, horas e medição e emite uma única conta 
   assert.deepEqual(fast.catalog,originalCatalog,'não baixa todo catálogo SIURB para atualizar obra');
  }finally{globalThis.localStorage=old;}
 });
+
+test('ordem de serviço preserva vínculo CPF do orçamento',()=>{
+ const original=budget();
+ original.customerRef={id:'00000000-0000-4000-8000-000000000010',kind:'cpf',document:'52998224725',name:'Cliente final'};
+ const order=createWorkOrder(original,fields,randomUUID());
+ assert.deepEqual(order.customerRef,original.customerRef);
+ assert.deepEqual(order.budgetSnapshot.customerRef,original.customerRef);
+ original.customerRef.name='Alterado';
+ assert.equal(order.customerRef.name,'Cliente final');
+});

@@ -89,7 +89,7 @@ function render(){
  else if(state.view==='work-detail')html=workDetailView(state.data,state.workId);
  else if(state.view==='field-progress')html=fieldProgressView(state.data,state.workId,state.fieldFilter,state.fieldSearch);
  else if(state.view==='catalog')html=catalogView(state.data,state.catalogCategory,state.catalogBack,state.catalogImport,state.catalogSearch);
- else if(state.view==='budget-edit')html=budgetEditorView(state.data,state.budgetDraft,state.budgetError,state.budgetCatalogSearch);
+ else if(state.view==='budget-edit')html=budgetEditorView(state.data,state.budgetDraft,state.budgetError,state.budgetCatalogSearch,[...state.nfseClients,...state.individualClients]);
  else html=moreView(state.user,state.data,newSiteLeadCount(state.siteLeads),state.pushState,state.pushBusy);
  mount.innerHTML=shell(state.view,html,newSiteLeadCount(state.siteLeads));
  // Orçamentos com link já enviado ou obra aprovada são somente leitura.
@@ -216,7 +216,7 @@ async function signOut(){
 function go(view){
  if(view==='soon'){delayToast('Este recurso será construído na próxima etapa.');return;}
  if(!['home','costs','team','more','finance','reports','company','appearance','budgets','budget-edit','catalog','works','work-detail','field-progress','inbox','inbox-detail','site-leads','nfse','materials','clients'].includes(view))return;
- if(view==='clients'){void refreshNfseRecords(true);}
+ if(['clients','budget-edit'].includes(view)){void refreshNfseRecords(true);}
  if(view==='nfse'&&!state.nfseDraft){
   state.nfseDraft=nfseNewDraft(state.data.company);state.nfseStep=1;
   try{const cached=JSON.parse(localStorage.getItem(nfseStorageKey(state.user?.id))||'null');
@@ -682,6 +682,14 @@ function updateBudgetField(element){
  }
  const key=element.dataset.budgetField;
  if(!key)return false;
+ if(key==='customerSelect'){
+  const client=[...state.nfseClients,...state.individualClients].find(c=>c.id===element.value);
+  draft.customerRef=client?{id:client.id,kind:client.kind==='cpf'?'cpf':'cnpj',document:client.cpf||client.cnpj,name:client.legal_name}:null;
+  if(client)draft.customer=client.legal_name;
+  const field=mount.querySelector('#budget-form [name="customer"]');
+  if(field&&client)field.value=client.legal_name;
+  return true;
+ }
  if(key==='laborOnly'){
   const next=element.value==='true';
   if(next&&draft.items.some(item=>Number(item.directCost||0)>0)){
@@ -699,8 +707,13 @@ function updateBudgetField(element){
    item[key]=element.value;
  }else if(['paymentTerms','executionTerm','warrantyTerms','scopeNotes','companyContact','companyDocument','pricePresentation'].includes(key)){
   draft.commercial={...(draft.commercial||{}),[key]:element.value};
- }else if(['title','customer','project','location','expiresOn','notes'].includes(key))
+ }else if(['title','customer','project','location','expiresOn','notes'].includes(key)){
   draft[key]=element.value;
+  if(key==='customer'){
+   const matches=[...state.nfseClients,...state.individualClients].filter(c=>c.legal_name===element.value);
+   draft.customerRef=matches.length===1?{id:matches[0].id,kind:matches[0].kind==='cpf'?'cpf':'cnpj',document:matches[0].cpf||matches[0].cnpj,name:matches[0].legal_name}:null;
+  }
+ }
  const node=mount.querySelector('#budget-price-preview');
  if(node)node.innerHTML=budgetPreview(draft);
  return true;
@@ -1531,7 +1544,7 @@ async function refreshNfseRecords(force=false){
   state.nfseNotice='Não foi possível carregar a nuvem: '+String(err.message||err)+'. Você ainda pode editar localmente.';
  }finally{
   state.nfseLoading=false;
-  if(state.user?.id===forUser&&['nfse','clients'].includes(state.view)){
+  if(state.user?.id===forUser&&['nfse','clients','budget-edit'].includes(state.view)){
    captureNfse();render();
   }
  }
@@ -1664,6 +1677,9 @@ function importBudgetToNfse(id){
  render();delayToast('Dados do orçamento importados. Confira todos os campos fiscais.');
 }
 mount.addEventListener('change',event=>{
+ if(state.view==='budget-edit'&&event.target.dataset.budgetField==='customerSelect'){
+  updateBudgetField(event.target);return;
+ }
  if(state.view==='nfse')updateNfseFieldError(event.target);
  if(state.view==='nfse'&&event.target.id==='nfse-client-pick'){
   captureNfse();const chosen=state.nfseClients.find(c=>c.cnpj===event.target.value);
