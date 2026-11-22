@@ -129,7 +129,7 @@ test('custos de funcionarios realmente incompletos nao sao assumidos como zero',
 
 test('orçamento preserva identificação do cliente cadastrado no snapshot',()=>{
  const b=raw({customer:'Cliente A',customerRef:{id:'00000000-0000-4000-8000-000000000010',kind:'cpf',document:'52998224725',name:'Cliente A'}});
- const frozen=structuredClone(b);
+ const frozen=validateBudget(b);
  assert.equal(frozen.customerRef.document,'52998224725');
  assert.equal(frozen.customer,'Cliente A');
  assert.equal(frozen.customerRef.kind,'cpf');
