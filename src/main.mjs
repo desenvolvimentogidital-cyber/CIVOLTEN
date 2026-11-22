@@ -1,3 +1,4 @@
+import {auditBudgetFinancials,auditMonthlyCosts,auditWorkBilling} from './financial-audit.mjs';
 import {createClient} from '@supabase/supabase-js';
 import {clientsView} from './clients-ui.mjs';
 import {loadIndividualClients,saveIndividualClient,deleteIndividualClient} from './individual-clients.mjs';
@@ -919,6 +920,8 @@ async function saveBudget(form){
    throw Error('Revise os itens e custos do orçamento anterior antes de salvar como proposta comercial.');
   draft.pricing=draft.pricing||createPricingSnapshot(state.data);
   const valid=validateBudget(draft);
+  const audit=auditBudgetFinancials(valid);
+  if(!audit.ok)throw Error('Auditoria financeira: '+audit.errors.join('; '));
   valid.id=state.budgetDraft.id||crypto.randomUUID();
   valid.createdAt=state.budgetDraft.createdAt||new Date().toISOString();
   await putRemote(auth,state.user.id,'budgets',valid);
