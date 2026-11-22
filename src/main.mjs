@@ -1475,7 +1475,7 @@ async function saveClientForm(form){
  const values=Object.fromEntries(new FormData(form));
  const cnpj=String(values.clientCnpj||'').replace(/\D/g,'');
  if(cnpj.length!==14){delayToast('Informe um CNPJ de 14 dígitos.');return;}
- const existing=state.nfseClients.find(c=>c.cnpj===cnpj);
+ const existing=state.nfseClients.find(c=>c.id===values.clientId)||state.nfseClients.find(c=>c.cnpj===cnpj);
  state.busy=true;
  try{
   await saveNfseClient(auth,state.user.id,{...values,clientCnpj:cnpj},existing?.id||null);
@@ -1489,6 +1489,7 @@ function editClient(id){
  if(!c)return;
  const form=mount.querySelector('#client-form');
  if(!form)return;
+ form.elements.clientId.value=c.id;
  form.elements.clientName.value=c.legal_name;
  form.elements.clientCnpj.value=c.cnpj;
  form.elements.clientEmail.value=c.email||'';

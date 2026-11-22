@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {lookupCnpj,lookupCep,clientFromDraft,clientToDraft,saveNfseCloud,loadNfseRecords,saveNfseClient,deleteNfseCloud} from '../src/nfse-data.mjs';
+import {lookupCnpj,lookupCep,clientFromDraft,clientToDraft,saveNfseCloud,loadNfseRecords,saveNfseClient,deleteNfseCloud,deleteNfseClient} from '../src/nfse-data.mjs';
 import {nfseNewDraft} from '../src/nfse-ui.mjs';
 
 const owner='00000000-0000-4000-8000-000000000001';
@@ -79,4 +79,22 @@ test('grava somente rascunhos/ready e histórico nunca equivale a nota emitida',
  assert.equal(db.cv_nfse_clients_v1.length,1);
  assert.equal(await deleteNfseCloud(client,owner,saved.id),true);
  assert.equal(db.cv_nfse_drafts_v1.length,0);
+});
+
+test('exclusão de cliente confirma ID e titularidade, sem apagar outros cadastros',async()=>{
+ const rows=[{id:'00000000-0000-4000-8000-000000000010',user_id:owner},
+  {id:'00000000-0000-4000-8000-000000000011',user_id:'00000000-0000-4000-8000-000000000002'}];
+ const fake={from(table){
+  assert.equal(table,'cv_nfse_clients_v1');
+  return {delete(){
+   const where={};
+   const chain={eq(k,v){where[k]=v;return chain;},async select(){
+    const removed=rows.filter(x=>x.id===where.id&&x.user_id===where.user_id);
+    return {data:removed,error:null};
+   }};return chain;
+  }};
+ }};
+ assert.equal(await deleteNfseClient(fake,owner,rows[0].id),true);
+ await assert.rejects(()=>deleteNfseClient(fake,owner,rows[1].id),/não confirmou/);
+ await assert.rejects(()=>deleteNfseClient(fake,owner,'invalido'),/inválido/);
 });

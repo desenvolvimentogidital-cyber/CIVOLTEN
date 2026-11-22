@@ -5,7 +5,7 @@ export function clientsView(clients=[],notice=''){
  return '<section class="fin-screen"><div class="page-heading"><button class="small-square" data-go="more" aria-label="Voltar">'+icon('back',24)+'</button><h1>Clientes</h1><span></span></div>'+
  '<p class="fin-intro">Cadastro independente de clientes empresariais (CNPJ). Não emite notas fiscais.</p>'+
  (notice?'<p class="fin-helper" role="status">'+e(notice)+'</p>':'')+
- '<form id="client-form" class="settings-panel">'+
+ '<form id="client-form" class="settings-panel"><input type="hidden" name="clientId" value="">'+
  '<label class="modal-field"><span>Razão social</span><input name="clientName" maxlength="180" required></label>'+
  '<label class="modal-field"><span>CNPJ (14 números)</span><input name="clientCnpj" inputmode="numeric" maxlength="18" required></label>'+
  '<label class="modal-field"><span>E-mail</span><input name="clientEmail" type="email" maxlength="160"></label>'+

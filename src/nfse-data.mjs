@@ -101,10 +101,11 @@ export async function saveNfseClient(client,userId,d,existingId=null){
  checkSession(client,userId);
  const data=clientFromDraft(d);
  if(!data)return false;
- const {error}=await client.from(NFSE_CLIENT_TABLE).upsert({
+ const {data:saved,error}=await client.from(NFSE_CLIENT_TABLE).upsert({
   ...data,id:existingId||crypto.randomUUID(),user_id:userId,updated_at:new Date().toISOString()
  },{onConflict:'user_id,cnpj'}).select('id');
- if(error)fail('Rascunho salvo, mas não foi possível cadastrar o cliente: '+error.message);
+ if(error)fail('Não foi possível salvar o cliente: '+error.message);
+ if(!Array.isArray(saved)||saved.length!==1)fail('O banco não confirmou o cadastro do cliente.');
  return true;
 }
 export async function deleteNfseCloud(client,userId,id){
