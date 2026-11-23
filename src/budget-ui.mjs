@@ -7,7 +7,7 @@ import {printableBudget} from './budget-print.mjs';
 import {companyConfig} from './pricing.mjs';
 import {schedulePlan} from './budget-schedule.mjs';
 import {proposalResponseLabel} from './proposal-link.mjs';
-import {laborOnlyScopeWarnings} from './budget-document-guard.mjs';
+import {laborOnlyScopeWarnings,proposalReference} from './budget-document-guard.mjs';
 const money=brl;
 const dateBR=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'')?v.slice(8,10)+'/'+v.slice(5,7)+'/'+v.slice(0,4):'Não definida';
 const header=(text,back)=>'<div class="page-heading"><button type="button" class="small-square" data-go="'+back+'" aria-label="Voltar">'+
@@ -353,7 +353,7 @@ export function budgetEditorView(data,draft,err='',pickerSearch='',clients=[]){
  '</section>'+
  '<p class="fin-helper">Para gerar a proposta e o cronograma com a mesma referência, salve primeiro este orçamento e reabra-o. Alterações posteriores exigem novo salvamento.</p>'+
  '<div class="budget-secondary-actions"><button type="button" class="outlined-button" data-action="budget-print"'+(priced?'':' disabled')+'>'+icon('file',18)+' Visualizar / PDF</button>'+
- '<a class="outlined-button" href="/contrato.html" target="_blank" rel="noopener">'+icon('file',18)+' Gerar contrato de obra certa</a>'+ 
+ '<a class="outlined-button" href="/contrato.html?proposta='+encodeURIComponent(proposalReference(draft))+'+'" target="_blank" rel="noopener">'+icon('file',18)+' Gerar contrato de obra certa</a>'+ 
  '<button type="button" class="outlined-button" data-action="budget-export"'+(priced?'':' disabled')+'>'+icon('file',18)+' Exportar CSV</button></div>'+ 
  '<p class="budget-pdf-model-label">'+icon('check',15)+' Proposta Signature · 3 páginas · CIVOLTEN</p>'+
  (draft.id?'<button type="button" class="fin-delete" data-action="budget-delete">'+icon('trash',18)+' Excluir orçamento</button>':'')+
