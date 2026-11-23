@@ -81,6 +81,7 @@ export function workDetailView(data,id){
    (canComplete(w,logs,measures)?'':'disabled title="Conclua as medições e registre as horas reais"')):'')+
  button('work-export','Exportar relatório CSV','file')+
  button('work-contract-print','Visualizar / PDF da OS','file')+
+ button('work-service-contract-print','Contrato de obra certa / PDF','file')+
  button('work-schedule-print','Cronograma para campo / PDF','calendar')+
  button('work-field-open','Acompanhamento digital do cronograma','clipboard')+'</div>'+
  '<div class="work-field-summary"><strong>Avanço físico no campo: '+numberBR(physical.percentage)+'%</strong>'+

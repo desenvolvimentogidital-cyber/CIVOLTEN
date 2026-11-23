@@ -1,3 +1,4 @@
+import {printableServiceContract} from './service-contract-print.mjs';
 import {auditBudgetFinancials,auditWorkBilling,auditMonthlyCosts} from './financial-audit.mjs';
 import {createClient} from '@supabase/supabase-js';
 import {clientsView} from './clients-ui.mjs';
@@ -1428,6 +1429,18 @@ async function printWorkOrder(){
   div.remove();delayToast('Não foi possível preparar a OS: '+String(err.message||err));
  }
 }
+async function printServiceContract(){
+ const work=workCurrent();if(!work)return;
+ const old=document.getElementById('work-print-root');if(old)old.remove();
+ const div=document.createElement('div');div.id='work-print-root';
+ try{
+  div.innerHTML=printableServiceContract(work,state.data.company||{});
+  document.body.appendChild(div);
+  if(document.fonts?.ready)await document.fonts.ready;
+  window.addEventListener('afterprint',()=>div.remove(),{once:true});
+  window.print();
+ }catch(err){div.remove();delayToast('Não foi possível gerar o contrato: '+String(err.message||err));}
+}
 function exportReport(){
  const csv=reportCsv(state.data,state.finMonth);
  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
@@ -1790,6 +1803,7 @@ mount.addEventListener('click',async event=>{
  else if(action==='work-complete'){await updateWorkStatus('completed');}
  else if(action==='work-export'){exportWork();}
  else if(action==='work-contract-print'){await printWorkOrder();}
+ else if(action==='work-service-contract-print'){await printServiceContract();}
   else if(action==='work-schedule-print'){await printScheduleForField(true);}
  else if(action==='budget-new'){newBudget();}
  else if(action==='budget-open'){openBudget(b.dataset.id);}
