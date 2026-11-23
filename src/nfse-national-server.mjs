@@ -52,7 +52,7 @@ export async function sendSignedDps({signedXml,environment,env=process.env,reque
  // O empacotamento é feito aqui para evitar formatos distintos no cliente.
  const {gzipSync}=await import('node:zlib');
  const body=JSON.stringify({dpsXmlGZipB64:gzipSync(Buffer.from(signedXml,'utf8')).toString('base64')});
- return requestNational({host:config.host,path:'/SefinNacional/nfse',method:'POST',
+ return requestNational({host:config.host,path:config.environment==='homologation'?'/API/SefinNacional/nfse':'/SefinNacional/nfse',method:'POST',
   pfx,passphrase:env.NFSE_CERT_PASSPHRASE,body},requestImpl);
 }
 export function nationalNfseStatus(env=process.env){
