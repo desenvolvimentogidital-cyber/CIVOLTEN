@@ -29,7 +29,7 @@ test('DPS assinada é compactada e enviada somente ao domínio nacional permitid
  const result=await sendSignedDps({signedXml:'<DPS><Signature/></DPS>',environment:'homologation',env,requestImpl});
  assert.equal(result.status,200);
  assert.equal(opts.hostname,'sefin.producaorestrita.nfse.gov.br');
- assert.equal(opts.path,'/SefinNacional/nfse');
+ assert.equal(opts.path,'/API/SefinNacional/nfse');
  assert.equal(opts.rejectUnauthorized,true);
  assert.equal(gunzipSync(Buffer.from(JSON.parse(posted).dpsXmlGZipB64,'base64')).toString(),'<DPS><Signature/></DPS>');
 });
