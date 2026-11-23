@@ -1,0 +1,41 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CIVOLTEN | Contrato de obra certa</title><style>
+:root{font-family:Arial,sans-serif;color:#222}body{margin:0;background:#eee}.controls{max-width:780px;margin:20px auto;background:white;padding:20px;border-radius:12px}h1{font-size:22px}label{display:block;margin:10px 0;font-weight:600}input,textarea{box-sizing:border-box;width:100%;padding:10px;border:1px solid #aaa;border-radius:6px;font:inherit}textarea{min-height:70px}button{background:#1d1d1d;color:white;padding:12px 20px;border:0;border-radius:8px;font:inherit;cursor:pointer}.sheet{background:white;max-width:780px;margin:20px auto;padding:45px;box-sizing:border-box;line-height:1.55}.sheet h2{text-align:center;font-size:18px}.sheet h3{font-size:14px;margin-top:22px}.sheet p{text-align:justify}.signature{display:flex;gap:30px;margin-top:70px}.signature div{flex:1;text-align:center;border-top:1px solid #333;padding-top:7px}.notice{color:#754d00}a{color:inherit}@media print{@page{size:A4;margin:17mm}body{background:white}.controls{display:none}.sheet{padding:0;margin:0;max-width:none}.sheet h3{break-after:avoid}.signature{break-inside:avoid}}.brand-header{height:72px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #b89b57;padding:0 0 12px;margin-bottom:25px}.brand-header img{width:185px;max-height:60px;object-fit:contain;object-position:left}.brand-header span{font-size:11px;letter-spacing:1.6px;color:#8b703b;font-weight:bold}.brand-footer{margin-top:30px;border-top:2px solid #b89b57;padding-top:12px;display:flex;justify-content:space-between;color:#777;font-size:10px}.brand-watermark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:58%;opacity:.055;pointer-events:none;z-index:0}.sheet{position:relative}.sheet>*:not(.brand-watermark){position:relative;z-index:1}@media print{@page{size:A4;margin:28mm 17mm 24mm}.brand-header{position:fixed;top:-22mm;left:0;right:0;height:17mm;margin:0;padding:0 0 2mm}.brand-footer{position:fixed;bottom:-18mm;left:0;right:0;margin:0;padding-top:2mm}.brand-watermark{position:fixed;top:45%;left:50%}.sheet{position:static}.sheet>*:not(.brand-watermark){position:static}.sheet h2{margin-top:5mm}} </style></head><body>
+<div class="controls"><a href="/">← Voltar ao CIVOLTEN</a><h1>Contrato de prestação de serviços de obra certa</h1><p>Modelo adaptável baseado no contrato fornecido. Preencha os campos antes de gerar o PDF. Os dados do contrato original não são reutilizados.</p><p class="notice">Revise as cláusulas com orientação jurídica antes da assinatura. Este formulário não salva dados no servidor.</p>
+<label>Contratante — razão social, CNPJ e endereço<textarea id="contratante"></textarea></label>
+<label>Contratado — nome/razão social, CPF/CNPJ e endereço<textarea id="contratado"></textarea></label>
+<label>Empresa cliente / local da obra<textarea id="local"></textarea></label>
+<label>Objeto e escopo dos serviços<textarea id="objeto"></textarea></label>
+<label>Proposta comercial / orçamento nº<input id="proposta"></label>
+<label>Valor total (R$)<input id="valor" inputmode="decimal"></label>
+<label>Condições de pagamento<textarea id="pagamento"></textarea></label>
+<label>Data de início<input id="inicio" type="date"></label>
+<label>Prazo de execução em dias<input id="prazo" type="number" min="1"></label>
+<label>Quem fornece os materiais?<input id="materiais" placeholder="Ex.: contratante, conforme escopo"></label>
+<label>Cidade e foro contratual<input id="foro" placeholder="Ex.: São Paulo/SP"></label>
+<label>Multa por rescisão (%)<input id="multa" type="number" min="0" max="100" value="20"></label>
+<button type="button" id="gerar">Atualizar contrato</button> <button type="button" id="imprimir">Imprimir / salvar PDF</button>
+</div><article class="sheet" id="contrato"><h2>CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE OBRA CERTA</h2><p>Preencha os dados acima e clique em Atualizar contrato.</p></article>
+<script>
+const ids=['contratante','contratado','local','objeto','proposta','valor','pagamento','inicio','prazo','materiais','foro','multa'];
+const value=id=>document.getElementById(id).value.trim();
+const esc=s=>String(s||'NÃO INFORMADO').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const v=id=>esc(value(id));const para=(title,text)=>'<h3>'+title+'</h3><p>'+text+'</p>';
+function update(){
+ const start=value('inicio')?new Date(value('inicio')+'T12:00:00').toLocaleDateString('pt-BR'):'NÃO INFORMADA';
+ document.getElementById('contrato').innerHTML='<div class="brand-header"><img src="/assets/civolten-logo.png" alt="CIVOLTEN"><span>CONTRATO DE OBRA CERTA</span></div><img class="brand-watermark" src="/assets/civolten-simbolo.png" alt=""><div class="brand-footer"><span>CIVOLTEN · ELÉTRICA E CONSTRUÇÃO CIVIL</span><span>DOCUMENTO CONTRATUAL</span></div><h2>CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE OBRA CERTA</h2>'+
+ '<p><b>CONTRATANTE:</b> '+v('contratante')+'</p><p><b>CONTRATADO:</b> '+v('contratado')+'</p>'+
+ '<p>As partes acima identificadas celebram o presente contrato, mediante as condições seguintes.</p>'+
+ para('1 — OBJETO','1.1. O contratado executará os serviços: '+v('objeto')+'. Proposta comercial de referência: '+v('proposta')+'. O escopo e o cronograma aprovados integram este instrumento como anexos. 1.2. Concluídos os serviços e cumpridas as obrigações contratuais, o objeto será considerado executado.')+
+ para('2 — VALOR E PAGAMENTO','2.1. Valor total contratado: R$ '+v('valor')+'. 2.2. Condições de pagamento: '+v('pagamento')+'. Descontos, retenções e indenizações dependerão de previsão legal ou acordo comprovado entre as partes.')+
+ para('3 — LOCAL DE EXECUÇÃO','3.1. Os serviços serão executados em: '+v('local')+', observadas as regras de acesso e segurança do local.')+
+ para('4 — PRAZO','4.1. Início previsto: '+esc(start)+'. Prazo estimado: '+v('prazo')+' dias. 4.2. A prorrogação poderá ocorrer por paralisação determinada pelo contratante, impedimento comprovado, força maior ou caso fortuito, mediante registro e ajuste de cronograma.')+
+ para('5 — OBRIGAÇÕES DO CONTRATANTE','5.1. Disponibilizar materiais conforme definido entre as partes: '+v('materiais')+'. 5.2. Prestar informações necessárias, viabilizar acesso ao local e efetuar os pagamentos contratados.')+
+ para('6 — OBRIGAÇÕES DO CONTRATADO','6.1. Executar os serviços com técnica, zelo e observância das normas de segurança. 6.2. Cumprir o cronograma, manter pessoal qualificado e observar as regras internas do local. 6.3. A subcontratação dependerá de autorização escrita do contratante. 6.4. Permitir fiscalização dos serviços e adotar medidas de segurança para trabalhadores e terceiros. 6.5. Ao final, retirar resíduos, ferramentas e materiais de sua responsabilidade. 6.6. Responder pelos encargos legais relativos a seus empregados e prestadores, quando aplicável. A natureza da relação contratual será apurada conforme os fatos e a legislação aplicável.')+
+ para('7 — RESCISÃO E PENALIDADES','7.1. A parte que causar rescisão por inadimplemento responderá pelas perdas e danos legalmente cabíveis, quando comprovados. 7.2. Multa contratual prevista: '+v('multa')+'% do valor total, sujeita aos limites legais e à análise das circunstâncias. 7.3. A tolerância pontual não implica renúncia automática aos direitos contratuais.')+
+ para('8 — FORO','8.1. Foro indicado pelas partes: '+v('foro')+', observadas as regras legais de competência.')+
+ '<p>E, por estarem de acordo, assinam este instrumento, juntamente com duas testemunhas.</p><p>Local e data: __________________________________</p>'+
+ '<div class="signature"><div>CONTRATANTE</div><div>CONTRATADO</div></div><div class="signature"><div>TESTEMUNHA 1<br>Nome / documento</div><div>TESTEMUNHA 2<br>Nome / documento</div></div>';
+}
+document.getElementById('gerar').addEventListener('click',update);
+document.getElementById('imprimir').addEventListener('click',()=>{update();window.print()});
+</script></body></html>
