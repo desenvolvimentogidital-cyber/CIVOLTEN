@@ -1,3 +1,4 @@
+import {installVoiceFields} from './voice-fields.mjs';
 import {auditBudgetFinancials,auditWorkBilling,auditMonthlyCosts} from './financial-audit.mjs';
 import {createClient} from '@supabase/supabase-js';
 import {clientsView} from './clients-ui.mjs';
@@ -2000,3 +2001,5 @@ window.CIVOLTENPreview={get view(){return state.view},get data(){return structur
  get company(){return structuredClone(state.data.company)},
  get budgets(){return structuredClone(state.data.budgets)},
  get works(){return structuredClone(state.data.works)}};
+
+installVoiceFields();
