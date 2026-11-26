@@ -6,6 +6,7 @@ await rm(dest,{recursive:true,force:true});
 await mkdir(dest,{recursive:true});
 for(const file of ['index.html','aceite.html','contrato.html','manifest.webmanifest','sw.js'])
  await copyFile(file,path.join(dest,file));
+await copyFile('src/voice-fields.mjs',path.join(dest,'voice-fields.mjs'));
 await copyFile('src/styles.css',path.join(dest,'styles.css'));
 await copyFile('src/nfse.css',path.join(dest,'nfse.css'));
 await copyFile('src/aceite.css',path.join(dest,'aceite.css'));
