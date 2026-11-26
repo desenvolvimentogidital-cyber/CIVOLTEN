@@ -2047,3 +2047,5 @@ dialog.editor-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
   margin-top:3mm!important;gap:6mm!important;
  }
 }
+
+.cv-voice-button{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;width:44px;height:44px;margin:5px 0;border:1px solid #ff8b00;border-radius:10px;background:#19191b;color:#ffbb24;cursor:pointer}.cv-voice-button.listening{background:#ff8b00;color:#080808;outline:2px solid #ffbb24}
