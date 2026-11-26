@@ -2,7 +2,7 @@
 export function spokenNumber(text){
  const s=String(text).trim().replace(/\s*(reais|real)\s*$/i,'').replace(/\s/g,'');
  if(!/^\d+(?:[.,]\d+)*$/.test(s))return null;
- const n=Number(s.includes(',')?s.replace(/\./g,'').replace(',','.'):s);
+ const n=Number(s.includes(',')?s.replace(/\./g,'').replace(',','.'): /^\d{1,3}(\.\d{3})+$/.test(s)?s.replace(/\./g,''):s);
  return Number.isFinite(n)?String(n):null;
 }
 export function installVoiceFields(){
@@ -23,7 +23,7 @@ export function installVoiceFields(){
  const rec=new Recognition();active=rec;rec.lang='pt-BR';rec.interimResults=false;rec.maxAlternatives=1;
  btn.classList.add('listening');btn.setAttribute('aria-label','Parar ditado');
  const finish=()=>{if(active===rec)active=null;btn.classList.remove('listening');btn.setAttribute('aria-label','Ditar neste campo');};
- rec.onend=finish;rec.onerror=()=>{finish();window.alert('Não foi possível reconhecer a voz. Confira a permissão do microfone e tente novamente.');};
+ rec.onend=finish;rec.onerror=e=>{finish();if(e.error==='aborted')return;window.alert('Não foi possível reconhecer a voz. Confira a permissão do microfone e tente novamente.');};
  rec.onresult=e=>{
  if(!field.isConnected)return;
  const transcript=e.results[0][0].transcript.trim();
