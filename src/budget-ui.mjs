@@ -6,6 +6,7 @@ import {icon,e} from './views.mjs';
 import {printableBudget} from './budget-print.mjs';
 import {companyConfig} from './pricing.mjs';
 import {schedulePlan} from './budget-schedule.mjs';
+import {unreadReplies} from './proposal-inbox.mjs';
 import {proposalResponseLabel} from './proposal-link.mjs';
 import {laborOnlyScopeWarnings,proposalReference} from './budget-document-guard.mjs';
 const money=brl;
@@ -25,12 +26,21 @@ const status=draft=>needsReview(draft)?
 function error(msg){return '<p class="form-error" role="alert">'+e(msg)+'</p>';}
 export function budgetsView(data){
  const rows=(data.budgets||[]).slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
- return '<section class="fin-screen budget-screen">'+header('Orçamentos','home')+
- '<p class="fin-intro">Elabore propostas comerciais com produtividade por HH/un, composições importadas da SIURB/SINAPI e custos reais da CIVOLTEN.</p>'+
- '<button type="button" class="outlined-button" data-go="catalog">'+icon('clipboard',18)+' Catálogo de serviços SIURB/SINAPI</button>'+
- '<button class="gold-button budget-new-button" type="button" data-action="budget-new">'+icon('plus',22)+' Novo orçamento CIVOLTEN</button>'+
- '<button type="button" class="outlined-button" data-go="inbox">'+icon('mail',18)+' Central de Respostas · Aceites e recusas</button>'+
- '<button type="button" class="outlined-button" data-go="works">'+icon('building',18)+' Acompanhar obras e medições</button>'+
+ const replies=unreadReplies(data).length;
+ const now=new Date(),month=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+ const monthly=rows.filter(b=>String(b.createdAt||'').startsWith(month)).length;
+ const pending=(data.invites||[]).filter(i=>i.status==='pending').length;
+ const works=(data.works||[]).filter(w=>w.status!=='cancelled'&&w.status!=='completed').length;
+ const card=(go,ic,title,desc,badge=0)=>'<button type="button" class="budget-tool-card" data-go="'+go+'"><span class="budget-tool-icon">'+icon(ic,25)+(badge?'<span class="budget-tool-badge">'+badge+'</span>':'')+'</span><span class="budget-tool-copy"><strong>'+title+'</strong><small>'+desc+'</small></span>'+icon('chevron',16)+'</button>';
+ const metric=(ic,n,title,desc)=>'<div class="budget-dashboard-metric">'+icon(ic,23)+'<strong>'+n+'</strong><span>'+title+'</span><small>'+desc+'</small></div>';
+ return '<section class="fin-screen budget-screen budget-dashboard">'+header('Orçamentos','home')+
+ '<p class="fin-intro">Gerencie orçamentos, propostas e acompanhe suas obras de forma integrada.</p>'+
+ '<button class="gold-button budget-new-button budget-dashboard-new" type="button" data-action="budget-new">'+icon('file',30)+'<span><strong>Novo orçamento CIVOLTEN</strong><small>Criar orçamento ou proposta comercial</small></span>'+icon('chevron',22)+'</button>'+
+ '<div class="budget-tool-grid">'+card('catalog','clipboard','Catálogo de serviços','SIURB/SINAPI · composições e preços')+
+ card('inbox','mail','Central de respostas','Aceites e recusas',replies)+card('works','hardhat','Obras e medições','Acompanhamento de obras')+
+ card('company','settings','Precificação','Custos, encargos e margens')+'</div>'+
+ '<div class="budget-dashboard-metrics">'+metric('clipboard',monthly,'Orçamentos','Este mês')+metric('mail',pending,'Propostas','Aguardando resposta')+metric('hardhat',works,'Obras','Em andamento')+'</div>'+
+ '<h2 class="budget-dashboard-list-title">Meus orçamentos <span>'+rows.length+'</span></h2>'+
  (rows.length?'<div class="budget-list">'+rows.map(b=>{
   let price=null;try{price=priceBudget(b)}catch{/* registros antigos devem continuar acessíveis */}
   const linked=(data.works||[]).find(w=>w.budgetId===b.id);
@@ -66,7 +76,7 @@ export function budgetsView(data){
  '</div>';
  }).join('')+'</div>':
  '<div class="fin-empty">Nenhum orçamento salvo. Crie seu primeiro orçamento com os serviços do catálogo interno.</div>')+
- '<div class="fin-link-row"><button type="button" data-go="company">Ajustar precificação '+icon('chevron',17)+'</button></div></section>';
+ '</section>';
 }
 function itemRow(item,index,snapshot,pricedRow=null,laborOnly=false){
  const quantity=Number(item.quantity).toLocaleString('pt-BR',{maximumFractionDigits:3});
