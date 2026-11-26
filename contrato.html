@@ -13,7 +13,7 @@
 .auto-reference{border-color:#ffbb24;background:linear-gradient(110deg,#fff8e6,#fff)}
 .notice{border-left-color:#ffbb24}
 @media print{.brand-header{border-bottom-color:#ffbb24}.brand-footer{border-top-color:#ffbb24}}
-</style></head><body>
+.cv-voice-button{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:5px 0;border:1px solid #ff8b00;border-radius:10px;background:#19191b;color:#ffbb24;cursor:pointer}.cv-voice-button.listening{background:#ff8b00;color:#080808}@media print{.cv-voice-button{display:none!important}}</style></head><body>
 <div class="controls"><div class="form-brand"><div class="brand-lockup"><img src="/assets/civolten-simbolo.png" alt=""><div><strong>CIVOLTEN</strong><small>ELÉTRICA &amp; CONSTRUÇÃO CIVIL</small></div></div><span class="brand-kicker">GESTÃO DE CONTRATOS</span></div><a class="back-link" href="/">← Voltar ao painel</a><div class="hero"><div class="eyebrow">DOCUMENTOS COMERCIAIS <span> / CONTRATO</span></div><h1>Contrato de <em>obra certa</em></h1><p>Preencha os dados variáveis e gere o contrato padronizado com a identidade CIVOLTEN.</p><div class="hero-chip">✦ Modelo oficial CIVOLTEN <span>•</span> PDF A4</div></div><div class="section-label"><span>01</span> Identificação das partes</div><p class="notice">Antes de assinar, revise as cláusulas com orientação jurídica. Este formulário não salva dados no servidor.</p>
 <label>Contratante — razão social, CNPJ e endereço<textarea id="contratante"></textarea></label>
 <label>Contratado — nome/razão social, CPF/CNPJ e endereço<textarea id="contratado"></textarea></label>
@@ -58,4 +58,4 @@ function update(){
 }
 document.getElementById('gerar').addEventListener('click',update);
 document.getElementById('imprimir').addEventListener('click',()=>{update();window.print()});
-</script></body></html>
+</script><script type="module">import {installVoiceFields} from "/voice-fields.mjs";installVoiceFields();</script></body></html>
